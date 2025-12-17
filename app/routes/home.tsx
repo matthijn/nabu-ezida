@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import { AppLayout } from "~/components/app-layout";
 import { Editor } from "~/lib/editor";
 
 export function meta({}: Route.MetaArgs) {
@@ -9,5 +10,9 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <Editor />;
+  return (
+    <AppLayout>
+      <Editor />
+    </AppLayout>
+  );
 }
