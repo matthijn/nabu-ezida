@@ -1,7 +1,27 @@
 .DS_Store
 .env
-/node_modules/
+.env.*
+!.env.example
 
-# React Router
-/.react-router/
-/build/
+node_modules/
+
+*.log
+*.log.*
+logs/
+
+.react-router/
+build/
+dist/
+
+*.local
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+.turbo
+.vercel
+
+bun.lockb.bak
