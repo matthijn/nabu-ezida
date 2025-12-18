@@ -1,3 +1,5 @@
+import { calculateBackoff } from "../backoff"
+
 type WebSocketConfig<T> = {
   url: string
   onMessage: (message: T) => void
@@ -12,13 +14,6 @@ type WebSocketConnection = {
   close: () => void
   send: (data: string) => void
   readyState: () => number
-}
-
-const calculateReconnectDelay = (attempt: number, maxDelay: number): number => {
-  const baseDelay = 1000
-  const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay)
-  const jitter = Math.random() * 1000
-  return exponentialDelay + jitter
 }
 
 export const createWebSocketConnection = <T>(config: WebSocketConfig<T>): WebSocketConnection => {
@@ -43,7 +38,7 @@ export const createWebSocketConnection = <T>(config: WebSocketConfig<T>): WebSoc
       config.onClose?.()
 
       if (shouldReconnect && !intentionallyClosed) {
-        const delay = calculateReconnectDelay(reconnectAttempt, maxDelay)
+        const delay = calculateBackoff(reconnectAttempt, { maxDelay })
         reconnectAttempt++
         reconnectTimeout = window.setTimeout(connect, delay)
       }

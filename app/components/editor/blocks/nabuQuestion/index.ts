@@ -1,0 +1,1 @@
+export { nabuQuestionSpec } from "./spec"
