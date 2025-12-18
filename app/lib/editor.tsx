@@ -104,7 +104,6 @@ export const Editor = () => {
       editor={editor}
       theme={theme}
       className="h-full"
-      slashMenu={false}
       onChange={handleChange}
     />
   )
