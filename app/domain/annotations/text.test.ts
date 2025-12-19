@@ -70,15 +70,15 @@ describe("resolveTextAnnotations", () => {
     {
       name: "resolves single annotation",
       fullText: "hello world",
-      annotations: [{ id: "1", text: "hello", codeIds: ["a"] }],
+      annotations: [{ id: "1", text: "hello", codeIds: ["a"], actor: "test" }],
       expected: [{ id: "1", from: 0, to: 5, codeIds: ["a"] }],
     },
     {
       name: "resolves multiple non-overlapping annotations",
       fullText: "hello world",
       annotations: [
-        { id: "1", text: "hello", codeIds: ["a"] },
-        { id: "2", text: "world", codeIds: ["b"] },
+        { id: "1", text: "hello", codeIds: ["a"], actor: "test" },
+        { id: "2", text: "world", codeIds: ["b"], actor: "test" },
       ],
       expected: [
         { id: "1", from: 0, to: 5, codeIds: ["a"] },
@@ -89,8 +89,8 @@ describe("resolveTextAnnotations", () => {
       name: "filters out annotations that are not found",
       fullText: "hello world",
       annotations: [
-        { id: "1", text: "hello", codeIds: ["a"] },
-        { id: "2", text: "missing", codeIds: ["b"] },
+        { id: "1", text: "hello", codeIds: ["a"], actor: "test" },
+        { id: "2", text: "missing", codeIds: ["b"], actor: "test" },
       ],
       expected: [{ id: "1", from: 0, to: 5, codeIds: ["a"] }],
     },
@@ -98,8 +98,8 @@ describe("resolveTextAnnotations", () => {
       name: "resolves overlapping annotations",
       fullText: "Today I went. The day was nice.",
       annotations: [
-        { id: "1", text: "Today I went. The day was nice.", codeIds: ["a"] },
-        { id: "2", text: "The day was nice.", codeIds: ["b"] },
+        { id: "1", text: "Today I went. The day was nice.", codeIds: ["a"], actor: "test" },
+        { id: "2", text: "The day was nice.", codeIds: ["b"], actor: "test" },
       ],
       expected: [
         { id: "1", from: 0, to: 31, codeIds: ["a"] },

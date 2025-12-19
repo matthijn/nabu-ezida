@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import { FileText, Home, Moon, Settings, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -6,7 +7,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -15,6 +16,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
 import { useTheme } from "~/hooks/use-theme";
+import { ProjectSelector } from "~/components/project-selector";
 
 const navItems = [
   { title: "Home", icon: Home, url: "/" },
@@ -46,12 +48,23 @@ function ThemeToggle() {
   );
 }
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  projectId?: string;
+};
+
+const toProjectUrl = (id: string): string => `/project/${id}`;
+
+export function AppSidebar({ projectId }: AppSidebarProps) {
+  const navigate = useNavigate();
+  const navigateToProject = (id: string) => navigate(toProjectUrl(id));
+
   return (
     <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <ProjectSelector value={projectId ?? null} onChange={navigateToProject} />
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Nabu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (

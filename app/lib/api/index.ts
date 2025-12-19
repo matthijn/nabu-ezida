@@ -1,3 +1,5 @@
-export type { Command, DomainEvent, CommandResult, CommandError } from "./client"
+export type { Command, DomainEvent, CommandResult, CommandError, Actor, ActorType } from "./client"
 export { sendCommand, isCommandError, formatCommandError, formatNetworkError } from "./client"
 export { useCommand } from "./useCommand"
+export type { ProjectSummary, PaginationQuery, PaginationResult, QueryError } from "./queries"
+export { getProjects, getProjectEvents, isQueryError } from "./queries"

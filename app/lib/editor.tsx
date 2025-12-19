@@ -11,11 +11,13 @@ const sampleAnnotations: StoredAnnotation[] = [
     id: "1",
     text: "Today I conducted three interviews with participants from the target demographic. The sessions revealed interesting patterns in how users approach the onboarding flow.",
     codeIds: ["theme-identity"],
+    actor: "user",
   },
   {
     id: "2",
     text: "The sessions revealed interesting patterns in how users approach the onboarding flow.",
     codeIds: ["method-interview"],
+    actor: "user",
   },
 ]
 

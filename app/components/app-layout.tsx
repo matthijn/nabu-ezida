@@ -3,12 +3,13 @@ import { AppSidebar } from "~/components/app-sidebar";
 
 type AppLayoutProps = {
   children: React.ReactNode;
+  projectId?: string;
 };
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, projectId }: AppLayoutProps) {
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar projectId={projectId} />
       <SidebarInset className="flex h-screen flex-col">
         <header className="flex h-12 shrink-0 items-center border-b px-4">
           <SidebarTrigger />

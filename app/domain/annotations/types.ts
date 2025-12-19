@@ -2,6 +2,8 @@ export type StoredAnnotation = {
   id: string
   text: string
   codeIds: string[]
+  note?: string
+  actor: string
 }
 
 export type ResolvedAnnotation = {

@@ -6,6 +6,13 @@ export type Command = {
   payload: unknown
 }
 
+export type ActorType = "human" | "llm" | "system"
+
+export type Actor = {
+  user_id: string
+  actor_type: ActorType
+}
+
 export type DomainEvent = {
   id: string
   type: "DomainEvent"
@@ -16,6 +23,7 @@ export type DomainEvent = {
   timestamp: string
   version: number
   payload: unknown
+  actor: Actor
 }
 
 export type CommandResult = {
