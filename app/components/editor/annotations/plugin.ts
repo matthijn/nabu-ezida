@@ -1,30 +1,30 @@
 import { Plugin, PluginKey } from "@tiptap/pm/state"
 import { Decoration, DecorationSet } from "@tiptap/pm/view"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
-import type { StoredAnnotation, OverlapSegment } from "~/domain/annotations"
+import type { Annotation, OverlapSegment } from "~/domain/annotations"
 import { segmentByOverlap, createBackground, colorsForCodes } from "~/domain/annotations"
 import { resolveAnnotations } from "./resolve"
 
 export const annotationPluginKey = new PluginKey<DecorationSet>("annotations")
 
 const createDecoration = (segment: OverlapSegment): Decoration => {
-  const colors = colorsForCodes(segment.codeIds)
+  const colors = colorsForCodes(segment.code_ids)
   const background = createBackground(colors)
 
   return Decoration.inline(segment.from, segment.to, {
     class: "annotation-highlight",
     style: `background: ${background}`,
-    "data-codes": segment.codeIds.join(","),
+    "data-codes": segment.code_ids.join(","),
   })
 }
 
-const buildDecorations = (doc: ProseMirrorNode, annotations: StoredAnnotation[]): DecorationSet => {
+const buildDecorations = (doc: ProseMirrorNode, annotations: Annotation[]): DecorationSet => {
   const resolved = resolveAnnotations(doc, annotations)
   const segments = segmentByOverlap(resolved)
   return DecorationSet.create(doc, segments.map(createDecoration))
 }
 
-export const createAnnotationPlugin = (getAnnotations: () => StoredAnnotation[]) =>
+export const createAnnotationPlugin = (getAnnotations: () => Annotation[]) =>
   new Plugin({
     key: annotationPluginKey,
     state: {

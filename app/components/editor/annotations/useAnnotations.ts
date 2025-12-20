@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react"
-import type { StoredAnnotation } from "~/domain/annotations"
+import type { Annotation } from "~/domain/annotations"
 import { createAnnotationPlugin, annotationPluginKey } from "./plugin"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const useAnnotations = (
   editor: { _tiptapEditor: any } | null,
-  annotations: StoredAnnotation[]
+  annotations: Annotation[]
 ) => {
 /* eslint-enable @typescript-eslint/no-explicit-any */
   const annotationsRef = useRef(annotations)

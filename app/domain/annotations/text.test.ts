@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest"
 import { findTextPosition, resolveTextAnnotations } from "./text"
-import type { StoredAnnotation } from "./types"
+import type { Annotation } from "./types"
+
+const annotation = (id: string, text: string, color: string, code_id?: string): Annotation => ({
+  id,
+  text,
+  actor: "test",
+  color,
+  payload: code_id ? { type: "coding", code_id, confidence: "high" } : undefined,
+})
 
 describe("findTextPosition", () => {
   const cases: {
@@ -64,47 +72,53 @@ describe("resolveTextAnnotations", () => {
   const cases: {
     name: string
     fullText: string
-    annotations: StoredAnnotation[]
-    expected: { id: string; from: number; to: number; codeIds: string[] }[]
+    annotations: Annotation[]
+    expected: { id: string; from: number; to: number; color: string; code_id: string | null }[]
   }[] = [
     {
       name: "resolves single annotation",
       fullText: "hello world",
-      annotations: [{ id: "1", text: "hello", codeIds: ["a"], actor: "test" }],
-      expected: [{ id: "1", from: 0, to: 5, codeIds: ["a"] }],
+      annotations: [annotation("1", "hello", "blue", "a")],
+      expected: [{ id: "1", from: 0, to: 5, color: "blue", code_id: "a" }],
     },
     {
       name: "resolves multiple non-overlapping annotations",
       fullText: "hello world",
       annotations: [
-        { id: "1", text: "hello", codeIds: ["a"], actor: "test" },
-        { id: "2", text: "world", codeIds: ["b"], actor: "test" },
+        annotation("1", "hello", "blue", "a"),
+        annotation("2", "world", "green", "b"),
       ],
       expected: [
-        { id: "1", from: 0, to: 5, codeIds: ["a"] },
-        { id: "2", from: 6, to: 11, codeIds: ["b"] },
+        { id: "1", from: 0, to: 5, color: "blue", code_id: "a" },
+        { id: "2", from: 6, to: 11, color: "green", code_id: "b" },
       ],
     },
     {
       name: "filters out annotations that are not found",
       fullText: "hello world",
       annotations: [
-        { id: "1", text: "hello", codeIds: ["a"], actor: "test" },
-        { id: "2", text: "missing", codeIds: ["b"], actor: "test" },
+        annotation("1", "hello", "blue", "a"),
+        annotation("2", "missing", "red", "b"),
       ],
-      expected: [{ id: "1", from: 0, to: 5, codeIds: ["a"] }],
+      expected: [{ id: "1", from: 0, to: 5, color: "blue", code_id: "a" }],
     },
     {
       name: "resolves overlapping annotations",
       fullText: "Today I went. The day was nice.",
       annotations: [
-        { id: "1", text: "Today I went. The day was nice.", codeIds: ["a"], actor: "test" },
-        { id: "2", text: "The day was nice.", codeIds: ["b"], actor: "test" },
+        annotation("1", "Today I went. The day was nice.", "blue", "a"),
+        annotation("2", "The day was nice.", "green", "b"),
       ],
       expected: [
-        { id: "1", from: 0, to: 31, codeIds: ["a"] },
-        { id: "2", from: 14, to: 31, codeIds: ["b"] },
+        { id: "1", from: 0, to: 31, color: "blue", code_id: "a" },
+        { id: "2", from: 14, to: 31, color: "green", code_id: "b" },
       ],
+    },
+    {
+      name: "resolves annotation without payload",
+      fullText: "hello world",
+      annotations: [annotation("1", "hello", "yellow")],
+      expected: [{ id: "1", from: 0, to: 5, color: "yellow", code_id: null }],
     },
   ]
 

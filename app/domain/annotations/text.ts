@@ -1,13 +1,7 @@
-import type { StoredAnnotation } from "./types"
+import type { Annotation, ResolvedAnnotation } from "./types"
+import { getCodeId } from "./types"
 
 export type TextPosition = { from: number; to: number }
-
-export type TextAnnotation = {
-  id: string
-  from: number
-  to: number
-  codeIds: string[]
-}
 
 export const findTextPosition = (
   fullText: string,
@@ -20,12 +14,18 @@ export const findTextPosition = (
 
 export const resolveTextAnnotations = (
   fullText: string,
-  annotations: StoredAnnotation[]
-): TextAnnotation[] =>
+  annotations: Annotation[]
+): ResolvedAnnotation[] =>
   annotations
     .map(a => {
       const pos = findTextPosition(fullText, a.text)
       if (!pos) return null
-      return { id: a.id, from: pos.from, to: pos.to, codeIds: a.codeIds }
+      return {
+        id: a.id,
+        from: pos.from,
+        to: pos.to,
+        color: a.color,
+        code_id: getCodeId(a),
+      }
     })
-    .filter((a): a is TextAnnotation => a !== null)
+    .filter((a): a is ResolvedAnnotation => a !== null)
