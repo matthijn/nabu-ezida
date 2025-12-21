@@ -1,6 +1,0 @@
-export type { Annotation, ResolvedAnnotation, OverlapSegment, CodingPayload, AnnotationPayload, Confidence } from "./types"
-export { getCodingPayload, getCodeId } from "./types"
-export { findTextPosition, resolveTextAnnotations } from "./text"
-export { segmentByOverlap } from "./overlap"
-export { createBarberPoleGradient, createBackground, colorForCode, colorsForCodes } from "./gradient"
-export { sampleAnnotations, initialContent } from "./defaults"

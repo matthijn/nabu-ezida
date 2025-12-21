@@ -1,10 +1,12 @@
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useEffect, useRef } from "react"
+import type { AsyncDuckDB } from "@duckdb/duckdb-wasm"
 import { useStateSync } from "./useStateSync"
 import { useDatabase } from "./useDatabase"
 import { createClient, formatError } from "~/domain/api"
 import type { Domain } from "~/domain/types"
 import type { Command, FormattedError } from "~/domain/api"
 import type { QueryResult } from "~/lib/db/types"
+import { toError } from "~/lib/error"
 
 type SyncEngineConfig<T> = {
   wsBaseUrl: string
@@ -13,7 +15,7 @@ type SyncEngineConfig<T> = {
   queryParams?: Record<string, string>
   schemaSql: string
   onError: (error: FormattedError) => void
-  syncToDatabase?: (state: T) => Promise<void>
+  syncToDatabase: (db: AsyncDuckDB, state: T) => Promise<void>
 }
 
 type SyncEngineResult<T> = {
@@ -30,6 +32,8 @@ type SyncEngineResult<T> = {
   domain: Domain
 }
 
+const SYNC_DEBOUNCE_MS = 100
+
 export const useSyncEngine = <T>({
   wsBaseUrl,
   apiBaseUrl,
@@ -45,17 +49,28 @@ export const useSyncEngine = <T>({
     queryParams,
   })
 
-  const handleStateChange = useCallback(
-    async (s: unknown) => {
-      if (s && syncToDatabase) await syncToDatabase(s as T)
-    },
-    [syncToDatabase]
-  )
+  const database = useDatabase(state, { schemaSql })
+  const syncTimeoutRef = useRef<number | null>(null)
 
-  const database = useDatabase(state, {
-    schemaSql,
-    onStateChange: syncToDatabase ? handleStateChange : undefined,
-  })
+  useEffect(() => {
+    if (!database.db || !database.isReady || !state) return
+
+    if (syncTimeoutRef.current !== null) {
+      clearTimeout(syncTimeoutRef.current)
+    }
+
+    syncTimeoutRef.current = window.setTimeout(() => {
+      syncToDatabase(database.db!, state).catch(err =>
+        onError(formatError(toError(err)))
+      )
+    }, SYNC_DEBOUNCE_MS)
+
+    return () => {
+      if (syncTimeoutRef.current !== null) {
+        clearTimeout(syncTimeoutRef.current)
+      }
+    }
+  }, [state, database.db, database.isReady, syncToDatabase, onError])
 
   const client = useMemo(() => createClient(apiBaseUrl), [apiBaseUrl])
 

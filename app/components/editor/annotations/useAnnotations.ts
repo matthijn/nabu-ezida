@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import type { Annotation } from "~/domain/annotations"
+import type { Annotation } from "~/domain/document"
 import { createAnnotationPlugin, annotationPluginKey } from "./plugin"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

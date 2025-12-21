@@ -1,11 +1,35 @@
+export type { Document, DocumentData } from "./types"
 export type {
-  Document,
-  DocumentData,
   Block,
-  BlockType,
-  BlockProps,
   InlineContent,
   InlineType,
   StyledText,
   Styles,
-} from "./types"
+} from "./block"
+export type {
+  BlockType,
+  BlockProps,
+  CommonBlockProps,
+  TextBlockType,
+  HeadingProps,
+  ListBlockType,
+  CheckListProps,
+  MediaBlockType,
+  MediaProps,
+  CodeBlockType,
+  CodeProps,
+  TableBlockType,
+} from "./blocks"
+export type {
+  Annotation,
+  ResolvedAnnotation,
+  OverlapSegment,
+  TextPosition,
+} from "./annotations"
+export {
+  findTextPosition,
+  resolveTextAnnotations,
+  segmentByOverlap,
+  createBarberPoleGradient,
+  createBackground,
+} from "./annotations"

@@ -1,6 +1,6 @@
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
-import type { Annotation, ResolvedAnnotation } from "~/domain/annotations"
-import { findTextPosition, getCodeId } from "~/domain/annotations"
+import type { Annotation, ResolvedAnnotation } from "~/domain/document"
+import { findTextPosition } from "~/domain/document"
 
 type TextNodeInfo = {
   textStart: number
@@ -56,7 +56,6 @@ const resolveAnnotation = (
     from: textPosToDocPos(nodes, pos.from),
     to: textPosToDocPos(nodes, pos.to),
     color: annotation.color,
-    code_id: getCodeId(annotation),
   }
 }
 

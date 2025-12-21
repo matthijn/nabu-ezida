@@ -1,6 +1,6 @@
-import type { Annotation } from "./types"
+import type { CodingAnnotation } from "./types"
 
-export const sampleAnnotations: Annotation[] = [
+export const sampleAnnotations: CodingAnnotation[] = [
   {
     id: "1",
     text: "Today I conducted three interviews with participants from the target demographic. The sessions revealed interesting patterns in how users approach the onboarding flow.",

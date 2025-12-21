@@ -1,44 +1,43 @@
 import type { ResolvedAnnotation, OverlapSegment } from "./types"
 
-type Boundary = { pos: number; isStart: boolean; code_id: string | null }
+type Boundary = { pos: number; isStart: boolean; color: string }
 
 const collectBoundaries = (annotations: ResolvedAnnotation[]): Boundary[] => {
   const boundaries: Boundary[] = []
 
   for (const a of annotations) {
-    boundaries.push({ pos: a.from, isStart: true, code_id: a.code_id })
-    boundaries.push({ pos: a.to, isStart: false, code_id: a.code_id })
+    boundaries.push({ pos: a.from, isStart: true, color: a.color })
+    boundaries.push({ pos: a.to, isStart: false, color: a.color })
   }
 
   return boundaries.sort((a, b) => a.pos - b.pos)
 }
 
-const uniqueCodes = (codes: (string | null)[]): string[] =>
-  [...new Set(codes.filter((c): c is string => c !== null))]
+const uniqueColors = (colors: string[]): string[] => [...new Set(colors)]
 
 export const segmentByOverlap = (annotations: ResolvedAnnotation[]): OverlapSegment[] => {
   if (annotations.length === 0) return []
 
   const boundaries = collectBoundaries(annotations)
   const segments: OverlapSegment[] = []
-  let activeCodes: (string | null)[] = []
+  let activeColors: string[] = []
   let lastPos = boundaries[0]?.pos ?? 0
 
   for (const boundary of boundaries) {
-    if (boundary.pos > lastPos && activeCodes.length > 0) {
+    if (boundary.pos > lastPos && activeColors.length > 0) {
       segments.push({
         from: lastPos,
         to: boundary.pos,
-        code_ids: uniqueCodes(activeCodes),
+        colors: uniqueColors(activeColors),
       })
     }
 
     if (boundary.isStart) {
-      activeCodes = [...activeCodes, boundary.code_id]
+      activeColors = [...activeColors, boundary.color]
     } else {
-      const idx = activeCodes.indexOf(boundary.code_id)
+      const idx = activeColors.indexOf(boundary.color)
       if (idx !== -1) {
-        activeCodes = [...activeCodes.slice(0, idx), ...activeCodes.slice(idx + 1)]
+        activeColors = [...activeColors.slice(0, idx), ...activeColors.slice(idx + 1)]
       }
     }
 

@@ -7,7 +7,6 @@ import { toError } from "~/lib/error"
 
 type UseDatabaseConfig = {
   schemaSql: string
-  onStateChange?: (state: unknown) => Promise<void>
 }
 
 type UseDatabaseResult = {
@@ -17,16 +16,13 @@ type UseDatabaseResult = {
   db: AsyncDuckDB | null
 }
 
-const SYNC_DEBOUNCE_MS = 100
-
 export const useDatabase = <T>(
-  state: T | null,
+  _state: T | null,
   config: UseDatabaseConfig
 ): UseDatabaseResult => {
   const dbRef = useRef<Database | null>(null)
   const [isReady, setReady] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const syncTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -51,30 +47,6 @@ export const useDatabase = <T>(
       cancelled = true
     }
   }, [config.schemaSql])
-
-  useEffect(() => {
-    if (!dbRef.current || !isReady || !config.onStateChange) return
-
-    if (syncTimeoutRef.current !== null) {
-      clearTimeout(syncTimeoutRef.current)
-    }
-
-    const handleSyncError = (err: unknown) => setError(toError(err))
-
-    const triggerSync = () => {
-      config.onStateChange?.(state)?.catch(handleSyncError)
-    }
-
-    syncTimeoutRef.current = window.setTimeout(triggerSync, SYNC_DEBOUNCE_MS)
-
-    const clearSyncTimeout = () => {
-      if (syncTimeoutRef.current !== null) {
-        clearTimeout(syncTimeoutRef.current)
-      }
-    }
-
-    return clearSyncTimeout
-  }, [state, isReady, config.onStateChange])
 
   const query = useCallback(
     async <T = unknown>(sql: string): Promise<QueryResult<T>> => {

@@ -3,7 +3,7 @@ import { BlockNoteView } from "@blocknote/shadcn"
 import "@blocknote/shadcn/style.css"
 import { useTheme } from "~/hooks/use-theme"
 import { schema, type CustomEditor } from "~/components/editor/blocks"
-import { sampleAnnotations, initialContent } from "~/domain/annotations"
+import { sampleAnnotations, initialContent } from "~/domain/plugins/coding"
 import { useAnnotations } from "~/components/editor/annotations"
 
 const isAtTrigger = (editor: CustomEditor): boolean => {

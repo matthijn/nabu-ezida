@@ -4,6 +4,7 @@ export type ProjectData = {
   name: string
   description: string
   pinned: boolean
+  updated_at: string
 }
 
 export type Project = {

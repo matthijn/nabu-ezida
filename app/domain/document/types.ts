@@ -1,63 +1,5 @@
-import type { Annotation } from "../annotations"
-
-export type BlockType =
-  | "paragraph"
-  | "heading"
-  | "bulletListItem"
-  | "numberedListItem"
-  | "checkListItem"
-  | "table"
-  | "image"
-  | "video"
-  | "audio"
-  | "file"
-  | "codeBlock"
-
-export type InlineType = "text" | "link"
-
-export type Styles = {
-  bold?: boolean
-  italic?: boolean
-  underline?: boolean
-  strikethrough?: boolean
-  code?: boolean
-  text_color?: string
-  background_color?: string
-}
-
-export type StyledText = {
-  type: InlineType
-  text: string
-  styles?: Styles
-}
-
-export type InlineContent = {
-  type: InlineType
-  text?: string
-  styles?: Styles
-  href?: string
-  content?: StyledText[]
-}
-
-export type BlockProps = {
-  level?: number
-  background_color?: string
-  text_color?: string
-  text_alignment?: string
-  checked?: boolean
-  language?: string
-  url?: string
-  caption?: string
-  width?: number
-}
-
-export type Block = {
-  id: string
-  type: BlockType
-  props?: BlockProps
-  content?: InlineContent[]
-  children?: Block[]
-}
+import type { Annotation } from "./annotations"
+import type { Block } from "./block"
 
 export type DocumentData = {
   project_id: string
@@ -65,8 +7,10 @@ export type DocumentData = {
   description: string
   title?: string
   time?: string
+  updated_at: string
   original: string
   pinned: boolean
+  tags: string[]
   content: Block[]
   annotations: Annotation[]
 }

@@ -1,20 +1,18 @@
 import { Plugin, PluginKey } from "@tiptap/pm/state"
 import { Decoration, DecorationSet } from "@tiptap/pm/view"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
-import type { Annotation, OverlapSegment } from "~/domain/annotations"
-import { segmentByOverlap, createBackground, colorsForCodes } from "~/domain/annotations"
+import type { Annotation, OverlapSegment } from "~/domain/document"
+import { segmentByOverlap, createBackground } from "~/domain/document"
 import { resolveAnnotations } from "./resolve"
 
 export const annotationPluginKey = new PluginKey<DecorationSet>("annotations")
 
 const createDecoration = (segment: OverlapSegment): Decoration => {
-  const colors = colorsForCodes(segment.code_ids)
-  const background = createBackground(colors)
+  const background = createBackground(segment.colors)
 
   return Decoration.inline(segment.from, segment.to, {
     class: "annotation-highlight",
     style: `background: ${background}`,
-    "data-codes": segment.code_ids.join(","),
   })
 }
 
