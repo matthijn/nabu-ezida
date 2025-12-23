@@ -1,21 +1,11 @@
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
-import { AppSidebar } from "~/components/app-sidebar";
-
 type AppLayoutProps = {
-  children: React.ReactNode;
-  projectId?: string;
-};
+  children: React.ReactNode
+}
 
-export function AppLayout({ children, projectId }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <SidebarProvider>
-      <AppSidebar projectId={projectId} />
-      <SidebarInset className="flex h-screen flex-col">
-        <header className="flex h-12 shrink-0 items-center border-b px-4">
-          <SidebarTrigger />
-        </header>
-        <main className="min-h-0 flex-1">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+    <div className="flex h-screen">
+      <main className="min-h-0 flex-1">{children}</main>
+    </div>
+  )
 }

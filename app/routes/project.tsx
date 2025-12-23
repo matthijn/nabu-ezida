@@ -31,7 +31,7 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
   })
 
   return (
-    <AppLayout projectId={params.projectId}>
+    <AppLayout>
       <Editor />
     </AppLayout>
   )
