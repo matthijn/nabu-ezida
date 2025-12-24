@@ -1,28 +1,57 @@
 import { Extension } from "@tiptap/react"
+import { Plugin, PluginKey } from "@tiptap/pm/state"
+import type { Node } from "@tiptap/pm/model"
+import type { Transaction } from "@tiptap/pm/state"
 
-declare module "@tiptap/react" {
-  interface NodeConfig {
-    lockable?: boolean
-  }
+const NON_LOCKABLE = new Set([
+  "doc",
+  "text",
+  "tableRow",
+  "tableCell",
+  "tableHeader",
+  "listItem",
+  "taskItem",
+  "hardBreak",
+  "horizontalRule",
+])
+
+const isLockable = (name: string): boolean =>
+  !NON_LOCKABLE.has(name)
+
+const isNodeLocked = (node: Node): boolean =>
+  !!node.attrs.lockedBy
+
+const transactionTouchesLockedNode = (tr: Transaction, doc: Node): boolean => {
+  let touchesLocked = false
+
+  tr.steps.forEach((step) => {
+    const stepMap = step.getMap()
+    stepMap.forEach((oldStart, oldEnd) => {
+      doc.nodesBetween(oldStart, oldEnd, (node) => {
+        if (isNodeLocked(node)) {
+          touchesLocked = true
+          return false
+        }
+        return true
+      })
+    })
+  })
+
+  return touchesLocked
 }
 
-export interface LockOptions {
-  types: string[]
-}
-
-export const Lock = Extension.create<LockOptions>({
+export const Lock = Extension.create({
   name: "lock",
 
-  addOptions() {
-    return {
-      types: ["paragraph", "heading", "bulletList", "orderedList", "blockquote", "codeBlock"],
-    }
-  },
-
   addGlobalAttributes() {
+    const nodeExtensions = this.extensions.filter((ext) => ext.type === "node")
+    const lockableTypes = nodeExtensions
+      .map((ext) => ext.name)
+      .filter(isLockable)
+
     return [
       {
-        types: this.options.types,
+        types: lockableTypes,
         attributes: {
           lockedBy: {
             default: null,
@@ -34,6 +63,18 @@ export const Lock = Extension.create<LockOptions>({
           },
         },
       },
+    ]
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("lock"),
+        filterTransaction: (tr, state) => {
+          if (!tr.docChanged) return true
+          return !transactionTouchesLockedNode(tr, state.doc)
+        },
+      }),
     ]
   },
 })

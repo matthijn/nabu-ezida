@@ -3,17 +3,25 @@
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
-import { Table } from "@tiptap/extension-table"
 import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
-import { Image } from "@tiptap/extension-image"
-import { TaskList } from "@tiptap/extension-task-list"
 import { TaskItem } from "@tiptap/extension-task-item"
 import { Link } from "@tiptap/extension-link"
 import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
 import { Lock } from "./extensions"
+import {
+  Paragraph,
+  Heading,
+  Blockquote,
+  CodeBlock,
+  BulletList,
+  OrderedList,
+  Table,
+  TaskList,
+  Image,
+} from "./nodes"
 
 export type EditorProps = {
   content?: JSONContent
@@ -32,6 +40,7 @@ const defaultContent: JSONContent = {
     },
     {
       type: "paragraph",
+      attrs: { lockedBy: "alice" },
       content: [
         { type: "text", text: "This is a paragraph with some " },
         { type: "text", marks: [{ type: "bold" }], text: "bold" },
@@ -76,6 +85,7 @@ const defaultContent: JSONContent = {
     },
     {
       type: "table",
+      attrs: { lockedBy: "charlie" },
       content: [
         {
           type: "tableRow",
@@ -119,6 +129,7 @@ const defaultContent: JSONContent = {
     },
     {
       type: "blockquote",
+      attrs: { lockedBy: "bob" },
       content: [
         { type: "paragraph", content: [{ type: "text", text: "The participants expressed concern about long-term environmental impacts." }] },
       ],
@@ -143,8 +154,20 @@ export const Editor = ({
 }: EditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder }),
+      StarterKit.configure({
+        paragraph: false,
+        heading: false,
+        blockquote: false,
+        codeBlock: false,
+        bulletList: false,
+        orderedList: false,
+      }),
+      Paragraph,
+      Heading,
+      Blockquote,
+      CodeBlock,
+      BulletList,
+      OrderedList,
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
@@ -157,19 +180,7 @@ export const Editor = ({
         HTMLAttributes: { class: "mention" },
       }),
       Markdown,
-      Lock.configure({
-        types: [
-          "paragraph",
-          "heading",
-          "bulletList",
-          "orderedList",
-          "blockquote",
-          "codeBlock",
-          "table",
-          "taskList",
-          "image",
-        ],
-      }),
+      Lock,
     ],
     content,
     editable,
