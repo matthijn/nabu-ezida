@@ -1,0 +1,236 @@
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror h1 {
+  font-family: var(--font-heading-1), serif;
+  font-size: var(--text-heading-1);
+  line-height: var(--text-heading-1--line-height);
+  font-weight: var(--text-heading-1--font-weight);
+  letter-spacing: var(--text-heading-1--letter-spacing);
+  margin-top: var(--spacing-prose-section);
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror h1:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror h2 {
+  font-family: var(--font-heading-2), serif;
+  font-size: var(--text-heading-2);
+  line-height: var(--text-heading-2--line-height);
+  font-weight: var(--text-heading-2--font-weight);
+  letter-spacing: var(--text-heading-2--letter-spacing);
+  margin-top: var(--spacing-prose-section);
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror h2:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror h3 {
+  font-family: var(--font-heading-3), serif;
+  font-size: var(--text-heading-3);
+  line-height: var(--text-heading-3--line-height);
+  font-weight: var(--text-heading-3--font-weight);
+  letter-spacing: var(--text-heading-3--letter-spacing);
+  margin-top: var(--spacing-prose-h3);
+  margin-bottom: var(--spacing-prose-h3-below);
+}
+
+.ProseMirror h3:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror p {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-weight: var(--text-body--font-weight);
+  letter-spacing: var(--text-body--letter-spacing);
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  padding-left: 1.5em;
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror li {
+  margin-bottom: var(--spacing-prose-tight);
+}
+
+.ProseMirror li:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror blockquote {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  border-left: 3px solid var(--color-neutral-200);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: var(--spacing-prose-block);
+  color: var(--color-subtext-color);
+}
+
+.ProseMirror code {
+  font-family: var(--font-monospace-body);
+  font-size: var(--text-monospace-body);
+  background-color: var(--color-neutral-100);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-sm);
+}
+
+.ProseMirror pre {
+  font-family: var(--font-monospace-body);
+  font-size: var(--text-monospace-body);
+  line-height: var(--text-monospace-body--line-height);
+  background-color: var(--color-neutral-100);
+  padding: 0.75em 1em;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-prose-block);
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+
+.ProseMirror strong {
+  font-weight: 600;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-neutral-400);
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin-bottom: var(--spacing-prose-block);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  padding: var(--spacing-cell-y) var(--spacing-cell-x);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-neutral-border);
+  border-right: 1px solid var(--color-neutral-border);
+}
+
+.ProseMirror td:last-child,
+.ProseMirror th:last-child {
+  border-right: none;
+}
+
+.ProseMirror tr:last-child td {
+  border-bottom: none;
+}
+
+.ProseMirror th {
+  font-weight: var(--text-body-bold--font-weight);
+  background-color: var(--color-neutral-50);
+}
+
+.ProseMirror tbody tr:nth-child(odd) td {
+  background-color: var(--color-neutral-50);
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid var(--color-brand-600);
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: var(--spacing-prose-block);
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 0.15em;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  color: var(--color-neutral-400);
+}
+
+.ProseMirror a {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a:hover {
+  color: var(--color-brand-700);
+}
+
+.ProseMirror .mention {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--text-body);
+  font-weight: var(--text-body-bold--font-weight);
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-md);
+}
+
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--color-neutral-200);
+  margin: var(--spacing-prose-section) 0;
+}

@@ -10,13 +10,13 @@ const subframeTypography = [
   "heading-2",
   "heading-3",
   "monospace-body",
-];
+] as const;
 
-const twMerge = extendTailwindMerge({
+const twMerge = extendTailwindMerge<"sf-text-style" | "sf-font-family">({
   extend: {
     classGroups: {
-      "sf-text-style": [{ text: subframeTypography }],
-      "sf-font-family": [{ font: subframeTypography }],
+      "sf-text-style": [{ text: [...subframeTypography] }],
+      "sf-font-family": [{ font: [...subframeTypography] }],
     },
   },
 });

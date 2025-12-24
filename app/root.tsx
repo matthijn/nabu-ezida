@@ -9,7 +9,7 @@ import {
 import { Toaster } from "sonner"
 
 import type { Route } from "./+types/root"
-import "./app.css"
+import "./styles/index.css"
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./utilities.css";
+@import "./editor.css";
+
+body {
+  font-family: Manrope, sans-serif;
+  color: rgb(28, 25, 23);
+  background-color: rgb(255, 255, 255);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
