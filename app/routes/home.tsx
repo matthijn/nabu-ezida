@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import type { Route } from "./+types/home";
-import { AppLayout } from "~/components/app-layout";
+import { AppLayout } from "~/ui/layouts/AppLayout";
 import { useProjects, getFirstProjectId } from "~/hooks/useProjects";
 
 export function meta({}: Route.MetaArgs) {

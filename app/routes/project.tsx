@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
 import type { Route } from "./+types/project"
-import { AppLayout } from "~/components/app-layout"
+import { AppLayout } from "~/ui/layouts/AppLayout"
 import { Editor } from "~/lib/editor"
 import { useSyncEngine } from "~/hooks/useSyncEngine"
 import { getWsUrl, getApiUrl } from "~/lib/env"

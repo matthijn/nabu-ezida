@@ -25,3 +25,6 @@ dist/
 .vercel
 
 bun.lockb.bak
+
+*storybook.log
+storybook-static

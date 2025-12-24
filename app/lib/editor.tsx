@@ -1,10 +1,10 @@
 import { useCreateBlockNote } from "@blocknote/react"
-import { BlockNoteView } from "@blocknote/shadcn"
-import "@blocknote/shadcn/style.css"
+import { BlockNoteView } from "@blocknote/ariakit"
+import "@blocknote/ariakit/style.css"
 import { useTheme } from "~/hooks/use-theme"
-import { schema, type CustomEditor } from "~/components/editor/blocks"
+import { schema, type CustomEditor } from "~/ui/components/editor/blocks"
 import { sampleAnnotations, initialContent } from "~/domain/plugins/coding"
-import { useAnnotations } from "~/components/editor/annotations"
+import { useAnnotations } from "~/ui/components/editor/annotations"
 
 const isAtTrigger = (editor: CustomEditor): boolean => {
   const cursor = editor.getTextCursorPosition()
