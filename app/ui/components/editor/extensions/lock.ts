@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state"
 import type { Node } from "@tiptap/pm/model"
 import type { Transaction } from "@tiptap/pm/state"
 
-const NON_LOCKABLE = new Set([
+export const NON_LOCKABLE = new Set([
   "doc",
   "text",
   "tableRow",
@@ -15,7 +15,7 @@ const NON_LOCKABLE = new Set([
   "horizontalRule",
 ])
 
-const isLockable = (name: string): boolean =>
+export const isLockable = (name: string): boolean =>
   !NON_LOCKABLE.has(name)
 
 const isNodeLocked = (node: Node): boolean =>
@@ -59,6 +59,22 @@ export const Lock = Extension.create({
             renderHTML: (attributes) => {
               if (!attributes.lockedBy) return {}
               return { "data-locked-by": attributes.lockedBy }
+            },
+          },
+          lockReason: {
+            default: null,
+            parseHTML: (element) => element.getAttribute("data-lock-reason"),
+            renderHTML: (attributes) => {
+              if (!attributes.lockReason) return {}
+              return { "data-lock-reason": attributes.lockReason }
+            },
+          },
+          loading: {
+            default: false,
+            parseHTML: (element) => element.getAttribute("data-loading") === "true",
+            renderHTML: (attributes) => {
+              if (!attributes.loading) return {}
+              return { "data-loading": "true" }
             },
           },
         },

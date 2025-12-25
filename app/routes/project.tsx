@@ -32,7 +32,9 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
 
   return (
     <AppLayout>
-      <Editor />
+      <div className="overflow-auto h-full">
+        <Editor />
+      </div>
     </AppLayout>
   )
 }

@@ -10,7 +10,7 @@ import { TaskItem } from "@tiptap/extension-task-item"
 import { Link } from "@tiptap/extension-link"
 import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
-import { Lock } from "./extensions"
+import { Lock, BlockID } from "./extensions"
 import {
   Paragraph,
   Heading,
@@ -21,6 +21,7 @@ import {
   Table,
   TaskList,
   Image,
+  NabuQuestion,
 } from "./nodes"
 
 export type EditorProps = {
@@ -143,6 +144,20 @@ const defaultContent: JSONContent = {
       type: "codeBlock",
       content: [{ type: "text", text: "const themes = extractThemes(interviews)\nconst frequency = countByTheme(themes)" }],
     },
+    {
+      type: "heading",
+      attrs: { level: 2 },
+      content: [{ type: "text", text: "Conversation" }],
+    },
+    {
+      type: "nabuQuestion",
+      attrs: {
+        initiator: { id: "user-1", type: "human", name: "You", color: "#6366f1", initial: "M" },
+        recipient: { id: "nabu", type: "llm", name: "Nabu", color: "#16a34a", initial: "N" },
+        messages: [],
+        draft: "",
+      },
+    },
   ],
 }
 
@@ -175,11 +190,13 @@ export const Editor = ({
       Image,
       TaskList,
       TaskItem.configure({ nested: true }),
+      NabuQuestion,
       Link.configure({ openOnClick: false }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
       }),
       Markdown,
+      BlockID,
       Lock,
     ],
     content,
@@ -194,5 +211,5 @@ export const Editor = ({
     },
   })
 
-  return <EditorContent editor={editor} className="h-full" />
+  return <EditorContent editor={editor} />
 }

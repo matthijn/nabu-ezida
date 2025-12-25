@@ -9,7 +9,9 @@ import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextField } from "~/ui/components/TextField";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
-import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout";
+import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
+import { Proposal } from "~/ui/components/Proposal";
+import { ProposalOptions } from "~/ui/components/ProposalOptions";
 import { FeatherBarChart3 } from "@subframe/core";
 import { FeatherBold } from "@subframe/core";
 import { FeatherCheck } from "@subframe/core";
@@ -457,7 +459,7 @@ function NabuDocuments() {
                 <span className="text-heading-2 font-heading-2 text-default-font">
                   Regional Impact Analysis
                 </span>
-                <div className="flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid border-brand-400 px-4 pt-4 pb-12 relative">
+                <Proposal avatar="N" description="added content">
                   <div className="flex w-full flex-col items-start gap-3 rounded-lg border border-solid border-neutral-border">
                     <div className="flex w-full items-center gap-4 border-b border-solid border-neutral-border bg-neutral-50 px-4 py-3">
                       <span className="w-48 flex-none text-body-bold font-body-bold text-default-font">
@@ -530,50 +532,7 @@ function NabuDocuments() {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-full border-2 border-solid border-brand-400 bg-default-background px-6 py-2 absolute -bottom-6 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-2">
-                      <Avatar variant="brand" size="x-small" image="">
-                        N
-                      </Avatar>
-                      <span className="whitespace-nowrap text-caption font-caption text-subtext-color">
-                        added content
-                      </span>
-                    </div>
-                    <div className="flex h-4 w-px flex-none flex-col items-center gap-2 bg-neutral-border" />
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="brand-primary"
-                        size="small"
-                        icon={<FeatherCheck />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherEdit2 />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Refine
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherX />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                </Proposal>
               </div>
               <div className="flex w-full flex-col items-start gap-4">
                 <span className="text-heading-2 font-heading-2 text-default-font">
@@ -628,7 +587,7 @@ function NabuDocuments() {
                 <span className="text-heading-2 font-heading-2 text-default-font">
                   Recommended Interventions
                 </span>
-                <div className="flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid border-brand-400 px-4 pt-4 pb-12 relative">
+                <Proposal avatar="N" description="updated content">
                   <span className="text-body font-body text-default-font">
                     Based on our analysis, we propose a multi-tiered
                     intervention strategy that balances immediate protective
@@ -644,50 +603,7 @@ function NabuDocuments() {
                     when coupled with technical support and economic
                     alternatives to extractive practices.
                   </span>
-                  <div className="flex items-center gap-3 rounded-full border-2 border-solid border-brand-400 bg-default-background px-6 py-2 absolute -bottom-6 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-2">
-                      <Avatar variant="brand" size="x-small" image="">
-                        N
-                      </Avatar>
-                      <span className="whitespace-nowrap text-caption font-caption text-subtext-color">
-                        updated content
-                      </span>
-                    </div>
-                    <div className="flex h-4 w-px flex-none flex-col items-center gap-2 bg-neutral-border" />
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="brand-primary"
-                        size="small"
-                        icon={<FeatherCheck />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherEdit2 />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Refine
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherX />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                </Proposal>
               </div>
               <div className="flex w-full flex-col items-start gap-4">
                 <span className="text-heading-2 font-heading-2 text-default-font">
@@ -712,7 +628,7 @@ function NabuDocuments() {
                 <span className="text-heading-2 font-heading-2 text-default-font">
                   Funding and Resource Allocation
                 </span>
-                <div className="flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid border-brand-400 px-4 pt-4 pb-12 @keyframes pulse relative animate-pulse">
+                <Proposal avatar="N" description="AI is working on this" loading>
                   <span className="text-body font-body text-default-font">
                     Current funding mechanisms remain insufficient to address
                     the scale of habitat destruction. We estimate that effective
@@ -749,18 +665,7 @@ function NabuDocuments() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-full border-2 border-solid border-brand-400 bg-default-background px-6 py-2 absolute -bottom-6 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-2">
-                      <FeatherLock className="text-caption font-caption text-brand-600" />
-                      <Avatar variant="brand" size="x-small" image="">
-                        N
-                      </Avatar>
-                      <span className="whitespace-nowrap text-caption font-caption text-subtext-color">
-                        AI is working on this
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                </Proposal>
               </div>
               <div className="flex w-full flex-col items-start gap-4">
                 <span className="text-heading-2 font-heading-2 text-default-font">
@@ -877,107 +782,58 @@ function NabuDocuments() {
                   </span>
                 </div>
               </div>
-              <div className="flex w-full items-center gap-4 relative">
-                <IconButton
-                  className="h-10 w-auto flex-none"
-                  variant="brand-secondary"
-                  size="large"
-                  icon={<FeatherChevronLeft />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex grow shrink-0 basis-0 flex-col items-start gap-4 rounded-lg border-2 border-solid border-brand-400 px-4 pt-4 pb-12 relative">
-                  <BarChart
-                    categories={["Carbon Storage (Billion Tons)"]}
-                    data={[
-                      {
-                        Region: "Amazon Basin",
-                        "Carbon Storage (Billion Tons)": 86,
-                      },
-                      {
-                        Region: "Congo Rainforest",
-                        "Carbon Storage (Billion Tons)": 62,
-                      },
-                      {
-                        Region: "Southeast Asia",
-                        "Carbon Storage (Billion Tons)": 48,
-                      },
-                      {
-                        Region: "Madagascar",
-                        "Carbon Storage (Billion Tons)": 12,
-                      },
-                    ]}
-                    index={"Region"}
-                  />
-                  <div className="flex w-full items-center justify-center gap-2">
-                    <div className="flex h-2 w-2 flex-none flex-col items-center gap-2 rounded-full bg-brand-600" />
-                    <div className="flex h-2 w-2 flex-none flex-col items-center gap-2 rounded-full bg-neutral-200" />
-                    <div className="flex h-2 w-2 flex-none flex-col items-center gap-2 rounded-full bg-neutral-200" />
-                  </div>
-                  <div className="flex w-full flex-col items-start gap-2 rounded-lg bg-neutral-50 px-3 py-3">
-                    <div className="flex w-full items-center gap-2">
-                      <FeatherBarChart3 className="text-body font-body text-brand-600" />
-                      <span className="text-body-bold font-body-bold text-default-font">
-                        Option 1: Bar Chart Comparison
-                      </span>
-                    </div>
-                    <span className="text-caption font-caption text-subtext-color">
-                      Shows clear contrast between carbon storage levels across
-                      regions. Best for emphasizing the magnitude differences
-                      and making regional comparisons obvious at a glance.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-full border-2 border-solid border-brand-400 bg-default-background px-6 py-2 absolute -bottom-6 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-2">
-                      <Avatar variant="brand" size="x-small" image="">
-                        N
-                      </Avatar>
-                      <span className="whitespace-nowrap text-caption font-caption text-subtext-color">
-                        suggested visualizations
-                      </span>
-                    </div>
-                    <div className="flex h-4 w-px flex-none flex-col items-center gap-2 bg-neutral-border" />
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="brand-primary"
-                        size="small"
-                        icon={<FeatherCheck />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherEdit2 />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Refine
-                      </Button>
-                      <Button
-                        variant="neutral-secondary"
-                        size="small"
-                        icon={<FeatherX />}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>
-                        ) => {}}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <IconButton
-                  className="h-10 w-auto flex-none"
-                  variant="brand-secondary"
-                  size="large"
-                  icon={<FeatherChevronRight />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-              </div>
+              <Proposal avatar="N" description="suggested visualizations" className="px-16">
+                <ProposalOptions>
+                  <ProposalOptions.Option
+                    title="Bar Chart Comparison"
+                    rationale="Shows clear contrast between carbon storage levels across regions. Best for emphasizing the magnitude differences and making regional comparisons obvious at a glance."
+                    icon={<FeatherBarChart3 className="text-body font-body text-brand-600" />}
+                  >
+                    <BarChart
+                      categories={["Carbon Storage (Billion Tons)"]}
+                      data={[
+                        { Region: "Amazon Basin", "Carbon Storage (Billion Tons)": 86 },
+                        { Region: "Congo Rainforest", "Carbon Storage (Billion Tons)": 62 },
+                        { Region: "Southeast Asia", "Carbon Storage (Billion Tons)": 48 },
+                        { Region: "Madagascar", "Carbon Storage (Billion Tons)": 12 },
+                      ]}
+                      index={"Region"}
+                    />
+                  </ProposalOptions.Option>
+                  <ProposalOptions.Option
+                    title="Pie Chart Distribution"
+                    rationale="Displays proportional breakdown of carbon storage by region. Useful for showing relative contributions to total carbon sequestration capacity."
+                    icon={<FeatherBarChart3 className="text-body font-body text-brand-600" />}
+                  >
+                    <BarChart
+                      categories={["Carbon Storage (Billion Tons)"]}
+                      data={[
+                        { Region: "Amazon Basin", "Carbon Storage (Billion Tons)": 86 },
+                        { Region: "Congo Rainforest", "Carbon Storage (Billion Tons)": 62 },
+                        { Region: "Southeast Asia", "Carbon Storage (Billion Tons)": 48 },
+                        { Region: "Madagascar", "Carbon Storage (Billion Tons)": 12 },
+                      ]}
+                      index={"Region"}
+                    />
+                  </ProposalOptions.Option>
+                  <ProposalOptions.Option
+                    title="Stacked Area Timeline"
+                    rationale="Shows carbon storage trends over time by region. Ideal for demonstrating historical changes and projected future scenarios."
+                    icon={<FeatherBarChart3 className="text-body font-body text-brand-600" />}
+                  >
+                    <BarChart
+                      categories={["Carbon Storage (Billion Tons)"]}
+                      data={[
+                        { Region: "Amazon Basin", "Carbon Storage (Billion Tons)": 86 },
+                        { Region: "Congo Rainforest", "Carbon Storage (Billion Tons)": 62 },
+                        { Region: "Southeast Asia", "Carbon Storage (Billion Tons)": 48 },
+                        { Region: "Madagascar", "Carbon Storage (Billion Tons)": 12 },
+                      ]}
+                      index={"Region"}
+                    />
+                  </ProposalOptions.Option>
+                </ProposalOptions>
+              </Proposal>
               <div className="flex w-full flex-col items-start gap-4">
                 <span className="text-heading-2 font-heading-2 text-default-font">
                   Conclusion

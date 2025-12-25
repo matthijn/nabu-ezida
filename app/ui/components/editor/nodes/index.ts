@@ -1,4 +1,5 @@
 import { ReactNodeViewRenderer } from "@tiptap/react"
+import { Node } from "@tiptap/core"
 import { Paragraph as BaseParagraph } from "@tiptap/extension-paragraph"
 import { Heading as BaseHeading } from "@tiptap/extension-heading"
 import { Blockquote as BaseBlockquote } from "@tiptap/extension-blockquote"
@@ -19,6 +20,7 @@ import { OrderedListView } from "./ordered-list"
 import { TableView } from "./table"
 import { TaskListView } from "./task-list"
 import { ImageView } from "./image"
+import { NabuQuestionView } from "./nabu-question"
 
 export const Paragraph = BaseParagraph.extend({
   addNodeView: () => ReactNodeViewRenderer(withLock(ParagraphView)),
@@ -54,4 +56,31 @@ export const TaskList = BaseTaskList.extend({
 
 export const Image = BaseImage.extend({
   addNodeView: () => ReactNodeViewRenderer(withLock(ImageView)),
+})
+
+export const NabuQuestion = Node.create({
+  name: "nabuQuestion",
+  group: "block",
+  atom: true,
+
+  addAttributes() {
+    return {
+      initiator: { default: null },
+      recipient: { default: null },
+      messages: { default: [] },
+      draft: { default: "" },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: "div[data-nabu-question]" }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["div", { ...HTMLAttributes, "data-nabu-question": "" }]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(NabuQuestionView)
+  },
 })
