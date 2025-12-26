@@ -1,28 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Avatar } from "~/ui/components/Avatar";
 import { Badge } from "~/ui/components/Badge";
 import { BarChart } from "~/ui/components/BarChart";
 import { Button } from "~/ui/components/Button";
 import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
-import { TextField } from "~/ui/components/TextField";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
 import { Proposal } from "~/ui/components/Proposal";
 import { ProposalOptions } from "~/ui/components/ProposalOptions";
+import { SidebarPanel, filterByQuery } from "~/ui/components/sidebar";
+import { TextField } from "~/ui/components/TextField";
 import { FeatherBarChart3 } from "@subframe/core";
 import { FeatherBold } from "@subframe/core";
 import { FeatherCheck } from "@subframe/core";
 import { FeatherChevronDown } from "@subframe/core";
-import { FeatherChevronLeft } from "@subframe/core";
-import { FeatherChevronRight } from "@subframe/core";
-import { FeatherChevronsLeft } from "@subframe/core";
 import { FeatherCircle } from "@subframe/core";
 import { FeatherCode2 } from "@subframe/core";
 import { FeatherCopy } from "@subframe/core";
-import { FeatherEdit2 } from "@subframe/core";
 import { FeatherFileText } from "@subframe/core";
 import { FeatherHeading1 } from "@subframe/core";
 import { FeatherHeading2 } from "@subframe/core";
@@ -34,12 +31,10 @@ import { FeatherList } from "@subframe/core";
 import { FeatherListChecks } from "@subframe/core";
 import { FeatherListOrdered } from "@subframe/core";
 import { FeatherLoader2 } from "@subframe/core";
-import { FeatherLock } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import { FeatherPin } from "@subframe/core";
 import { FeatherPlus } from "@subframe/core";
 import { FeatherQuote } from "@subframe/core";
-import { FeatherSearch } from "@subframe/core";
 import { FeatherShare2 } from "@subframe/core";
 import { FeatherSparkles } from "@subframe/core";
 import { FeatherStrikethrough } from "@subframe/core";
@@ -48,42 +43,84 @@ import { FeatherUnderline } from "@subframe/core";
 import { FeatherX } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 
+type Document = {
+  id: string
+  title: string
+  editedAt: string
+  tags: string[]
+  pinned: boolean
+}
+
+const DOCUMENTS: Document[] = [
+  { id: "1", title: "Habitat Destruction Framework", editedAt: "2 hours ago", tags: ["Framework"], pinned: true },
+  { id: "2", title: "Research Paper Draft", editedAt: "3 days ago", tags: ["Paper"], pinned: true },
+  { id: "3", title: "Amazon Rainforest Case Study", editedAt: "yesterday", tags: ["Corpus", "Field Notes"], pinned: false },
+  { id: "4", title: "Literature Review Notes", editedAt: "1 week ago", tags: ["Literature", "Review"], pinned: false },
+  { id: "5", title: "Species Survey Data", editedAt: "2 weeks ago", tags: ["Corpus"], pinned: false },
+  { id: "6", title: "Methodology & Approach", editedAt: "3 weeks ago", tags: ["Framework"], pinned: false },
+]
+
+type DocumentCardProps = {
+  document: Document
+  selected: boolean
+  onClick: () => void
+}
+
+const DocumentCard = ({ document, selected, onClick }: DocumentCardProps) => (
+  <div
+    className={`flex w-full flex-col items-start gap-3 rounded-md px-4 py-4 cursor-pointer ${
+      selected ? "bg-brand-50" : "bg-neutral-50"
+    }`}
+    onClick={onClick}
+  >
+    <div className="flex w-full flex-col items-start gap-2">
+      <span className={selected ? "text-body-bold font-body-bold text-default-font" : "text-body font-body text-default-font"}>
+        {document.title}
+      </span>
+      <div className="flex w-full flex-wrap items-center gap-2">
+        <span className="text-caption font-caption text-subtext-color">
+          Edited {document.editedAt}
+        </span>
+        {document.tags.map((tag) => (
+          <Badge key={tag} variant={selected ? "brand" : "neutral"} icon={null}>
+            {tag}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
 function NabuDocuments() {
+  const [query, setQuery] = useState("")
+  const [selectedId, setSelectedId] = useState("1")
+  const [collapsed, setCollapsed] = useState(false)
+
+  const filtered = filterByQuery(DOCUMENTS, query, (d) => d.title + " " + d.tags.join(" "))
+  const pinned = filtered.filter((d) => d.pinned)
+  const all = filtered.filter((d) => !d.pinned)
+  const isEmpty = filtered.length === 0
+
   return (
     <DefaultPageLayout>
       <div className="flex h-full w-full cursor-pointer items-start bg-default-background">
-        <div className="flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative">
-          <IconButton
-            className="absolute top-4 -right-4 z-10"
-            variant="brand-secondary"
-            size="small"
-            icon={<FeatherChevronsLeft />}
-            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+        <SidebarPanel
+          title="Documents"
+          collapsed={collapsed}
+          onCollapse={() => setCollapsed(true)}
+          onExpand={() => setCollapsed(false)}
+        >
+          <SidebarPanel.Search
+            value={query}
+            onChange={setQuery}
+            placeholder="Search documents..."
           />
-          <div className="flex w-full flex-col items-start gap-2">
-            <span className="text-heading-2 font-heading-2 text-default-font">
-              Documents
-            </span>
-            <TextField
-              className="h-auto w-full flex-none"
-              variant="filled"
-              label=""
-              helpText=""
-              icon={<FeatherSearch />}
-            >
-              <TextField.Input
-                placeholder="Search documents..."
-                value=""
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {}}
-              />
-            </TextField>
-          </div>
-          <div className="flex w-full items-center justify-between">
-            <ToggleGroup value="" onValueChange={(value: string) => {}}>
-              <ToggleGroup.Item icon={null} value="c27ceb6c">
+          <SidebarPanel.Toolbar>
+            <ToggleGroup value="" onValueChange={() => {}}>
+              <ToggleGroup.Item icon={null} value="modified">
                 Modified
               </ToggleGroup.Item>
-              <ToggleGroup.Item icon={null} value="bb75e2ac">
+              <ToggleGroup.Item icon={null} value="name">
                 Name
               </ToggleGroup.Item>
             </ToggleGroup>
@@ -91,124 +128,42 @@ function NabuDocuments() {
               variant="brand-primary"
               size="small"
               icon={<FeatherPlus />}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+              onClick={() => {}}
             >
               New
             </Button>
-          </div>
+          </SidebarPanel.Toolbar>
           <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 overflow-auto">
-            <div className="flex w-full flex-col items-start gap-1">
-              <div className="flex w-full items-center gap-2 px-2 py-1">
-                <span className="text-caption-bold font-caption-bold text-subtext-color">
-                  PINNED
-                </span>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-brand-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body-bold font-body-bold text-default-font">
-                    Habitat Destruction Framework
-                  </span>
-                  <div className="flex w-full items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited 2 hours ago
-                    </span>
-                    <Badge variant="brand" icon={null}>
-                      Framework
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-neutral-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body font-body text-default-font">
-                    Research Paper Draft
-                  </span>
-                  <div className="flex w-full flex-wrap items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited 3 days ago
-                    </span>
-                    <Badge variant="neutral" icon={null}>
-                      Paper
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex w-full flex-col items-start gap-1">
-              <div className="flex w-full items-center gap-2 px-2 py-1">
-                <span className="text-caption-bold font-caption-bold text-subtext-color">
-                  ALL DOCUMENTS
-                </span>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-neutral-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body font-body text-default-font">
-                    Amazon Rainforest Case Study
-                  </span>
-                  <div className="flex w-full flex-wrap items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited yesterday
-                    </span>
-                    <Badge variant="neutral" icon={null}>
-                      Corpus
-                    </Badge>
-                    <Badge variant="neutral" icon={null}>
-                      Field Notes
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-neutral-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body font-body text-default-font">
-                    Literature Review Notes
-                  </span>
-                  <div className="flex w-full flex-wrap items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited 1 week ago
-                    </span>
-                    <Badge variant="neutral" icon={null}>
-                      Literature
-                    </Badge>
-                    <Badge variant="neutral" icon={null}>
-                      Review
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-neutral-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body font-body text-default-font">
-                    Species Survey Data
-                  </span>
-                  <div className="flex w-full flex-wrap items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited 2 weeks ago
-                    </span>
-                    <Badge variant="neutral" icon={null}>
-                      Corpus
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full flex-col items-start gap-3 rounded-md bg-neutral-50 px-4 py-4">
-                <div className="flex w-full flex-col items-start gap-2">
-                  <span className="text-body font-body text-default-font">
-                    Methodology &amp; Approach
-                  </span>
-                  <div className="flex w-full flex-wrap items-center gap-2">
-                    <span className="text-caption font-caption text-subtext-color">
-                      Edited 3 weeks ago
-                    </span>
-                    <Badge variant="neutral" icon={null}>
-                      Framework
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {isEmpty ? (
+              <SidebarPanel.Empty>
+                {query ? "No results" : "Nothing here yet"}
+              </SidebarPanel.Empty>
+            ) : (
+              <>
+                <SidebarPanel.Group label="PINNED">
+                  {pinned.map((doc) => (
+                    <DocumentCard
+                      key={doc.id}
+                      document={doc}
+                      selected={doc.id === selectedId}
+                      onClick={() => setSelectedId(doc.id)}
+                    />
+                  ))}
+                </SidebarPanel.Group>
+                <SidebarPanel.Group label="ALL DOCUMENTS">
+                  {all.map((doc) => (
+                    <DocumentCard
+                      key={doc.id}
+                      document={doc}
+                      selected={doc.id === selectedId}
+                      onClick={() => setSelectedId(doc.id)}
+                    />
+                  ))}
+                </SidebarPanel.Group>
+              </>
+            )}
           </div>
-        </div>
+        </SidebarPanel>
         <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
           <div className="flex w-full flex-col items-start gap-3 border-b border-solid border-neutral-border px-6 py-4">
             <div className="flex w-full items-start gap-2">

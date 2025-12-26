@@ -10,7 +10,7 @@ import { TaskItem } from "@tiptap/extension-task-item"
 import { Link } from "@tiptap/extension-link"
 import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
-import { Lock, BlockID } from "./extensions"
+import { Lock, BlockID, mentionSuggestion } from "./extensions"
 import {
   Paragraph,
   Heading,
@@ -152,8 +152,8 @@ const defaultContent: JSONContent = {
     {
       type: "nabuQuestion",
       attrs: {
-        initiator: { id: "user-1", type: "human", name: "You", color: "#6366f1", initial: "M" },
-        recipient: { id: "nabu", type: "llm", name: "Nabu", color: "#16a34a", initial: "N" },
+        initiator: { id: "user-1", type: "human", name: "You", description: "", variant: "brand", initial: "M" },
+        recipient: { id: "nabu", type: "llm", name: "Nabu", description: "AI research assistant", variant: "brand", initial: "N" },
         messages: [],
         draft: "",
       },
@@ -194,6 +194,7 @@ export const Editor = ({
       Link.configure({ openOnClick: false }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
+        suggestion: mentionSuggestion,
       }),
       Markdown,
       BlockID,

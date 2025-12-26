@@ -1,5 +1,5 @@
-import { useState, useCallback, type KeyboardEvent } from "react"
-import type { NodeViewProps } from "@tiptap/react"
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from "react"
+import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react"
 import { Conversation, Message } from "~/ui/components/ai"
 import { type Participant } from "~/domain/participant"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
@@ -11,6 +11,13 @@ type ConversationMessage = {
 
 export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
   const [inputValue, setInputValue] = useState(node.attrs.draft ?? "")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+  }, [])
   const messages: ConversationMessage[] = node.attrs.messages ?? []
   const initiator: Participant = node.attrs.initiator
   const recipient: Participant = node.attrs.recipient
@@ -54,7 +61,7 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
   )
 
   return (
-    <div className="my-4" contentEditable={false}>
+    <NodeViewWrapper className="my-4">
       <Conversation
         initiator={initiator}
         recipient={recipient}
@@ -72,15 +79,15 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
         <Message from={initiator}>
           <TextFieldUnstyled className="h-auto w-full flex-none">
             <TextFieldUnstyled.Input
+              ref={inputRef}
               placeholder={`Message ${recipient.name}...`}
               value={inputValue}
               onChange={(e) => updateDraft(e.target.value)}
               onKeyDown={handleKeyDown}
-              autoFocus
             />
           </TextFieldUnstyled>
         </Message>
       </Conversation>
-    </div>
+    </NodeViewWrapper>
   )
 }

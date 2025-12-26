@@ -2,8 +2,10 @@
 
 import type { ReactNode } from "react";
 import { Button } from "~/ui/components/Button";
+import { Avatar } from "~/ui/components/Avatar";
+import { IconWithBackground } from "~/ui/components/IconWithBackground";
 import { FeatherMessageCircle, FeatherSend, FeatherX, FeatherSparkles } from "@subframe/core";
-import type { Participant } from "~/domain/participant";
+import type { Participant, ParticipantVariant } from "~/domain/participant";
 
 type ParticipantAvatarProps = {
   participant: Participant;
@@ -11,19 +13,11 @@ type ParticipantAvatarProps = {
 
 const ParticipantAvatar = ({ participant }: ParticipantAvatarProps) =>
   participant.type === "llm" ? (
-    <div
-      className="flex flex-none items-center justify-center rounded-full w-6 h-6"
-      style={{ backgroundColor: `${participant.color}20` }}
-    >
-      <FeatherSparkles className="w-3.5 h-3.5" style={{ color: participant.color }} />
-    </div>
+    <IconWithBackground variant={participant.variant} size="small" icon={<FeatherSparkles />} />
   ) : (
-    <div
-      className="flex flex-none items-center justify-center rounded-full w-6 h-6 font-semibold text-[10px]"
-      style={{ backgroundColor: `${participant.color}20`, color: participant.color }}
-    >
+    <Avatar variant={participant.variant} size="small">
       {participant.initial}
-    </div>
+    </Avatar>
   );
 
 type ConversationHeaderProps = {
@@ -98,16 +92,28 @@ type ConversationProps =
       className?: string;
     };
 
+const variantToBorder: Record<ParticipantVariant, string> = {
+  brand: "border-brand-400",
+  neutral: "border-neutral-400",
+  error: "border-error-400",
+  success: "border-success-400",
+  warning: "border-warning-400",
+}
+
+const variantToBg: Record<ParticipantVariant, string> = {
+  brand: "bg-brand-50",
+  neutral: "bg-neutral-50",
+  error: "bg-error-50",
+  success: "bg-success-50",
+  warning: "bg-warning-50",
+}
+
 export const Conversation = (props: ConversationProps) => {
   const { initiator, recipient, mode, children, className = "" } = props;
 
   return (
     <div
-      className={`flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid px-4 py-4 ${className}`}
-      style={{
-        borderColor: recipient.color,
-        backgroundColor: `${recipient.color}10`,
-      }}
+      className={`flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
     >
       <ConversationHeader initiator={initiator} recipient={recipient} />
       {children}
