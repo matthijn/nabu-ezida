@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FeatherChevronsLeft, FeatherSearch, FeatherPlus } from "@subframe/core";
+import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch, FeatherPlus } from "@subframe/core";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextField } from "~/ui/components/TextField";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
@@ -22,11 +22,13 @@ interface DocumentsSidebarProps {
   selectedId?: string;
   searchValue?: string;
   sortBy?: "modified" | "name";
+  collapsed?: boolean;
   onSearchChange?: (value: string) => void;
   onSortChange?: (sort: "modified" | "name") => void;
   onDocumentSelect?: (id: string) => void;
   onNewDocument?: () => void;
   onCollapse?: () => void;
+  onExpand?: () => void;
 }
 
 export function DocumentsSidebar({
@@ -34,24 +36,44 @@ export function DocumentsSidebar({
   selectedId,
   searchValue = "",
   sortBy = "modified",
+  collapsed = false,
   onSearchChange,
   onSortChange,
   onDocumentSelect,
   onNewDocument,
   onCollapse,
+  onExpand,
 }: DocumentsSidebarProps) {
   const pinnedDocs = documents.filter((d) => d.pinned);
   const allDocs = documents.filter((d) => !d.pinned);
 
+  if (collapsed) {
+    return (
+      <div className="flex flex-none self-stretch border-r border-solid border-neutral-border bg-default-background relative z-10">
+        {onExpand && (
+          <IconButton
+            className="absolute top-4 -right-[13px] z-50 cursor-pointer"
+            variant="brand-secondary"
+            size="small"
+            icon={<FeatherChevronsRight />}
+            onClick={onExpand}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative">
-      <IconButton
-        className="absolute top-4 -right-4 z-10"
-        variant="brand-secondary"
-        size="small"
-        icon={<FeatherChevronsLeft />}
-        onClick={onCollapse}
-      />
+    <div className="flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative z-10">
+      {onCollapse && (
+        <IconButton
+          className="absolute top-4 -right-[13px] z-50 cursor-pointer"
+          variant="brand-secondary"
+          size="small"
+          icon={<FeatherChevronsLeft />}
+          onClick={onCollapse}
+        />
+      )}
 
       <div className="flex w-full flex-col items-start gap-2">
         <span className="text-heading-2 font-heading-2 text-default-font">

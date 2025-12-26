@@ -212,5 +212,5 @@ export const Editor = ({
     },
   })
 
-  return <EditorContent editor={editor} />
+  return <EditorContent editor={editor} className="w-full" />
 }

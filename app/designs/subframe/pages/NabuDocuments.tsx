@@ -5,7 +5,6 @@ import { Avatar } from "~/ui/components/Avatar";
 import { Badge } from "~/ui/components/Badge";
 import { BarChart } from "~/ui/components/BarChart";
 import { Button } from "~/ui/components/Button";
-import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
@@ -13,6 +12,7 @@ import { Proposal } from "~/ui/components/Proposal";
 import { ProposalOptions } from "~/ui/components/ProposalOptions";
 import { SidebarPanel, filterByQuery } from "~/ui/components/sidebar";
 import { TextField } from "~/ui/components/TextField";
+import { FileHeader, EditorToolbar } from "~/ui/components/editor";
 import { FeatherBarChart3 } from "@subframe/core";
 import { FeatherBold } from "@subframe/core";
 import { FeatherCheck } from "@subframe/core";
@@ -41,7 +41,6 @@ import { FeatherStrikethrough } from "@subframe/core";
 import { FeatherTrash } from "@subframe/core";
 import { FeatherUnderline } from "@subframe/core";
 import { FeatherX } from "@subframe/core";
-import * as SubframeCore from "@subframe/core";
 
 type Document = {
   id: string
@@ -165,153 +164,52 @@ function NabuDocuments() {
           </div>
         </SidebarPanel>
         <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-          <div className="flex w-full flex-col items-start gap-3 border-b border-solid border-neutral-border px-6 py-4">
-            <div className="flex w-full items-start gap-2">
-              <div className="flex grow shrink-0 basis-0 items-center gap-2">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Habitat Destruction Framework
-                </span>
-              </div>
-              <IconButton
-                variant="brand-tertiary"
-                size="small"
-                icon={<FeatherPin />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <IconButton
-                size="small"
-                icon={<FeatherShare2 />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <SubframeCore.DropdownMenu.Root>
-                <SubframeCore.DropdownMenu.Trigger asChild={true}>
-                  <IconButton
-                    size="small"
-                    icon={<FeatherMoreHorizontal />}
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                  />
-                </SubframeCore.DropdownMenu.Trigger>
-                <SubframeCore.DropdownMenu.Portal>
-                  <SubframeCore.DropdownMenu.Content
-                    side="bottom"
-                    align="end"
-                    sideOffset={4}
-                    asChild={true}
-                  >
-                    <DropdownMenu>
-                      <DropdownMenu.DropdownItem icon={<FeatherCopy />}>
-                        Duplicate
-                      </DropdownMenu.DropdownItem>
-                      <DropdownMenu.DropdownItem icon={<FeatherFileText />}>
-                        Export
-                      </DropdownMenu.DropdownItem>
-                      <DropdownMenu.DropdownItem icon={<FeatherTrash />}>
-                        Delete
-                      </DropdownMenu.DropdownItem>
-                    </DropdownMenu>
-                  </SubframeCore.DropdownMenu.Content>
-                </SubframeCore.DropdownMenu.Portal>
-              </SubframeCore.DropdownMenu.Root>
-            </div>
-            <div className="flex w-full items-center gap-2">
-              <Badge variant="brand" icon={null}>
-                Framework
-              </Badge>
-              <Badge variant="neutral" icon={null}>
-                Ecology
-              </Badge>
-              <Badge variant="neutral" icon={null}>
-                Conservation
-              </Badge>
-              <Button
-                variant="neutral-tertiary"
-                size="small"
-                icon={<FeatherPlus />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              >
-                Add tag
-              </Button>
-            </div>
-          </div>
+          <FileHeader
+            title="Habitat Destruction Framework"
+            tags={[
+              { label: "Framework", variant: "brand" },
+              { label: "Ecology", variant: "neutral" },
+              { label: "Conservation", variant: "neutral" },
+            ]}
+            pinned
+            onPin={() => {}}
+            onShare={() => {}}
+            menuItems={[
+              { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
+              { icon: <FeatherFileText />, label: "Export", onClick: () => {} },
+              { icon: <FeatherTrash />, label: "Delete", onClick: () => {} },
+            ]}
+            onAddTag={() => {}}
+          />
           <div className="flex w-full grow shrink-0 basis-0 flex-col items-start px-24 py-8 overflow-auto mobile:px-6 mobile:py-6">
-            <div className="flex w-full items-center justify-center">
-              <div className="flex items-start gap-1 rounded-full border border-solid border-neutral-border bg-default-background px-2 py-2 shadow-md">
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading1 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading2 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading3 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherBold />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherItalic />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherUnderline />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherStrikethrough />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherLink />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherImage />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherList />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherListOrdered />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherListChecks />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherCode2 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherQuote />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-              </div>
-            </div>
+            <EditorToolbar
+              groups={[
+                [
+                  { icon: <FeatherHeading1 /> },
+                  { icon: <FeatherHeading2 /> },
+                  { icon: <FeatherHeading3 /> },
+                ],
+                [
+                  { icon: <FeatherBold /> },
+                  { icon: <FeatherItalic /> },
+                  { icon: <FeatherUnderline /> },
+                  { icon: <FeatherStrikethrough /> },
+                ],
+                [
+                  { icon: <FeatherLink /> },
+                  { icon: <FeatherImage /> },
+                ],
+                [
+                  { icon: <FeatherList /> },
+                  { icon: <FeatherListOrdered /> },
+                  { icon: <FeatherListChecks /> },
+                ],
+                [
+                  { icon: <FeatherCode2 /> },
+                  { icon: <FeatherQuote /> },
+                ],
+              ]}
+            />
             <div className="flex w-full max-w-[768px] flex-col items-start gap-8 pt-8">
               <div className="flex w-full flex-col items-start gap-4">
                 <span className="text-heading-1 font-heading-1 text-default-font">
