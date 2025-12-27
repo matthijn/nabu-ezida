@@ -113,10 +113,12 @@ export const Conversation = (props: ConversationProps) => {
 
   return (
     <div
-      className={`flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
+      className={`flex w-full max-h-[600px] flex-col rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
     >
       <ConversationHeader initiator={initiator} recipient={recipient} />
-      {children}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-3 py-3">
+        {children}
+      </div>
       {mode === "chat" ? (
         <ChatActions onSend={props.onSend} onCancel={props.onCancel} />
       ) : (

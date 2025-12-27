@@ -14,3 +14,7 @@ export const getWsUrl = (path: string): string => {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws"
   return `${protocol}://${getApiHost()}${path}`
 }
+
+export const getLlmHost = (): string => getEnv("VITE_LLM_HOST", "http://localhost:8081")
+
+export const getLlmUrl = (prompt: string): string => `${getLlmHost()}/chat/${prompt}`

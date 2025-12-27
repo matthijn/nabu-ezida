@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { toast } from "sonner"
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
@@ -9,6 +9,7 @@ import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { FormattedError } from "~/domain/api"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import type { Document } from "~/domain/document"
+import { clearSharedContext } from "~/lib/llm"
 
 type SidebarDocument = {
   id: string
@@ -42,6 +43,10 @@ export default function ProjectLayout() {
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  useEffect(() => {
+    return () => clearSharedContext()
+  }, [params.projectId])
 
   const handleError = useCallback((error: FormattedError) => {
     toast.error(error.title, { description: error.description })
