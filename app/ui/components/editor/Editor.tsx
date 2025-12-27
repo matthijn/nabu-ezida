@@ -1,8 +1,8 @@
 "use client"
 
-import { useEditor, EditorContent, type JSONContent } from "@tiptap/react"
+import { useMemo } from "react"
+import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
-import Placeholder from "@tiptap/extension-placeholder"
 import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
@@ -23,143 +23,98 @@ import {
   Image,
   NabuQuestion,
 } from "./nodes"
+import type { Block } from "~/domain/document"
+import { blocksToTiptap, tiptapToBlocks } from "~/domain/document"
 
 export type EditorProps = {
-  content?: JSONContent
+  content?: Block[]
   placeholder?: string
   editable?: boolean
-  onUpdate?: (content: JSONContent) => void
+  onUpdate?: (blocks: Block[]) => void
 }
 
-const defaultContent: JSONContent = {
-  type: "doc",
-  content: [
-    {
-      type: "heading",
-      attrs: { level: 1 },
-      content: [{ type: "text", text: "Welcome to Nabu" }],
+const defaultContent: Block[] = [
+  {
+    id: "h1",
+    type: "heading",
+    props: { level: 1 },
+    content: [{ type: "text", text: "Welcome to Nabu" }],
+  },
+  {
+    id: "p1",
+    type: "paragraph",
+    content: [
+      { type: "text", text: "This is a paragraph with some " },
+      { type: "text", text: "bold", styles: { bold: true } },
+      { type: "text", text: " and " },
+      { type: "text", text: "italic", styles: { italic: true } },
+      { type: "text", text: " text. Here is a " },
+      { type: "link", text: "link", href: "https://example.com" },
+      { type: "text", text: "." },
+    ],
+  },
+  {
+    id: "h2-tasks",
+    type: "heading",
+    props: { level: 2 },
+    content: [{ type: "text", text: "Task List" }],
+  },
+  {
+    id: "task1",
+    type: "checkListItem",
+    props: { checked: true },
+    content: [{ type: "text", text: "Set up editor" }],
+  },
+  {
+    id: "task2",
+    type: "checkListItem",
+    props: { checked: true },
+    content: [{ type: "text", text: "Add extensions" }],
+  },
+  {
+    id: "task3",
+    type: "checkListItem",
+    props: { checked: false },
+    content: [{ type: "text", text: "Build research features" }],
+  },
+  {
+    id: "h2-image",
+    type: "heading",
+    props: { level: 2 },
+    content: [{ type: "text", text: "Image" }],
+  },
+  {
+    id: "img1",
+    type: "image",
+    props: {
+      url: "https://placehold.co/600x200/f5f5f4/a8a29e?text=Research+Image",
+      caption: "Placeholder image",
     },
-    {
-      type: "paragraph",
-      attrs: { lockedBy: "alice" },
-      content: [
-        { type: "text", text: "This is a paragraph with some " },
-        { type: "text", marks: [{ type: "bold" }], text: "bold" },
-        { type: "text", text: " and " },
-        { type: "text", marks: [{ type: "italic" }], text: "italic" },
-        { type: "text", text: " text. Here is a " },
-        { type: "text", marks: [{ type: "link", attrs: { href: "https://example.com" } }], text: "link" },
-        { type: "text", text: " and a mention: " },
-        { type: "mention", attrs: { id: "1", label: "Research Team" } },
-        { type: "text", text: "." },
-      ],
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Task List" }],
-    },
-    {
-      type: "taskList",
-      content: [
-        {
-          type: "taskItem",
-          attrs: { checked: true },
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Set up editor" }] }],
-        },
-        {
-          type: "taskItem",
-          attrs: { checked: true },
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Add extensions" }] }],
-        },
-        {
-          type: "taskItem",
-          attrs: { checked: false },
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Build research features" }] }],
-        },
-      ],
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Data Table" }],
-    },
-    {
-      type: "table",
-      attrs: { lockedBy: "charlie" },
-      content: [
-        {
-          type: "tableRow",
-          content: [
-            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Participant" }] }] },
-            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Theme" }] }] },
-            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Count" }] }] },
-          ],
-        },
-        {
-          type: "tableRow",
-          content: [
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "P01" }] }] },
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Habitat loss" }] }] },
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "12" }] }] },
-          ],
-        },
-        {
-          type: "tableRow",
-          content: [
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "P02" }] }] },
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Climate change" }] }] },
-            { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "8" }] }] },
-          ],
-        },
-      ],
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Image" }],
-    },
-    {
-      type: "image",
-      attrs: { src: "https://placehold.co/600x200/f5f5f4/a8a29e?text=Research+Image", alt: "Placeholder image" },
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Block Quote" }],
-    },
-    {
-      type: "blockquote",
-      attrs: { lockedBy: "bob" },
-      content: [
-        { type: "paragraph", content: [{ type: "text", text: "The participants expressed concern about long-term environmental impacts." }] },
-      ],
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Code Block" }],
-    },
-    {
-      type: "codeBlock",
-      content: [{ type: "text", text: "const themes = extractThemes(interviews)\nconst frequency = countByTheme(themes)" }],
-    },
-    {
-      type: "heading",
-      attrs: { level: 2 },
-      content: [{ type: "text", text: "Conversation" }],
-    },
-    {
-      type: "nabuQuestion",
-      attrs: {
-        initiator: { id: "user-1", type: "human", name: "You", description: "", variant: "brand", initial: "M" },
-        recipient: { id: "nabu", type: "llm", name: "Nabu", description: "AI research assistant", variant: "brand", initial: "N" },
-        messages: [],
-        draft: "",
-      },
-    },
-  ],
-}
+  },
+  {
+    id: "h2-quote",
+    type: "heading",
+    props: { level: 2 },
+    content: [{ type: "text", text: "Block Quote" }],
+  },
+  {
+    id: "quote1",
+    type: "quote",
+    content: [{ type: "text", text: "The participants expressed concern about long-term environmental impacts." }],
+  },
+  {
+    id: "h2-code",
+    type: "heading",
+    props: { level: 2 },
+    content: [{ type: "text", text: "Code Block" }],
+  },
+  {
+    id: "code1",
+    type: "codeBlock",
+    props: { language: "typescript" },
+    content: [{ type: "text", text: "const themes = extractThemes(interviews)\nconst frequency = countByTheme(themes)" }],
+  },
+]
 
 export const Editor = ({
   content = defaultContent,
@@ -167,6 +122,8 @@ export const Editor = ({
   editable = true,
   onUpdate,
 }: EditorProps) => {
+  const tiptapContent = useMemo(() => blocksToTiptap(content), [content])
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -200,10 +157,10 @@ export const Editor = ({
       BlockID,
       Lock,
     ],
-    content,
+    content: tiptapContent,
     editable,
     onUpdate: ({ editor }) => {
-      onUpdate?.(editor.getJSON())
+      onUpdate?.(tiptapToBlocks(editor.getJSON()))
     },
     editorProps: {
       attributes: {

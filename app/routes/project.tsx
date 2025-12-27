@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { toast } from "sonner"
 import type { Route } from "./+types/project"
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
@@ -80,6 +80,12 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
   const documents = selectSidebarDocuments(project)
   const selectedDoc = project?.documents[selectedDocId ?? ""]
 
+  useEffect(() => {
+    if (selectedDoc) {
+      console.debug("[WebSocket] Document content:", selectedDoc.content)
+    }
+  }, [selectedDoc?.content])
+
   return (
     <DefaultPageLayout>
       <div className="flex h-full w-full items-start bg-default-background">
@@ -143,7 +149,10 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
               ]}
             />
             <div className="flex w-full flex-col items-start gap-8 pt-8">
-              <Editor key={selectedDocId ?? "default"} />
+              <Editor
+                key={selectedDocId ?? "default"}
+                content={selectedDoc?.content}
+              />
             </div>
           </div>
         </div>

@@ -33,3 +33,4 @@ export {
   createBarberPoleGradient,
   createBackground,
 } from "./annotations"
+export { blocksToTiptap, tiptapToBlocks } from "./convert/index"
