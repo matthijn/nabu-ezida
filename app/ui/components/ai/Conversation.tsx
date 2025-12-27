@@ -3,8 +3,9 @@
 import type { ReactNode } from "react";
 import { Button } from "~/ui/components/Button";
 import { Avatar } from "~/ui/components/Avatar";
+import { AutoScroll } from "~/ui/components/AutoScroll";
 import { IconWithBackground } from "~/ui/components/IconWithBackground";
-import { FeatherMessageCircle, FeatherSend, FeatherX, FeatherSparkles } from "@subframe/core";
+import { FeatherSend, FeatherX, FeatherSparkles } from "@subframe/core";
 import type { Participant, ParticipantVariant } from "~/domain/participant";
 
 type ParticipantAvatarProps = {
@@ -52,20 +53,11 @@ const ChatActions = ({ onSend, onCancel }: ChatActionsProps) => (
 );
 
 type ProgressFooterProps = {
-  onFollowUp: () => void;
   onCancel: () => void;
 };
 
-const ProgressFooter = ({ onFollowUp, onCancel }: ProgressFooterProps) => (
+const ProgressFooter = ({ onCancel }: ProgressFooterProps) => (
   <div className="flex w-full items-center justify-end gap-2">
-    <Button
-      variant="neutral-tertiary"
-      size="small"
-      icon={<FeatherMessageCircle />}
-      onClick={onFollowUp}
-    >
-      Follow up
-    </Button>
     <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={onCancel}>
       Cancel
     </Button>
@@ -79,6 +71,7 @@ type ConversationProps =
       mode: "chat";
       onSend: () => void;
       onCancel: () => void;
+      onClick?: () => void;
       children: ReactNode;
       className?: string;
     }
@@ -86,8 +79,8 @@ type ConversationProps =
       initiator: Participant;
       recipient: Participant;
       mode: "progress";
-      onFollowUp: () => void;
       onCancel: () => void;
+      onClick?: () => void;
       children: ReactNode;
       className?: string;
     };
@@ -109,20 +102,21 @@ const variantToBg: Record<ParticipantVariant, string> = {
 }
 
 export const Conversation = (props: ConversationProps) => {
-  const { initiator, recipient, mode, children, className = "" } = props;
+  const { initiator, recipient, mode, children, className = "", onClick } = props;
 
   return (
     <div
+      onClick={onClick}
       className={`flex w-full max-h-[600px] flex-col rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
     >
       <ConversationHeader initiator={initiator} recipient={recipient} />
-      <div className="flex-1 overflow-y-auto flex flex-col gap-3 py-3">
+      <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 py-3">
         {children}
-      </div>
+      </AutoScroll>
       {mode === "chat" ? (
         <ChatActions onSend={props.onSend} onCancel={props.onCancel} />
       ) : (
-        <ProgressFooter onFollowUp={props.onFollowUp} onCancel={props.onCancel} />
+        <ProgressFooter onCancel={props.onCancel} />
       )}
     </div>
   );

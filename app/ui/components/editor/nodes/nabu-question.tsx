@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useSyncExternalStore, type KeyboardEvent } from "react"
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react"
+import Markdown from "react-markdown"
 import { FeatherLoader2 } from "@subframe/core"
 import { Conversation, Message } from "~/ui/components/ai"
 import { type Participant } from "~/domain/participant"
@@ -26,7 +27,13 @@ const toLLMMessages = (messages: ConversationMessage[]): LLMMessage[] =>
 
 const useSharedContext = () => useSyncExternalStore(subscribeToSharedContext, getSharedContext)
 
-export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
+const MessageContent = ({ content }: { content: string }) => (
+  <div className="prose prose-sm text-default-font">
+    <Markdown>{content}</Markdown>
+  </div>
+)
+
+export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const [inputValue, setInputValue] = useState(node.attrs.draft ?? "")
   const [followingUp, setFollowingUp] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -37,6 +44,7 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
 
   const sharedContext = useSharedContext()
   const hasAddedResponse = useRef(false)
+  const isFirstMount = useRef(true)
 
   const { state: llmState, send: sendToLlm, cancel: cancelLlm, isExecuting } = useBlockExecution({
     prompt: "nabu",
@@ -65,7 +73,8 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
   }, [llmState.status, llmState.messages, recipient, node.attrs.messages, updateAttributes])
 
   useEffect(() => {
-    if (showInput) {
+    if (isFirstMount.current && showInput) {
+      isFirstMount.current = false
       requestAnimationFrame(() => {
         inputRef.current?.focus()
       })
@@ -101,13 +110,8 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
 
   const handleCancel = useCallback(() => {
     cancelLlm()
-    setInputValue("")
-    updateAttributes({ draft: "" })
-  }, [updateAttributes, cancelLlm])
-
-  const handleFollowUp = useCallback(() => {
-    setFollowingUp(true)
-  }, [])
+    deleteNode()
+  }, [cancelLlm, deleteNode])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -119,6 +123,13 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
     [handleSend]
   )
 
+  const focusInput = useCallback(() => {
+    setFollowingUp(true)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+  }, [])
+
   if (showInput) {
     return (
       <NodeViewWrapper className="my-4">
@@ -128,12 +139,11 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
           mode="chat"
           onSend={handleSend}
           onCancel={handleCancel}
+          onClick={focusInput}
         >
           {messages.map((msg, i) => (
             <Message key={i} from={msg.from}>
-              <span className="text-body font-body text-default-font">
-                {msg.content}
-              </span>
+              <MessageContent content={msg.content} />
             </Message>
           ))}
           <Message from={initiator}>
@@ -158,22 +168,18 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
         initiator={initiator}
         recipient={recipient}
         mode="progress"
-        onFollowUp={handleFollowUp}
         onCancel={handleCancel}
+        onClick={focusInput}
       >
         {messages.map((msg, i) => (
           <Message key={i} from={msg.from}>
-            <span className="text-body font-body text-default-font">
-              {msg.content}
-            </span>
+            <MessageContent content={msg.content} />
           </Message>
         ))}
         {isExecuting && (
           <Message from={recipient}>
             {llmState.streaming ? (
-              <span className="text-body font-body text-default-font">
-                {llmState.streaming}
-              </span>
+              <MessageContent content={llmState.streaming} />
             ) : (
               <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
             )}
