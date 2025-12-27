@@ -10,6 +10,8 @@ import { TaskItem } from "@tiptap/extension-task-item"
 import { Link } from "@tiptap/extension-link"
 import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
+import { DragHandle } from "@tiptap/extension-drag-handle-react"
+import { FeatherGripVertical } from "@subframe/core"
 import { Lock, BlockID, mentionSuggestion } from "./extensions"
 import {
   Paragraph,
@@ -31,6 +33,7 @@ export type EditorProps = {
   placeholder?: string
   editable?: boolean
   onUpdate?: (blocks: Block[]) => void
+  onMoveBlock?: (blockId: string, targetPosition: string) => void
 }
 
 export const Editor = ({
@@ -38,9 +41,12 @@ export const Editor = ({
   placeholder = "Start typing...",
   editable = true,
   onUpdate,
+  onMoveBlock,
 }: EditorProps) => {
   const initialContent = useRef(content)
   const isFirstRender = useRef(true)
+  const draggedBlockId = useRef<string | null>(null)
+  const draggedFromPos = useRef<number | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -98,5 +104,63 @@ export const Editor = ({
     }
   }, [editor, content])
 
-  return <EditorContent editor={editor} className="w-full" />
+  const hoveredBlockId = useRef<string | null>(null)
+
+  const handleNodeChange = (data: { node: { attrs: { blockId?: string } } | null }) => {
+    hoveredBlockId.current = data.node?.attrs.blockId ?? null
+  }
+
+  const handleDragStart = () => {
+    draggedBlockId.current = hoveredBlockId.current
+  }
+
+  const handleDragEnd = () => {
+    if (!draggedBlockId.current || !editor || !onMoveBlock) {
+      draggedBlockId.current = null
+      return
+    }
+
+    // Find the new position by looking at what's before the dragged block
+    const blocks = tiptapToBlocks(editor.getJSON())
+    const draggedId = draggedBlockId.current
+
+    const findPosition = (blocks: Block[], parentId?: string): string | null => {
+      for (let i = 0; i < blocks.length; i++) {
+        if (blocks[i].id === draggedId) {
+          if (i === 0) {
+            return parentId ? `head:${parentId}` : "head"
+          }
+          return blocks[i - 1].id
+        }
+        if (blocks[i].children) {
+          const found = findPosition(blocks[i].children!, blocks[i].id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const position = findPosition(blocks)
+    if (position) {
+      onMoveBlock(draggedId, position)
+    }
+
+    draggedBlockId.current = null
+  }
+
+  return (
+    <div className="relative w-full">
+      <DragHandle
+        editor={editor}
+        onNodeChange={handleNodeChange}
+        onElementDragStart={handleDragStart}
+        onElementDragEnd={handleDragEnd}
+      >
+        <div className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing rounded hover:bg-neutral-100">
+          <FeatherGripVertical className="w-4 h-4 text-neutral-400" />
+        </div>
+      </DragHandle>
+      <EditorContent editor={editor} className="w-full" />
+    </div>
+  )
 }

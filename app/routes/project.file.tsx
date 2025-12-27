@@ -1,8 +1,10 @@
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { useParams } from "react-router"
 import { useProject } from "./project"
 import { Editor } from "~/lib/editor"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
+import { useCommand } from "~/lib/api/useCommand"
+import { documentCommands } from "~/domain/api/commands"
 import {
   FeatherBold,
   FeatherCode2,
@@ -26,8 +28,17 @@ import {
 export default function ProjectFile() {
   const { fileId } = useParams()
   const { project, isConnected } = useProject()
+  const { execute } = useCommand()
 
   const document = fileId ? project?.documents[fileId] : undefined
+
+  const handleMoveBlock = useCallback(
+    (blockId: string, position: string) => {
+      if (!fileId) return
+      execute(documentCommands.moveBlocks(fileId, [blockId], position))
+    },
+    [fileId, execute]
+  )
 
   useEffect(() => {
     if (document) {
@@ -93,7 +104,7 @@ export default function ProjectFile() {
           ]}
         />
         <div className="flex w-full flex-col items-start gap-8 pt-8">
-          <Editor key={fileId} content={document.content} />
+          <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} />
         </div>
       </div>
     </>
