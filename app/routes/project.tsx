@@ -1,42 +1,14 @@
-import { useCallback, useState, useEffect } from "react"
+import { useCallback, useState } from "react"
+import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { toast } from "sonner"
-import type { Route } from "./+types/project"
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
-import { Editor } from "~/lib/editor"
 import { useSyncEngine } from "~/hooks/useSyncEngine"
 import { getWsUrl, getApiUrl } from "~/lib/env"
 import type { Project } from "~/domain/project"
 import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { FormattedError } from "~/domain/api"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
-import { FileHeader, EditorToolbar } from "~/ui/components/editor"
-import {
-  FeatherBold,
-  FeatherCode2,
-  FeatherCopy,
-  FeatherFileText,
-  FeatherHeading1,
-  FeatherHeading2,
-  FeatherHeading3,
-  FeatherImage,
-  FeatherItalic,
-  FeatherLink,
-  FeatherList,
-  FeatherListChecks,
-  FeatherListOrdered,
-  FeatherQuote,
-  FeatherStrikethrough,
-  FeatherTrash,
-  FeatherUnderline,
-} from "@subframe/core"
 import type { Document } from "~/domain/document"
-
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Nabu - Your AI research partner" },
-    { name: "description", content: "Qualitative research workspace" },
-  ]
-}
 
 type SidebarDocument = {
   id: string
@@ -57,8 +29,16 @@ const toSidebarDocument = (doc: Document): SidebarDocument => ({
 const selectSidebarDocuments = (project: Project | null): SidebarDocument[] =>
   project ? Object.values(project.documents).map(toSidebarDocument) : []
 
-export default function ProjectPage({ params }: Route.ComponentProps) {
-  const [selectedDocId, setSelectedDocId] = useState<string | undefined>()
+export type ProjectContextValue = {
+  project: Project | null
+  isConnected: boolean
+}
+
+export const useProject = () => useOutletContext<ProjectContextValue>()
+
+export default function ProjectLayout() {
+  const params = useParams<{ projectId: string; fileId?: string }>()
+  const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -70,7 +50,7 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
   const { state } = useSyncEngine<Project>({
     wsBaseUrl: getWsUrl("/ws"),
     apiBaseUrl: getApiUrl("/api"),
-    resourceId: params.projectId,
+    resourceId: params.projectId!,
     schemaSql: projectSchema,
     onError: handleError,
     syncToDatabase: syncProjectToDatabase,
@@ -78,83 +58,29 @@ export default function ProjectPage({ params }: Route.ComponentProps) {
 
   const project = state.data
   const documents = selectSidebarDocuments(project)
-  const selectedDoc = project?.documents[selectedDocId ?? ""]
 
-  useEffect(() => {
-    if (selectedDoc) {
-      console.debug("[WebSocket] Document content:", selectedDoc.content)
-    }
-  }, [selectedDoc?.content])
+  const handleDocumentSelect = (docId: string) => {
+    navigate(`/project/${params.projectId}/file/${docId}`)
+  }
 
   return (
     <DefaultPageLayout>
       <div className="flex h-full w-full items-start bg-default-background">
         <DocumentsSidebar
           documents={documents}
-          selectedId={selectedDocId}
+          selectedId={params.fileId}
           searchValue={searchValue}
           sortBy={sortBy}
           collapsed={sidebarCollapsed}
           onSearchChange={setSearchValue}
           onSortChange={setSortBy}
-          onDocumentSelect={setSelectedDocId}
+          onDocumentSelect={handleDocumentSelect}
           onNewDocument={() => {}}
           onCollapse={() => setSidebarCollapsed(true)}
           onExpand={() => setSidebarCollapsed(false)}
         />
         <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-          <FileHeader
-            title={selectedDoc?.name ?? "Untitled Document"}
-            tags={selectedDoc?.tags.map((tag: string, i: number) => ({
-              label: tag,
-              variant: i === 0 ? "brand" : "neutral" as const,
-            })) ?? []}
-            pinned={selectedDoc?.pinned ?? false}
-            onPin={() => {}}
-            onShare={() => {}}
-            menuItems={[
-              { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
-              { icon: <FeatherFileText />, label: "Export", onClick: () => {} },
-              { icon: <FeatherTrash />, label: "Delete", onClick: () => {} },
-            ]}
-            onAddTag={() => {}}
-          />
-          <div className="flex w-full grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto">
-            <EditorToolbar
-              groups={[
-                [
-                  { icon: <FeatherHeading1 /> },
-                  { icon: <FeatherHeading2 /> },
-                  { icon: <FeatherHeading3 /> },
-                ],
-                [
-                  { icon: <FeatherBold /> },
-                  { icon: <FeatherItalic /> },
-                  { icon: <FeatherUnderline /> },
-                  { icon: <FeatherStrikethrough /> },
-                ],
-                [
-                  { icon: <FeatherLink /> },
-                  { icon: <FeatherImage /> },
-                ],
-                [
-                  { icon: <FeatherList /> },
-                  { icon: <FeatherListOrdered /> },
-                  { icon: <FeatherListChecks /> },
-                ],
-                [
-                  { icon: <FeatherCode2 /> },
-                  { icon: <FeatherQuote /> },
-                ],
-              ]}
-            />
-            <div className="flex w-full flex-col items-start gap-8 pt-8">
-              <Editor
-                key={selectedDocId ?? "default"}
-                content={selectedDoc?.content}
-              />
-            </div>
-          </div>
+          <Outlet context={{ project, isConnected: state.isConnected }} />
         </div>
       </div>
     </DefaultPageLayout>

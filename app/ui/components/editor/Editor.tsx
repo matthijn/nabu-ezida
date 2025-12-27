@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useRef } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { TableRow } from "@tiptap/extension-table-row"
@@ -33,96 +33,14 @@ export type EditorProps = {
   onUpdate?: (blocks: Block[]) => void
 }
 
-const defaultContent: Block[] = [
-  {
-    id: "h1",
-    type: "heading",
-    props: { level: 1 },
-    content: [{ type: "text", text: "Welcome to Nabu" }],
-  },
-  {
-    id: "p1",
-    type: "paragraph",
-    content: [
-      { type: "text", text: "This is a paragraph with some " },
-      { type: "text", text: "bold", styles: { bold: true } },
-      { type: "text", text: " and " },
-      { type: "text", text: "italic", styles: { italic: true } },
-      { type: "text", text: " text. Here is a " },
-      { type: "link", text: "link", href: "https://example.com" },
-      { type: "text", text: "." },
-    ],
-  },
-  {
-    id: "h2-tasks",
-    type: "heading",
-    props: { level: 2 },
-    content: [{ type: "text", text: "Task List" }],
-  },
-  {
-    id: "task1",
-    type: "checkListItem",
-    props: { checked: true },
-    content: [{ type: "text", text: "Set up editor" }],
-  },
-  {
-    id: "task2",
-    type: "checkListItem",
-    props: { checked: true },
-    content: [{ type: "text", text: "Add extensions" }],
-  },
-  {
-    id: "task3",
-    type: "checkListItem",
-    props: { checked: false },
-    content: [{ type: "text", text: "Build research features" }],
-  },
-  {
-    id: "h2-image",
-    type: "heading",
-    props: { level: 2 },
-    content: [{ type: "text", text: "Image" }],
-  },
-  {
-    id: "img1",
-    type: "image",
-    props: {
-      url: "https://placehold.co/600x200/f5f5f4/a8a29e?text=Research+Image",
-      caption: "Placeholder image",
-    },
-  },
-  {
-    id: "h2-quote",
-    type: "heading",
-    props: { level: 2 },
-    content: [{ type: "text", text: "Block Quote" }],
-  },
-  {
-    id: "quote1",
-    type: "quote",
-    content: [{ type: "text", text: "The participants expressed concern about long-term environmental impacts." }],
-  },
-  {
-    id: "h2-code",
-    type: "heading",
-    props: { level: 2 },
-    content: [{ type: "text", text: "Code Block" }],
-  },
-  {
-    id: "code1",
-    type: "codeBlock",
-    props: { language: "typescript" },
-    content: [{ type: "text", text: "const themes = extractThemes(interviews)\nconst frequency = countByTheme(themes)" }],
-  },
-]
-
 export const Editor = ({
-  content = defaultContent,
+  content,
   placeholder = "Start typing...",
   editable = true,
   onUpdate,
 }: EditorProps) => {
-  const tiptapContent = useMemo(() => blocksToTiptap(content), [content])
+  const initialContent = useRef(content)
+  const isFirstRender = useRef(true)
 
   const editor = useEditor({
     extensions: [
@@ -157,7 +75,7 @@ export const Editor = ({
       BlockID,
       Lock,
     ],
-    content: tiptapContent,
+    content: blocksToTiptap(initialContent.current ?? []),
     editable,
     onUpdate: ({ editor }) => {
       onUpdate?.(tiptapToBlocks(editor.getJSON()))
@@ -168,6 +86,17 @@ export const Editor = ({
       },
     },
   })
+
+  // Handle content updates after initial mount (e.g., from WebSocket)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    if (editor) {
+      editor.commands.setContent(blocksToTiptap(content ?? []))
+    }
+  }, [editor, content])
 
   return <EditorContent editor={editor} className="w-full" />
 }
