@@ -9,18 +9,30 @@ type ConversationMessage = {
   content: string
 }
 
+const isInitiatorTurn = (messages: ConversationMessage[], initiator: Participant): boolean => {
+  if (messages.length === 0) return true
+  const lastMessage = messages[messages.length - 1]
+  return lastMessage.from.id !== initiator.id
+}
+
 export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
   const [inputValue, setInputValue] = useState(node.attrs.draft ?? "")
+  const [followingUp, setFollowingUp] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      inputRef.current?.focus()
-    })
-  }, [])
   const messages: ConversationMessage[] = node.attrs.messages ?? []
   const initiator: Participant = node.attrs.initiator
   const recipient: Participant = node.attrs.recipient
+  const derivedTurn = isInitiatorTurn(messages, initiator)
+  const showInput = derivedTurn || followingUp
+
+  useEffect(() => {
+    if (showInput) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+  }, [showInput])
 
   const updateDraft = useCallback(
     (value: string) => {
@@ -43,12 +55,17 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
       draft: "",
     })
     setInputValue("")
+    setFollowingUp(false)
   }, [inputValue, messages, initiator, updateAttributes])
 
   const handleCancel = useCallback(() => {
     setInputValue("")
     updateAttributes({ draft: "" })
   }, [updateAttributes])
+
+  const handleFollowUp = useCallback(() => {
+    setFollowingUp(true)
+  }, [])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -60,13 +77,46 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
     [handleSend]
   )
 
+  if (showInput) {
+    return (
+      <NodeViewWrapper className="my-4">
+        <Conversation
+          initiator={initiator}
+          recipient={recipient}
+          mode="chat"
+          onSend={handleSend}
+          onCancel={handleCancel}
+        >
+          {messages.map((msg, i) => (
+            <Message key={i} from={msg.from}>
+              <span className="text-body font-body text-default-font">
+                {msg.content}
+              </span>
+            </Message>
+          ))}
+          <Message from={initiator}>
+            <TextFieldUnstyled className="h-auto w-full flex-none">
+              <TextFieldUnstyled.Input
+                ref={inputRef}
+                placeholder={`Message ${recipient.name}...`}
+                value={inputValue}
+                onChange={(e) => updateDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </TextFieldUnstyled>
+          </Message>
+        </Conversation>
+      </NodeViewWrapper>
+    )
+  }
+
   return (
     <NodeViewWrapper className="my-4">
       <Conversation
         initiator={initiator}
         recipient={recipient}
-        mode="chat"
-        onSend={handleSend}
+        mode="progress"
+        onFollowUp={handleFollowUp}
         onCancel={handleCancel}
       >
         {messages.map((msg, i) => (
@@ -76,17 +126,6 @@ export const NabuQuestionView = ({ node, updateAttributes }: NodeViewProps) => {
             </span>
           </Message>
         ))}
-        <Message from={initiator}>
-          <TextFieldUnstyled className="h-auto w-full flex-none">
-            <TextFieldUnstyled.Input
-              ref={inputRef}
-              placeholder={`Message ${recipient.name}...`}
-              value={inputValue}
-              onChange={(e) => updateDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-          </TextFieldUnstyled>
-        </Message>
       </Conversation>
     </NodeViewWrapper>
   )
