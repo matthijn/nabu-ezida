@@ -4,7 +4,7 @@ import React, { Children, isValidElement, type ReactNode } from "react"
 import { TextField } from "~/ui/components/TextField"
 import { IconButton } from "~/ui/components/IconButton"
 import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch } from "@subframe/core"
-import * as SubframeUtils from "~/ui/utils"
+import { cn } from "~/ui/utils"
 
 type SearchProps = {
   value: string
@@ -103,7 +103,7 @@ const SidebarPanelRoot = ({
 
   return (
     <div
-      className={SubframeUtils.twClassNames(
+      className={cn(
         "flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative z-10",
         className
       )}

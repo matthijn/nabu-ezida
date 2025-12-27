@@ -1,22 +1,22 @@
 "use client";
 
-import React from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode, type ComponentProps } from "react";
 import { FeatherStar } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
-import * as SubframeUtils from "../utils";
+import { cn } from "~/ui/utils";
 
-interface DropdownDividerProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DropdownDividerProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const DropdownDivider = React.forwardRef<HTMLDivElement, DropdownDividerProps>(
+const DropdownDivider = forwardRef<HTMLDivElement, DropdownDividerProps>(
   function DropdownDivider(
     { className, ...otherProps }: DropdownDividerProps,
     ref
   ) {
     return (
       <div
-        className={SubframeUtils.twClassNames(
+        className={cn(
           "flex w-full items-start gap-2 px-1 py-1",
           className
         )}
@@ -30,13 +30,13 @@ const DropdownDivider = React.forwardRef<HTMLDivElement, DropdownDividerProps>(
 );
 
 interface DropdownItemProps
-  extends React.ComponentProps<typeof SubframeCore.DropdownMenu.Item> {
-  children?: React.ReactNode;
-  icon?: React.ReactNode;
+  extends ComponentProps<typeof SubframeCore.DropdownMenu.Item> {
+  children?: ReactNode;
+  icon?: ReactNode;
   className?: string;
 }
 
-const DropdownItem = React.forwardRef<HTMLDivElement, DropdownItemProps>(
+const DropdownItem = forwardRef<HTMLDivElement, DropdownItemProps>(
   function DropdownItem(
     {
       children,
@@ -49,7 +49,7 @@ const DropdownItem = React.forwardRef<HTMLDivElement, DropdownItemProps>(
     return (
       <SubframeCore.DropdownMenu.Item asChild={true} {...otherProps}>
         <div
-          className={SubframeUtils.twClassNames(
+          className={cn(
             "group/adcae8d6 flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-3 hover:bg-neutral-100 active:bg-neutral-50 data-[highlighted]:bg-neutral-100",
             className
           )}
@@ -71,12 +71,12 @@ const DropdownItem = React.forwardRef<HTMLDivElement, DropdownItemProps>(
   }
 );
 
-interface DropdownMenuRootProps extends React.HTMLAttributes<HTMLDivElement> {
-  children?: React.ReactNode;
+interface DropdownMenuRootProps extends HTMLAttributes<HTMLDivElement> {
+  children?: ReactNode;
   className?: string;
 }
 
-const DropdownMenuRoot = React.forwardRef<
+const DropdownMenuRoot = forwardRef<
   HTMLDivElement,
   DropdownMenuRootProps
 >(function DropdownMenuRoot(
@@ -85,7 +85,7 @@ const DropdownMenuRoot = React.forwardRef<
 ) {
   return children ? (
     <div
-      className={SubframeUtils.twClassNames(
+      className={cn(
         "flex min-w-[192px] flex-col items-start rounded-md border border-solid border-neutral-border bg-default-background px-1 py-1 shadow-lg",
         className
       )}

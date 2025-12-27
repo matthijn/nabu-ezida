@@ -1,19 +1,19 @@
 "use client";
 
-import React from "react";
-import * as SubframeUtils from "../utils";
+import { forwardRef, type InputHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
+import { cn } from "~/ui/utils";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   className?: string;
 }
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, ...otherProps }: InputProps,
   ref
 ) {
   return (
     <input
-      className={SubframeUtils.twClassNames(
+      className={cn(
         "h-full w-full border-none bg-transparent text-body font-body text-default-font outline-none placeholder:text-neutral-400",
         className
       )}
@@ -23,19 +23,19 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
-interface TextFieldUnstyledRootProps extends React.HTMLAttributes<HTMLDivElement> {
-  children?: React.ReactNode;
+interface TextFieldUnstyledRootProps extends HTMLAttributes<HTMLDivElement> {
+  children?: ReactNode;
   className?: string;
 }
 
-const TextFieldUnstyledRoot = React.forwardRef<HTMLDivElement, TextFieldUnstyledRootProps>(
+const TextFieldUnstyledRoot = forwardRef<HTMLDivElement, TextFieldUnstyledRootProps>(
   function TextFieldUnstyledRoot(
     { children, className, ...otherProps }: TextFieldUnstyledRootProps,
     ref
   ) {
     return (
       <div
-        className={SubframeUtils.twClassNames(
+        className={cn(
           "flex h-8 w-full items-center",
           className
         )}

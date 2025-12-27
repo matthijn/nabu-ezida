@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import type { Route } from "./+types/home";
-import { AppLayout } from "~/ui/layouts/AppLayout";
 import { useProjects, getFirstProjectId } from "~/hooks/useProjects";
 
 export function meta({}: Route.MetaArgs) {
@@ -23,10 +22,8 @@ export default function Home() {
   }, [projects, loading, navigate]);
 
   return (
-    <AppLayout>
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        {loading ? "Loading projects..." : "No projects found"}
-      </div>
-    </AppLayout>
+    <div className="flex h-screen items-center justify-center text-muted-foreground">
+      {loading ? "Loading projects..." : "No projects found"}
+    </div>
   );
 }

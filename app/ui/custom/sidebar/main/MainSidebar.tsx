@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import type { ReactNode } from "react";
 import { FeatherLogOut, FeatherSettings, FeatherUser } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 import { Avatar } from "~/ui/components/Avatar";
@@ -9,7 +9,7 @@ import { SidebarRailWithLabels } from "~/ui/components/SidebarRailWithLabels";
 
 export interface NavItem {
   id: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   tooltip?: string;
   selected?: boolean;
@@ -17,7 +17,7 @@ export interface NavItem {
 
 export interface UserMenuAction {
   id: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
 }
 

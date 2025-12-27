@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode, type MouseEvent } from "react";
 import { FeatherPlus } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
-import * as SubframeUtils from "../utils";
+import { cn } from "~/ui/utils";
 
-interface IconButtonRootProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface IconButtonRootProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   disabled?: boolean;
   variant?:
     | "brand-primary"
@@ -20,13 +19,13 @@ interface IconButtonRootProps
     | "destructive-tertiary"
     | "inverse";
   size?: "large" | "medium" | "small";
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   loading?: boolean;
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   className?: string;
 }
 
-const IconButtonRoot = React.forwardRef<HTMLButtonElement, IconButtonRootProps>(
+const IconButtonRoot = forwardRef<HTMLButtonElement, IconButtonRootProps>(
   function IconButtonRoot(
     {
       disabled = false,
@@ -42,7 +41,7 @@ const IconButtonRoot = React.forwardRef<HTMLButtonElement, IconButtonRootProps>(
   ) {
     return (
       <button
-        className={SubframeUtils.twClassNames(
+        className={cn(
           "group/af9405b1 flex h-8 w-8 cursor-pointer items-center justify-center gap-2 rounded-md border-none bg-transparent text-left hover:bg-neutral-100 active:bg-neutral-50 disabled:cursor-default disabled:bg-neutral-100 active:disabled:cursor-default active:disabled:bg-neutral-100",
           {
             "h-6 w-6": size === "small",
@@ -74,7 +73,7 @@ const IconButtonRoot = React.forwardRef<HTMLButtonElement, IconButtonRootProps>(
       >
         {icon ? (
           <SubframeCore.IconWrapper
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "text-heading-3 font-heading-3 text-neutral-700 group-disabled/af9405b1:text-neutral-400",
               {
                 hidden: loading,
@@ -95,7 +94,7 @@ const IconButtonRoot = React.forwardRef<HTMLButtonElement, IconButtonRootProps>(
           </SubframeCore.IconWrapper>
         ) : null}
         <SubframeCore.Loader
-          className={SubframeUtils.twClassNames(
+          className={cn(
             "hidden text-caption font-caption text-neutral-700 group-disabled/af9405b1:text-neutral-400",
             {
               "inline-block": loading,

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import { IconButton } from "~/ui/components/IconButton"
-import * as SubframeUtils from "~/ui/utils"
+import { cn } from "~/ui/utils"
 
 type ToolbarItem = {
   icon: ReactNode
@@ -24,7 +24,7 @@ const Divider = () => (
 export const EditorToolbar = ({ groups, className }: EditorToolbarProps) => (
   <div className="flex w-full items-center justify-center">
     <div
-      className={SubframeUtils.twClassNames(
+      className={cn(
         "flex items-start gap-1 rounded-full border border-solid border-neutral-border bg-default-background px-2 py-2 shadow-md",
         className
       )}

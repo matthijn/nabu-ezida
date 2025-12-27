@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode, type MouseEvent } from "react";
 import * as SubframeCore from "@subframe/core";
-import * as SubframeUtils from "../utils";
+import { cn } from "~/ui/utils";
 
-interface ButtonRootProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonRootProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   disabled?: boolean;
   variant?:
     | "brand-primary"
@@ -19,15 +18,15 @@ interface ButtonRootProps
     | "destructive-tertiary"
     | "inverse";
   size?: "large" | "medium" | "small";
-  children?: React.ReactNode;
-  icon?: React.ReactNode;
-  iconRight?: React.ReactNode;
+  children?: ReactNode;
+  icon?: ReactNode;
+  iconRight?: ReactNode;
   loading?: boolean;
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   className?: string;
 }
 
-const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
+const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
   function ButtonRoot(
     {
       disabled = false,
@@ -45,7 +44,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
   ) {
     return (
       <button
-        className={SubframeUtils.twClassNames(
+        className={cn(
           "group/3b777358 flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border-none bg-brand-600 px-3 text-left hover:bg-brand-500 active:bg-brand-600 disabled:cursor-default disabled:bg-neutral-200 hover:disabled:cursor-default hover:disabled:bg-neutral-200 active:disabled:cursor-default active:disabled:bg-neutral-200",
           {
             "h-6 w-auto flex-row flex-nowrap gap-1 px-2 py-0": size === "small",
@@ -78,7 +77,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
       >
         {icon ? (
           <SubframeCore.IconWrapper
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "text-body font-body text-white group-disabled/3b777358:text-neutral-400",
               {
                 hidden: loading,
@@ -99,13 +98,13 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
           </SubframeCore.IconWrapper>
         ) : null}
         <div
-          className={SubframeUtils.twClassNames(
+          className={cn(
             "hidden h-4 w-4 flex-none items-center justify-center gap-2",
             { flex: loading, "h-3 w-3 flex-none": size === "small" }
           )}
         >
           <SubframeCore.Loader
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "font-['Inter'] text-[12px] font-[400] leading-[20px] text-white group-disabled/3b777358:text-neutral-400",
               {
                 "text-caption font-caption": size === "small",
@@ -124,7 +123,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
         </div>
         {children ? (
           <span
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "whitespace-nowrap text-body-bold font-body-bold text-white group-disabled/3b777358:text-neutral-400",
               {
                 hidden: loading,
@@ -146,7 +145,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
         ) : null}
         {iconRight ? (
           <SubframeCore.IconWrapper
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "text-body font-body text-white group-disabled/3b777358:text-neutral-400",
               {
                 "text-heading-3 font-heading-3": size === "large",

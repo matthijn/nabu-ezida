@@ -1,17 +1,17 @@
 "use client";
 
-import React from "react";
+import { forwardRef, type ComponentProps, type ElementRef } from "react";
 import * as SubframeCore from "@subframe/core";
-import * as SubframeUtils from "../utils";
+import { cn } from "~/ui/utils";
 
 interface BarChartRootProps
-  extends React.ComponentProps<typeof SubframeCore.BarChart> {
+  extends ComponentProps<typeof SubframeCore.BarChart> {
   stacked?: boolean;
   className?: string;
 }
 
-const BarChartRoot = React.forwardRef<
-  React.ElementRef<typeof SubframeCore.BarChart>,
+const BarChartRoot = forwardRef<
+  ElementRef<typeof SubframeCore.BarChart>,
   BarChartRootProps
 >(function BarChartRoot(
   { stacked = false, className, ...otherProps }: BarChartRootProps,
@@ -19,7 +19,7 @@ const BarChartRoot = React.forwardRef<
 ) {
   return (
     <SubframeCore.BarChart
-      className={SubframeUtils.twClassNames("h-80 w-full", className)}
+      className={cn("h-80 w-full", className)}
       ref={ref}
       stacked={stacked}
       colors={[

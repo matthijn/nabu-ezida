@@ -7,7 +7,7 @@ import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
 import { FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
-import * as SubframeUtils from "~/ui/utils"
+import { cn } from "~/ui/utils"
 
 type Tag = {
   label: string
@@ -42,7 +42,7 @@ export const FileHeader = ({
   className,
 }: FileHeaderProps) => (
   <div
-    className={SubframeUtils.twClassNames(
+    className={cn(
       "flex w-full flex-col items-start gap-3 border-b border-solid border-neutral-border px-6 py-4",
       className
     )}

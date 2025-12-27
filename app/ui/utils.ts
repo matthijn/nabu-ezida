@@ -21,6 +21,4 @@ const twMerge = extendTailwindMerge<"sf-text-style" | "sf-font-family">({
   },
 });
 
-export function twClassNames(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));

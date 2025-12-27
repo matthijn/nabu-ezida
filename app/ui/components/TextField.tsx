@@ -1,24 +1,24 @@
 "use client";
 
-import React from "react";
+import { forwardRef, type InputHTMLAttributes, type LabelHTMLAttributes, type ReactNode, type ChangeEvent } from "react";
 import * as SubframeCore from "@subframe/core";
-import * as SubframeUtils from "../utils";
+import { cn } from "~/ui/utils";
 
 interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "placeholder"> {
-  placeholder?: React.ReactNode;
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "placeholder"> {
+  placeholder?: ReactNode;
   value?: string;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
 }
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { placeholder, className, ...otherProps }: InputProps,
   ref
 ) {
   return (
     <input
-      className={SubframeUtils.twClassNames(
+      className={cn(
         "h-full w-full border-none bg-transparent text-body font-body text-default-font outline-none placeholder:text-neutral-400",
         className
       )}
@@ -29,20 +29,19 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
-interface TextFieldRootProps
-  extends React.LabelHTMLAttributes<HTMLLabelElement> {
+interface TextFieldRootProps extends LabelHTMLAttributes<HTMLLabelElement> {
   disabled?: boolean;
   error?: boolean;
   variant?: "outline" | "filled";
-  label?: React.ReactNode;
-  helpText?: React.ReactNode;
-  icon?: React.ReactNode;
-  iconRight?: React.ReactNode;
-  children?: React.ReactNode;
+  label?: ReactNode;
+  helpText?: ReactNode;
+  icon?: ReactNode;
+  iconRight?: ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
-const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
+const TextFieldRoot = forwardRef<HTMLLabelElement, TextFieldRootProps>(
   function TextFieldRoot(
     {
       disabled = false,
@@ -60,7 +59,7 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
   ) {
     return (
       <label
-        className={SubframeUtils.twClassNames(
+        className={cn(
           "group/be48ca43 flex flex-col items-start gap-1",
           className
         )}
@@ -73,7 +72,7 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
           </span>
         ) : null}
         <div
-          className={SubframeUtils.twClassNames(
+          className={cn(
             "flex h-8 w-full flex-none items-center gap-1 rounded-md border border-solid border-neutral-border bg-default-background px-2 group-focus-within/be48ca43:border group-focus-within/be48ca43:border-solid group-focus-within/be48ca43:border-brand-primary",
             {
               "border border-solid border-neutral-100 bg-neutral-100 group-hover/be48ca43:border group-hover/be48ca43:border-solid group-hover/be48ca43:border-neutral-border group-focus-within/be48ca43:bg-default-background":
@@ -95,7 +94,7 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
           ) : null}
           {iconRight ? (
             <SubframeCore.IconWrapper
-              className={SubframeUtils.twClassNames(
+              className={cn(
                 "text-body font-body text-subtext-color",
                 { "text-error-500": error }
               )}
@@ -106,7 +105,7 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
         </div>
         {helpText ? (
           <span
-            className={SubframeUtils.twClassNames(
+            className={cn(
               "text-caption font-caption text-subtext-color",
               { "text-error-700": error }
             )}
