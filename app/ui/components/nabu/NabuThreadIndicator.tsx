@@ -1,6 +1,6 @@
 "use client"
 
-import { FeatherMessageCircle, FeatherMaximize2, FeatherSparkles, FeatherLoader2 } from "@subframe/core"
+import { FeatherMessageCircle, FeatherMaximize2, FeatherSparkles } from "@subframe/core"
 import { Avatar } from "~/ui/components/Avatar"
 import { Badge } from "~/ui/components/Badge"
 import { IconButton } from "~/ui/components/IconButton"
@@ -28,7 +28,6 @@ type NabuThreadIndicatorProps = {
   recipient: Participant
   preview: string
   messageCount: number
-  isActive?: boolean
   onClick: () => void
   className?: string
 }
@@ -38,7 +37,6 @@ export const NabuThreadIndicator = ({
   recipient,
   preview,
   messageCount,
-  isActive = false,
   onClick,
   className = "",
 }: NabuThreadIndicatorProps) => {
@@ -75,15 +73,11 @@ export const NabuThreadIndicator = ({
       <span className="grow shrink-0 basis-0 truncate text-caption font-caption text-default-font">
         {preview}
       </span>
-      {isActive ? (
-        <Badge variant={variant} icon={<FeatherLoader2 className="animate-spin" />}>
-          Active
-        </Badge>
-      ) : messageCount > 0 ? (
+      {messageCount > 0 && (
         <Badge variant={variant} icon={<FeatherMessageCircle />}>
           {messageCount}
         </Badge>
-      ) : null}
+      )}
       <IconButton
         className="hidden group-hover:flex"
         variant="neutral-tertiary"

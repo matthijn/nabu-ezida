@@ -6,7 +6,7 @@ import { NabuMentionInput, NabuThreadIndicator, useNabuSidebar } from "~/ui/comp
 
 export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const threadId = useId()
-  const { openThread, activeThread } = useNabuSidebar()
+  const { openThread } = useNabuSidebar()
   const { thread } = useThread(threadId)
 
   const initiator: Participant = node.attrs.initiator
@@ -43,7 +43,6 @@ export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeVie
     openThread(threadId)
   }, [openThread, threadId])
 
-  const isActive = activeThread === threadId
   const messageCount = thread?.messages.length ?? 0
 
   if (!hasSubmitted) {
@@ -65,7 +64,6 @@ export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeVie
         recipient={recipient}
         preview={preview}
         messageCount={messageCount}
-        isActive={isActive}
         onClick={handleIndicatorClick}
       />
     </NodeViewWrapper>

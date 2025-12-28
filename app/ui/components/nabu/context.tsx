@@ -3,9 +3,10 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 
 type NabuSidebarContextValue = {
-  activeThread: string | null
+  openThreads: string[]
   openThread: (threadId: string) => void
-  closeThread: () => void
+  closeThread: (threadId: string) => void
+  isThreadOpen: (threadId: string) => boolean
 }
 
 const NabuSidebarContext = createContext<NabuSidebarContextValue | null>(null)
@@ -15,18 +16,23 @@ type NabuSidebarProviderProps = {
 }
 
 export const NabuSidebarProvider = ({ children }: NabuSidebarProviderProps) => {
-  const [activeThread, setActiveThread] = useState<string | null>(null)
+  const [openThreads, setOpenThreads] = useState<string[]>([])
 
   const openThread = useCallback((threadId: string) => {
-    setActiveThread(threadId)
+    setOpenThreads((prev) => (prev.includes(threadId) ? prev : [...prev, threadId]))
   }, [])
 
-  const closeThread = useCallback(() => {
-    setActiveThread(null)
+  const closeThread = useCallback((threadId: string) => {
+    setOpenThreads((prev) => prev.filter((id) => id !== threadId))
   }, [])
+
+  const isThreadOpen = useCallback(
+    (threadId: string) => openThreads.includes(threadId),
+    [openThreads]
+  )
 
   return (
-    <NabuSidebarContext.Provider value={{ activeThread, openThread, closeThread }}>
+    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen }}>
       {children}
     </NabuSidebarContext.Provider>
   )

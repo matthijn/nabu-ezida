@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from "react"
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react"
 import Markdown from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2 } from "@subframe/core"
 import { Avatar } from "~/ui/components/Avatar"
@@ -67,23 +67,67 @@ const MessageBubble = ({ from, children }: MessageBubbleProps) => (
   </div>
 )
 
-export const NabuChatSidebar = () => {
-  const { activeThread, closeThread } = useNabuSidebar()
-  const { thread, send, cancel, isExecuting } = useThread(activeThread)
+type Position = { x: number; y: number }
+
+const useDraggable = (initialPosition: Position) => {
+  const [position, setPosition] = useState(initialPosition)
+  const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
+
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    e.preventDefault()
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosX: position.x,
+      startPosY: position.y,
+    }
+
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
+      if (!dragRef.current) return
+      const deltaX = e.clientX - dragRef.current.startX
+      const deltaY = e.clientY - dragRef.current.startY
+      setPosition({
+        x: dragRef.current.startPosX - deltaX,
+        y: dragRef.current.startPosY - deltaY,
+      })
+    }
+
+    const handleMouseUp = () => {
+      dragRef.current = null
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+  }, [position])
+
+  return { position, handleMouseDown }
+}
+
+type NabuChatWindowProps = {
+  threadId: string
+  index: number
+}
+
+const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
+  const { closeThread } = useNabuSidebar()
+  const { thread, send, cancel, isExecuting } = useThread(threadId)
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastThreadId = useRef<string | null>(null)
+  const lastSentRef = useRef<string | null>(null)
+  const { position, handleMouseDown } = useDraggable({ x: 16 + index * 20, y: 16 + index * 20 })
 
   // Send initial message when opening a new thread
   useEffect(() => {
-    if (!activeThread || !thread) return
-    if (lastThreadId.current === activeThread) return
+    if (!thread) return
+    if (lastSentRef.current === threadId) return
     if (thread.messages.length > 1) return // Already has conversation
 
-    lastThreadId.current = activeThread
+    lastSentRef.current = threadId
     setInputValue("")
     send(thread.messages[0].content)
-  }, [activeThread, thread, send])
+  }, [threadId, thread, send])
 
   // Focus input when not executing
   useEffect(() => {
@@ -112,10 +156,10 @@ export const NabuChatSidebar = () => {
 
   const handleClose = useCallback(() => {
     cancel()
-    closeThread()
-  }, [cancel, closeThread])
+    closeThread(threadId)
+  }, [cancel, closeThread, threadId])
 
-  if (!activeThread || !thread) {
+  if (!thread) {
     return null
   }
 
@@ -124,10 +168,14 @@ export const NabuChatSidebar = () => {
 
   return (
     <div
-      className={`fixed right-4 bottom-4 z-50 flex h-[400px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
+      style={{ right: position.x, bottom: position.y }}
+      className={`fixed z-50 flex h-[400px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
     >
-      {/* Header */}
-      <div className={`flex w-full items-center justify-between rounded-t-lg px-4 py-3 ${variantToBg[variant]}`}>
+      {/* Header - draggable */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={`flex w-full cursor-move items-center justify-between rounded-t-lg px-4 py-3 ${variantToBg[variant]}`}
+      >
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             <ParticipantAvatar participant={initiator} size="small" />
@@ -192,5 +240,17 @@ export const NabuChatSidebar = () => {
         />
       </div>
     </div>
+  )
+}
+
+export const NabuChatSidebar = () => {
+  const { openThreads } = useNabuSidebar()
+
+  return (
+    <>
+      {openThreads.map((threadId, index) => (
+        <NabuChatWindow key={threadId} threadId={threadId} index={index} />
+      ))}
+    </>
   )
 }
