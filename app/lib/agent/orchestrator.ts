@@ -1,7 +1,6 @@
 import type { AgentState, AgentMessage, Plan, Step } from "~/domain/agent"
 import type { Message, ToolHandlers } from "~/domain/llm"
-import { createInitialState, applyMessage, hasMoreSteps } from "~/domain/agent"
-import { selectEndpoint, selectTools } from "./selectors"
+import { createInitialState, applyMessage, hasMoreSteps, selectEndpoint, selectTools } from "~/domain/agent"
 import { executeBlock } from "~/lib/llm"
 
 const MAX_STEP_ATTEMPTS = 5
