@@ -9,7 +9,8 @@ import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { FormattedError } from "~/domain/api"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import type { Document } from "~/domain/document"
-import { clearSharedContext } from "~/lib/llm"
+import { clearAllThreads } from "~/lib/threads"
+import { NabuSidebarProvider, NabuChatSidebar } from "~/ui/components/nabu"
 
 type SidebarDocument = {
   id: string
@@ -45,7 +46,7 @@ export default function ProjectLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
-    return () => clearSharedContext()
+    return () => clearAllThreads()
   }, [params.projectId])
 
   const handleError = useCallback((error: FormattedError) => {
@@ -69,25 +70,28 @@ export default function ProjectLayout() {
   }
 
   return (
-    <DefaultPageLayout>
-      <div className="flex h-full w-full items-start bg-default-background">
-        <DocumentsSidebar
-          documents={documents}
-          selectedId={params.fileId}
-          searchValue={searchValue}
-          sortBy={sortBy}
-          collapsed={sidebarCollapsed}
-          onSearchChange={setSearchValue}
-          onSortChange={setSortBy}
-          onDocumentSelect={handleDocumentSelect}
-          onNewDocument={() => {}}
-          onCollapse={() => setSidebarCollapsed(true)}
-          onExpand={() => setSidebarCollapsed(false)}
-        />
-        <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-          <Outlet context={{ project, isConnected: state.isConnected }} />
+    <NabuSidebarProvider>
+      <DefaultPageLayout>
+        <div className="flex h-full w-full items-start bg-default-background">
+          <DocumentsSidebar
+            documents={documents}
+            selectedId={params.fileId}
+            searchValue={searchValue}
+            sortBy={sortBy}
+            collapsed={sidebarCollapsed}
+            onSearchChange={setSearchValue}
+            onSortChange={setSortBy}
+            onDocumentSelect={handleDocumentSelect}
+            onNewDocument={() => {}}
+            onCollapse={() => setSidebarCollapsed(true)}
+            onExpand={() => setSidebarCollapsed(false)}
+          />
+          <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
+            <Outlet context={{ project, isConnected: state.isConnected }} />
+          </div>
         </div>
-      </div>
-    </DefaultPageLayout>
+        <NabuChatSidebar />
+      </DefaultPageLayout>
+    </NabuSidebarProvider>
   )
 }

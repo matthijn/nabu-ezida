@@ -67,8 +67,8 @@ export const NabuQuestion = Node.create({
     return {
       initiator: { default: null },
       recipient: { default: null },
-      messages: { default: [] },
-      draft: { default: "" },
+      hasSubmitted: { default: false },
+      preview: { default: "" },
     }
   },
 

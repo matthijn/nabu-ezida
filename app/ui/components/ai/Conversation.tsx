@@ -107,7 +107,7 @@ export const Conversation = (props: ConversationProps) => {
   return (
     <div
       onClick={onClick}
-      className={`flex w-full max-h-[600px] flex-col rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
+      className={`flex w-full max-h-[300px] flex-col rounded-lg border-2 border-solid px-4 py-4 ${variantToBorder[recipient.variant]} ${variantToBg[recipient.variant]} ${className}`}
     >
       <ConversationHeader initiator={initiator} recipient={recipient} />
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 py-3">
