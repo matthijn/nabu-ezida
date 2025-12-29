@@ -1,4 +1,4 @@
-import type { Message } from "~/domain/llm"
+import type { Message } from "./types"
 import { getLlmUrl } from "~/lib/env"
 
 export type StreamChatOptions = {

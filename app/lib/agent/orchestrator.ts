@@ -1,5 +1,5 @@
 import type { AgentState, AgentMessage, ParsedResponse } from "~/lib/orchestrator"
-import type { Message, ToolHandlers } from "~/domain/llm"
+import type { Message, ToolHandlers } from "~/lib/llm"
 import {
   createInitialState,
   applyMessage,

@@ -1,4 +1,4 @@
-import type { BlockState, BlockSummary, Message, ToolHandlers } from "~/domain/llm"
+import type { BlockState, BlockSummary, Message, ToolHandlers, Effect } from "./types"
 import {
   parseSSELine,
   handleStreamEvent,
@@ -6,8 +6,9 @@ import {
   appendInternal,
   appendMessage,
   setStatus,
+  setError,
   createInitialState,
-} from "~/domain/llm"
+} from "./"
 import { streamChat } from "./client"
 
 export type ExecuteBlockOptions = {
@@ -20,11 +21,26 @@ export type ExecuteBlockOptions = {
   signal?: AbortSignal
 }
 
+const isTerminalStatus = (state: BlockState): boolean =>
+  state.status === "done" || state.status === "error"
+
+const isExecuteToolEffect = (effect: Effect): effect is Effect & { type: "execute_tool" } =>
+  effect.type === "execute_tool"
+
+const extractErrorMessage = (err: unknown, fallback: string): string =>
+  err instanceof Error ? err.message : fallback
+
+const hasInternalContext = (state: BlockState): boolean =>
+  state.internal.length > 0
+
 const buildSystemContext = (shared: BlockSummary[]): string => {
   if (shared.length === 0) return ""
   const summaries = shared.map((s) => `- ${s.summary}`).join("\n")
   return `\n\nContext from previous blocks:\n${summaries}`
 }
+
+const buildInternalContext = (state: BlockState): string =>
+  state.internal.map((r) => `[${r.step}]: ${JSON.stringify(r.result)}`).join("\n")
 
 const buildMessages = (
   history: Message[],
@@ -42,17 +58,45 @@ const buildMessages = (
     })
   }
 
-  if (state.internal.length > 0) {
-    const internalContext = state.internal
-      .map((r) => `[${r.step}]: ${JSON.stringify(r.result)}`)
-      .join("\n")
+  if (hasInternalContext(state)) {
     messages.push({
       role: "system",
-      content: `Internal context from previous steps:\n${internalContext}`,
+      content: `Internal context from previous steps:\n${buildInternalContext(state)}`,
     })
   }
 
   return messages
+}
+
+type ToolExecutionContext = {
+  toolHandlers: ToolHandlers
+  onStateChange: (state: BlockState) => void
+}
+
+const executeToolEffect = async (
+  state: BlockState,
+  effect: Effect & { type: "execute_tool" },
+  ctx: ToolExecutionContext
+): Promise<BlockState> => {
+  const handler = ctx.toolHandlers[effect.name]
+
+  if (!handler) {
+    return addToolResult(state, effect.id, { error: `Unknown tool: ${effect.name}` })
+  }
+
+  try {
+    const result = await handler(effect.args)
+    let newState = appendInternal(state, { step: effect.name, result })
+    newState = addToolResult(newState, effect.id, result)
+    newState = setStatus(newState, "streaming")
+    ctx.onStateChange(newState)
+    return newState
+  } catch (err) {
+    const errorMessage = extractErrorMessage(err, "Tool execution failed")
+    const newState = addToolResult(state, effect.id, { error: errorMessage })
+    ctx.onStateChange(newState)
+    return newState
+  }
 }
 
 export const executeBlock = async (options: ExecuteBlockOptions): Promise<BlockState> => {
@@ -64,8 +108,9 @@ export const executeBlock = async (options: ExecuteBlockOptions): Promise<BlockS
 
   let currentMessage: string | undefined = initialMessage
   let toolCallAcc: { id: string; name: string; arguments: string } | null = null
+  const toolCtx: ToolExecutionContext = { toolHandlers, onStateChange }
 
-  while (state.status !== "done" && state.status !== "error") {
+  while (!isTerminalStatus(state)) {
     const messages = buildMessages(history, state, sharedContext, currentMessage)
     currentMessage = undefined
 
@@ -84,24 +129,8 @@ export const executeBlock = async (options: ExecuteBlockOptions): Promise<BlockS
           onStateChange(state)
 
           for (const effect of effects) {
-            if (effect.type === "execute_tool") {
-              const handler = toolHandlers[effect.name]
-              if (!handler) {
-                state = addToolResult(state, effect.id, { error: `Unknown tool: ${effect.name}` })
-                continue
-              }
-
-              try {
-                const result = await handler(effect.args)
-                state = appendInternal(state, { step: effect.name, result })
-                state = addToolResult(state, effect.id, result)
-                state = setStatus(state, "streaming")
-                onStateChange(state)
-              } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : "Tool execution failed"
-                state = addToolResult(state, effect.id, { error: errorMessage })
-                onStateChange(state)
-              }
+            if (isExecuteToolEffect(effect)) {
+              state = await executeToolEffect(state, effect, toolCtx)
             }
           }
         }
@@ -110,11 +139,7 @@ export const executeBlock = async (options: ExecuteBlockOptions): Promise<BlockS
       if (signal?.aborted) {
         state = setStatus(state, "done")
       } else {
-        state = {
-          ...state,
-          status: "error",
-          error: err instanceof Error ? err.message : "Stream failed",
-        }
+        state = setError(state, extractErrorMessage(err, "Stream failed"))
       }
       onStateChange(state)
       break

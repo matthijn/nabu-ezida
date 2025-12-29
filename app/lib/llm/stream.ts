@@ -100,6 +100,10 @@ export const parseSSELine = (
   }
 }
 
+const assertNever = (x: never): never => {
+  throw new Error(`Unexpected event type: ${(x as StreamEvent).type}`)
+}
+
 export const handleStreamEvent = (
   state: BlockState,
   event: StreamEvent
@@ -133,6 +137,9 @@ export const handleStreamEvent = (
         state: setError(state, event.message),
         effects: [],
       }
+
+    default:
+      return assertNever(event)
   }
 }
 

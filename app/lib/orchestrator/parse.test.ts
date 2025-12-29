@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { parseResponse, parsePlan } from "./parse"
-import type { ToolCall } from "~/domain/llm"
+import type { ToolCall } from "~/lib/llm"
 
 describe("parseResponse", () => {
   const cases = [

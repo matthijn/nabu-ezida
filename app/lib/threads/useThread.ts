@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useCallback, useRef } from "react"
-import type { ToolHandlers } from "~/domain/llm"
+import type { ToolHandlers } from "~/lib/llm"
 import type { AgentMessage, AgentState } from "~/lib/orchestrator"
 import { runAgent } from "~/lib/agent"
 import {

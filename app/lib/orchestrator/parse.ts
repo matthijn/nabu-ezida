@@ -1,5 +1,5 @@
 import type { Plan, Step } from "./types"
-import type { ToolCall } from "~/domain/llm"
+import type { ToolCall } from "~/lib/llm"
 
 export type ParsedResponse =
   | { type: "text"; content: string }

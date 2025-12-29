@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react"
 import type { AgentState, AgentMessage } from "~/lib/orchestrator"
-import type { ToolHandlers } from "~/domain/llm"
+import type { ToolHandlers } from "~/lib/llm"
 import { createInitialState } from "~/lib/orchestrator"
 import { runAgent } from "./orchestrator"
 
@@ -16,6 +16,8 @@ type UseAgentResult = {
   cancel: () => void
   reset: () => void
 }
+
+const noop = () => {}
 
 export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
   const { toolHandlers = {} } = options
@@ -33,9 +35,7 @@ export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
       try {
         await runAgent(message, state, {
           toolHandlers,
-          onMessage: () => {
-            // Messages are part of state, updated via onStateChange
-          },
+          onMessage: noop,
           onStateChange: setState,
           signal: abortControllerRef.current.signal,
         })

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react"
-import type { BlockState, BlockSummary, Message, ToolHandlers } from "~/domain/llm"
-import { createInitialState } from "~/domain/llm"
+import type { BlockState, BlockSummary, Message, ToolHandlers } from "./types"
+import { createInitialState } from "./reducers"
 import { executeBlock } from "./executor"
 
 export type UseBlockExecutionOptions = {

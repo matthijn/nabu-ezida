@@ -1,4 +1,4 @@
-import type { BlockSummary } from "~/domain/llm"
+import type { BlockSummary } from "./types"
 
 type SharedContextStore = {
   summaries: BlockSummary[]

@@ -1,5 +1,5 @@
 import type { Participant } from "~/domain/participant"
-import type { BlockSummary } from "~/domain/llm"
+import type { BlockSummary } from "~/lib/llm"
 
 export type ConversationMessage = {
   from: Participant
