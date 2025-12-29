@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react"
-import type { AgentState, AgentMessage } from "~/domain/agent"
+import type { AgentState, AgentMessage } from "~/lib/orchestrator"
 import type { ToolHandlers } from "~/domain/llm"
-import { createInitialState } from "~/domain/agent"
+import { createInitialState } from "~/lib/orchestrator"
 import { runAgent } from "./orchestrator"
 
 type UseAgentOptions = {

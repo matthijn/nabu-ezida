@@ -16,6 +16,7 @@ export type AgentMode = "converse" | "task"
 export type AgentMessage =
   | { type: "text"; content: string }
   | { type: "thinking"; content: string }
+  | { type: "task_detected"; task: string }
   | { type: "plan"; plan: Plan }
   | { type: "step_start"; stepIndex: number }
   | { type: "step_done"; stepIndex: number; summary: string }
@@ -27,7 +28,6 @@ export type AgentState = {
   mode: AgentMode
   messages: AgentMessage[]
   plan: Plan | null
-  currentStep: number | null
 }
 
 export type LLMResponse = {

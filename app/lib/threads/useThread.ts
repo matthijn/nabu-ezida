@@ -1,6 +1,7 @@
 import { useSyncExternalStore, useCallback, useRef } from "react"
-import type { Message, ToolHandlers } from "~/domain/llm"
-import { executeBlock } from "~/lib/llm/executor"
+import type { ToolHandlers } from "~/domain/llm"
+import type { AgentMessage, AgentState } from "~/lib/orchestrator"
+import { runAgent } from "~/lib/agent"
 import {
   getThread,
   updateThread,
@@ -12,7 +13,6 @@ import {
 } from "./store"
 
 type UseThreadOptions = {
-  prompt?: string
   toolHandlers?: ToolHandlers
 }
 
@@ -23,15 +23,51 @@ type UseThreadResult = {
   isExecuting: boolean
 }
 
-const toRole = (msg: ConversationMessage): "user" | "assistant" =>
-  msg.from.type === "llm" ? "assistant" : "user"
+const assertNever = (x: never): never => {
+  throw new Error(`Unexpected message type: ${(x as AgentMessage).type}`)
+}
 
-const toLLMMessages = (messages: ConversationMessage[]): Message[] =>
-  messages.map((m) => ({ role: toRole(m), content: m.content }))
+const selectMessageContent = (msg: AgentMessage): string | null => {
+  switch (msg.type) {
+    case "text":
+      return msg.content
+    case "thinking":
+      return msg.content
+    case "task_detected":
+      return `Planning: ${msg.task}`
+    case "plan":
+      return msg.plan.steps.map((s, i) => `${i + 1}. ${s.description}`).join("\n")
+    case "step_start":
+      return null
+    case "step_done":
+      return msg.summary
+    case "stuck":
+      return msg.question
+    case "error":
+      return `Error: ${msg.message}`
+    case "done":
+      return msg.summary
+    default:
+      return assertNever(msg)
+  }
+}
+
+const isUserEcho = (isFirst: boolean, msg: AgentMessage): boolean =>
+  isFirst && msg.type === "text"
+
+const isDuplicateUserMessage = (
+  lastMessage: ConversationMessage | undefined,
+  content: string
+): boolean =>
+  lastMessage?.content === content && lastMessage?.from.type !== "llm"
+
+const findLastTextMessage = (messages: AgentMessage[]): AgentMessage | undefined =>
+  [...messages].reverse().find((m) => m.type === "text")
 
 export const useThread = (threadId: string | null, options: UseThreadOptions = {}): UseThreadResult => {
-  const { prompt = "nabu", toolHandlers = {} } = options
+  const { toolHandlers = {} } = options
   const abortControllerRef = useRef<AbortController | null>(null)
+  const agentStateRef = useRef<AgentState | null>(null)
 
   const subscribe = useCallback(
     (callback: () => void) => {
@@ -54,60 +90,61 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
     (content: string) => {
       if (!threadId || !thread || isExecuting) return
 
-      // Add user message to thread (skip if it's already the last message - e.g., initial send)
       const lastMessage = thread.messages[thread.messages.length - 1]
-      const isAlreadyAdded = lastMessage?.content === content && lastMessage?.from.type !== "llm"
-      if (!isAlreadyAdded) {
+      if (!isDuplicateUserMessage(lastMessage, content)) {
         pushMessage(threadId, { from: thread.initiator, content })
       }
 
-      // Update status to executing
       updateThread(threadId, { status: "executing", streaming: null })
-
       abortControllerRef.current = new AbortController()
 
-      const history = toLLMMessages(thread.messages)
+      const currentThread = getThread(threadId)
+      if (!currentThread) return
 
-      executeBlock({
-        prompt,
-        initialMessage: content,
-        history,
-        sharedContext: thread.summaries,
-        toolHandlers,
-        onStateChange: (state) => {
-          updateThread(threadId, { streaming: state.streaming || null })
-        },
-        signal: abortControllerRef.current.signal,
-      }).then((finalState) => {
-        if (finalState.status === "done") {
-          const assistantMessages = finalState.messages.filter(
-            (m) => m.role === "assistant" && m.content
-          )
-          if (assistantMessages.length > 0) {
-            const lastAssistant = assistantMessages[assistantMessages.length - 1]
-            if (lastAssistant.content) {
-              // Add assistant response
-              const currentThread = getThread(threadId)
-              if (currentThread) {
-                pushMessage(threadId, { from: currentThread.recipient, content: lastAssistant.content })
-              }
+      let isFirstMessage = true
 
-              // Push summary
-              pushSummary(threadId, {
-                block_id: crypto.randomUUID(),
-                summary: lastAssistant.content.slice(0, 200),
-              })
-            }
+      const handleAgentMessage = (msg: AgentMessage) => {
+        if (isUserEcho(isFirstMessage, msg)) {
+          isFirstMessage = false
+          return
+        }
+        isFirstMessage = false
+
+        const msgContent = selectMessageContent(msg)
+        if (msgContent) {
+          const t = getThread(threadId)
+          if (t) {
+            pushMessage(threadId, { from: t.recipient, content: msgContent })
           }
         }
+      }
 
-        updateThread(threadId, {
-          status: finalState.status === "error" ? "idle" : "done",
-          streaming: null,
-        })
+      const handleStateChange = (state: AgentState) => {
+        agentStateRef.current = state
+      }
+
+      runAgent(content, agentStateRef.current, {
+        toolHandlers,
+        onMessage: handleAgentMessage,
+        onStateChange: handleStateChange,
+        signal: abortControllerRef.current.signal,
+      }).then((finalState) => {
+        agentStateRef.current = finalState
+
+        const lastTextMsg = findLastTextMessage(finalState.messages)
+        if (lastTextMsg?.type === "text") {
+          pushSummary(threadId, {
+            block_id: crypto.randomUUID(),
+            summary: lastTextMsg.content.slice(0, 200),
+          })
+        }
+
+        updateThread(threadId, { status: "done", streaming: null })
+      }).catch(() => {
+        updateThread(threadId, { status: "idle", streaming: null })
       })
     },
-    [threadId, thread, isExecuting, prompt, toolHandlers]
+    [threadId, thread, isExecuting, toolHandlers]
   )
 
   const cancel = useCallback(() => {
