@@ -1,3 +1,5 @@
+import type { CompactionBlock } from "~/lib/llm"
+
 export type StepStatus = "pending" | "in_progress" | "done" | "error"
 
 export type Step = {
@@ -19,15 +21,18 @@ export type AgentMessage =
   | { type: "task_detected"; task: string }
   | { type: "plan"; plan: Plan }
   | { type: "step_start"; stepIndex: number }
-  | { type: "step_done"; stepIndex: number; summary: string }
+  | { type: "step_done"; stepIndex: number; result: string }
   | { type: "stuck"; stepIndex: number; question: string }
   | { type: "error"; message: string }
-  | { type: "done"; summary: string }
+  | { type: "done"; result: string }
+  | { type: "compacted"; compactions: CompactionBlock[] }
 
 export type AgentState = {
   mode: AgentMode
   messages: AgentMessage[]
   plan: Plan | null
+  compactions: CompactionBlock[]
+  compactedUpTo: number
 }
 
 export type LLMResponse = {

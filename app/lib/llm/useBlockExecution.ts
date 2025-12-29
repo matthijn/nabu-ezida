@@ -1,13 +1,13 @@
 import { useState, useCallback, useRef } from "react"
-import type { BlockState, BlockSummary, Message, ToolHandlers } from "./types"
+import type { BlockState, CompactionBlock, Message, ToolHandlers } from "./types"
 import { createInitialState } from "./reducers"
 import { executeBlock } from "./executor"
 
 export type UseBlockExecutionOptions = {
   prompt: string
   history: Message[]
-  sharedContext: BlockSummary[]
-  pushShared: (summary: BlockSummary) => void
+  sharedContext: CompactionBlock[]
+  pushShared: (compaction: CompactionBlock) => void
   toolHandlers?: ToolHandlers
 }
 

@@ -5,6 +5,8 @@ export const createInitialState = (): AgentState => ({
   mode: "converse",
   messages: [],
   plan: null,
+  compactions: [],
+  compactedUpTo: 0,
 })
 
 export const applyMessage = (state: AgentState, msg: AgentMessage): AgentState => {
@@ -47,6 +49,14 @@ export const applyMessage = (state: AgentState, msg: AgentMessage): AgentState =
 
     case "done":
       return { ...state, messages, mode: "converse", plan: null }
+
+    case "compacted":
+      return {
+        ...state,
+        messages,
+        compactions: msg.compactions,
+        compactedUpTo: messages.length,
+      }
 
     case "text":
     case "thinking":

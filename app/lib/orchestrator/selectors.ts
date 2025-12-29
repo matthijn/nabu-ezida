@@ -1,4 +1,4 @@
-import type { AgentState } from "./types"
+import type { AgentState, AgentMessage } from "./types"
 
 export const selectCurrentStepIndex = (state: AgentState): number | null => {
   if (!state.plan) return null
@@ -16,4 +16,10 @@ export const selectEndpoint = (state: AgentState): string => {
   }
   return "/chat/converse"
 }
+
+export const selectUncompactedMessages = (state: AgentState): AgentMessage[] =>
+  state.messages.slice(state.compactedUpTo)
+
+export const hasUncompactedMessages = (state: AgentState): boolean =>
+  state.messages.length > state.compactedUpTo
 

@@ -1,24 +1,24 @@
-import type { BlockSummary } from "./types"
+import type { CompactionBlock } from "./types"
 
 type SharedContextStore = {
-  summaries: BlockSummary[]
+  compactions: CompactionBlock[]
   listeners: Set<() => void>
 }
 
 const store: SharedContextStore = {
-  summaries: [],
+  compactions: [],
   listeners: new Set(),
 }
 
-export const getSharedContext = (): BlockSummary[] => store.summaries
+export const getSharedContext = (): CompactionBlock[] => store.compactions
 
-export const pushSharedContext = (summary: BlockSummary): void => {
-  store.summaries = [...store.summaries, summary]
+export const pushSharedContext = (compaction: CompactionBlock): void => {
+  store.compactions = [...store.compactions, compaction]
   store.listeners.forEach((listener) => listener())
 }
 
 export const clearSharedContext = (): void => {
-  store.summaries = []
+  store.compactions = []
   store.listeners.forEach((listener) => listener())
 }
 

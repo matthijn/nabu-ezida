@@ -1,5 +1,5 @@
 import type { Participant } from "~/domain/participant"
-import type { BlockSummary } from "~/lib/llm"
+import type { CompactionBlock } from "~/lib/llm"
 
 export type ConversationMessage = {
   from: Participant
@@ -13,7 +13,7 @@ export type ThreadState = {
   initiator: Participant
   recipient: Participant
   messages: ConversationMessage[]
-  summaries: BlockSummary[]
+  compactions: CompactionBlock[]
   status: ThreadStatus
   streaming: string | null
 }
@@ -46,7 +46,7 @@ export const createThread = (
     initiator,
     recipient,
     messages: [{ from: initiator, content: initialMessage }],
-    summaries: [],
+    compactions: [],
     status: "idle",
     streaming: null,
   }
@@ -72,10 +72,10 @@ export const pushMessage = (id: string, message: ConversationMessage): void => {
   notifyListeners(id)
 }
 
-export const pushSummary = (id: string, summary: BlockSummary): void => {
+export const pushCompaction = (id: string, compaction: CompactionBlock): void => {
   const thread = store.threads.get(id)
   if (!thread) return
-  store.threads.set(id, { ...thread, summaries: [...thread.summaries, summary] })
+  store.threads.set(id, { ...thread, compactions: [...thread.compactions, compaction] })
   notifyListeners(id)
 }
 

@@ -3,7 +3,7 @@ export {
   getThread,
   updateThread,
   pushMessage,
-  pushSummary,
+  pushCompaction,
   deleteThread,
   clearAllThreads,
   subscribeToThread,

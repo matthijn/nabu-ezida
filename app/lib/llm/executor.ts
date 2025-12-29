@@ -1,4 +1,4 @@
-import type { BlockState, BlockSummary, Message, ToolHandlers, Effect } from "./types"
+import type { BlockState, CompactionBlock, Message, ToolHandlers, Effect } from "./types"
 import {
   parseSSELine,
   handleStreamEvent,
@@ -15,7 +15,7 @@ export type ExecuteBlockOptions = {
   prompt: string
   initialMessage: string
   history: Message[]
-  sharedContext: BlockSummary[]
+  sharedContext: CompactionBlock[]
   toolHandlers: ToolHandlers
   onStateChange: (state: BlockState) => void
   signal?: AbortSignal
@@ -33,10 +33,13 @@ const extractErrorMessage = (err: unknown, fallback: string): string =>
 const hasInternalContext = (state: BlockState): boolean =>
   state.internal.length > 0
 
-const buildSystemContext = (shared: BlockSummary[]): string => {
-  if (shared.length === 0) return ""
-  const summaries = shared.map((s) => `- ${s.summary}`).join("\n")
-  return `\n\nContext from previous blocks:\n${summaries}`
+const buildCompactionMessage = (compactions: CompactionBlock[]): Message | null => {
+  if (compactions.length === 0) return null
+  const content = compactions.map((c) => `- ${c.summary}`).join("\n")
+  return {
+    role: "system",
+    content: `Context from previous conversations:\n${content}`,
+  }
 }
 
 const buildInternalContext = (state: BlockState): string =>
@@ -45,17 +48,18 @@ const buildInternalContext = (state: BlockState): string =>
 const buildMessages = (
   history: Message[],
   state: BlockState,
-  shared: BlockSummary[],
+  compactions: CompactionBlock[],
   userMessage?: string
 ): Message[] => {
-  const messages: Message[] = [...history, ...state.messages]
+  const compactionMessage = buildCompactionMessage(compactions)
+  const messages: Message[] = [
+    ...(compactionMessage ? [compactionMessage] : []),
+    ...history,
+    ...state.messages,
+  ]
 
   if (userMessage) {
-    const contextSuffix = buildSystemContext(shared)
-    messages.push({
-      role: "user",
-      content: userMessage + contextSuffix,
-    })
+    messages.push({ role: "user", content: userMessage })
   }
 
   if (hasInternalContext(state)) {

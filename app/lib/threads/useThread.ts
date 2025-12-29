@@ -6,7 +6,7 @@ import {
   getThread,
   updateThread,
   pushMessage,
-  pushSummary,
+  pushCompaction,
   subscribeToThread,
   type ThreadState,
   type ConversationMessage,
@@ -40,13 +40,15 @@ const selectMessageContent = (msg: AgentMessage): string | null => {
     case "step_start":
       return null
     case "step_done":
-      return msg.summary
+      return msg.result
     case "stuck":
       return msg.question
     case "error":
       return `Error: ${msg.message}`
     case "done":
-      return msg.summary
+      return msg.result
+    case "compacted":
+      return null
     default:
       return assertNever(msg)
   }
@@ -133,7 +135,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
 
         const lastTextMsg = findLastTextMessage(finalState.messages)
         if (lastTextMsg?.type === "text") {
-          pushSummary(threadId, {
+          pushCompaction(threadId, {
             block_id: crypto.randomUUID(),
             summary: lastTextMsg.content.slice(0, 200),
           })

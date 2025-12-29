@@ -21,7 +21,7 @@ export type StepResult = {
   result: unknown
 }
 
-export type BlockSummary = {
+export type CompactionBlock = {
   block_id: string
   summary: string
 }

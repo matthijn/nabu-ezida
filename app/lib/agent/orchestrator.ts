@@ -1,14 +1,17 @@
 import type { AgentState, AgentMessage, ParsedResponse } from "~/lib/orchestrator"
-import type { Message, ToolHandlers } from "~/lib/llm"
+import type { Message, ToolHandlers, CompactionBlock } from "~/lib/llm"
 import {
   createInitialState,
   applyMessage,
   selectEndpoint,
   selectCurrentStepIndex,
+  selectUncompactedMessages,
+  hasUncompactedMessages,
   parseResponse,
   parsePlan,
 } from "~/lib/orchestrator"
 import { executeBlock } from "~/lib/llm"
+import { getLlmUrl } from "~/lib/env"
 
 const MAX_STEP_ATTEMPTS = 5
 
@@ -49,21 +52,24 @@ const hasContent = (msg: { content?: string | null } | undefined): msg is { cont
 const isTaskResponse = (parsed: ParsedResponse): parsed is ParsedResponse & { type: "task"; task: string } =>
   parsed.type === "task" && Boolean((parsed as { task?: string }).task)
 
+const findAssistantMessage = (messages: Message[]): Message | undefined =>
+  messages.find((m) => m.role === "assistant")
+
 const buildStepPrompt = (state: AgentState, stepIndex: number): string => {
   if (!state.plan) return ""
 
   const step = state.plan.steps[stepIndex]
-  const planSummary = state.plan.steps
+  const planOverview = state.plan.steps
     .map((s, i) => `${i + 1}. [${s.status}] ${s.description}`)
     .join("\n")
 
   return `
 Plan:
-${planSummary}
+${planOverview}
 
 Current step: ${stepIndex + 1}. ${step.description}
 
-Complete this step. When done, respond with STEP_COMPLETE followed by a brief summary.
+Complete this step. When done, respond with STEP_COMPLETE followed by a brief result.
 If you're stuck, explain what's blocking you.
 `.trim()
 }
@@ -78,36 +84,78 @@ const callLLM = async (
     prompt: selectEndpoint(state),
     initialMessage: message,
     history: toLLMMessages(state.messages),
-    sharedContext: [],
+    sharedContext: state.compactions,
     toolHandlers,
     onStateChange: () => {},
     signal,
   })
 
+const isCompactableMessage = (m: AgentMessage): boolean =>
+  m.type === "text" || m.type === "step_done" || m.type === "done"
+
+const messageToContent: Record<string, (m: AgentMessage) => string> = {
+  text: (m) => (m as { content: string }).content,
+  step_done: (m) => `Step completed: ${(m as { result: string }).result}`,
+  done: (m) => `Task completed: ${(m as { result: string }).result}`,
+}
+
+const messagesToContent = (messages: AgentMessage[]): string =>
+  messages
+    .filter(isCompactableMessage)
+    .map((m) => messageToContent[m.type]?.(m) ?? "")
+    .filter(Boolean)
+    .join("\n")
+
+const compactState = async (
+  compactions: CompactionBlock[],
+  messages: AgentMessage[],
+  signal?: AbortSignal
+): Promise<CompactionBlock[] | null> => {
+  const content = messagesToContent(messages)
+  if (!content && compactions.length === 0) return null
+
+  try {
+    const url = getLlmUrl("/chat/compact")
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ compactions, content }),
+      signal,
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    return data.compactions ?? null
+  } catch {
+    return null
+  }
+}
+
 const converse = async (ctx: OrchestratorContext, userMessage: string): Promise<ParsedResponse | null> => {
   const result = await callLLM(ctx.state, userMessage, {}, ctx.opts.signal)
-  const lastMessage = result.messages.find((m) => m.role === "assistant")
+  const assistantMessage = findAssistantMessage(result.messages)
 
-  if (!hasContent(lastMessage)) {
+  if (!hasContent(assistantMessage)) {
     ctx.emit({ type: "error", message: "No response from LLM" })
     return null
   }
 
-  return parseResponse(lastMessage.content)
+  return parseResponse(assistantMessage.content)
 }
 
 const planTask = async (ctx: OrchestratorContext, task: string): Promise<boolean> => {
   ctx.emit({ type: "task_detected", task })
 
   const result = await callLLM(ctx.state, task, {}, ctx.opts.signal)
-  const planMessage = result.messages.find((m) => m.role === "assistant")
+  const assistantMessage = findAssistantMessage(result.messages)
 
-  if (!hasContent(planMessage)) {
+  if (!hasContent(assistantMessage)) {
     ctx.emit({ type: "error", message: "Failed to create plan" })
     return false
   }
 
-  const plan = parsePlan(planMessage.content)
+  const plan = parsePlan(assistantMessage.content)
   if (!plan) {
     ctx.emit({ type: "error", message: "Failed to parse plan" })
     return false
@@ -131,17 +179,17 @@ const executeStep = async (
 
     const stepPrompt = buildStepPrompt(ctx.state, stepIndex)
     const result = await callLLM(ctx.state, stepPrompt, ctx.opts.toolHandlers, ctx.opts.signal)
-    const stepMessage = result.messages.find((m) => m.role === "assistant")
+    const assistantMessage = findAssistantMessage(result.messages)
 
-    if (!hasContent(stepMessage)) {
+    if (!hasContent(assistantMessage)) {
       attempts++
       continue
     }
 
-    const parsed = parseResponse(stepMessage.content)
+    const parsed = parseResponse(assistantMessage.content)
 
     if (parsed.type === "step_complete") {
-      ctx.emit({ type: "step_done", stepIndex, summary: parsed.summary ?? "" })
+      ctx.emit({ type: "step_done", stepIndex, result: parsed.summary ?? "" })
       return "complete"
     }
 
@@ -157,6 +205,17 @@ const executeStep = async (
   return "stuck"
 }
 
+const compactIfNeeded = async (ctx: OrchestratorContext): Promise<void> => {
+  if (!hasUncompactedMessages(ctx.state)) return
+
+  const uncompacted = selectUncompactedMessages(ctx.state)
+  const compactions = await compactState(ctx.state.compactions, uncompacted, ctx.opts.signal)
+
+  if (compactions) {
+    ctx.emit({ type: "compacted", compactions })
+  }
+}
+
 const executeAllSteps = async (ctx: OrchestratorContext): Promise<void> => {
   let stepIndex = selectCurrentStepIndex(ctx.state)
 
@@ -169,7 +228,8 @@ const executeAllSteps = async (ctx: OrchestratorContext): Promise<void> => {
     stepIndex = selectCurrentStepIndex(ctx.state)
   }
 
-  ctx.emit({ type: "done", summary: "All steps completed" })
+  ctx.emit({ type: "done", result: "All steps completed" })
+  await compactIfNeeded(ctx)
 }
 
 export const runAgent = async (

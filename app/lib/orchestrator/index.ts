@@ -10,7 +10,7 @@ export type {
 
 export { createInitialState, applyMessage, getCurrentStep } from "./reducers"
 
-export { selectCurrentStepIndex, selectEndpoint } from "./selectors"
+export { selectCurrentStepIndex, selectEndpoint, selectUncompactedMessages, hasUncompactedMessages } from "./selectors"
 
 export type { ParsedResponse } from "./parse"
 export { parseResponse, parsePlan } from "./parse"

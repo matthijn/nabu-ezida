@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createInitialState, applyMessage, getCurrentStep } from "./reducers"
 import { selectCurrentStepIndex } from "./selectors"
 import type { AgentState, AgentMessage, Plan } from "./types"
+import type { CompactionBlock } from "~/lib/llm"
 
 const createPlan = (stepCount: number): Plan => ({
   task: "Test task",
@@ -16,6 +17,8 @@ const createTaskState = (stepCount: number): AgentState => ({
   mode: "task",
   messages: [],
   plan: createPlan(stepCount),
+  compactions: [],
+  compactedUpTo: 0,
 })
 
 describe("createInitialState", () => {
@@ -89,26 +92,26 @@ describe("applyMessage", () => {
   describe("step_done message", () => {
     it("updates step status to done", () => {
       const state = createTaskState(3)
-      const result = applyMessage(state, { type: "step_done", stepIndex: 0, summary: "Completed" })
+      const result = applyMessage(state, { type: "step_done", stepIndex: 0, result: "Completed" })
       expect(result.plan!.steps[0].status).toBe("done")
     })
 
     it("advances current step index (derived from status)", () => {
       const state = createTaskState(3)
-      const result = applyMessage(state, { type: "step_done", stepIndex: 0, summary: "Completed" })
+      const result = applyMessage(state, { type: "step_done", stepIndex: 0, result: "Completed" })
       expect(selectCurrentStepIndex(result)).toBe(1)
     })
 
     it("current step index becomes null when last step is done", () => {
       let state = createTaskState(3)
-      state = applyMessage(state, { type: "step_done", stepIndex: 0, summary: "Done" })
-      state = applyMessage(state, { type: "step_done", stepIndex: 1, summary: "Done" })
-      state = applyMessage(state, { type: "step_done", stepIndex: 2, summary: "Done" })
+      state = applyMessage(state, { type: "step_done", stepIndex: 0, result: "Done" })
+      state = applyMessage(state, { type: "step_done", stepIndex: 1, result: "Done" })
+      state = applyMessage(state, { type: "step_done", stepIndex: 2, result: "Done" })
       expect(selectCurrentStepIndex(state)).toBeNull()
     })
 
     it("does nothing if no plan exists", () => {
-      const result = applyMessage(initialState, { type: "step_done", stepIndex: 0, summary: "Done" })
+      const result = applyMessage(initialState, { type: "step_done", stepIndex: 0, result: "Done" })
       expect(result.plan).toBeNull()
     })
   })
@@ -130,7 +133,7 @@ describe("applyMessage", () => {
   describe("done message", () => {
     it("resets to converse mode and clears plan", () => {
       const state = createTaskState(3)
-      const result = applyMessage(state, { type: "done", summary: "All done" })
+      const result = applyMessage(state, { type: "done", result: "All done" })
       expect(result.mode).toBe("converse")
       expect(result.plan).toBeNull()
     })
@@ -145,13 +148,63 @@ describe("applyMessage", () => {
     })
   })
 
+  describe("compacted message", () => {
+    const createCompaction = (id: string): CompactionBlock => ({
+      block_id: id,
+      summary: `Summary ${id}`,
+    })
+
+    const cases = [
+      {
+        name: "replaces compactions with new array",
+        initialCompactions: [createCompaction("old")],
+        newCompactions: [createCompaction("1"), createCompaction("2")],
+        expectedCount: 2,
+      },
+      {
+        name: "handles empty initial compactions",
+        initialCompactions: [],
+        newCompactions: [createCompaction("1")],
+        expectedCount: 1,
+      },
+      {
+        name: "handles compaction reducing count",
+        initialCompactions: [createCompaction("1"), createCompaction("2"), createCompaction("3")],
+        newCompactions: [createCompaction("compacted")],
+        expectedCount: 1,
+      },
+    ]
+
+    cases.forEach(({ name, initialCompactions, newCompactions, expectedCount }) => {
+      it(name, () => {
+        const state: AgentState = {
+          ...createInitialState(),
+          messages: [{ type: "text", content: "msg1" }, { type: "text", content: "msg2" }],
+          compactions: initialCompactions,
+        }
+        const result = applyMessage(state, { type: "compacted", compactions: newCompactions })
+        expect(result.compactions).toHaveLength(expectedCount)
+        expect(result.compactions).toEqual(newCompactions)
+      })
+    })
+
+    it("sets compactedUpTo to current message count", () => {
+      const state: AgentState = {
+        ...createInitialState(),
+        messages: [{ type: "text", content: "msg1" }, { type: "text", content: "msg2" }],
+      }
+      const result = applyMessage(state, { type: "compacted", compactions: [createCompaction("1")] })
+      expect(result.compactedUpTo).toBe(3)
+    })
+  })
+
   describe("immutability", () => {
     it("does not mutate original state", () => {
       const state = createTaskState(3)
       const originalPlan = state.plan
       const originalSteps = [...state.plan!.steps]
 
-      applyMessage(state, { type: "step_done", stepIndex: 0, summary: "Done" })
+      applyMessage(state, { type: "step_done", stepIndex: 0, result: "Done" })
 
       expect(state.plan).toBe(originalPlan)
       expect(state.plan!.steps).toEqual(originalSteps)
@@ -175,8 +228,8 @@ describe("getCurrentStep", () => {
       name: "returns null when all steps done",
       state: (() => {
         let s = createTaskState(2)
-        s = applyMessage(s, { type: "step_done", stepIndex: 0, summary: "" })
-        s = applyMessage(s, { type: "step_done", stepIndex: 1, summary: "" })
+        s = applyMessage(s, { type: "step_done", stepIndex: 0, result: "" })
+        s = applyMessage(s, { type: "step_done", stepIndex: 1, result: "" })
         return s
       })(),
       expectedNull: true,
