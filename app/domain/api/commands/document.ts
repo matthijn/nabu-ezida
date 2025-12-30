@@ -1,4 +1,4 @@
-import type { Block } from "~/domain/document"
+import type { Block, Annotation } from "~/domain/document"
 
 type Position = "head" | "tail" | string
 
@@ -286,4 +286,81 @@ export const documentCommands = {
    */
   removeTags: (docId: string, tags: string[]) =>
     command("RemoveDocumentTags", docId, { tags }),
+
+  /**
+   * Adds annotations to a document for qualitative coding.
+   * @param docId - Target document
+   * @param annotations - Annotations to add
+   *
+   * @example
+   * ```ts
+   * // Apply coding to interview excerpt
+   * documentCommands.addAnnotations("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
+   *   {
+   *     id: "ann-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+   *     text: "I found the interface confusing at first",
+   *     actor: "researcher-1",
+   *     color: "amber",
+   *     reason: "Usability issue identified",
+   *     payload: {
+   *       type: "coding",
+   *       code_id: "code-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+   *       confidence: "high"
+   *     }
+   *   }
+   * ])
+   * ```
+   */
+  addAnnotations: (docId: string, annotations: Annotation[]) =>
+    command("AddAnnotations", docId, { annotations }),
+
+  /**
+   * Removes annotations from a document.
+   * @param docId - Target document
+   * @param annotationIds - IDs of annotations to remove
+   *
+   * @example
+   * ```ts
+   * // Remove coding decision after review
+   * documentCommands.removeAnnotations("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
+   *   "ann-c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"
+   * ])
+   * ```
+   */
+  removeAnnotations: (docId: string, annotationIds: string[]) =>
+    command("RemoveAnnotations", docId, { annotation_ids: annotationIds }),
+
+  /**
+   * Updates properties of existing annotations.
+   * Cannot change text - that would invalidate the position.
+   * @param docId - Target document
+   * @param annotationIds - IDs of annotations to update
+   * @param props - Properties to merge (color, reason, payload)
+   *
+   * @example
+   * ```ts
+   * // Change code assignment after inter-rater discussion
+   * documentCommands.updateAnnotationProps(
+   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   ["ann-d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"],
+   *   {
+   *     payload: {
+   *       type: "coding",
+   *       code_id: "code-e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+   *       confidence: "medium"
+   *     },
+   *     reason: "Recoded after team calibration session"
+   *   }
+   * )
+   *
+   * // Update confidence level
+   * documentCommands.updateAnnotationProps(
+   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   ["ann-f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c"],
+   *   { payload: { type: "coding", code_id: "code-a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d", confidence: "low" } }
+   * )
+   * ```
+   */
+  updateAnnotationProps: (docId: string, annotationIds: string[], props: Partial<Pick<Annotation, "color" | "reason" | "payload">>) =>
+    command("UpdateAnnotationProps", docId, { annotation_ids: annotationIds, props }),
 }
