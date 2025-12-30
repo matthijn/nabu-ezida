@@ -1,11 +1,4 @@
-import type { StreamEvent, BlockState, Effect } from "./types"
-import {
-  appendStreaming,
-  setStatus,
-  setError,
-  finalizeAssistantMessage,
-  appendMessage,
-} from "./reducers"
+import type { StreamEvent } from "./types"
 
 type OpenAIDelta = {
   content?: string | null
@@ -98,63 +91,4 @@ export const parseSSELine = (
   } catch {
     return { event: { type: "error", message: "Failed to parse SSE chunk" }, toolCallAcc }
   }
-}
-
-const assertNever = (x: never): never => {
-  throw new Error(`Unexpected event type: ${(x as StreamEvent).type}`)
-}
-
-export const handleStreamEvent = (
-  state: BlockState,
-  event: StreamEvent
-): { state: BlockState; effects: Effect[] } => {
-  switch (event.type) {
-    case "text_delta":
-      return {
-        state: appendStreaming(state, event.content),
-        effects: [],
-      }
-
-    case "tool_call": {
-      const stateWithMessage = finalizeAssistantMessage(state)
-      const args = parseToolArgs(event.arguments)
-      return {
-        state: setStatus(stateWithMessage, "awaiting_tool"),
-        effects: [{ type: "execute_tool", id: event.id, name: event.name, args }],
-      }
-    }
-
-    case "done": {
-      const stateWithMessage = finalizeAssistantMessage(state)
-      return {
-        state: setStatus(stateWithMessage, "done"),
-        effects: [],
-      }
-    }
-
-    case "error":
-      return {
-        state: setError(state, event.message),
-        effects: [],
-      }
-
-    default:
-      return assertNever(event)
-  }
-}
-
-const parseToolArgs = (args: string): unknown => {
-  try {
-    return JSON.parse(args)
-  } catch {
-    return {}
-  }
-}
-
-export const addToolResult = (state: BlockState, toolCallId: string, result: unknown): BlockState => {
-  return appendMessage(state, {
-    role: "tool",
-    content: JSON.stringify(result),
-    tool_call_id: toolCallId,
-  })
 }

@@ -1,7 +1,2 @@
 export * from "./types"
-export * from "./reducers"
-export * from "./stream"
-export { streamChat, type StreamChatOptions } from "./client"
-export { executeBlock, type ExecuteBlockOptions } from "./executor"
-export { useBlockExecution, type UseBlockExecutionOptions, type UseBlockExecutionResult } from "./useBlockExecution"
-export { getSharedContext, pushSharedContext, clearSharedContext, subscribeToSharedContext } from "./shared-context"
+export { parseSSELine } from "./stream"

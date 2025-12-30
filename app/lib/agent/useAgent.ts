@@ -1,29 +1,29 @@
 import { useState, useCallback, useRef } from "react"
-import type { AgentState, AgentMessage } from "~/lib/orchestrator"
 import type { ToolHandlers } from "~/lib/llm"
-import { createInitialState } from "~/lib/orchestrator"
-import { runAgent } from "./orchestrator"
+import type { AgentState } from "./types"
+import { createInitialState } from "./types"
+import { step } from "./step"
+import { createLLMCaller } from "./llm"
 
 type UseAgentOptions = {
   toolHandlers?: ToolHandlers
+  onChunk?: (chunk: string) => void
 }
 
 type UseAgentResult = {
   state: AgentState
-  messages: AgentMessage[]
   isRunning: boolean
   send: (message: string) => Promise<void>
   cancel: () => void
   reset: () => void
 }
 
-const noop = () => {}
-
 export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
-  const { toolHandlers = {} } = options
+  const { toolHandlers, onChunk } = options
   const [state, setState] = useState<AgentState>(createInitialState)
   const [isRunning, setIsRunning] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const llmCallerRef = useRef(createLLMCaller())
 
   const send = useCallback(
     async (message: string) => {
@@ -33,12 +33,13 @@ export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
       abortControllerRef.current = new AbortController()
 
       try {
-        await runAgent(message, state, {
+        const result = await step(state, message, {
+          callLLM: llmCallerRef.current,
           toolHandlers,
-          onMessage: noop,
-          onStateChange: setState,
+          onChunk,
           signal: abortControllerRef.current.signal,
         })
+        setState(result.state)
       } catch (err) {
         if (err instanceof Error && err.name !== "AbortError") {
           console.error("Agent error:", err)
@@ -48,7 +49,7 @@ export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
         abortControllerRef.current = null
       }
     },
-    [state, isRunning, toolHandlers]
+    [state, isRunning, toolHandlers, onChunk]
   )
 
   const cancel = useCallback(() => {
@@ -64,7 +65,6 @@ export const useAgent = (options: UseAgentOptions = {}): UseAgentResult => {
 
   return {
     state,
-    messages: state.messages,
     isRunning,
     send,
     cancel,

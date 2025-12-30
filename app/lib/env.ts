@@ -17,4 +17,4 @@ export const getWsUrl = (path: string): string => {
 
 export const getLlmHost = (): string => getEnv("VITE_LLM_HOST", "http://localhost:8081")
 
-export const getLlmUrl = (prompt: string): string => `${getLlmHost()}/chat/${prompt}`
+export const getLlmUrl = (path: string): string => `${getLlmHost()}${path}`

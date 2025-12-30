@@ -1,4 +1,4 @@
-import type { Plan, Step } from "./types"
+import type { Plan, Step } from "~/lib/agent"
 import type { ToolCall } from "~/lib/llm"
 
 export type ParsedResponse =
@@ -22,7 +22,6 @@ const extractJSON = (content: string): unknown | null => {
 }
 
 export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedResponse => {
-  // OpenAI function call format takes precedence
   if (toolCalls?.length) {
     const tc = toolCalls[0]
     let args: unknown = {}
@@ -34,7 +33,6 @@ export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedRe
     return { type: "tool_call", name: tc.function.name, id: tc.id, args }
   }
 
-  // Try inline JSON
   const json = extractJSON(content) as Record<string, unknown> | null
   if (json?.type === "step_complete") {
     return { type: "step_complete", summary: String(json.summary ?? "") }
@@ -50,7 +48,6 @@ export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedRe
     if (plan) return { type: "plan", plan }
   }
 
-  // Text markers
   if (content.includes("STEP_COMPLETE")) {
     const summary = content.replace("STEP_COMPLETE", "").trim()
     return { type: "step_complete", summary }
@@ -61,7 +58,6 @@ export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedRe
     return { type: "task", task }
   }
 
-  // Default to text
   return { type: "text", content }
 }
 
@@ -80,14 +76,12 @@ const parsePlanFromJSON = (json: Record<string, unknown>): Plan | null => {
 }
 
 export const parsePlan = (content: string): Plan | null => {
-  // Try JSON first
   const json = extractJSON(content) as Record<string, unknown> | null
   if (json) {
     const plan = parsePlanFromJSON(json)
     if (plan) return plan
   }
 
-  // Fall back to numbered list parsing
   const lines = content.split("\n").filter((l) => /^\d+\./.test(l.trim()))
   if (lines.length > 0) {
     return {
