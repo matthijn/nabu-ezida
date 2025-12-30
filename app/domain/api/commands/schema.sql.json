@@ -1,0 +1,86 @@
+{
+  "database": "DuckDB (in-browser WebAssembly)",
+  "description": "Local analytical database synced from project state. Read-only for queries.",
+  "tables": [
+    {
+      "name": "projects",
+      "description": "Research projects containing documents",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true, "description": "Project ID (format: proj-[uuid])" },
+        { "name": "name", "type": "TEXT", "nullable": false, "description": "Project title" },
+        { "name": "description", "type": "TEXT", "nullable": true, "description": "Project description" },
+        { "name": "pinned", "type": "BOOLEAN", "nullable": true, "description": "Whether project is pinned for quick access" },
+        { "name": "updated_at", "type": "TIMESTAMP", "nullable": true, "description": "Last update timestamp" },
+        { "name": "healthy", "type": "BOOLEAN", "nullable": true, "description": "Entity health status" },
+        { "name": "version", "type": "INTEGER", "nullable": true, "description": "Entity version for optimistic concurrency" }
+      ]
+    },
+    {
+      "name": "documents",
+      "description": "Research documents (papers, notes, transcripts) within projects",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true, "description": "Document ID (format: doc-[uuid])" },
+        { "name": "project_id", "type": "TEXT", "nullable": false, "foreign_key": "projects.id", "description": "Parent project" },
+        { "name": "name", "type": "TEXT", "nullable": false, "description": "Document title" },
+        { "name": "description", "type": "TEXT", "nullable": true, "description": "Document description" },
+        { "name": "title", "type": "TEXT", "nullable": true, "description": "Extracted title (from PDF, etc.)" },
+        { "name": "time", "type": "TIMESTAMP", "nullable": true, "description": "Document date (publication date, interview date, etc.)" },
+        { "name": "updated_at", "type": "TIMESTAMP", "nullable": true, "description": "Last update timestamp" },
+        { "name": "original", "type": "TEXT", "nullable": true, "description": "Original source (file path, URL, etc.)" },
+        { "name": "pinned", "type": "BOOLEAN", "nullable": true, "description": "Whether document is pinned" },
+        { "name": "healthy", "type": "BOOLEAN", "nullable": true, "description": "Entity health status" },
+        { "name": "version", "type": "INTEGER", "nullable": true, "description": "Entity version" }
+      ]
+    },
+    {
+      "name": "blocks",
+      "description": "Content blocks within documents (paragraphs, headings, lists, etc.)",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true, "description": "Block ID (format: blk-[uuid])" },
+        { "name": "document_id", "type": "TEXT", "nullable": false, "foreign_key": "documents.id", "description": "Parent document" },
+        { "name": "parent_id", "type": "TEXT", "nullable": true, "foreign_key": "blocks.id", "description": "Parent block (for nested content)" },
+        { "name": "position", "type": "INTEGER", "nullable": false, "description": "Order within parent (0-indexed)" },
+        { "name": "type", "type": "TEXT", "nullable": false, "description": "Block type: paragraph, heading, bulletListItem, numberedListItem, checkListItem, image, codeBlock, table" },
+        { "name": "props", "type": "JSON", "nullable": true, "description": "Block-specific properties (e.g., {\"level\": 1} for headings)" },
+        { "name": "content", "type": "JSON", "nullable": true, "description": "Inline content array with text and formatting" }
+      ],
+      "notes": [
+        "Blocks form a tree structure via parent_id",
+        "Root blocks have parent_id = NULL",
+        "props and content are JSON strings, use json_extract or ::json for parsing"
+      ]
+    },
+    {
+      "name": "annotations",
+      "description": "Qualitative coding annotations on document text",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true, "description": "Annotation ID (format: ann-[uuid])" },
+        { "name": "document_id", "type": "TEXT", "nullable": false, "foreign_key": "documents.id", "description": "Document containing the annotation" },
+        { "name": "text", "type": "TEXT", "nullable": false, "description": "The exact text that was annotated" },
+        { "name": "actor", "type": "TEXT", "nullable": false, "description": "Who created the annotation (researcher ID)" },
+        { "name": "color", "type": "TEXT", "nullable": false, "description": "Highlight color (Radix color name: amber, blue, green, etc.)" },
+        { "name": "reason", "type": "TEXT", "nullable": true, "description": "Explanation for the annotation" },
+        { "name": "code_id", "type": "TEXT", "nullable": true, "description": "Associated code ID (format: code-[uuid])" },
+        { "name": "confidence", "type": "TEXT", "nullable": true, "description": "Coding confidence: high, medium, low" }
+      ],
+      "notes": [
+        "Annotations are used for qualitative coding in research",
+        "code_id links to the codebook (codes table not yet synced)",
+        "confidence indicates certainty of the coding decision"
+      ]
+    }
+  ],
+  "relationships": [
+    { "from": "documents.project_id", "to": "projects.id", "type": "many-to-one" },
+    { "from": "blocks.document_id", "to": "documents.id", "type": "many-to-one" },
+    { "from": "blocks.parent_id", "to": "blocks.id", "type": "many-to-one (self-referential)" },
+    { "from": "annotations.document_id", "to": "documents.id", "type": "many-to-one" }
+  ],
+  "id_formats": {
+    "project": "proj-[uuid]",
+    "document": "doc-[uuid]",
+    "block": "blk-[uuid]",
+    "annotation": "ann-[uuid]",
+    "code": "code-[uuid]"
+  }
+}

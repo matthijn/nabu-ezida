@@ -1,0 +1,63 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "execute_sql",
+        "description": "Execute a read-only SQL query against the local DuckDB database. Use this for searching, filtering, aggregating, and analyzing research data across projects, documents, blocks, and annotations.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "sql": {
+              "type": "string",
+              "description": "A valid DuckDB SQL SELECT query. Only read operations are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)."
+            }
+          },
+          "required": ["sql"]
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "description": "Find all documents in a project",
+      "sql": "SELECT id, name, description FROM documents WHERE project_id = 'proj-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d'"
+    },
+    {
+      "description": "Count annotations by confidence level",
+      "sql": "SELECT confidence, COUNT(*) as count FROM annotations WHERE confidence IS NOT NULL GROUP BY confidence ORDER BY count DESC"
+    },
+    {
+      "description": "Find all annotations with a specific code",
+      "sql": "SELECT a.id, a.text, d.name as document_name FROM annotations a JOIN documents d ON a.document_id = d.id WHERE a.code_id = 'code-2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e'"
+    },
+    {
+      "description": "Search for text in annotations",
+      "sql": "SELECT id, text, document_id FROM annotations WHERE text ILIKE '%cognitive load%'"
+    },
+    {
+      "description": "Get document with block count",
+      "sql": "SELECT d.id, d.name, COUNT(b.id) as block_count FROM documents d LEFT JOIN blocks b ON d.id = b.document_id GROUP BY d.id, d.name ORDER BY block_count DESC"
+    },
+    {
+      "description": "Find heading blocks",
+      "sql": "SELECT b.id, b.document_id, b.props, b.content FROM blocks b WHERE b.type = 'heading' AND b.props::json->>'level' = '1'"
+    },
+    {
+      "description": "Get annotations grouped by actor",
+      "sql": "SELECT actor, COUNT(*) as annotation_count, COUNT(DISTINCT code_id) as unique_codes FROM annotations GROUP BY actor"
+    },
+    {
+      "description": "Find pinned documents across all projects",
+      "sql": "SELECT d.id, d.name, p.name as project_name FROM documents d JOIN projects p ON d.project_id = p.id WHERE d.pinned = TRUE"
+    },
+    {
+      "description": "Get recent documents",
+      "sql": "SELECT id, name, updated_at FROM documents ORDER BY updated_at DESC LIMIT 10"
+    },
+    {
+      "description": "Find documents without annotations",
+      "sql": "SELECT d.id, d.name FROM documents d LEFT JOIN annotations a ON d.id = a.document_id WHERE a.id IS NULL"
+    }
+  ]
+}
