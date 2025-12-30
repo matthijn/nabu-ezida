@@ -48,16 +48,6 @@ export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedRe
     if (plan) return { type: "plan", plan }
   }
 
-  if (content.includes("STEP_COMPLETE")) {
-    const summary = content.replace("STEP_COMPLETE", "").trim()
-    return { type: "step_complete", summary }
-  }
-
-  if (content.includes("TASK:")) {
-    const task = content.split("TASK:")[1]?.trim() ?? ""
-    return { type: "task", task }
-  }
-
   return { type: "text", content }
 }
 

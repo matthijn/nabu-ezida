@@ -3,6 +3,14 @@ import type { Plan, Step } from "./types"
 const formatStepList = (steps: Step[]): string =>
   steps.map((s, i) => `${i + 1}. [${s.status}] ${s.description}`).join("\n")
 
+export const TASK_SCHEMA = `When you identify a task that requires multiple steps, respond with JSON:
+{"type": "task", "task": "clear description of what needs to be done"}
+
+Example:
+{"type": "task", "task": "Create a literature review document summarizing cognitive load theory findings from 2015-2024"}
+
+For simple questions or responses, reply normally without JSON.`
+
 export const PLAN_SCHEMA = `Create a plan. Respond with JSON:
 {
   "type": "plan",

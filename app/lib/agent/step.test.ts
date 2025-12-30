@@ -57,10 +57,10 @@ describe("step", () => {
   describe("task detection", () => {
     it("detects task and transitions to plan path", async () => {
       const responses = [
-        "TASK: Build a todo app",
+        '```json\n{"type": "task", "task": "Build a todo app"}\n```',
         '```json\n{"type": "plan", "task": "Build todo", "steps": ["Create UI", "Add logic"]}\n```',
-        "STEP_COMPLETE Created the UI",
-        "STEP_COMPLETE Added the logic",
+        '```json\n{"type": "step_complete", "summary": "Created the UI"}\n```',
+        '```json\n{"type": "step_complete", "summary": "Added the logic"}\n```',
       ]
 
       const state = createInitialState()
@@ -76,8 +76,8 @@ describe("step", () => {
     it("executes all steps and returns to converse", async () => {
       const responses = [
         '```json\n{"type": "plan", "task": "Test task", "steps": ["Step 1", "Step 2"]}\n```',
-        "STEP_COMPLETE Did step 1",
-        "STEP_COMPLETE Did step 2",
+        '```json\n{"type": "step_complete", "summary": "Did step 1"}\n```',
+        '```json\n{"type": "step_complete", "summary": "Did step 2"}\n```',
       ]
 
       const state: AgentState = { ...createInitialState(), path: "/chat/plan" }
@@ -237,9 +237,9 @@ describe("step", () => {
 
     it("decrements call limit on each recurse", async () => {
       const responses = [
-        "TASK: Do something",
-        "TASK: Do more",
-        "TASK: Keep going",
+        '```json\n{"type": "task", "task": "Do something"}\n```',
+        '```json\n{"type": "task", "task": "Do more"}\n```',
+        '```json\n{"type": "task", "task": "Keep going"}\n```',
       ]
 
       const state = createInitialState()
@@ -256,8 +256,8 @@ describe("step", () => {
     it("resets call limit on new plan step", async () => {
       const responses = [
         '```json\n{"type": "plan", "task": "Test", "steps": ["Step 1", "Step 2"]}\n```',
-        "STEP_COMPLETE Done step 1",
-        "STEP_COMPLETE Done step 2",
+        '```json\n{"type": "step_complete", "summary": "Done step 1"}\n```',
+        '```json\n{"type": "step_complete", "summary": "Done step 2"}\n```',
       ]
 
       const state: AgentState = { ...createInitialState(), path: "/chat/plan" }
@@ -313,9 +313,9 @@ describe("step", () => {
 
     it("compacts and continues recursing", async () => {
       const responses = [
-        "TASK: Do something",
+        '```json\n{"type": "task", "task": "Do something"}\n```',
         '```json\n{"type": "plan", "task": "Test", "steps": ["Step 1"]}\n```',
-        "STEP_COMPLETE Done",
+        '```json\n{"type": "step_complete", "summary": "Done"}\n```',
       ]
 
       const state: AgentState = {

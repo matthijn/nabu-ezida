@@ -11,22 +11,16 @@ describe("parseResponse", () => {
       expected: { type: "text", content: "Hello, how can I help you?" },
     },
     {
-      name: "TASK: marker returns task type",
-      content: "TASK: Build a login form",
+      name: "JSON task in code block",
+      content: '```json\n{"type": "task", "task": "Build a login form"}\n```',
       toolCalls: undefined,
       expected: { type: "task", task: "Build a login form" },
     },
     {
-      name: "STEP_COMPLETE marker returns step_complete type",
-      content: "STEP_COMPLETE Created the component successfully",
+      name: "JSON step_complete in code block",
+      content: '```json\n{"type": "step_complete", "summary": "Created the component successfully"}\n```',
       toolCalls: undefined,
       expected: { type: "step_complete", summary: "Created the component successfully" },
-    },
-    {
-      name: "JSON step_complete in code block",
-      content: '```json\n{"type": "step_complete", "summary": "Done with step"}\n```',
-      toolCalls: undefined,
-      expected: { type: "step_complete", summary: "Done with step" },
     },
     {
       name: "JSON stuck in code block",
