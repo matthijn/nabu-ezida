@@ -1,21 +1,24 @@
 import type { Message, CompactionBlock } from "~/lib/llm"
 import type { AgentState, StepResult, StepOptions, Plan, Path } from "./types"
-import { parseResponse, parsePlan } from "~/lib/orchestrator/parse"
+import { parseResponse } from "~/lib/orchestrator/parse"
+import { buildExecuteStepPrompt, buildPlanPrompt, TERMINAL } from "./prompts"
 
-const appendUserMessage = (history: Message[], content: string): Message[] => [
+const appendMessage = (history: Message[], role: Message["role"], content: string, toolCallId?: string): Message[] => [
   ...history,
-  { role: "user", content },
+  { role, content, ...(toolCallId && { tool_call_id: toolCallId }) },
 ]
 
-const appendAssistantMessage = (history: Message[], content: string): Message[] => [
-  ...history,
-  { role: "assistant", content },
-]
+const appendUserMessage = (history: Message[], content: string): Message[] =>
+  appendMessage(history, "user", content)
 
-const appendToolResult = (history: Message[], toolCallId: string, result: unknown): Message[] => [
-  ...history,
-  { role: "tool", content: JSON.stringify(result), tool_call_id: toolCallId },
-]
+const appendSystemMessage = (history: Message[], content: string): Message[] =>
+  appendMessage(history, "system", content)
+
+const appendAssistantMessage = (history: Message[], content: string): Message[] =>
+  appendMessage(history, "assistant", content)
+
+const appendToolResult = (history: Message[], toolCallId: string, result: unknown): Message[] =>
+  appendMessage(history, "tool", JSON.stringify(result), toolCallId)
 
 const findCurrentStepIndex = (plan: Plan): number | null => {
   const idx = plan.steps.findIndex((s) => s.status === "pending")
@@ -26,12 +29,6 @@ const markStepDone = (plan: Plan, stepIndex: number): Plan => ({
   ...plan,
   steps: plan.steps.map((s, i) => (i === stepIndex ? { ...s, status: "done" as const } : s)),
 })
-
-const buildStepPrompt = (plan: Plan, stepIndex: number): string => {
-  const step = plan.steps[stepIndex]
-  const overview = plan.steps.map((s, i) => `${i + 1}. [${s.status}] ${s.description}`).join("\n")
-  return `Plan:\n${overview}\n\nCurrent step: ${stepIndex + 1}. ${step.description}\n\nComplete this step. When done, respond with STEP_COMPLETE followed by a brief result.`
-}
 
 const withPath = (state: AgentState, path: Path): AgentState => ({ ...state, path })
 
@@ -83,16 +80,45 @@ export const step = async (
   if (isAborted(opts.signal)) {
     return done(state, "")
   }
-
   if (isCallLimitReached(callsRemaining)) {
-    return done(state, "Step exceeded call limit")
+    return done(state, TERMINAL.callLimitReached)
+  }
+  const history = appendUserMessage(state.history, message)
+  return continueFromHistory(withHistory(state, history), opts, callsRemaining)
+}
+
+const stepWithSystem = async (
+  state: AgentState,
+  message: string,
+  opts: StepOptions,
+  callsRemaining?: number
+): Promise<StepResult> => {
+  if (isAborted(opts.signal)) {
+    return done(state, "")
+  }
+  if (isCallLimitReached(callsRemaining)) {
+    return done(state, TERMINAL.callLimitReached)
+  }
+  const history = appendSystemMessage(state.history, message)
+  return continueFromHistory(withHistory(state, history), opts, callsRemaining)
+}
+
+const continueFromHistory = async (
+  state: AgentState,
+  opts: StepOptions,
+  callsRemaining?: number
+): Promise<StepResult> => {
+  if (isAborted(opts.signal)) {
+    return done(state, "")
   }
 
-  const historyWithUser = appendUserMessage(state.history, message)
+  if (isCallLimitReached(callsRemaining)) {
+    return done(state, TERMINAL.callLimitReached)
+  }
 
   const { content, toolCalls } = await opts.callLLM(
     state.path,
-    historyWithUser,
+    state.history,
     opts.onChunk,
     opts.signal
   )
@@ -101,13 +127,14 @@ export const step = async (
     return done(state, "")
   }
 
-  const historyWithResponse = appendAssistantMessage(historyWithUser, content)
+  const historyWithResponse = appendAssistantMessage(state.history, content)
 
   if (toolCalls?.length) {
     return handleToolCall(
       withHistory(state, historyWithResponse),
       toolCalls[0],
-      opts
+      opts,
+      callsRemaining
     )
   }
 
@@ -122,14 +149,15 @@ export const step = async (
     },
 
     task: async () => {
+      const task = (parsed as { task: string }).task
       const compacted = await maybeCompact(withPath(withHistory(state, historyWithResponse), "/chat/plan"), opts)
-      return step(compacted, (parsed as { task: string }).task, opts, nextCalls)
+      return stepWithSystem(compacted, buildPlanPrompt(task), opts, nextCalls)
     },
 
     plan: async () => {
       const plan = (parsed as { plan: Plan }).plan
       const compacted = await maybeCompact(withPlan(withPath(withHistory(state, historyWithResponse), "/chat/execute"), plan), opts)
-      return step(compacted, buildStepPrompt(plan, 0), opts, opts.maxCallsPerStep)
+      return stepWithSystem(compacted, buildExecuteStepPrompt(plan, 0), opts, opts.maxCallsPerStep)
     },
 
     step_complete: () => handleStepComplete(
@@ -170,19 +198,19 @@ const handleToolCall = async (
   if (!handler) {
     const historyWithError = appendToolResult(state.history, toolCall.id, { error: `Unknown tool: ${toolCall.name}` })
     const compacted = await maybeCompact(withHistory(state, historyWithError), opts)
-    return step(compacted, "Tool not found, please continue.", opts, callsRemaining)
+    return continueFromHistory(compacted, opts, callsRemaining)
   }
 
   try {
     const result = await handler(toolCall.args)
     const historyWithResult = appendToolResult(state.history, toolCall.id, result)
     const compacted = await maybeCompact(withHistory(state, historyWithResult), opts)
-    return step(compacted, "Tool executed, please continue.", opts, callsRemaining)
+    return continueFromHistory(compacted, opts, callsRemaining)
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Tool execution failed"
     const historyWithError = appendToolResult(state.history, toolCall.id, { error: errorMsg })
     const compacted = await maybeCompact(withHistory(state, historyWithError), opts)
-    return step(compacted, "Tool failed, please continue.", opts, callsRemaining)
+    return continueFromHistory(compacted, opts, callsRemaining)
   }
 }
 
@@ -200,7 +228,7 @@ const handleStepComplete = async (
   const currentIndex = findCurrentStepIndex(state.plan)
   if (currentIndex === null) {
     const compacted = await maybeCompact(withPlan(withPath(state, "/chat/converse"), null), opts)
-    return done(compacted, "All steps completed")
+    return done(compacted, TERMINAL.allStepsCompleted)
   }
 
   const updatedPlan = markStepDone(state.plan, currentIndex)
@@ -208,9 +236,9 @@ const handleStepComplete = async (
 
   if (nextIndex === null) {
     const compacted = await maybeCompact(withPlan(withPath(state, "/chat/converse"), null), opts)
-    return done(compacted, "All steps completed")
+    return done(compacted, TERMINAL.allStepsCompleted)
   }
 
   const compacted = await maybeCompact(withPlan(state, updatedPlan), opts)
-  return step(compacted, buildStepPrompt(updatedPlan, nextIndex), opts, opts.maxCallsPerStep)
+  return stepWithSystem(compacted, buildExecuteStepPrompt(updatedPlan, nextIndex), opts, opts.maxCallsPerStep)
 }
