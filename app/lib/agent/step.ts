@@ -130,9 +130,9 @@ const continueFromHistory = async (
   const historyWithResponse = appendAssistantMessage(state.history, content)
 
   if (toolCalls?.length) {
-    return handleToolCall(
+    return handleToolCalls(
       withHistory(state, historyWithResponse),
-      toolCalls[0],
+      toolCalls,
       opts,
       callsRemaining
     )
@@ -175,7 +175,7 @@ const continueFromHistory = async (
     tool_call: async () => {
       const { name, id, args } = parsed as { name: string; id: string; args: unknown }
       const compacted = await maybeCompact(withHistory(state, historyWithResponse), opts)
-      return handleToolCall(compacted, { name, id, args }, opts, nextCalls)
+      return handleToolCalls(compacted, [{ name, id, args }], opts, nextCalls)
     },
   }
 
@@ -187,31 +187,44 @@ const continueFromHistory = async (
   return done(compacted, content)
 }
 
-const handleToolCall = async (
-  state: AgentState,
-  toolCall: { name: string; id: string; args: unknown },
-  opts: StepOptions,
-  callsRemaining?: number
-): Promise<StepResult> => {
+type ToolCall = { name: string; id: string; args: unknown }
+type ToolResult = { id: string; result: unknown }
+
+const executeSingleTool = async (
+  toolCall: ToolCall,
+  opts: StepOptions
+): Promise<ToolResult> => {
   const handler = opts.toolHandlers?.[toolCall.name]
 
   if (!handler) {
-    const historyWithError = appendToolResult(state.history, toolCall.id, { error: `Unknown tool: ${toolCall.name}` })
-    const compacted = await maybeCompact(withHistory(state, historyWithError), opts)
-    return continueFromHistory(compacted, opts, callsRemaining)
+    return { id: toolCall.id, result: { error: `Unknown tool: ${toolCall.name}` } }
   }
 
   try {
     const result = await handler(toolCall.args)
-    const historyWithResult = appendToolResult(state.history, toolCall.id, result)
-    const compacted = await maybeCompact(withHistory(state, historyWithResult), opts)
-    return continueFromHistory(compacted, opts, callsRemaining)
+    return { id: toolCall.id, result }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Tool execution failed"
-    const historyWithError = appendToolResult(state.history, toolCall.id, { error: errorMsg })
-    const compacted = await maybeCompact(withHistory(state, historyWithError), opts)
-    return continueFromHistory(compacted, opts, callsRemaining)
+    return { id: toolCall.id, result: { error: errorMsg } }
   }
+}
+
+const appendToolResults = (history: Message[], results: ToolResult[]): Message[] =>
+  results.reduce((h, r) => appendToolResult(h, r.id, r.result), history)
+
+const handleToolCalls = async (
+  state: AgentState,
+  toolCalls: ToolCall[],
+  opts: StepOptions,
+  callsRemaining?: number
+): Promise<StepResult> => {
+  const results = await Promise.all(
+    toolCalls.map(tc => executeSingleTool(tc, opts))
+  )
+
+  const historyWithResults = appendToolResults(state.history, results)
+  const compacted = await maybeCompact(withHistory(state, historyWithResults), opts)
+  return continueFromHistory(compacted, opts, callsRemaining)
 }
 
 const handleStepComplete = async (

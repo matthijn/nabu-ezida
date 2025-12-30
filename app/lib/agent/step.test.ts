@@ -135,6 +135,48 @@ describe("step", () => {
 
       expect(result.response).toBe("I could not find that tool")
     })
+
+    it("executes multiple tools in parallel", async () => {
+      const executionOrder: string[] = []
+
+      const responses = [
+        {
+          content: "",
+          toolCalls: [
+            { id: "call_1", name: "search_a", args: { query: "cognitive load" } },
+            { id: "call_2", name: "search_b", args: { query: "working memory" } },
+          ],
+        },
+        { content: "Found results from both searches" },
+      ]
+
+      const handlers = {
+        search_a: async (args: unknown) => {
+          executionOrder.push("a_start")
+          await new Promise((r) => setTimeout(r, 10))
+          executionOrder.push("a_end")
+          return { papers: ["paper1"] }
+        },
+        search_b: async (args: unknown) => {
+          executionOrder.push("b_start")
+          await new Promise((r) => setTimeout(r, 5))
+          executionOrder.push("b_end")
+          return { papers: ["paper2"] }
+        },
+      }
+
+      const state = createInitialState()
+      const result = await step(state, "Search for papers", {
+        callLLM: createMockCallerWithToolCalls(responses),
+        toolHandlers: handlers,
+      })
+
+      expect(result.response).toBe("Found results from both searches")
+      expect(executionOrder).toEqual(["a_start", "b_start", "b_end", "a_end"])
+
+      const toolMessages = result.state.history.filter((m) => m.role === "tool")
+      expect(toolMessages).toHaveLength(2)
+    })
   })
 
   describe("abort handling", () => {
