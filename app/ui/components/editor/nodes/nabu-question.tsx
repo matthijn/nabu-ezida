@@ -1,20 +1,58 @@
-import { useCallback, useId, useEffect } from "react"
+import { useCallback, useId, useEffect, useMemo } from "react"
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react"
 import type { Participant } from "~/domain/participant"
-import { createThread, deleteThread, useThread } from "~/lib/threads"
+import { createThread, deleteThread, useThread, type DocumentContext, type BlockContext } from "~/lib/threads"
 import { NabuMentionInput, NabuThreadIndicator, useNabuSidebar } from "~/ui/components/nabu"
+import { useEditorDocument } from "../context"
 
-export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
+const extractBlockContext = (node: { type: { name: string }; textContent: string; attrs?: { blockId?: string } }): BlockContext => ({
+  id: node.attrs?.blockId ?? "unknown",
+  type: node.type.name,
+  textContent: node.textContent.slice(0, 200),
+})
+
+export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, deleteNode }: NodeViewProps) => {
   const threadId = useId()
   const { openThread } = useNabuSidebar()
   const { thread } = useThread(threadId)
+  const docInfo = useEditorDocument()
 
   const initiator: Participant = node.attrs.initiator
   const recipient: Participant = node.attrs.recipient
   const hasSubmitted: boolean = node.attrs.hasSubmitted ?? false
   const preview: string = node.attrs.preview ?? ""
 
-  // Clean up thread when node is deleted
+  const documentContext = useMemo((): DocumentContext | null => {
+    if (!docInfo || !editor) return null
+
+    const pos = typeof getPos === "function" ? getPos() : null
+    if (pos === null || pos === undefined) return null
+
+    const $pos = editor.state.doc.resolve(pos)
+    const parentOffset = $pos.parentOffset
+    const parent = $pos.parent
+
+    let blockBefore: BlockContext | null = null
+    let blockAfter: BlockContext | null = null
+
+    if (parentOffset > 0) {
+      const beforeNode = parent.child(parentOffset - 1)
+      if (beforeNode) blockBefore = extractBlockContext(beforeNode)
+    }
+
+    if (parentOffset < parent.childCount - 1) {
+      const afterNode = parent.child(parentOffset + 1)
+      if (afterNode) blockAfter = extractBlockContext(afterNode)
+    }
+
+    return {
+      documentId: docInfo.documentId,
+      documentName: docInfo.documentName,
+      blockBefore,
+      blockAfter,
+    }
+  }, [docInfo, editor, getPos])
+
   useEffect(() => {
     return () => {
       deleteThread(threadId)
@@ -23,7 +61,7 @@ export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeVie
 
   const handleSend = useCallback(
     (message: string) => {
-      createThread(threadId, initiator, recipient, message)
+      createThread(threadId, initiator, recipient, message, documentContext)
 
       updateAttributes({
         hasSubmitted: true,
@@ -32,7 +70,7 @@ export const NabuQuestionView = ({ node, updateAttributes, deleteNode }: NodeVie
 
       openThread(threadId)
     },
-    [updateAttributes, openThread, threadId, initiator, recipient]
+    [updateAttributes, openThread, threadId, initiator, recipient, documentContext]
   )
 
   const handleCancel = useCallback(() => {

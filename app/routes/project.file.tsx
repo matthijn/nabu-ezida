@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react"
 import { useParams } from "react-router"
 import { useProject } from "./project"
-import { Editor } from "~/lib/editor"
+import { Editor, EditorDocumentProvider } from "~/lib/editor"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
 import { useCommand } from "~/lib/api/useCommand"
 import { documentCommands } from "~/domain/api/commands"
@@ -104,7 +104,9 @@ export default function ProjectFile() {
           ]}
         />
         <div className="flex w-full flex-col items-start gap-8 pt-8">
-          <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} />
+          <EditorDocumentProvider documentId={document.id} documentName={document.name}>
+            <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} />
+          </EditorDocumentProvider>
         </div>
       </div>
     </>

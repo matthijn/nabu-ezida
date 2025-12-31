@@ -6,6 +6,19 @@ export type ConversationMessage = {
   content: string
 }
 
+export type BlockContext = {
+  id: string
+  type: string
+  textContent: string
+}
+
+export type DocumentContext = {
+  documentId: string
+  documentName: string
+  blockBefore: BlockContext | null
+  blockAfter: BlockContext | null
+}
+
 export type ThreadStatus = "idle" | "executing" | "done"
 
 export type ThreadState = {
@@ -16,6 +29,7 @@ export type ThreadState = {
   compactions: CompactionBlock[]
   status: ThreadStatus
   streaming: string | null
+  documentContext: DocumentContext | null
 }
 
 type ThreadStore = {
@@ -39,7 +53,8 @@ export const createThread = (
   id: string,
   initiator: Participant,
   recipient: Participant,
-  initialMessage: string
+  initialMessage: string,
+  documentContext: DocumentContext | null = null
 ): ThreadState => {
   const thread: ThreadState = {
     id,
@@ -49,6 +64,7 @@ export const createThread = (
     compactions: [],
     status: "idle",
     streaming: null,
+    documentContext,
   }
   store.threads.set(id, thread)
   notifyListeners(id)

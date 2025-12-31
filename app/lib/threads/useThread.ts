@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useCallback, useRef, useState } from "react"
-import type { ToolHandlers } from "~/lib/llm"
+import type { ToolHandlers, Message } from "~/lib/llm"
 import type { AgentState } from "~/lib/agent"
 import { step, createInitialState, createLLMCaller } from "~/lib/agent"
 import {
@@ -9,6 +9,7 @@ import {
   subscribeToThread,
   type ThreadState,
 } from "./store"
+import { formatDocumentContext } from "./format"
 
 type UseThreadOptions = {
   toolHandlers?: ToolHandlers
@@ -58,6 +59,20 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
 
       const handleChunk = (chunk: string) => {
         setStreaming((prev) => prev + chunk)
+      }
+
+      const isFirstMessage = agentStateRef.current.history.length === 0
+      const hasDocumentContext = thread.documentContext !== null
+
+      if (isFirstMessage && hasDocumentContext) {
+        const systemMessage: Message = {
+          role: "system",
+          content: formatDocumentContext(thread.documentContext!),
+        }
+        agentStateRef.current = {
+          ...agentStateRef.current,
+          history: [systemMessage],
+        }
       }
 
       step(agentStateRef.current, content, {
