@@ -16,11 +16,6 @@ export type Message = {
   tool_call_id?: string
 }
 
-export type CompactionBlock = {
-  block_id: string
-  summary: string
-}
-
 export type StreamEvent =
   | { type: "text_delta"; content: string }
   | { type: "tool_call"; id: string; name: string; arguments: string }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { step } from "./step"
-import type { AgentState, LLMCaller, StepResult, Compactor } from "./types"
+import type { AgentState, LLMCaller, StepResult } from "./types"
 import { createInitialState } from "./types"
 
 const createMockCaller = (responses: string[]): LLMCaller => {
@@ -57,8 +57,8 @@ describe("step", () => {
   describe("task detection", () => {
     it("detects task and transitions to plan path", async () => {
       const responses = [
-        '```json\n{"type": "task", "task": "Build a todo app"}\n```',
-        '```json\n{"type": "plan", "task": "Build todo", "steps": ["Create UI", "Add logic"]}\n```',
+        '```json\n{"type": "task", "description": "Build a todo app"}\n```',
+        '```json\n{"type": "plan", "task": "Build todo", "steps": [{"description": "Create UI"}, {"description": "Add logic"}]}\n```',
         '```json\n{"type": "step_complete", "summary": "Created the UI"}\n```',
         '```json\n{"type": "step_complete", "summary": "Added the logic"}\n```',
       ]
@@ -75,7 +75,7 @@ describe("step", () => {
   describe("plan execution", () => {
     it("executes all steps and returns to converse", async () => {
       const responses = [
-        '```json\n{"type": "plan", "task": "Test task", "steps": ["Step 1", "Step 2"]}\n```',
+        '```json\n{"type": "plan", "task": "Test task", "steps": [{"description": "Step 1"}, {"description": "Step 2"}]}\n```',
         '```json\n{"type": "step_complete", "summary": "Did step 1"}\n```',
         '```json\n{"type": "step_complete", "summary": "Did step 2"}\n```',
       ]
@@ -90,7 +90,7 @@ describe("step", () => {
 
     it("stops when stuck and asks user", async () => {
       const responses = [
-        '```json\n{"type": "plan", "task": "Test task", "steps": ["Step 1"]}\n```',
+        '```json\n{"type": "plan", "task": "Test task", "steps": [{"description": "Step 1"}]}\n```',
         '```json\n{"type": "stuck", "question": "What database should I use?"}\n```',
       ]
 
@@ -221,6 +221,36 @@ describe("step", () => {
     })
   })
 
+  describe("parse error recovery", () => {
+    it("retries when LLM produces invalid format", async () => {
+      const responses = [
+        '```json\n{"type": "task", "task": "wrong field name"}\n```',
+        '```json\n{"type": "task", "description": "correct format"}\n```',
+        '```json\n{"type": "plan", "task": "do it", "steps": [{"description": "step 1"}]}\n```',
+        '```json\n{"type": "step_complete", "summary": "done"}\n```',
+      ]
+
+      const state = createInitialState()
+      const result = await step(state, "Do something", { callLLM: createMockCaller(responses) })
+
+      expect(result.state.path).toBe("/chat/converse")
+      expect(result.needsUser).toBe(true)
+    })
+
+    it("stops retrying when call limit reached", async () => {
+      const responses = [
+        '```json\n{"type": "task", "task": "wrong"}\n```',
+        '```json\n{"type": "task", "task": "still wrong"}\n```',
+        '```json\n{"type": "task", "task": "keeps failing"}\n```',
+      ]
+
+      const state = createInitialState()
+      const result = await step(state, "Do something", { callLLM: createMockCaller(responses) }, 2)
+
+      expect(result.response).toBe("Step exceeded call limit")
+    })
+  })
+
   describe("call limit", () => {
     it("stops when call limit reached", async () => {
       const state = createInitialState()
@@ -237,9 +267,9 @@ describe("step", () => {
 
     it("decrements call limit on each recurse", async () => {
       const responses = [
-        '```json\n{"type": "task", "task": "Do something"}\n```',
-        '```json\n{"type": "task", "task": "Do more"}\n```',
-        '```json\n{"type": "task", "task": "Keep going"}\n```',
+        '```json\n{"type": "task", "description": "Do something"}\n```',
+        '```json\n{"type": "task", "description": "Do more"}\n```',
+        '```json\n{"type": "task", "description": "Keep going"}\n```',
       ]
 
       const state = createInitialState()
@@ -255,7 +285,7 @@ describe("step", () => {
 
     it("resets call limit on new plan step", async () => {
       const responses = [
-        '```json\n{"type": "plan", "task": "Test", "steps": ["Step 1", "Step 2"]}\n```',
+        '```json\n{"type": "plan", "task": "Test", "steps": [{"description": "Step 1"}, {"description": "Step 2"}]}\n```',
         '```json\n{"type": "step_complete", "summary": "Done step 1"}\n```',
         '```json\n{"type": "step_complete", "summary": "Done step 2"}\n```',
       ]
@@ -272,65 +302,4 @@ describe("step", () => {
     })
   })
 
-  describe("compaction", () => {
-    const createMockCompactor = (): Compactor => async (history, compactions) => ({
-      history: [],
-      compactions: [...compactions, { block_id: "new", summary: `Compacted ${history.length} messages` }],
-    })
-
-    it("compacts when history exceeds threshold", async () => {
-      const state: AgentState = {
-        ...createInitialState(),
-        history: Array.from({ length: 25 }, (_, i) => ({ role: "user" as const, content: `msg ${i}` })),
-      }
-
-      const result = await step(state, "Hello", {
-        callLLM: createMockCaller(["Response"]),
-        compact: createMockCompactor(),
-        compactionThreshold: 20,
-      })
-
-      expect(result.state.history).toHaveLength(0)
-      expect(result.state.compactions).toHaveLength(1)
-      expect(result.state.compactions[0].summary).toContain("Compacted")
-    })
-
-    it("does not compact when below threshold", async () => {
-      const state: AgentState = {
-        ...createInitialState(),
-        history: [{ role: "user", content: "Previous" }],
-      }
-
-      const result = await step(state, "Hello", {
-        callLLM: createMockCaller(["Response"]),
-        compact: createMockCompactor(),
-        compactionThreshold: 20,
-      })
-
-      expect(result.state.history).toHaveLength(3)
-      expect(result.state.compactions).toHaveLength(0)
-    })
-
-    it("compacts and continues recursing", async () => {
-      const responses = [
-        '```json\n{"type": "task", "task": "Do something"}\n```',
-        '```json\n{"type": "plan", "task": "Test", "steps": ["Step 1"]}\n```',
-        '```json\n{"type": "step_complete", "summary": "Done"}\n```',
-      ]
-
-      const state: AgentState = {
-        ...createInitialState(),
-        history: Array.from({ length: 25 }, (_, i) => ({ role: "user" as const, content: `msg ${i}` })),
-      }
-
-      const result = await step(state, "Do task", {
-        callLLM: createMockCaller(responses),
-        compact: createMockCompactor(),
-        compactionThreshold: 20,
-      })
-
-      expect(result.state.compactions.length).toBeGreaterThan(0)
-      expect(result.needsUser).toBe(true)
-    })
-  })
 })

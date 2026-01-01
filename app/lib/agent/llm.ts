@@ -1,5 +1,5 @@
-import type { Message, CompactionBlock } from "~/lib/llm"
-import type { Path, LLMCaller, OnChunk, Compactor, CompactResult } from "./types"
+import type { Message } from "~/lib/llm"
+import type { Path, LLMCaller, OnChunk } from "./types"
 import { getLlmUrl } from "~/lib/env"
 import { parseSSELine } from "~/lib/llm/stream"
 
@@ -92,38 +92,4 @@ export const createLLMCaller = (): LLMCaller => async (
   }
 
   return { content, toolCalls: toolCalls.length > 0 ? toolCalls : undefined }
-}
-
-const messagesToContent = (messages: Message[]): string =>
-  messages
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => `${m.role}: ${m.content ?? ""}`)
-    .join("\n")
-
-export const createCompactor = (): Compactor => async (
-  history: Message[],
-  compactions: CompactionBlock[],
-  signal?: AbortSignal
-): Promise<CompactResult> => {
-  const url = getLlmUrl("/chat/compact")
-  const content = messagesToContent(history)
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ compactions, content }),
-    signal,
-  })
-
-  if (!response.ok) {
-    return { history, compactions }
-  }
-
-  const data = await response.json()
-  const newCompactions: CompactionBlock[] = data.compactions ?? compactions
-
-  return {
-    history: [],
-    compactions: newCompactions,
-  }
 }

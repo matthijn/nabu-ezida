@@ -43,13 +43,12 @@ const toTiptapConverters: Record<string, BlockToTiptap> = {
   }),
 }
 
-// Convert block to TipTap (non-list blocks only)
 export const blockToTiptap = (block: Block): JSONContent => {
   const converter = toTiptapConverters[block.type]
-  if (converter) return converter(block)
-
-  // Fallback to paragraph
-  return toTiptapConverters.paragraph(block)
+  if (!converter) {
+    throw new Error(`unknown block type: ${block.type}`)
+  }
+  return converter(block)
 }
 
 // Registry of tiptap → block converters

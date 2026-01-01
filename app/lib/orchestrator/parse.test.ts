@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseResponse, parsePlan } from "./parse"
+import { parseResponse } from "./parse"
 import type { ToolCall } from "~/lib/llm"
 
 describe("parseResponse", () => {
@@ -11,8 +11,8 @@ describe("parseResponse", () => {
       expected: { type: "text", content: "Hello, how can I help you?" },
     },
     {
-      name: "JSON task in code block",
-      content: '```json\n{"type": "task", "task": "Build a login form"}\n```',
+      name: "JSON task with description field",
+      content: '```json\n{"type": "task", "description": "Build a login form"}\n```',
       toolCalls: undefined,
       expected: { type: "task", task: "Build a login form" },
     },
@@ -29,28 +29,8 @@ describe("parseResponse", () => {
       expected: { type: "stuck", question: "Which database should I use?" },
     },
     {
-      name: "JSON task in code block",
-      content: '```json\n{"type": "task", "task": "Implement auth"}\n```',
-      toolCalls: undefined,
-      expected: { type: "task", task: "Implement auth" },
-    },
-    {
-      name: "JSON task with description field fallback",
-      content: '```json\n{"type": "task", "description": "Implement auth"}\n```',
-      toolCalls: undefined,
-      expected: { type: "task", task: "Implement auth" },
-    },
-    {
-      name: "JSON plan with steps",
-      content: '```json\n{"type": "plan", "task": "Build form", "steps": ["Step 1", "Step 2"]}\n```',
-      toolCalls: undefined,
-      expectedType: "plan",
-      expectedPlanTask: "Build form",
-      expectedStepCount: 2,
-    },
-    {
-      name: "JSON with steps array (no type field)",
-      content: '```json\n{"task": "Build form", "steps": ["Create component", "Add validation"]}\n```',
+      name: "JSON plan with object steps",
+      content: '```json\n{"type": "plan", "task": "Build form", "steps": [{"description": "Step 1"}, {"description": "Step 2"}]}\n```',
       toolCalls: undefined,
       expectedType: "plan",
       expectedPlanTask: "Build form",
@@ -117,92 +97,33 @@ describe("parseResponse", () => {
       }
     })
   })
-})
 
-describe("parsePlan", () => {
-  const cases = [
+  const errorCases = [
     {
-      name: "parses JSON plan from code block",
-      content: '```json\n{"task": "Build widget", "steps": ["Create component", "Add styles", "Write tests"]}\n```',
-      expectedTask: "Build widget",
-      expectedSteps: ["Create component", "Add styles", "Write tests"],
+      name: "task without description throws",
+      content: '```json\n{"type": "task", "task": "old format"}\n```',
+      expectedError: "task requires description field",
     },
     {
-      name: "parses steps with description objects",
-      content: '```json\n{"task": "Refactor", "steps": [{"description": "Extract function"}, {"description": "Update imports"}]}\n```',
-      expectedTask: "Refactor",
-      expectedSteps: ["Extract function", "Update imports"],
+      name: "plan without task throws",
+      content: '```json\n{"type": "plan", "steps": [{"description": "step"}]}\n```',
+      expectedError: "plan requires task field",
     },
     {
-      name: "parses numbered list",
-      content: "Here's my plan:\n1. First step\n2. Second step\n3. Third step",
-      expectedTask: "Task",
-      expectedSteps: ["First step", "Second step", "Third step"],
+      name: "plan without steps throws",
+      content: '```json\n{"type": "plan", "task": "do thing"}\n```',
+      expectedError: "plan requires steps array",
     },
     {
-      name: "parses numbered list with dots and spaces",
-      content: "1.  Step one\n2.  Step two",
-      expectedTask: "Task",
-      expectedSteps: ["Step one", "Step two"],
-    },
-    {
-      name: "defaults task to 'Task' when not provided in JSON",
-      content: '```json\n{"steps": ["Do something"]}\n```',
-      expectedTask: "Task",
-      expectedSteps: ["Do something"],
-    },
-    {
-      name: "returns null for plain text without steps",
-      content: "Just some random text without any plan",
-      expectedNull: true,
-    },
-    {
-      name: "returns null for empty content",
-      content: "",
-      expectedNull: true,
-    },
-    {
-      name: "returns null for JSON without steps array",
-      content: '```json\n{"task": "Something", "description": "No steps here"}\n```',
-      expectedNull: true,
-    },
-    {
-      name: "assigns sequential IDs to steps",
-      content: "1. First\n2. Second\n3. Third",
-      expectedTask: "Task",
-      expectedSteps: ["First", "Second", "Third"],
-      checkIds: ["1", "2", "3"],
-    },
-    {
-      name: "all steps start with pending status",
-      content: "1. Step one\n2. Step two",
-      expectedTask: "Task",
-      expectedSteps: ["Step one", "Step two"],
-      checkStatus: "pending",
+      name: "plan with string steps throws",
+      content: '```json\n{"type": "plan", "task": "do thing", "steps": ["step 1"]}\n```',
+      expectedError: "step 0 requires description field",
     },
   ]
 
-  cases.forEach(({ name, content, expectedTask, expectedSteps, expectedNull, checkIds, checkStatus }) => {
+  errorCases.forEach(({ name, content, expectedError }) => {
     it(name, () => {
-      const result = parsePlan(content)
-
-      if (expectedNull) {
-        expect(result).toBeNull()
-      } else {
-        expect(result).not.toBeNull()
-        expect(result!.task).toBe(expectedTask)
-        expect(result!.steps.map((s) => s.description)).toEqual(expectedSteps)
-
-        if (checkIds) {
-          expect(result!.steps.map((s) => s.id)).toEqual(checkIds)
-        }
-
-        if (checkStatus) {
-          result!.steps.forEach((s) => {
-            expect(s.status).toBe(checkStatus)
-          })
-        }
-      }
+      expect(() => parseResponse(content)).toThrow(expectedError)
     })
   })
 })

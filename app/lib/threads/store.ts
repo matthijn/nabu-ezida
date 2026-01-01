@@ -1,5 +1,4 @@
 import type { Participant } from "~/domain/participant"
-import type { CompactionBlock } from "~/lib/llm"
 
 export type ConversationMessage = {
   from: Participant
@@ -26,26 +25,67 @@ export type ThreadState = {
   initiator: Participant
   recipient: Participant
   messages: ConversationMessage[]
-  compactions: CompactionBlock[]
   status: ThreadStatus
   streaming: string | null
   documentContext: DocumentContext | null
 }
 
-type ThreadStore = {
-  threads: Map<string, ThreadState>
-  listeners: Map<string, Set<() => void>>
+export type ThreadStoreState = Map<string, ThreadState>
+
+export type ThreadAction =
+  | { type: "create"; thread: ThreadState }
+  | { type: "update"; id: string; updates: Partial<Omit<ThreadState, "id">> }
+  | { type: "push_message"; id: string; message: ConversationMessage }
+  | { type: "delete"; id: string }
+  | { type: "clear" }
+
+export const threadReducer = (state: ThreadStoreState, action: ThreadAction): ThreadStoreState => {
+  switch (action.type) {
+    case "create": {
+      const next = new Map(state)
+      next.set(action.thread.id, action.thread)
+      return next
+    }
+    case "update": {
+      const thread = state.get(action.id)
+      if (!thread) return state
+      const next = new Map(state)
+      next.set(action.id, { ...thread, ...action.updates })
+      return next
+    }
+    case "push_message": {
+      const thread = state.get(action.id)
+      if (!thread) return state
+      const next = new Map(state)
+      next.set(action.id, { ...thread, messages: [...thread.messages, action.message] })
+      return next
+    }
+    case "delete": {
+      const next = new Map(state)
+      next.delete(action.id)
+      return next
+    }
+    case "clear":
+      return new Map()
+    default: {
+      const exhaustive: never = action
+      throw new Error(`Unknown action: ${(exhaustive as ThreadAction).type}`)
+    }
+  }
 }
 
-const store: ThreadStore = {
-  threads: new Map(),
-  listeners: new Map(),
-}
+let threads: ThreadStoreState = new Map()
+const listeners: Map<string, Set<() => void>> = new Map()
 
 const notifyListeners = (threadId: string): void => {
-  const listeners = store.listeners.get(threadId)
-  if (listeners) {
-    listeners.forEach((listener) => listener())
+  listeners.get(threadId)?.forEach((listener) => listener())
+}
+
+const dispatch = (action: ThreadAction): void => {
+  const affectedId = "id" in action ? action.id : action.type === "create" ? action.thread.id : null
+  threads = threadReducer(threads, action)
+  if (affectedId) {
+    notifyListeners(affectedId)
   }
 }
 
@@ -61,59 +101,40 @@ export const createThread = (
     initiator,
     recipient,
     messages: [{ from: initiator, content: initialMessage }],
-    compactions: [],
     status: "idle",
     streaming: null,
     documentContext,
   }
-  store.threads.set(id, thread)
-  notifyListeners(id)
+  dispatch({ type: "create", thread })
   return thread
 }
 
-export const getThread = (id: string): ThreadState | undefined =>
-  store.threads.get(id)
+export const getThread = (id: string): ThreadState | undefined => threads.get(id)
 
 export const updateThread = (id: string, updates: Partial<Omit<ThreadState, "id">>): void => {
-  const thread = store.threads.get(id)
-  if (!thread) return
-  store.threads.set(id, { ...thread, ...updates })
-  notifyListeners(id)
+  dispatch({ type: "update", id, updates })
 }
 
 export const pushMessage = (id: string, message: ConversationMessage): void => {
-  const thread = store.threads.get(id)
-  if (!thread) return
-  store.threads.set(id, { ...thread, messages: [...thread.messages, message] })
-  notifyListeners(id)
-}
-
-export const pushCompaction = (id: string, compaction: CompactionBlock): void => {
-  const thread = store.threads.get(id)
-  if (!thread) return
-  store.threads.set(id, { ...thread, compactions: [...thread.compactions, compaction] })
-  notifyListeners(id)
+  dispatch({ type: "push_message", id, message })
 }
 
 export const deleteThread = (id: string): void => {
-  store.threads.delete(id)
-  store.listeners.delete(id)
+  dispatch({ type: "delete", id })
+  listeners.delete(id)
 }
 
 export const clearAllThreads = (): void => {
-  store.threads.clear()
-  store.listeners.clear()
+  dispatch({ type: "clear" })
+  listeners.clear()
 }
 
 export const subscribeToThread = (id: string, listener: () => void): (() => void) => {
-  if (!store.listeners.has(id)) {
-    store.listeners.set(id, new Set())
+  if (!listeners.has(id)) {
+    listeners.set(id, new Set())
   }
-  store.listeners.get(id)!.add(listener)
+  listeners.get(id)!.add(listener)
   return () => {
-    const listeners = store.listeners.get(id)
-    if (listeners) {
-      listeners.delete(listener)
-    }
+    listeners.get(id)?.delete(listener)
   }
 }

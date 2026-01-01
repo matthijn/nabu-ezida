@@ -1,6 +1,6 @@
-import type { Message, CompactionBlock } from "~/lib/llm"
+import type { Message } from "~/lib/llm"
 import type { AgentState, StepResult, StepOptions, Plan, Path } from "./types"
-import { parseResponse } from "~/lib/orchestrator/parse"
+import { tryParseResponse } from "~/lib/orchestrator/parse"
 import { buildExecuteStepPrompt, buildPlanPrompt, TERMINAL } from "./prompts"
 
 const appendMessage = (history: Message[], role: Message["role"], content: string, toolCallId?: string): Message[] => [
@@ -36,28 +36,6 @@ const withHistory = (state: AgentState, history: Message[]): AgentState => ({ ..
 
 const withPlan = (state: AgentState, plan: Plan | null): AgentState => ({ ...state, plan })
 
-const withCompactions = (state: AgentState, history: Message[], compactions: CompactionBlock[]): AgentState => ({
-  ...state,
-  history,
-  compactions,
-})
-
-const DEFAULT_COMPACTION_THRESHOLD = 20
-
-const historyTooLarge = (history: Message[], threshold: number): boolean =>
-  history.length > threshold
-
-const maybeCompact = async (state: AgentState, opts: StepOptions): Promise<AgentState> => {
-  const threshold = opts.compactionThreshold ?? DEFAULT_COMPACTION_THRESHOLD
-
-  if (!opts.compact || !historyTooLarge(state.history, threshold)) {
-    return state
-  }
-
-  const result = await opts.compact(state.history, state.compactions, opts.signal)
-  return withCompactions(state, result.history, result.compactions)
-}
-
 const done = (state: AgentState, response: string): StepResult => ({
   state,
   response,
@@ -71,8 +49,11 @@ const isCallLimitReached = (callsRemaining?: number): boolean => callsRemaining 
 const decrementCalls = (callsRemaining?: number): number | undefined =>
   callsRemaining !== undefined ? callsRemaining - 1 : undefined
 
-export const step = async (
+type AppendFn = (history: Message[], content: string) => Message[]
+
+const appendAndContinue = async (
   state: AgentState,
+  appendFn: AppendFn,
   message: string,
   opts: StepOptions,
   callsRemaining?: number
@@ -83,25 +64,23 @@ export const step = async (
   if (isCallLimitReached(callsRemaining)) {
     return done(state, TERMINAL.callLimitReached)
   }
-  const history = appendUserMessage(state.history, message)
+  const history = appendFn(state.history, message)
   return continueFromHistory(withHistory(state, history), opts, callsRemaining)
 }
 
-const stepWithSystem = async (
+export const step = (
   state: AgentState,
   message: string,
   opts: StepOptions,
   callsRemaining?: number
-): Promise<StepResult> => {
-  if (isAborted(opts.signal)) {
-    return done(state, "")
-  }
-  if (isCallLimitReached(callsRemaining)) {
-    return done(state, TERMINAL.callLimitReached)
-  }
-  const history = appendSystemMessage(state.history, message)
-  return continueFromHistory(withHistory(state, history), opts, callsRemaining)
-}
+): Promise<StepResult> => appendAndContinue(state, appendUserMessage, message, opts, callsRemaining)
+
+const stepWithSystem = (
+  state: AgentState,
+  message: string,
+  opts: StepOptions,
+  callsRemaining?: number
+): Promise<StepResult> => appendAndContinue(state, appendSystemMessage, message, opts, callsRemaining)
 
 const continueFromHistory = async (
   state: AgentState,
@@ -138,26 +117,23 @@ const continueFromHistory = async (
     )
   }
 
-  const parsed = parseResponse(content)
+  const parsed = tryParseResponse(content)
 
   const nextCalls = decrementCalls(callsRemaining)
 
   const handlers: Record<string, () => Promise<StepResult>> = {
-    text: async () => {
-      const compacted = await maybeCompact(withHistory(withPath(state, "/chat/converse"), historyWithResponse), opts)
-      return done(compacted, content)
-    },
+    text: async () => done(withHistory(withPath(state, "/chat/converse"), historyWithResponse), content),
 
     task: async () => {
       const task = (parsed as { task: string }).task
-      const compacted = await maybeCompact(withPath(withHistory(state, historyWithResponse), "/chat/plan"), opts)
-      return stepWithSystem(compacted, buildPlanPrompt(task), opts, nextCalls)
+      const nextState = withPath(withHistory(state, historyWithResponse), "/chat/plan")
+      return stepWithSystem(nextState, buildPlanPrompt(task), opts, nextCalls)
     },
 
     plan: async () => {
       const plan = (parsed as { plan: Plan }).plan
-      const compacted = await maybeCompact(withPlan(withPath(withHistory(state, historyWithResponse), "/chat/execute"), plan), opts)
-      return stepWithSystem(compacted, buildExecuteStepPrompt(plan, 0), opts, opts.maxCallsPerStep)
+      const nextState = withPlan(withPath(withHistory(state, historyWithResponse), "/chat/execute"), plan)
+      return stepWithSystem(nextState, buildExecuteStepPrompt(plan, 0), opts, opts.maxCallsPerStep)
     },
 
     step_complete: () => handleStepComplete(
@@ -167,15 +143,21 @@ const continueFromHistory = async (
       nextCalls
     ),
 
-    stuck: async () => {
-      const compacted = await maybeCompact(withHistory(state, historyWithResponse), opts)
-      return done(compacted, (parsed as { question: string }).question)
-    },
+    stuck: async () => done(withHistory(state, historyWithResponse), (parsed as { question: string }).question),
 
     tool_call: async () => {
       const { name, id, args } = parsed as { name: string; id: string; args: unknown }
-      const compacted = await maybeCompact(withHistory(state, historyWithResponse), opts)
-      return handleToolCalls(compacted, [{ name, id, args }], opts, nextCalls)
+      return handleToolCalls(withHistory(state, historyWithResponse), [{ name, id, args }], opts, nextCalls)
+    },
+
+    parse_error: async () => {
+      const { message } = parsed as { message: string }
+      return stepWithSystem(
+        withHistory(state, historyWithResponse),
+        `Your response had a format error: ${message}. Please try again with the correct JSON format.`,
+        opts,
+        nextCalls
+      )
     },
   }
 
@@ -183,8 +165,7 @@ const continueFromHistory = async (
   if (handler) {
     return handler()
   }
-  const compacted = await maybeCompact(withHistory(state, historyWithResponse), opts)
-  return done(compacted, content)
+  return done(withHistory(state, historyWithResponse), content)
 }
 
 type ToolCall = { name: string; id: string; args: unknown }
@@ -223,8 +204,7 @@ const handleToolCalls = async (
   )
 
   const historyWithResults = appendToolResults(state.history, results)
-  const compacted = await maybeCompact(withHistory(state, historyWithResults), opts)
-  return continueFromHistory(compacted, opts, callsRemaining)
+  return continueFromHistory(withHistory(state, historyWithResults), opts, callsRemaining)
 }
 
 const handleStepComplete = async (
@@ -234,24 +214,20 @@ const handleStepComplete = async (
   callsRemaining?: number
 ): Promise<StepResult> => {
   if (!state.plan) {
-    const compacted = await maybeCompact(state, opts)
-    return done(compacted, summary)
+    return done(state, summary)
   }
 
   const currentIndex = findCurrentStepIndex(state.plan)
   if (currentIndex === null) {
-    const compacted = await maybeCompact(withPlan(withPath(state, "/chat/converse"), null), opts)
-    return done(compacted, TERMINAL.allStepsCompleted)
+    return done(withPlan(withPath(state, "/chat/converse"), null), TERMINAL.allStepsCompleted)
   }
 
   const updatedPlan = markStepDone(state.plan, currentIndex)
   const nextIndex = findCurrentStepIndex(updatedPlan)
 
   if (nextIndex === null) {
-    const compacted = await maybeCompact(withPlan(withPath(state, "/chat/converse"), null), opts)
-    return done(compacted, TERMINAL.allStepsCompleted)
+    return done(withPlan(withPath(state, "/chat/converse"), null), TERMINAL.allStepsCompleted)
   }
 
-  const compacted = await maybeCompact(withPlan(state, updatedPlan), opts)
-  return stepWithSystem(compacted, buildExecuteStepPrompt(updatedPlan, nextIndex), opts, opts.maxCallsPerStep)
+  return stepWithSystem(withPlan(state, updatedPlan), buildExecuteStepPrompt(updatedPlan, nextIndex), opts, opts.maxCallsPerStep)
 }

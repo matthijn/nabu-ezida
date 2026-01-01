@@ -8,6 +8,7 @@ export type ParsedResponse =
   | { type: "step_complete"; summary: string }
   | { type: "stuck"; question: string }
   | { type: "tool_call"; name: string; id: string; args: unknown }
+  | { type: "parse_error"; message: string }
 
 const extractJSON = (content: string): unknown | null => {
   try {
@@ -41,48 +42,48 @@ export const parseResponse = (content: string, toolCalls?: ToolCall[]): ParsedRe
     return { type: "stuck", question: String(json.question ?? "What should I do?") }
   }
   if (json?.type === "task") {
-    return { type: "task", task: String(json.task ?? json.description ?? "") }
+    if (typeof json.description !== "string") {
+      throw new Error("task requires description field")
+    }
+    return { type: "task", task: json.description }
   }
-  if (json?.type === "plan" || json?.steps) {
+  if (json?.type === "plan") {
     const plan = parsePlanFromJSON(json)
-    if (plan) return { type: "plan", plan }
+    return { type: "plan", plan }
   }
 
   return { type: "text", content }
 }
 
-const parsePlanFromJSON = (json: Record<string, unknown>): Plan | null => {
-  const steps = json.steps
-  if (!Array.isArray(steps)) return null
+export const tryParseResponse = (content: string, toolCalls?: ToolCall[]): ParsedResponse => {
+  try {
+    return parseResponse(content, toolCalls)
+  } catch (err) {
+    return { type: "parse_error", message: err instanceof Error ? err.message : "Invalid format" }
+  }
+}
+
+const parsePlanFromJSON = (json: Record<string, unknown>): Plan => {
+  if (typeof json.task !== "string") {
+    throw new Error("plan requires task field")
+  }
+  if (!Array.isArray(json.steps)) {
+    throw new Error("plan requires steps array")
+  }
 
   return {
-    task: String(json.task ?? "Task"),
-    steps: steps.map((s, i): Step => ({
-      id: String(i + 1),
-      description: typeof s === "string" ? s : String((s as Record<string, unknown>).description ?? ""),
-      status: "pending",
-    })),
-  }
-}
-
-export const parsePlan = (content: string): Plan | null => {
-  const json = extractJSON(content) as Record<string, unknown> | null
-  if (json) {
-    const plan = parsePlanFromJSON(json)
-    if (plan) return plan
-  }
-
-  const lines = content.split("\n").filter((l) => /^\d+\./.test(l.trim()))
-  if (lines.length > 0) {
-    return {
-      task: "Task",
-      steps: lines.map((line, i): Step => ({
+    task: json.task,
+    steps: json.steps.map((s, i): Step => {
+      const step = s as Record<string, unknown>
+      if (typeof step.description !== "string") {
+        throw new Error(`step ${i} requires description field`)
+      }
+      return {
         id: String(i + 1),
-        description: line.replace(/^\d+\.\s*/, "").trim(),
+        description: step.description,
         status: "pending",
-      })),
-    }
+      }
+    }),
   }
-
-  return null
 }
+

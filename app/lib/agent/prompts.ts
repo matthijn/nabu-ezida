@@ -4,10 +4,10 @@ const formatStepList = (steps: Step[]): string =>
   steps.map((s, i) => `${i + 1}. [${s.status}] ${s.description}`).join("\n")
 
 export const TASK_SCHEMA = `When you identify a task that requires multiple steps, respond with JSON:
-{"type": "task", "task": "clear description of what needs to be done"}
+{"type": "task", "description": "clear description of what needs to be done"}
 
 Example:
-{"type": "task", "task": "Create a literature review document summarizing cognitive load theory findings from 2015-2024"}
+{"type": "task", "description": "Create a literature review document summarizing cognitive load theory findings from 2015-2024"}
 
 For simple questions or responses, reply normally without JSON.`
 
@@ -15,11 +15,11 @@ export const PLAN_SCHEMA = `Create a plan. Respond with JSON:
 {
   "type": "plan",
   "task": "what we're doing",
-  "steps": ["step 1 description", "step 2 description", ...]
+  "steps": [{"description": "step 1"}, {"description": "step 2"}]
 }
 
 Example:
-{"type": "plan", "task": "Literature review on cognitive load theory", "steps": ["Identify key papers from references", "Extract methodology sections", "Compare findings across studies", "Synthesize into summary table"]}
+{"type": "plan", "task": "Literature review on cognitive load theory", "steps": [{"description": "Identify key papers from references"}, {"description": "Extract methodology sections"}, {"description": "Compare findings across studies"}, {"description": "Synthesize into summary table"}]}
 
 If you need clarification before planning:
 {"type": "stuck", "question": "what you need to know"}
