@@ -1,7 +1,6 @@
-import { useSyncExternalStore, useCallback, useRef, useState } from "react"
-import type { ToolHandlers, Message } from "~/lib/llm"
-import type { AgentState } from "~/lib/agent"
-import { step, createInitialState, createLLMCaller } from "~/lib/agent"
+import { useSyncExternalStore, useCallback, useRef, useState, useMemo } from "react"
+import type { State, Message } from "~/lib/agent"
+import { turn, createToolExecutor, initialState, blocksToMessages } from "~/lib/agent"
 import {
   getThread,
   updateThread,
@@ -9,12 +8,14 @@ import {
   pushPlanMessage,
   subscribeToThread,
   type ThreadState,
-  type TextMessage,
 } from "./store"
 import { formatDocumentContext } from "./format"
+import type { QueryResult } from "~/lib/db/types"
+
+type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
 
 type UseThreadOptions = {
-  toolHandlers?: ToolHandlers
+  query?: QueryFn
 }
 
 type UseThreadResult = {
@@ -26,11 +27,14 @@ type UseThreadResult = {
   streaming: string | null
 }
 
+const stateToMessages = (state: State): Message[] => blocksToMessages(state.history)
+
+const getEndpoint = (inPlan: boolean): string => (inPlan ? "/chat/execute" : "/chat/converse")
+
 export const useThread = (threadId: string | null, options: UseThreadOptions = {}): UseThreadResult => {
-  const { toolHandlers = {} } = options
+  const { query } = options
   const abortControllerRef = useRef<AbortController | null>(null)
-  const agentStateRef = useRef<AgentState>(createInitialState())
-  const llmCallerRef = useRef(createLLMCaller())
+  const agentStateRef = useRef<State>(initialState)
   const [isExecuting, setIsExecuting] = useState(false)
   const [streaming, setStreaming] = useState("")
 
@@ -50,8 +54,10 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
   const thread = useSyncExternalStore(subscribe, getSnapshot)
   const streamingContent = isExecuting ? streaming : null
 
+  const toolExecutor = useMemo(() => createToolExecutor({ query }), [query])
+
   const runStep = useCallback(
-    (content: string) => {
+    async (content: string) => {
       if (!threadId || !thread) return
 
       updateThread(threadId, { status: "executing" })
@@ -59,64 +65,84 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
       setStreaming("")
       abortControllerRef.current = new AbortController()
 
-      const handleChunk = (chunk: string) => {
-        setStreaming((prev) => prev + chunk)
-      }
-
-      const handlePlanChange = (plan: typeof agentStateRef.current.plan) => {
-        updateThread(threadId, { plan })
-      }
-
       const isFirstMessage = agentStateRef.current.history.length === 0
       const hasDocumentContext = thread.documentContext !== null
 
+      const systemMessages: Message[] = []
       if (isFirstMessage && hasDocumentContext) {
-        const systemMessage: Message = {
+        systemMessages.push({
           role: "system",
           content: formatDocumentContext(thread.documentContext!),
-        }
-        agentStateRef.current = {
-          ...agentStateRef.current,
-          history: [systemMessage],
-        }
+        })
       }
 
-      step(agentStateRef.current, content, {
-        callLLM: llmCallerRef.current,
-        toolHandlers,
-        onChunk: handleChunk,
-        onPlanChange: handlePlanChange,
-        signal: abortControllerRef.current.signal,
-      })
-        .then((result) => {
-          agentStateRef.current = result.state
-          const t = getThread(threadId)
-          if (!t) return
+      const userMessage: Message = { role: "user", content }
 
-          const completedPlan = result.state.plan
-          const allStepsDone = completedPlan?.steps.every(s => s.status === "done")
+      try {
+        let currentState = agentStateRef.current
+        let messages = [...systemMessages, ...stateToMessages(currentState), userMessage]
+        let lastResponse = ""
 
-          if (allStepsDone && completedPlan) {
-            pushPlanMessage(threadId, t.recipient, completedPlan)
-            agentStateRef.current = { ...agentStateRef.current, plan: null }
-            updateThread(threadId, { status: "done", plan: null })
-          } else {
-            updateThread(threadId, { status: "done", plan: result.state.plan })
+        while (true) {
+          const inPlan = currentState.mode === "exec"
+          const endpoint = getEndpoint(inPlan)
+
+          const result = await turn(currentState, messages, {
+            endpoint,
+            execute: toolExecutor,
+            callbacks: {
+              onChunk: (chunk) => setStreaming((prev) => prev + chunk),
+            },
+            signal: abortControllerRef.current?.signal,
+          })
+
+          currentState = result.state
+          agentStateRef.current = currentState
+          updateThread(threadId, { plan: currentState.plan })
+
+          const textBlock = result.blocks.find((b) => b.type === "text")
+          if (textBlock && textBlock.type === "text") {
+            lastResponse = textBlock.content
           }
 
-          if (result.response) {
-            pushTextMessage(threadId, t.recipient, result.response)
+          if (result.action.type === "call_llm") {
+            setStreaming("")
+            messages = [
+              ...systemMessages,
+              ...stateToMessages(currentState),
+              { role: "user", content: result.action.nudge },
+            ]
+            continue
           }
-        })
-        .catch(() => {
-          updateThread(threadId, { status: "idle" })
-        })
-        .finally(() => {
-          setIsExecuting(false)
-          setStreaming("")
-        })
+
+          break
+        }
+
+        const t = getThread(threadId)
+        if (!t) return
+
+        const completedPlan = currentState.plan
+        const allStepsDone = completedPlan?.steps.every((s) => s.done)
+
+        if (allStepsDone && completedPlan) {
+          pushPlanMessage(threadId, t.recipient, completedPlan)
+          agentStateRef.current = { ...agentStateRef.current, plan: null }
+          updateThread(threadId, { status: "done", plan: null })
+        } else {
+          updateThread(threadId, { status: "done", plan: currentState.plan })
+        }
+
+        if (lastResponse) {
+          pushTextMessage(threadId, t.recipient, lastResponse)
+        }
+      } catch {
+        updateThread(threadId, { status: "idle" })
+      } finally {
+        setIsExecuting(false)
+        setStreaming("")
+      }
     },
-    [threadId, thread, toolHandlers]
+    [threadId, thread, toolExecutor]
   )
 
   const send = useCallback(

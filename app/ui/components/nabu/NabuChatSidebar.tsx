@@ -12,7 +12,6 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useThread, type ConversationMessage, type Plan, type Step, type TextMessage, type PlanMessage } from "~/lib/threads"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { TaskProgress, type Task as TaskProgressTask, type TaskStatus as TaskProgressStatus } from "~/ui/components/ai/TaskProgress"
-import { createToolHandlers } from "~/lib/agent/toolHandlers"
 import type { Participant, ParticipantVariant } from "~/domain/participant"
 import { useNabuSidebar } from "./context"
 
@@ -38,17 +37,17 @@ const MessageContent = ({ content }: { content: string }) => (
   </div>
 )
 
-const stepStatusToTaskStatus = (status: Step["status"], isCurrentStep: boolean): TaskProgressStatus => {
-  if (status === "done") return "done"
-  if (isCurrentStep) return "loading"
+const stepToTaskStatus = (done: boolean, isCurrentStep: boolean, isExecuting: boolean): TaskProgressStatus => {
+  if (done) return "done"
+  if (isCurrentStep && isExecuting) return "loading"
   return "pending"
 }
 
-const planToTasks = (plan: Plan): TaskProgressTask[] => {
-  const firstPendingIndex = plan.steps.findIndex(s => s.status === "pending")
+const planToTasks = (plan: Plan, isExecuting: boolean): TaskProgressTask[] => {
+  const firstPendingIndex = plan.steps.findIndex(s => !s.done)
   return plan.steps.map((step, index) => ({
     label: step.description,
-    status: stepStatusToTaskStatus(step.status, index === firstPendingIndex),
+    status: stepToTaskStatus(step.done, index === firstPendingIndex, isExecuting),
   }))
 }
 
@@ -130,8 +129,7 @@ type NabuChatWindowProps = {
 
 const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
   const { closeThread, query } = useNabuSidebar()
-  const toolHandlers = useMemo(() => createToolHandlers({ query }), [query])
-  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { toolHandlers })
+  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { query })
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const lastSentRef = useRef<string | null>(null)
@@ -231,7 +229,7 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
             <MessageBubble key={i} from={msg.from}>
               <TaskProgress
                 title={msg.plan.task}
-                tasks={planToTasks(msg.plan)}
+                tasks={planToTasks(msg.plan, false)}
                 className="bg-brand-50"
               />
             </MessageBubble>
@@ -241,7 +239,7 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
           <MessageBubble from={recipient}>
             <TaskProgress
               title={plan.task}
-              tasks={planToTasks(plan)}
+              tasks={planToTasks(plan, isExecuting)}
               className="bg-brand-50"
             />
           </MessageBubble>

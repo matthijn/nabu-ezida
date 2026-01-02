@@ -20,7 +20,7 @@ export {
   type ThreadAction,
 } from "./store"
 
-export type { Plan, Step, StepStatus } from "~/lib/agent"
+export type { Plan, Step } from "~/lib/agent"
 
 export { formatDocumentContext } from "./format"
 

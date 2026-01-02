@@ -1,13 +1,31 @@
-import type { Message, ToolHandlers } from "~/lib/llm"
+export type ToolCall = {
+  id: string
+  name: string
+  args: Record<string, unknown>
+}
 
-export type Path = "/chat/converse" | "/chat/plan" | "/chat/execute"
+export type TextBlock = {
+  type: "text"
+  content: string
+}
 
-export type StepStatus = "pending" | "done"
+export type ToolCallBlock = {
+  type: "tool_call"
+  calls: ToolCall[]
+}
+
+export type ToolResultBlock = {
+  type: "tool_result"
+  callId: string
+  result: unknown
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock
 
 export type Step = {
   id: string
   description: string
-  status: StepStatus
+  done: boolean
 }
 
 export type Plan = {
@@ -15,39 +33,35 @@ export type Plan = {
   steps: Step[]
 }
 
-export type AgentState = {
-  history: Message[]
-  path: Path
+export type Mode = "chat" | "exec"
+
+export type State = {
+  mode: Mode
   plan: Plan | null
+  currentStep: number | null
+  pendingToolCalls: ToolCall[] | null
+  history: Block[]
 }
 
-export type StepResult = {
-  state: AgentState
-  response: string
-  needsUser: boolean
+export type CallLLMAction = {
+  type: "call_llm"
+  nudge: string
 }
 
-export type OnChunk = (chunk: string) => void
-export type OnPlanChange = (plan: Plan | null) => void
-
-export type LLMCaller = (
-  path: Path,
-  messages: Message[],
-  onChunk?: OnChunk,
-  signal?: AbortSignal
-) => Promise<{ content: string; toolCalls?: { id: string; name: string; args: unknown }[] }>
-
-export type StepOptions = {
-  callLLM: LLMCaller
-  maxCallsPerStep?: number
-  toolHandlers?: ToolHandlers
-  onChunk?: OnChunk
-  onPlanChange?: OnPlanChange
-  signal?: AbortSignal
+export type WaitUserAction = {
+  type: "wait_user"
 }
 
-export const createInitialState = (): AgentState => ({
-  history: [],
-  path: "/chat/converse",
+export type DoneAction = {
+  type: "done"
+}
+
+export type Action = CallLLMAction | WaitUserAction | DoneAction
+
+export const initialState: State = {
+  mode: "chat",
   plan: null,
-})
+  currentStep: null,
+  pendingToolCalls: null,
+  history: [],
+}
