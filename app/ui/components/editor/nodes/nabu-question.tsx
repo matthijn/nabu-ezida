@@ -29,19 +29,19 @@ export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, delet
     if (pos === null || pos === undefined) return null
 
     const $pos = editor.state.doc.resolve(pos)
-    const parentOffset = $pos.parentOffset
     const parent = $pos.parent
+    const nodeIndex = $pos.index()
 
     let blockBefore: BlockContext | null = null
     let blockAfter: BlockContext | null = null
 
-    if (parentOffset > 0) {
-      const beforeNode = parent.child(parentOffset - 1)
+    if (nodeIndex > 0) {
+      const beforeNode = parent.child(nodeIndex - 1)
       if (beforeNode) blockBefore = extractBlockContext(beforeNode)
     }
 
-    if (parentOffset < parent.childCount - 1) {
-      const afterNode = parent.child(parentOffset + 1)
+    if (nodeIndex < parent.childCount - 1) {
+      const afterNode = parent.child(nodeIndex + 1)
       if (afterNode) blockAfter = extractBlockContext(afterNode)
     }
 

@@ -1,21 +1,26 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import type { QueryResult } from "~/lib/db/types"
+
+type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
 
 type NabuSidebarContextValue = {
   openThreads: string[]
   openThread: (threadId: string) => void
   closeThread: (threadId: string) => void
   isThreadOpen: (threadId: string) => boolean
+  query?: QueryFn
 }
 
 const NabuSidebarContext = createContext<NabuSidebarContextValue | null>(null)
 
 type NabuSidebarProviderProps = {
   children: ReactNode
+  query?: QueryFn
 }
 
-export const NabuSidebarProvider = ({ children }: NabuSidebarProviderProps) => {
+export const NabuSidebarProvider = ({ children, query }: NabuSidebarProviderProps) => {
   const [openThreads, setOpenThreads] = useState<string[]>([])
 
   const openThread = useCallback((threadId: string) => {
@@ -32,7 +37,7 @@ export const NabuSidebarProvider = ({ children }: NabuSidebarProviderProps) => {
   )
 
   return (
-    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen }}>
+    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen, query }}>
       {children}
     </NabuSidebarContext.Provider>
   )

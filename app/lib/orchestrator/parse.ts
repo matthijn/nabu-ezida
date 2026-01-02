@@ -17,8 +17,18 @@ const extractJSON = (content: string): unknown | null => {
       return JSON.parse(match[1])
     }
   } catch {
-    // Not valid JSON
+    // Not valid JSON in code block
   }
+
+  const trimmed = content.trim()
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      // Not valid raw JSON
+    }
+  }
+
   return null
 }
 

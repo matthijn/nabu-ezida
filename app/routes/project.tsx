@@ -53,7 +53,7 @@ export default function ProjectLayout() {
     toast.error(error.title, { description: error.description })
   }, [])
 
-  const { state } = useSyncEngine<Project>({
+  const { state, database } = useSyncEngine<Project>({
     wsBaseUrl: getWsUrl("/ws"),
     apiBaseUrl: getApiUrl("/api"),
     resourceId: params.projectId!,
@@ -70,7 +70,7 @@ export default function ProjectLayout() {
   }
 
   return (
-    <NabuSidebarProvider>
+    <NabuSidebarProvider query={database.query}>
       <DefaultPageLayout>
         <div className="flex h-full w-full items-start bg-default-background">
           <DocumentsSidebar

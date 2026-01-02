@@ -18,8 +18,10 @@ type UseThreadOptions = {
 type UseThreadResult = {
   thread: ThreadState | undefined
   send: (content: string) => void
+  execute: () => void
   cancel: () => void
   isExecuting: boolean
+  streaming: string | null
 }
 
 export const useThread = (threadId: string | null, options: UseThreadOptions = {}): UseThreadResult => {
@@ -40,18 +42,16 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
 
   const getSnapshot = useCallback(() => {
     if (!threadId) return undefined
-    const thread = getThread(threadId)
-    if (!thread) return undefined
-    return { ...thread, streaming: isExecuting ? streaming : null }
-  }, [threadId, isExecuting, streaming])
+    return getThread(threadId)
+  }, [threadId])
 
   const thread = useSyncExternalStore(subscribe, getSnapshot)
+  const streamingContent = isExecuting ? streaming : null
 
-  const send = useCallback(
+  const runStep = useCallback(
     (content: string) => {
-      if (!threadId || !thread || isExecuting) return
+      if (!threadId || !thread) return
 
-      pushMessage(threadId, { from: thread.initiator, content })
       updateThread(threadId, { status: "executing" })
       setIsExecuting(true)
       setStreaming("")
@@ -101,8 +101,24 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
           setStreaming("")
         })
     },
-    [threadId, thread, isExecuting, toolHandlers]
+    [threadId, thread, toolHandlers]
   )
+
+  const send = useCallback(
+    (content: string) => {
+      if (!threadId || !thread || isExecuting) return
+      pushMessage(threadId, { from: thread.initiator, content })
+      runStep(content)
+    },
+    [threadId, thread, isExecuting, runStep]
+  )
+
+  const execute = useCallback(() => {
+    if (!threadId || !thread || isExecuting) return
+    const lastMessage = thread.messages[thread.messages.length - 1]
+    if (!lastMessage) return
+    runStep(lastMessage.content)
+  }, [threadId, thread, isExecuting, runStep])
 
   const cancel = useCallback(() => {
     abortControllerRef.current?.abort()
@@ -114,5 +130,5 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
     }
   }, [threadId])
 
-  return { thread, send, cancel, isExecuting }
+  return { thread, send, execute, cancel, isExecuting, streaming: streamingContent }
 }

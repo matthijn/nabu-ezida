@@ -121,6 +121,38 @@ describe("step", () => {
       expect(result.state.history.some((m) => m.role === "tool")).toBe(true)
     })
 
+    it("includes tool_calls in assistant message before tool results", async () => {
+      const responses = [
+        { content: "", toolCalls: [{ id: "call_1", name: "search", args: { query: "test" } }] },
+        { content: "Found it" },
+      ]
+
+      const state = createInitialState()
+      const result = await step(state, "Search", {
+        callLLM: createMockCallerWithToolCalls(responses),
+        toolHandlers: { search: async () => ({ found: true }) },
+      })
+
+      const assistantWithToolCalls = result.state.history.find(
+        (m) => m.role === "assistant" && m.tool_calls?.length
+      )
+      expect(assistantWithToolCalls).toBeDefined()
+      expect(assistantWithToolCalls?.tool_calls?.[0]).toEqual({
+        id: "call_1",
+        type: "function",
+        function: {
+          name: "search",
+          arguments: '{"query":"test"}',
+        },
+      })
+
+      const toolResultIndex = result.state.history.findIndex((m) => m.role === "tool")
+      const assistantIndex = result.state.history.findIndex(
+        (m) => m.role === "assistant" && m.tool_calls?.length
+      )
+      expect(assistantIndex).toBeLessThan(toolResultIndex)
+    })
+
     it("handles unknown tool gracefully", async () => {
       const responses = [
         { content: "", toolCalls: [{ id: "call_1", name: "unknown_tool", args: {} }] },

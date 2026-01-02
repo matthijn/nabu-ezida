@@ -91,5 +91,7 @@ export const createLLMCaller = (): LLMCaller => async (
     reader.releaseLock()
   }
 
-  return { content, toolCalls: toolCalls.length > 0 ? toolCalls : undefined }
+  const result = { content, toolCalls: toolCalls.length > 0 ? toolCalls : undefined }
+  console.log("[LLM Response]", result)
+  return result
 }

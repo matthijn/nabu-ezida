@@ -26,7 +26,6 @@ export type ThreadState = {
   recipient: Participant
   messages: ConversationMessage[]
   status: ThreadStatus
-  streaming: string | null
   documentContext: DocumentContext | null
 }
 
@@ -102,7 +101,6 @@ export const createThread = (
     recipient,
     messages: [{ from: initiator, content: initialMessage }],
     status: "idle",
-    streaming: null,
     documentContext,
   }
   dispatch({ type: "create", thread })

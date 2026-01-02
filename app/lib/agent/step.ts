@@ -1,11 +1,23 @@
-import type { Message } from "~/lib/llm"
+import type { Message, ToolCall } from "~/lib/llm"
 import type { AgentState, StepResult, StepOptions, Plan, Path } from "./types"
 import { tryParseResponse } from "~/lib/orchestrator/parse"
 import { buildExecuteStepPrompt, buildPlanPrompt, TERMINAL } from "./prompts"
 
-const appendMessage = (history: Message[], role: Message["role"], content: string, toolCallId?: string): Message[] => [
+type InternalToolCall = { id: string; name: string; args: unknown }
+
+const toOpenAIToolCalls = (toolCalls: InternalToolCall[]): ToolCall[] =>
+  toolCalls.map(tc => ({
+    id: tc.id,
+    type: "function" as const,
+    function: {
+      name: tc.name,
+      arguments: JSON.stringify(tc.args),
+    },
+  }))
+
+const appendMessage = (history: Message[], role: Message["role"], content: string, toolCallId?: string, toolCalls?: ToolCall[]): Message[] => [
   ...history,
-  { role, content, ...(toolCallId && { tool_call_id: toolCallId }) },
+  { role, content, ...(toolCallId && { tool_call_id: toolCallId }), ...(toolCalls && { tool_calls: toolCalls }) },
 ]
 
 const appendUserMessage = (history: Message[], content: string): Message[] =>
@@ -14,8 +26,8 @@ const appendUserMessage = (history: Message[], content: string): Message[] =>
 const appendSystemMessage = (history: Message[], content: string): Message[] =>
   appendMessage(history, "system", content)
 
-const appendAssistantMessage = (history: Message[], content: string): Message[] =>
-  appendMessage(history, "assistant", content)
+const appendAssistantMessage = (history: Message[], content: string, toolCalls?: ToolCall[]): Message[] =>
+  appendMessage(history, "assistant", content, undefined, toolCalls)
 
 const appendToolResult = (history: Message[], toolCallId: string, result: unknown): Message[] =>
   appendMessage(history, "tool", JSON.stringify(result), toolCallId)
@@ -80,7 +92,10 @@ const stepWithSystem = (
   message: string,
   opts: StepOptions,
   callsRemaining?: number
-): Promise<StepResult> => appendAndContinue(state, appendSystemMessage, message, opts, callsRemaining)
+): Promise<StepResult> => {
+  console.log("[Agent Nudge]", message)
+  return appendAndContinue(state, appendSystemMessage, message, opts, callsRemaining)
+}
 
 const continueFromHistory = async (
   state: AgentState,
@@ -106,18 +121,20 @@ const continueFromHistory = async (
     return done(state, "")
   }
 
-  const historyWithResponse = appendAssistantMessage(state.history, content)
-
   if (toolCalls?.length) {
+    const historyWithToolCalls = appendAssistantMessage(state.history, content, toOpenAIToolCalls(toolCalls))
     return handleToolCalls(
-      withHistory(state, historyWithResponse),
+      withHistory(state, historyWithToolCalls),
       toolCalls,
       opts,
       callsRemaining
     )
   }
 
+  const historyWithResponse = appendAssistantMessage(state.history, content)
+
   const parsed = tryParseResponse(content)
+  console.log("[Agent Parsed]", parsed)
 
   const nextCalls = decrementCalls(callsRemaining)
 
@@ -147,7 +164,9 @@ const continueFromHistory = async (
 
     tool_call: async () => {
       const { name, id, args } = parsed as { name: string; id: string; args: unknown }
-      return handleToolCalls(withHistory(state, historyWithResponse), [{ name, id, args }], opts, nextCalls)
+      const internalToolCall = { name, id, args }
+      const historyWithToolCall = appendAssistantMessage(state.history, content, toOpenAIToolCalls([internalToolCall]))
+      return handleToolCalls(withHistory(state, historyWithToolCall), [internalToolCall], opts, nextCalls)
     },
 
     parse_error: async () => {
@@ -168,14 +187,21 @@ const continueFromHistory = async (
   return done(withHistory(state, historyWithResponse), content)
 }
 
-type ToolCall = { name: string; id: string; args: unknown }
 type ToolResult = { id: string; result: unknown }
 
+const snakeToCamel = (s: string): string =>
+  s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+
+const findHandler = (name: string, handlers?: StepOptions["toolHandlers"]) => {
+  if (!handlers) return undefined
+  return handlers[name] ?? handlers[snakeToCamel(name)]
+}
+
 const executeSingleTool = async (
-  toolCall: ToolCall,
+  toolCall: InternalToolCall,
   opts: StepOptions
 ): Promise<ToolResult> => {
-  const handler = opts.toolHandlers?.[toolCall.name]
+  const handler = findHandler(toolCall.name, opts.toolHandlers)
 
   if (!handler) {
     return { id: toolCall.id, result: { error: `Unknown tool: ${toolCall.name}` } }
@@ -195,13 +221,15 @@ const appendToolResults = (history: Message[], results: ToolResult[]): Message[]
 
 const handleToolCalls = async (
   state: AgentState,
-  toolCalls: ToolCall[],
+  toolCalls: InternalToolCall[],
   opts: StepOptions,
   callsRemaining?: number
 ): Promise<StepResult> => {
+  console.log("[Agent Tool Calls]", toolCalls)
   const results = await Promise.all(
     toolCalls.map(tc => executeSingleTool(tc, opts))
   )
+  console.log("[Agent Tool Results]", results)
 
   const historyWithResults = appendToolResults(state.history, results)
   return continueFromHistory(withHistory(state, historyWithResults), opts, callsRemaining)

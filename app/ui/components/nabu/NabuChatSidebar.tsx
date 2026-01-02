@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
 import Markdown from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2 } from "@subframe/core"
 import { Avatar } from "~/ui/components/Avatar"
@@ -9,6 +9,7 @@ import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useThread, type ConversationMessage } from "~/lib/threads"
+import { createToolHandlers } from "~/lib/agent/toolHandlers"
 import type { Participant, ParticipantVariant } from "~/domain/participant"
 import { useNabuSidebar } from "./context"
 
@@ -111,14 +112,15 @@ type NabuChatWindowProps = {
 }
 
 const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
-  const { closeThread } = useNabuSidebar()
-  const { thread, send, cancel, isExecuting } = useThread(threadId)
+  const { closeThread, query } = useNabuSidebar()
+  const toolHandlers = useMemo(() => createToolHandlers({ query }), [query])
+  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { toolHandlers })
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const lastSentRef = useRef<string | null>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16 + index * 20, y: 16 + index * 20 })
 
-  // Send initial message when opening a new thread
+  // Execute initial message when opening a new thread
   useEffect(() => {
     if (!thread) return
     if (lastSentRef.current === threadId) return
@@ -126,8 +128,8 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
 
     lastSentRef.current = threadId
     setInputValue("")
-    send(thread.messages[0].content)
-  }, [threadId, thread, send])
+    execute()
+  }, [threadId, thread, execute])
 
   // Focus input when not executing
   useEffect(() => {
@@ -163,7 +165,7 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
     return null
   }
 
-  const { initiator, recipient, messages, streaming } = thread
+  const { initiator, recipient, messages } = thread
   const variant = recipient.variant
 
   return (
