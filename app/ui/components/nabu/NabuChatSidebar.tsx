@@ -2,13 +2,16 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
 import Markdown from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2 } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX } from "@subframe/core"
+import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useThread, type ConversationMessage } from "~/lib/threads"
+import { useThread, type ConversationMessage, type Plan, type Step, type TextMessage, type PlanMessage } from "~/lib/threads"
+import { filterCodeBlocks } from "~/lib/streaming/filter"
+import { TaskProgress, type Task as TaskProgressTask, type TaskStatus as TaskProgressStatus } from "~/ui/components/ai/TaskProgress"
 import { createToolHandlers } from "~/lib/agent/toolHandlers"
 import type { Participant, ParticipantVariant } from "~/domain/participant"
 import { useNabuSidebar } from "./context"
@@ -34,6 +37,20 @@ const MessageContent = ({ content }: { content: string }) => (
     <Markdown>{content}</Markdown>
   </div>
 )
+
+const stepStatusToTaskStatus = (status: Step["status"], isCurrentStep: boolean): TaskProgressStatus => {
+  if (status === "done") return "done"
+  if (isCurrentStep) return "loading"
+  return "pending"
+}
+
+const planToTasks = (plan: Plan): TaskProgressTask[] => {
+  const firstPendingIndex = plan.steps.findIndex(s => s.status === "pending")
+  return plan.steps.map((step, index) => ({
+    label: step.description,
+    status: stepStatusToTaskStatus(step.status, index === firstPendingIndex),
+  }))
+}
 
 type ParticipantAvatarProps = {
   participant: Participant
@@ -165,13 +182,14 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
     return null
   }
 
-  const { initiator, recipient, messages } = thread
+  const { initiator, recipient, messages, plan } = thread
   const variant = recipient.variant
+  const hasPlan = plan !== null && plan.steps.length > 0
 
   return (
     <div
       style={{ right: position.x, bottom: position.y }}
-      className={`fixed z-50 flex h-[400px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
+      className={`fixed z-50 flex h-[600px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
     >
       {/* Header - draggable */}
       <div
@@ -204,43 +222,78 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
 
       {/* Messages */}
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 py-3">
-        {messages.map((msg, i) => (
-          <MessageBubble key={i} from={msg.from}>
-            <MessageContent content={msg.content} />
-          </MessageBubble>
-        ))}
-        {isExecuting && (
+        {messages.map((msg, i) =>
+          msg.type === "text" ? (
+            <MessageBubble key={i} from={msg.from}>
+              <MessageContent content={msg.content} />
+            </MessageBubble>
+          ) : (
+            <MessageBubble key={i} from={msg.from}>
+              <TaskProgress
+                title={msg.plan.task}
+                tasks={planToTasks(msg.plan)}
+                className="bg-brand-50"
+              />
+            </MessageBubble>
+          )
+        )}
+        {hasPlan && (
           <MessageBubble from={recipient}>
-            {streaming ? (
-              <MessageContent content={streaming} />
-            ) : (
-              <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
-            )}
+            <TaskProgress
+              title={plan.task}
+              tasks={planToTasks(plan)}
+              className="bg-brand-50"
+            />
+          </MessageBubble>
+        )}
+        {isExecuting && !hasPlan && (
+          <MessageBubble from={recipient}>
+            {(() => {
+              const filtered = streaming ? filterCodeBlocks(streaming) : null
+              return filtered ? (
+                <MessageContent content={filtered} />
+              ) : (
+                <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
+              )
+            })()}
           </MessageBubble>
         )}
       </AutoScroll>
 
-      {/* Input */}
-      <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
-        <ParticipantAvatar participant={initiator} />
-        <TextFieldUnstyled className="grow">
-          <TextFieldUnstyled.Input
-            ref={inputRef}
-            placeholder={`Message ${recipient.name}...`}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isExecuting}
+      {/* Input / Cancel */}
+      {isExecuting && hasPlan ? (
+        <div className="flex w-full items-center justify-end border-t border-solid border-neutral-border px-4 py-3">
+          <Button
+            variant="neutral-secondary"
+            size="small"
+            icon={<FeatherX />}
+            onClick={cancel}
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
+          <ParticipantAvatar participant={initiator} />
+          <TextFieldUnstyled className="grow">
+            <TextFieldUnstyled.Input
+              ref={inputRef}
+              placeholder={`Message ${recipient.name}...`}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isExecuting}
+            />
+          </TextFieldUnstyled>
+          <IconButton
+            variant="brand-primary"
+            size="small"
+            icon={<FeatherSend />}
+            onClick={handleSend}
+            disabled={isExecuting || !inputValue.trim()}
           />
-        </TextFieldUnstyled>
-        <IconButton
-          variant="brand-primary"
-          size="small"
-          icon={<FeatherSend />}
-          onClick={handleSend}
-          disabled={isExecuting || !inputValue.trim()}
-        />
-      </div>
+        </div>
+      )}
     </div>
   )
 }

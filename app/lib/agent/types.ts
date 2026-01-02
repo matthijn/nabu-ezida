@@ -28,6 +28,7 @@ export type StepResult = {
 }
 
 export type OnChunk = (chunk: string) => void
+export type OnPlanChange = (plan: Plan | null) => void
 
 export type LLMCaller = (
   path: Path,
@@ -41,6 +42,7 @@ export type StepOptions = {
   maxCallsPerStep?: number
   toolHandlers?: ToolHandlers
   onChunk?: OnChunk
+  onPlanChange?: OnPlanChange
   signal?: AbortSignal
 }
 

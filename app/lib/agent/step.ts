@@ -149,6 +149,7 @@ const continueFromHistory = async (
 
     plan: async () => {
       const plan = (parsed as { plan: Plan }).plan
+      opts.onPlanChange?.(plan)
       const nextState = withPlan(withPath(withHistory(state, historyWithResponse), "/chat/execute"), plan)
       return stepWithSystem(nextState, buildExecuteStepPrompt(plan, 0), opts, opts.maxCallsPerStep)
     },
@@ -247,14 +248,15 @@ const handleStepComplete = async (
 
   const currentIndex = findCurrentStepIndex(state.plan)
   if (currentIndex === null) {
-    return done(withPlan(withPath(state, "/chat/converse"), null), TERMINAL.allStepsCompleted)
+    return done(withPath(state, "/chat/converse"), TERMINAL.allStepsCompleted)
   }
 
   const updatedPlan = markStepDone(state.plan, currentIndex)
+  opts.onPlanChange?.(updatedPlan)
   const nextIndex = findCurrentStepIndex(updatedPlan)
 
   if (nextIndex === null) {
-    return done(withPlan(withPath(state, "/chat/converse"), null), TERMINAL.allStepsCompleted)
+    return done(withPlan(withPath(state, "/chat/converse"), updatedPlan), TERMINAL.allStepsCompleted)
   }
 
   return stepWithSystem(withPlan(state, updatedPlan), buildExecuteStepPrompt(updatedPlan, nextIndex), opts, opts.maxCallsPerStep)

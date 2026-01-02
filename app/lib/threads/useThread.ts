@@ -5,9 +5,11 @@ import { step, createInitialState, createLLMCaller } from "~/lib/agent"
 import {
   getThread,
   updateThread,
-  pushMessage,
+  pushTextMessage,
+  pushPlanMessage,
   subscribeToThread,
   type ThreadState,
+  type TextMessage,
 } from "./store"
 import { formatDocumentContext } from "./format"
 
@@ -61,6 +63,10 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         setStreaming((prev) => prev + chunk)
       }
 
+      const handlePlanChange = (plan: typeof agentStateRef.current.plan) => {
+        updateThread(threadId, { plan })
+      }
+
       const isFirstMessage = agentStateRef.current.history.length === 0
       const hasDocumentContext = thread.documentContext !== null
 
@@ -79,19 +85,28 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         callLLM: llmCallerRef.current,
         toolHandlers,
         onChunk: handleChunk,
+        onPlanChange: handlePlanChange,
         signal: abortControllerRef.current.signal,
       })
         .then((result) => {
           agentStateRef.current = result.state
+          const t = getThread(threadId)
+          if (!t) return
 
-          if (result.response) {
-            const t = getThread(threadId)
-            if (t) {
-              pushMessage(threadId, { from: t.recipient, content: result.response })
-            }
+          const completedPlan = result.state.plan
+          const allStepsDone = completedPlan?.steps.every(s => s.status === "done")
+
+          if (allStepsDone && completedPlan) {
+            pushPlanMessage(threadId, t.recipient, completedPlan)
+            agentStateRef.current = { ...agentStateRef.current, plan: null }
+            updateThread(threadId, { status: "done", plan: null })
+          } else {
+            updateThread(threadId, { status: "done", plan: result.state.plan })
           }
 
-          updateThread(threadId, { status: "done" })
+          if (result.response) {
+            pushTextMessage(threadId, t.recipient, result.response)
+          }
         })
         .catch(() => {
           updateThread(threadId, { status: "idle" })
@@ -107,7 +122,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
   const send = useCallback(
     (content: string) => {
       if (!threadId || !thread || isExecuting) return
-      pushMessage(threadId, { from: thread.initiator, content })
+      pushTextMessage(threadId, thread.initiator, content)
       runStep(content)
     },
     [threadId, thread, isExecuting, runStep]
@@ -116,7 +131,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
   const execute = useCallback(() => {
     if (!threadId || !thread || isExecuting) return
     const lastMessage = thread.messages[thread.messages.length - 1]
-    if (!lastMessage) return
+    if (!lastMessage || lastMessage.type !== "text") return
     runStep(lastMessage.content)
   }, [threadId, thread, isExecuting, runStep])
 

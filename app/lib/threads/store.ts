@@ -1,9 +1,19 @@
 import type { Participant } from "~/domain/participant"
+import type { Plan } from "~/lib/agent"
 
-export type ConversationMessage = {
+export type TextMessage = {
+  type: "text"
   from: Participant
   content: string
 }
+
+export type PlanMessage = {
+  type: "plan"
+  from: Participant
+  plan: Plan
+}
+
+export type ConversationMessage = TextMessage | PlanMessage
 
 export type BlockContext = {
   id: string
@@ -27,6 +37,7 @@ export type ThreadState = {
   messages: ConversationMessage[]
   status: ThreadStatus
   documentContext: DocumentContext | null
+  plan: Plan | null
 }
 
 export type ThreadStoreState = Map<string, ThreadState>
@@ -99,9 +110,10 @@ export const createThread = (
     id,
     initiator,
     recipient,
-    messages: [{ from: initiator, content: initialMessage }],
+    messages: [{ type: "text", from: initiator, content: initialMessage }],
     status: "idle",
     documentContext,
+    plan: null,
   }
   dispatch({ type: "create", thread })
   return thread
@@ -115,6 +127,14 @@ export const updateThread = (id: string, updates: Partial<Omit<ThreadState, "id"
 
 export const pushMessage = (id: string, message: ConversationMessage): void => {
   dispatch({ type: "push_message", id, message })
+}
+
+export const pushTextMessage = (id: string, from: Participant, content: string): void => {
+  dispatch({ type: "push_message", id, message: { type: "text", from, content } })
+}
+
+export const pushPlanMessage = (id: string, from: Participant, plan: Plan): void => {
+  dispatch({ type: "push_message", id, message: { type: "plan", from, plan } })
 }
 
 export const deleteThread = (id: string): void => {
