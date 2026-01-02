@@ -119,32 +119,37 @@ describe("turn", () => {
     })
   })
 
-  describe("ask_user", () => {
-    it("converts ask_user to text block and returns wait_user", async () => {
+  describe("abort", () => {
+    it("converts abort to text block, exits plan mode, returns done with abortedPlan", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
-        calls: [{ id: "1", name: "ask_user", args: { question: "What format?" } }],
+        calls: [{ id: "1", name: "abort", args: { message: "Need clarification" } }],
       }
       mockParse([toolCallBlock])
+      const initialPlanState = stateWithPlan(2)
 
-      const result = await turn(stateWithPlan(2), [], deps)
+      const result = await turn(initialPlanState, [], deps)
 
       expect(mockExecutor).not.toHaveBeenCalled()
-      expect(result.action.type).toBe("wait_user")
+      expect(result.action.type).toBe("done")
+      expect(result.state.mode).toBe("chat")
+      expect(result.state.plan).toBeNull()
+      expect(result.abortedPlan).toEqual(initialPlanState.plan)
       expect(result.blocks).toHaveLength(1)
-      expect(result.blocks[0]).toEqual({ type: "text", content: "What format?" })
+      expect(result.blocks[0]).toEqual({ type: "text", content: "Need clarification" })
     })
 
-    it("handles missing question gracefully", async () => {
+    it("handles missing message gracefully", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
-        calls: [{ id: "1", name: "ask_user", args: {} }],
+        calls: [{ id: "1", name: "abort", args: {} }],
       }
       mockParse([toolCallBlock])
 
       const result = await turn(stateWithPlan(2), [], deps)
 
-      expect(result.action.type).toBe("wait_user")
+      expect(result.action.type).toBe("done")
+      expect(result.state.mode).toBe("chat")
       expect(result.blocks[0]).toEqual({ type: "text", content: "" })
     })
   })

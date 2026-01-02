@@ -82,6 +82,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         let currentState = agentStateRef.current
         let messages = [...systemMessages, ...stateToMessages(currentState), userMessage]
         let lastResponse = ""
+        let lastResult: Awaited<ReturnType<typeof turn>> | null = null
 
         while (true) {
           const inPlan = currentState.mode === "exec"
@@ -97,6 +98,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
           })
 
           currentState = result.state
+          lastResult = result
           agentStateRef.current = currentState
           updateThread(threadId, { plan: currentState.plan })
 
@@ -127,6 +129,9 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         if (allStepsDone && completedPlan) {
           pushPlanMessage(threadId, t.recipient, completedPlan)
           agentStateRef.current = { ...agentStateRef.current, plan: null }
+          updateThread(threadId, { status: "done", plan: null })
+        } else if (lastResult?.abortedPlan) {
+          pushPlanMessage(threadId, t.recipient, lastResult.abortedPlan, true)
           updateThread(threadId, { status: "done", plan: null })
         } else {
           updateThread(threadId, { status: "done", plan: currentState.plan })

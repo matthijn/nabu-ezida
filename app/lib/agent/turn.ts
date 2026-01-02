@@ -1,4 +1,4 @@
-import type { State, Block, Action, ToolCall, ToolResultBlock } from "./types"
+import type { State, Block, Action, ToolCall, ToolResultBlock, Plan } from "./types"
 import type { Message, ParseCallbacks } from "./parser"
 import { parse } from "./parser"
 import { reducer } from "./reducer"
@@ -17,10 +17,11 @@ export type TurnResult = {
   state: State
   action: Action
   blocks: Block[]
+  abortedPlan?: Plan
 }
 
-const findAskUser = (calls: ToolCall[]): ToolCall | undefined =>
-  calls.find((c) => c.name === "ask_user")
+const findAbort = (calls: ToolCall[]): ToolCall | undefined =>
+  calls.find((c) => c.name === "abort")
 
 const executeTool = async (
   call: ToolCall,
@@ -58,13 +59,14 @@ export const turn = async (
 
   for (const block of parsedBlocks) {
     if (block.type === "tool_call") {
-      const askUser = findAskUser(block.calls)
-      if (askUser) {
-        const question = (askUser.args.question as string) ?? ""
-        const textBlock = { type: "text" as const, content: question }
+      const abort = findAbort(block.calls)
+      if (abort) {
+        const abortedPlan = currentState.plan ?? undefined
+        const message = (abort.args.message as string) ?? ""
+        const textBlock = { type: "text" as const, content: message }
         allBlocks.push(textBlock)
-        currentState = reducer(currentState, textBlock)
-        return { state: currentState, action: { type: "wait_user" }, blocks: allBlocks }
+        currentState = { ...reducer(currentState, textBlock), mode: "chat", plan: null }
+        return { state: currentState, action: { type: "done" }, blocks: allBlocks, abortedPlan }
       }
 
       allBlocks.push(block)

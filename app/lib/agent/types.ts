@@ -48,15 +48,11 @@ export type CallLLMAction = {
   nudge: string
 }
 
-export type WaitUserAction = {
-  type: "wait_user"
-}
-
 export type DoneAction = {
   type: "done"
 }
 
-export type Action = CallLLMAction | WaitUserAction | DoneAction
+export type Action = CallLLMAction | DoneAction
 
 export const initialState: State = {
   mode: "chat",

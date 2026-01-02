@@ -227,11 +227,13 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
             </MessageBubble>
           ) : (
             <MessageBubble key={i} from={msg.from}>
-              <TaskProgress
-                title={msg.plan.task}
-                tasks={planToTasks(msg.plan, false)}
-                className="bg-brand-50"
-              />
+              <div className={msg.aborted ? "line-through opacity-60" : ""}>
+                <TaskProgress
+                  title={msg.plan.task}
+                  tasks={planToTasks(msg.plan, false)}
+                  className="bg-brand-50"
+                />
+              </div>
             </MessageBubble>
           )
         )}

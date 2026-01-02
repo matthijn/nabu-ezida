@@ -2,7 +2,6 @@ import type { State, Block, Plan, Step, ToolCall } from "./types"
 
 const isCreatePlan = (call: ToolCall): boolean => call.name === "create_plan"
 const isCompleteStep = (call: ToolCall): boolean => call.name === "complete_step"
-const isAskUser = (call: ToolCall): boolean => call.name === "ask_user"
 
 const createPlanFromCall = (call: ToolCall): Plan => ({
   task: call.args.task as string,

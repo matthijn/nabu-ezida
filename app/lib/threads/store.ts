@@ -11,6 +11,7 @@ export type PlanMessage = {
   type: "plan"
   from: Participant
   plan: Plan
+  aborted?: boolean
 }
 
 export type ConversationMessage = TextMessage | PlanMessage
@@ -133,8 +134,8 @@ export const pushTextMessage = (id: string, from: Participant, content: string):
   dispatch({ type: "push_message", id, message: { type: "text", from, content } })
 }
 
-export const pushPlanMessage = (id: string, from: Participant, plan: Plan): void => {
-  dispatch({ type: "push_message", id, message: { type: "plan", from, plan } })
+export const pushPlanMessage = (id: string, from: Participant, plan: Plan, aborted = false): void => {
+  dispatch({ type: "push_message", id, message: { type: "plan", from, plan, aborted } })
 }
 
 export const deleteThread = (id: string): void => {
