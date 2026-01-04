@@ -12,7 +12,7 @@ import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
 import { DragHandle } from "@tiptap/extension-drag-handle-react"
 import { FeatherGripVertical } from "@subframe/core"
-import { Lock, BlockID, mentionSuggestion } from "./extensions"
+import { Lock, BlockID, mentionSuggestion, applyBlockOps } from "./extensions"
 import {
   Paragraph,
   Heading,
@@ -26,7 +26,7 @@ import {
   NabuQuestion,
 } from "./nodes"
 import type { Block } from "~/domain/document"
-import { blocksToTiptap, tiptapToBlocks } from "~/domain/document"
+import { blocksToTiptap, tiptapToBlocks, diffBlocks } from "~/domain/document"
 
 export type EditorProps = {
   content?: Block[]
@@ -44,6 +44,7 @@ export const Editor = ({
   onMoveBlock,
 }: EditorProps) => {
   const initialContent = useRef(content)
+  const prevContent = useRef(content)
   const isFirstRender = useRef(true)
   const draggedBlockId = useRef<string | null>(null)
   const draggedFromPos = useRef<number | null>(null)
@@ -93,15 +94,22 @@ export const Editor = ({
     },
   })
 
-  // Handle content updates after initial mount (e.g., from WebSocket)
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
       return
     }
-    if (editor) {
-      editor.commands.setContent(blocksToTiptap(content ?? []))
+    if (!editor) return
+
+    const oldBlocks = prevContent.current ?? []
+    const newBlocks = content ?? []
+    const ops = diffBlocks(oldBlocks, newBlocks)
+
+    if (ops.length > 0) {
+      applyBlockOps(editor, ops)
     }
+
+    prevContent.current = content
   }, [editor, content])
 
   const hoveredBlockId = useRef<string | null>(null)
@@ -130,10 +138,10 @@ export const Editor = ({
           if (i === 0) {
             return parentId ? `head:${parentId}` : "head"
           }
-          return blocks[i - 1].id
+          return blocks[i - 1].id!
         }
         if (blocks[i].children) {
-          const found = findPosition(blocks[i].children!, blocks[i].id)
+          const found = findPosition(blocks[i].children!, blocks[i].id!)
           if (found) return found
         }
       }

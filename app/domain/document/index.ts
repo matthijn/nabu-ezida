@@ -34,3 +34,4 @@ export {
   createBackground,
 } from "./annotations"
 export { blocksToTiptap, tiptapToBlocks } from "./convert/index"
+export { diffBlocks, type BlockOp } from "./diff"

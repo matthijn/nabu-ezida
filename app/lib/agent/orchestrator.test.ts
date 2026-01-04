@@ -1,41 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { orchestrator } from "./orchestrator"
-import type { State, Block, Plan, Action, Exploration } from "./types"
+import type { Action } from "./types"
 import { initialState } from "./types"
-
-const createPlan = (stepCount: number, doneCount = 0): Plan => ({
-  task: "Test task",
-  steps: Array.from({ length: stepCount }, (_, i) => ({
-    id: String(i + 1),
-    description: `Step ${i + 1}`,
-    done: i < doneCount,
-  })),
-})
-
-const createExploration = (findingCount = 0): Exploration => ({
-  question: "How does X work?",
-  findings: Array.from({ length: findingCount }, (_, i) => ({
-    id: String(i + 1),
-    learned: `Finding ${i + 1}`,
-  })),
-})
-
-const stateWithPlan = (stepCount: number, doneCount = 0): State => ({
-  ...initialState,
-  plan: createPlan(stepCount, doneCount),
-})
-
-const stateWithExploration = (findingCount = 0): State => ({
-  ...initialState,
-  exploration: createExploration(findingCount),
-})
+import {
+  createPlanCall,
+  completeStepCall,
+  startExplorationCall,
+  explorationStepCall,
+  stateWithHistory,
+} from "./test-helpers"
 
 describe("orchestrator", () => {
   describe("plan execution", () => {
     const cases = [
       {
         name: "returns call_llm with nudge when plan has pending step",
-        state: stateWithPlan(2, 0),
+        state: stateWithHistory([createPlanCall("Task", ["Step 1", "Step 2"])]),
         block: { type: "text" as const, content: "Working on it" },
         check: (action: Action) => {
           expect(action.type).toBe("call_llm")
@@ -47,7 +27,11 @@ describe("orchestrator", () => {
       },
       {
         name: "returns done when plan is complete",
-        state: stateWithPlan(2, 2),
+        state: stateWithHistory([
+          createPlanCall("Task", ["Step 1", "Step 2"]),
+          completeStepCall(),
+          completeStepCall(),
+        ]),
         block: { type: "text" as const, content: "All done" },
         check: (action: Action) => {
           expect(action.type).toBe("done")
@@ -63,7 +47,7 @@ describe("orchestrator", () => {
       },
       {
         name: "nudge includes completed steps with done status",
-        state: stateWithPlan(3, 1),
+        state: stateWithHistory([createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]), completeStepCall()]),
         block: { type: "text" as const, content: "Next" },
         check: (action: Action) => {
           expect(action.type).toBe("call_llm")
@@ -87,7 +71,7 @@ describe("orchestrator", () => {
     const cases = [
       {
         name: "returns call_llm after tool result with plan",
-        state: stateWithPlan(2, 0),
+        state: stateWithHistory([createPlanCall("Task", ["Step 1"])]),
         block: { type: "tool_result" as const, callId: "1", result: {} },
         expected: { type: "call_llm" },
       },
@@ -111,7 +95,7 @@ describe("orchestrator", () => {
     const cases = [
       {
         name: "returns call_llm with nudge when exploration active with no findings",
-        state: stateWithExploration(0),
+        state: stateWithHistory([startExplorationCall("How does X work?")]),
         block: { type: "text" as const, content: "Investigating" },
         check: (action: Action) => {
           expect(action.type).toBe("call_llm")
@@ -123,20 +107,27 @@ describe("orchestrator", () => {
       },
       {
         name: "returns call_llm with nudge showing findings",
-        state: stateWithExploration(2),
+        state: stateWithHistory([
+          startExplorationCall("Question", "Check A"),
+          explorationStepCall("Found A", "continue", "Check B"),
+          explorationStepCall("Found B", "continue"),
+        ]),
         block: { type: "text" as const, content: "Found more" },
         check: (action: Action) => {
           expect(action.type).toBe("call_llm")
           if (action.type === "call_llm") {
-            expect(action.nudge).toContain("Finding 1")
-            expect(action.nudge).toContain("Finding 2")
+            expect(action.nudge).toContain("Found A")
+            expect(action.nudge).toContain("Found B")
             expect(action.nudge).toContain("answer | plan")
           }
         },
       },
       {
         name: "exploration takes priority over plan",
-        state: { ...stateWithPlan(2, 0), exploration: createExploration(1) },
+        state: stateWithHistory([
+          createPlanCall("Task", ["Step 1"]),
+          startExplorationCall("Question"),
+        ]),
         block: { type: "text" as const, content: "Both active" },
         check: (action: Action) => {
           expect(action.type).toBe("call_llm")

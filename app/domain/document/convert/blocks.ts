@@ -54,39 +54,39 @@ export const blockToTiptap = (block: Block): JSONContent => {
 // Registry of tiptap → block converters
 const toBlockConverters: Record<string, TiptapToBlock> = {
   paragraph: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "paragraph",
     content: tiptapToInline(node.content),
   }),
 
   heading: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "heading",
     props: { level: node.attrs?.level ?? 1 },
     content: tiptapToInline(node.content),
   }),
 
   blockquote: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "quote",
     content: tiptapToInline(node.content?.[0]?.content),
   }),
 
   codeBlock: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "codeBlock",
     props: node.attrs?.language ? { language: node.attrs.language } : undefined,
     content: node.content?.[0]?.text ? [{ type: "text", text: node.content[0].text }] : undefined,
   }),
 
   image: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "image",
     props: { url: node.attrs?.src, caption: node.attrs?.alt },
   }),
 
   table: (node) => ({
-    id: node.attrs?.blockId ?? crypto.randomUUID(),
+    id: node.attrs?.blockId,
     type: "table",
     // TODO: table cell conversion
   }),

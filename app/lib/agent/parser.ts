@@ -211,8 +211,14 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
 }
 
 const blockToMessage = (block: Block): Message | Message[] => {
+  if (block.type === "system") {
+    return { role: "system", content: block.content }
+  }
   if (block.type === "text") {
     return { role: "assistant", content: block.content }
+  }
+  if (block.type === "user") {
+    return { role: "user", content: block.content }
   }
   if (block.type === "tool_call") {
     return {

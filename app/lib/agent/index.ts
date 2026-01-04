@@ -1,4 +1,5 @@
 export * from "./types"
+export * from "./selectors"
 export { reducer } from "./reducer"
 export { orchestrator } from "./orchestrator"
 export { parse, processLine, initialParseState, blocksToMessages } from "./parser"

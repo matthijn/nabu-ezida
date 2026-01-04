@@ -1,5 +1,6 @@
-import type { State, Block, Action, Plan, Exploration } from "./types"
-import { getCurrentStep, hasActiveExploration } from "./types"
+import type { State, Block, Action } from "./types"
+import type { Plan, Exploration } from "./selectors"
+import { getPlan, getExploration, getCurrentStep, hasActivePlan, hasActiveExploration } from "./selectors"
 
 type ChainableOrchestrator = (state: State, block: Block) => Action | null
 type FinalOrchestrator = (state: State, block: Block) => Action
@@ -15,29 +16,35 @@ const buildPlanNudge = (plan: Plan, stepIndex: number): string => {
   return `Plan:\n${stepList}\n\nContinue with step ${stepIndex + 1}: ${step.description}`
 }
 
-const formatFinding = (f: { learned: string }, i: number): string => `${i + 1}. ${f.learned}`
+const formatFinding = (f: { direction: string; learned: string }, i: number): string =>
+  `${i + 1}. [${f.direction}] ${f.learned}`
 
 const buildExplorationNudge = (exploration: Exploration): string => {
   const header = `Exploring: ${exploration.question}`
   if (exploration.findings.length === 0) {
-    return `${header}\n\nInvestigate and call exploration_step with what you learn.`
+    const direction = exploration.currentDirection
+      ? `\n\nNext: ${exploration.currentDirection}`
+      : ""
+    return `${header}${direction}\n\nInvestigate and call exploration_step with what you learn.`
   }
   const findingsList = exploration.findings.map(formatFinding).join("\n")
-  return `${header}\n\nFindings so far:\n${findingsList}\n\nContinue investigating, or decide: answer | plan`
-}
-
-const hasPendingPlanStep = (state: State): boolean => {
-  const step = getCurrentStep(state)
-  return state.plan !== null && step !== null
+  const direction = exploration.currentDirection
+    ? `\n\nNext: ${exploration.currentDirection}`
+    : ""
+  return `${header}\n\nFindings so far:\n${findingsList}${direction}\n\nContinue investigating, or decide: answer | plan`
 }
 
 const explorationOrchestrator: ChainableOrchestrator = (state, _block) => {
-  if (hasActiveExploration(state)) return { type: "call_llm", nudge: buildExplorationNudge(state.exploration!) }
+  if (hasActiveExploration(state.history)) {
+    return { type: "call_llm", nudge: buildExplorationNudge(getExploration(state.history)!) }
+  }
   return null
 }
 
 const planOrchestrator: ChainableOrchestrator = (state, _block) => {
-  if (hasPendingPlanStep(state)) return { type: "call_llm", nudge: buildPlanNudge(state.plan!, getCurrentStep(state)!) }
+  if (hasActivePlan(state.history)) {
+    return { type: "call_llm", nudge: buildPlanNudge(getPlan(state.history)!, getCurrentStep(state.history)!) }
+  }
   return null
 }
 

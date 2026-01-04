@@ -1,6 +1,6 @@
 import { useSyncExternalStore, useCallback, useRef, useState, useMemo } from "react"
-import type { State, Message } from "~/lib/agent"
-import { turn, createToolExecutor, initialState, blocksToMessages, hasActivePlan, isPlanComplete } from "~/lib/agent"
+import type { State, Message, UserBlock, SystemBlock } from "~/lib/agent"
+import { turn, createToolExecutor, initialState, blocksToMessages, getPlan, getCurrentStep, reducer } from "~/lib/agent"
 import {
   getThread,
   updateThread,
@@ -29,7 +29,10 @@ type UseThreadResult = {
 
 const stateToMessages = (state: State): Message[] => blocksToMessages(state.history)
 
-const getEndpoint = (inPlan: boolean): string => (inPlan ? "/chat/execute" : "/chat/converse")
+const isPlanComplete = (history: State["history"]): boolean => {
+  const plan = getPlan(history)
+  return plan !== null && getCurrentStep(history) === null
+}
 
 export const useThread = (threadId: string | null, options: UseThreadOptions = {}): UseThreadResult => {
   const { query } = options
@@ -65,42 +68,33 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
       setStreaming("")
       abortControllerRef.current = new AbortController()
 
-      const isFirstMessage = agentStateRef.current.history.length === 0
-      const hasDocumentContext = thread.documentContext !== null
-
-      const systemMessages: Message[] = []
-      if (isFirstMessage && hasDocumentContext) {
-        systemMessages.push({
-          role: "system",
-          content: formatDocumentContext(thread.documentContext!),
-        })
-      }
-
-      const userMessage: Message = { role: "user", content }
-
       try {
         let currentState = agentStateRef.current
-        let messages = [...systemMessages, ...stateToMessages(currentState), userMessage]
+
+        const isFirstMessage = currentState.history.length === 0
+        if (isFirstMessage && thread.documentContext) {
+          const systemBlock: SystemBlock = { type: "system", content: formatDocumentContext(thread.documentContext) }
+          currentState = reducer(currentState, systemBlock)
+        }
+
+        const userBlock: UserBlock = { type: "user", content }
+        currentState = reducer(currentState, userBlock)
+
         let lastResponse = ""
         let lastResult: Awaited<ReturnType<typeof turn>> | null = null
 
         while (true) {
-          const inPlan = hasActivePlan(currentState)
-          const endpoint = getEndpoint(inPlan)
-
-          const result = await turn(currentState, messages, {
-            endpoint,
+          const result = await turn(currentState, stateToMessages(currentState), {
+            endpoint: "/chat/converse",
             execute: toolExecutor,
-            callbacks: {
-              onChunk: (chunk) => setStreaming((prev) => prev + chunk),
-            },
+            callbacks: { onChunk: (chunk) => setStreaming((prev) => prev + chunk) },
             signal: abortControllerRef.current?.signal,
           })
 
           currentState = result.state
           lastResult = result
           agentStateRef.current = currentState
-          updateThread(threadId, { plan: currentState.plan })
+          updateThread(threadId, { plan: getPlan(currentState.history) })
 
           const textBlock = result.blocks.find((b) => b.type === "text")
           if (textBlock && textBlock.type === "text") {
@@ -109,11 +103,8 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
 
           if (result.action.type === "call_llm") {
             setStreaming("")
-            messages = [
-              ...systemMessages,
-              ...stateToMessages(currentState),
-              { role: "user", content: result.action.nudge },
-            ]
+            const nudgeBlock: UserBlock = { type: "user", content: result.action.nudge }
+            currentState = reducer(currentState, nudgeBlock)
             continue
           }
 
@@ -123,15 +114,15 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         const t = getThread(threadId)
         if (!t) return
 
-        if (isPlanComplete(currentState) && currentState.plan) {
-          pushPlanMessage(threadId, t.recipient, currentState.plan)
-          agentStateRef.current = { ...agentStateRef.current, plan: null }
+        const plan = getPlan(currentState.history)
+        if (isPlanComplete(currentState.history) && plan) {
+          pushPlanMessage(threadId, t.recipient, plan)
           updateThread(threadId, { status: "done", plan: null })
         } else if (lastResult?.abortedPlan) {
           pushPlanMessage(threadId, t.recipient, lastResult.abortedPlan, true)
           updateThread(threadId, { status: "done", plan: null })
         } else {
-          updateThread(threadId, { status: "done", plan: currentState.plan })
+          updateThread(threadId, { status: "done", plan })
         }
 
         if (lastResponse) {

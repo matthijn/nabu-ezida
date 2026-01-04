@@ -1,8 +1,10 @@
-import type { State, Block, Action, ToolCall, ToolResultBlock, Plan } from "./types"
+import type { State, Block, Action, ToolCall, ToolResultBlock } from "./types"
 import type { Message, ParseCallbacks } from "./parser"
+import type { Plan } from "./selectors"
 import { parse } from "./parser"
 import { reducer } from "./reducer"
 import { orchestrator } from "./orchestrator"
+import { getPlan } from "./selectors"
 
 type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
@@ -66,11 +68,11 @@ export const turn = async (
     if (block.type === "tool_call") {
       const abort = findAbort(block.calls)
       if (abort) {
-        const abortedPlan = currentState.plan ?? undefined
+        const abortedPlan = getPlan(currentState.history) ?? undefined
         const message = (abort.args.message as string) ?? ""
         const textBlock = { type: "text" as const, content: message }
         allBlocks.push(textBlock)
-        currentState = { ...reducer(currentState, textBlock), plan: null }
+        currentState = reducer(currentState, block)
         return { state: currentState, action: { type: "done" }, blocks: allBlocks, abortedPlan }
       }
 

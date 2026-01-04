@@ -1,5 +1,5 @@
 export type Annotation<TPayload = unknown> = {
-  id: string
+  id?: string
   text: string
   actor: string
   color: string

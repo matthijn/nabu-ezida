@@ -27,7 +27,7 @@ export type InlineContent = {
 }
 
 export type Block = {
-  id: string
+  id?: string
   type: BlockType
   props?: BlockProps
   content?: InlineContent[]

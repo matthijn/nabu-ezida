@@ -79,7 +79,7 @@ const flattenBlocks = (
 ): BlockRow[] =>
   blocks.flatMap((block, index) => {
     const row: BlockRow = {
-      id: block.id,
+      id: block.id!,
       document_id: documentId,
       parent_id: parentId,
       position: index,
@@ -88,7 +88,7 @@ const flattenBlocks = (
       content: block.content ? JSON.stringify(block.content) : null,
     }
     const childRows = block.children
-      ? flattenBlocks(documentId, block.children, block.id)
+      ? flattenBlocks(documentId, block.children, block.id!)
       : []
     return [row, ...childRows]
   })
@@ -103,7 +103,7 @@ export const selectAnnotationRows = (project: Project): AnnotationRow[] =>
     doc.annotations.map(ann => {
       const payload = getCodingPayload(ann)
       return {
-        id: ann.id,
+        id: ann.id!,
         document_id: doc.id,
         text: ann.text,
         actor: ann.actor,

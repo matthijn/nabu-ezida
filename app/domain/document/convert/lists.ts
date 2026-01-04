@@ -71,14 +71,13 @@ export const tiptapListItemToBlock = (
   blockType: "bulletListItem" | "numberedListItem" | "checkListItem",
   convertChildren: (content: JSONContent[]) => Block[]
 ): Block => {
-  const id = node.attrs?.blockId ?? crypto.randomUUID()
   const paragraph = node.content?.find((c) => c.type === "paragraph")
   const nestedList = node.content?.find((c) =>
     c.type === "bulletList" || c.type === "orderedList" || c.type === "taskList"
   )
 
   const block: Block = {
-    id,
+    id: node.attrs?.blockId,
     type: blockType,
     content: tiptapToInline(paragraph?.content),
   }

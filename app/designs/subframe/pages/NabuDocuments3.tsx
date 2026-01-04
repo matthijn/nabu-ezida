@@ -7,27 +7,29 @@ import { Button } from "~/ui/components/Button";
 import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
 import { IconWithBackground } from "~/ui/components/IconWithBackground";
-import { LinkButton } from "~/ui/components/LinkButton";
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled";
 import { Tooltip } from "~/ui/components/Tooltip";
+import { FeatherActivity } from "@subframe/core";
 import { FeatherAlertCircle } from "@subframe/core";
 import { FeatherArchive } from "@subframe/core";
 import { FeatherBell } from "@subframe/core";
 import { FeatherCheck } from "@subframe/core";
+import { FeatherCheckSquare } from "@subframe/core";
 import { FeatherChevronRight } from "@subframe/core";
-import { FeatherChevronUp } from "@subframe/core";
 import { FeatherCircle } from "@subframe/core";
+import { FeatherCompass } from "@subframe/core";
 import { FeatherExternalLink } from "@subframe/core";
+import { FeatherLightbulb } from "@subframe/core";
 import { FeatherLoader2 } from "@subframe/core";
-import { FeatherMaximize2 } from "@subframe/core";
 import { FeatherMessageCircle } from "@subframe/core";
 import { FeatherMessageSquare } from "@subframe/core";
-import { FeatherMinus } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import { FeatherPaperclip } from "@subframe/core";
 import { FeatherPause } from "@subframe/core";
+import { FeatherSearch } from "@subframe/core";
 import { FeatherSend } from "@subframe/core";
 import { FeatherSparkles } from "@subframe/core";
+import { FeatherStopCircle } from "@subframe/core";
 import { FeatherUserPlus } from "@subframe/core";
 import { FeatherX } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
@@ -201,128 +203,185 @@ function NabuDocuments3() {
           Rounded pill design with message count and multiple participant
           indicator
         </span>
-        <div className="flex w-full items-start gap-4">
-          <div className="flex grow shrink-0 basis-0 items-center gap-2 rounded-full border border-solid border-warning-300 bg-warning-50 px-3 py-1.5">
-            <div className="flex items-center">
-              <Avatar variant="warning" size="x-small" image="">
-                J
-              </Avatar>
-              <Avatar
-                className="-ml-1"
-                size="x-small"
-                image="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif"
-              >
-                A
-              </Avatar>
-            </div>
-            <span className="text-caption font-caption text-default-font">
-              Table feedback
+      </div>
+      <div className="flex w-full items-start gap-4">
+        <div className="flex grow shrink-0 basis-0 items-center gap-3 rounded-md border border-solid border-brand-300 bg-brand-50 px-3 py-2">
+          <IconWithBackground
+            variant="brand"
+            size="small"
+            icon={<FeatherCompass />}
+          />
+          <div className="flex grow shrink-0 basis-0 flex-col items-start">
+            <span className="text-caption-bold font-caption-bold text-default-font">
+              Exploring biodiversity patterns
             </span>
-            <div className="flex grow shrink-0 basis-0 items-start" />
-            <Badge variant="warning" icon={null}>
-              5 msgs
-            </Badge>
+            <span className="text-caption font-caption text-subtext-color">
+              Discovering insights...
+            </span>
+          </div>
+          <Badge variant="brand" icon={<FeatherLightbulb />}>
+            4 findings
+          </Badge>
+          <IconButton
+            variant="brand-tertiary"
+            size="small"
+            icon={<FeatherExternalLink />}
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+          />
+        </div>
+        <div className="flex w-80 flex-none flex-col items-start rounded-lg border border-solid border-brand-300 bg-default-background shadow-lg">
+          <div className="flex w-full items-center justify-between border-b border-solid border-neutral-border px-4 py-3">
+            <div className="flex items-center gap-2">
+              <IconWithBackground
+                variant="brand"
+                size="small"
+                icon={<FeatherCompass />}
+              />
+              <div className="flex flex-col items-start">
+                <span className="text-body-bold font-body-bold text-default-font">
+                  Exploration in Progress
+                </span>
+                <span className="text-caption font-caption text-subtext-color">
+                  Active • Started 3m ago
+                </span>
+              </div>
+            </div>
             <IconButton
               variant="neutral-tertiary"
               size="small"
-              icon={<FeatherMaximize2 />}
+              icon={<FeatherX />}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
             />
           </div>
-          <div className="flex w-80 flex-none flex-col items-start rounded-lg border border-solid border-warning-300 bg-default-background shadow-lg">
-            <div className="flex w-full items-center justify-between bg-warning-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center">
-                  <Avatar variant="warning" size="x-small" image="">
-                    J
-                  </Avatar>
-                  <Avatar
-                    className="-ml-1"
-                    size="x-small"
-                    image="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif"
-                  >
-                    A
-                  </Avatar>
-                </div>
-                <span className="text-body-bold font-body-bold text-default-font">
-                  2 participants
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <IconButton
-                  variant="neutral-tertiary"
-                  size="small"
-                  icon={<FeatherMinus />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  variant="neutral-tertiary"
-                  size="small"
-                  icon={<FeatherX />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-              </div>
+          <div className="flex w-full flex-col items-start gap-3 px-4 py-3 overflow-auto">
+            <div className="flex w-full flex-col items-start gap-2 rounded-md bg-neutral-50 px-3 py-2">
+              <span className="text-caption-bold font-caption-bold text-subtext-color">
+                Question
+              </span>
+              <span className="text-caption font-caption text-default-font">
+                How do conservation strategies differ across tropical regions?
+              </span>
             </div>
-            <div className="flex w-full flex-col items-start gap-2 px-4 py-3">
-              <div className="flex w-full items-center gap-2">
-                <span className="text-caption-bold font-caption-bold text-subtext-color">
-                  Earlier messages
-                </span>
-                <div className="flex grow shrink-0 basis-0 flex-col items-center gap-2 bg-neutral-border" />
-                <LinkButton
-                  variant="neutral"
-                  size="small"
-                  icon={<FeatherChevronUp />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                >
-                  Show 3 more
-                </LinkButton>
-              </div>
+            <div className="flex w-full flex-col items-start gap-2">
+              <span className="text-caption-bold font-caption-bold text-subtext-color">
+                Findings Trail
+              </span>
               <div className="flex w-full items-start gap-2">
-                <Avatar variant="warning" size="x-small" image="">
-                  J
-                </Avatar>
-                <div className="flex grow shrink-0 basis-0 flex-col items-start">
-                  <span className="text-caption font-caption text-default-font">
-                    The comparison table looks great!
-                  </span>
-                  <span className="text-caption font-caption text-neutral-400">
-                    3m ago
+                <div className="flex flex-col items-center self-stretch">
+                  <div className="flex h-0.5 w-0.5 flex-none flex-col items-center gap-2 bg-default-background" />
+                  <div className="flex h-4 w-4 flex-none flex-col items-start gap-2 rounded-full border-2 border-solid border-success-600 bg-success-50">
+                    <FeatherCheck className="text-body font-body text-success-600" />
+                  </div>
+                  <div className="flex w-0.5 grow shrink-0 basis-0 flex-col items-center gap-2 bg-brand-200" />
+                </div>
+                <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1 pb-3">
+                  <div className="flex items-center gap-1">
+                    <FeatherLightbulb className="text-caption font-caption text-success-600" />
+                    <span className="text-caption-bold font-caption-bold text-default-font">
+                      Southeast Asian approach
+                    </span>
+                  </div>
+                  <span className="text-caption font-caption text-subtext-color">
+                    Community-led conservation models show 40% higher success
+                    rates
                   </span>
                 </div>
               </div>
               <div className="flex w-full items-start gap-2">
-                <Avatar
-                  size="x-small"
-                  image="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif"
-                >
-                  A
-                </Avatar>
-                <div className="flex grow shrink-0 basis-0 flex-col items-start">
-                  <span className="text-caption font-caption text-default-font">
-                    Thanks! Should I add more criteria?
+                <div className="flex flex-col items-center self-stretch">
+                  <div className="flex h-0.5 w-0.5 flex-none flex-col items-center gap-2 bg-brand-200" />
+                  <div className="flex h-4 w-4 flex-none flex-col items-start gap-2 rounded-full border-2 border-solid border-success-600 bg-success-50">
+                    <FeatherCheck className="text-body font-body text-success-600" />
+                  </div>
+                  <div className="flex w-0.5 grow shrink-0 basis-0 flex-col items-center gap-2 bg-brand-200" />
+                </div>
+                <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1 pb-3">
+                  <div className="flex items-center gap-1">
+                    <FeatherLightbulb className="text-caption font-caption text-success-600" />
+                    <span className="text-caption-bold font-caption-bold text-default-font">
+                      Amazon Basin funding
+                    </span>
+                  </div>
+                  <span className="text-caption font-caption text-subtext-color">
+                    Government programs receive 3x more funding than private
+                    initiatives
                   </span>
-                  <span className="text-caption font-caption text-neutral-400">
-                    Just now
+                </div>
+              </div>
+              <div className="flex w-full items-start gap-2">
+                <div className="flex flex-col items-center self-stretch">
+                  <div className="flex h-0.5 w-0.5 flex-none flex-col items-center gap-2 bg-brand-200" />
+                  <div className="flex h-4 w-4 flex-none flex-col items-start gap-2 rounded-full border-2 border-solid border-success-600 bg-success-50">
+                    <FeatherCheck className="text-body font-body text-success-600" />
+                  </div>
+                  <div className="flex w-0.5 grow shrink-0 basis-0 flex-col items-center gap-2 bg-brand-200" />
+                </div>
+                <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1 pb-3">
+                  <div className="flex items-center gap-1">
+                    <FeatherLightbulb className="text-caption font-caption text-success-600" />
+                    <span className="text-caption-bold font-caption-bold text-default-font">
+                      Time horizon patterns
+                    </span>
+                  </div>
+                  <span className="text-caption font-caption text-subtext-color">
+                    Long-term strategies (10+ years) show better biodiversity
+                    outcomes
+                  </span>
+                </div>
+              </div>
+              <div className="flex w-full items-start gap-2">
+                <div className="flex flex-col items-center self-stretch">
+                  <div className="flex h-0.5 w-0.5 flex-none flex-col items-center gap-2 bg-brand-200" />
+                  <div className="flex h-4 w-4 flex-none flex-col items-center justify-center rounded-full border-2 border-solid border-brand-600 bg-default-background">
+                    <FeatherLoader2 className="text-body font-body text-brand-600 @keyframes spin animate-spin" />
+                  </div>
+                  <div className="flex w-0.5 grow shrink-0 basis-0 flex-col items-center gap-2 bg-neutral-200" />
+                </div>
+                <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1 pb-3">
+                  <div className="flex items-center gap-1">
+                    <FeatherSearch className="text-caption font-caption text-brand-600" />
+                    <span className="text-caption-bold font-caption-bold text-default-font">
+                      Analyzing economic factors...
+                    </span>
+                  </div>
+                  <span className="text-caption font-caption text-subtext-color">
+                    Looking at cost-effectiveness data across regions
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
-              <TextFieldUnstyled>
-                <TextFieldUnstyled.Input
-                  placeholder="Type a message..."
-                  value=""
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {}}
-                />
-              </TextFieldUnstyled>
-              <IconButton
-                variant="brand-primary"
-                size="small"
-                icon={<FeatherSend />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
+            <div className="flex w-full items-center gap-2 rounded-md bg-brand-50 px-3 py-2">
+              <FeatherActivity className="text-caption font-caption text-brand-600" />
+              <span className="text-caption font-caption text-default-font">
+                Status: Exploring
+              </span>
             </div>
+          </div>
+          <div className="flex w-full flex-wrap items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
+            <Button
+              variant="brand-primary"
+              size="small"
+              icon={<FeatherCheckSquare />}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+            >
+              Create plan
+            </Button>
+            <Button
+              variant="neutral-tertiary"
+              size="small"
+              icon={<FeatherMessageCircle />}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+            >
+              Ask question
+            </Button>
+            <Button
+              variant="neutral-secondary"
+              size="small"
+              icon={<FeatherStopCircle />}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+            >
+              Stop
+            </Button>
           </div>
         </div>
       </div>
@@ -412,7 +471,7 @@ function NabuDocuments3() {
                       </span>
                     </div>
                     <div className="flex w-full items-center gap-2">
-                      <FeatherLoader2 className="text-caption font-caption text-brand-600 animate-spin" />
+                      <FeatherLoader2 className="text-caption font-caption text-brand-600 @keyframes spin animate-spin" />
                       <span className="text-caption font-caption text-default-font">
                         Analyzing trends
                       </span>

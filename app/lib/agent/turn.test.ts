@@ -1,22 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { turn } from "./turn"
-import type { State, Block, ToolCall } from "./types"
-import { initialState, hasActivePlan } from "./types"
+import type { Block, ToolCall } from "./types"
+import { initialState } from "./types"
+import { hasActivePlan, getPlan } from "./selectors"
+import {
+  createPlanCall,
+  completeStepCall,
+  stateWithHistory,
+} from "./test-helpers"
 import * as parser from "./parser"
 
-const createPlan = (stepCount: number, doneCount = 0) => ({
-  task: "Test task",
-  steps: Array.from({ length: stepCount }, (_, i) => ({
-    id: String(i + 1),
-    description: `Step ${i + 1}`,
-    done: i < doneCount,
-  })),
-})
-
-const stateWithPlan = (stepCount: number, doneCount = 0): State => ({
-  ...initialState,
-  plan: createPlan(stepCount, doneCount),
-})
+const stateWithPlan = (stepCount: number, doneCount = 0) =>
+  stateWithHistory([
+    createPlanCall("Test task", Array.from({ length: stepCount }, (_, i) => `Step ${i + 1}`)),
+    ...Array.from({ length: doneCount }, () => completeStepCall()),
+  ])
 
 const mockExecutor = vi.fn(async (call: ToolCall) => ({ executed: call.name }))
 
@@ -125,14 +123,15 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
       const initialPlanState = stateWithPlan(2)
+      const expectedPlan = getPlan(initialPlanState.history)
 
       const result = await turn(initialPlanState, [], deps)
 
       expect(mockExecutor).not.toHaveBeenCalled()
       expect(result.action.type).toBe("done")
-      expect(hasActivePlan(result.state)).toBe(false)
-      expect(result.state.plan).toBeNull()
-      expect(result.abortedPlan).toEqual(initialPlanState.plan)
+      expect(hasActivePlan(result.state.history)).toBe(false)
+      expect(getPlan(result.state.history)).toBeNull()
+      expect(result.abortedPlan).toEqual(expectedPlan)
       expect(result.blocks).toHaveLength(1)
       expect(result.blocks[0]).toEqual({ type: "text", content: "Need clarification" })
     })
@@ -147,7 +146,7 @@ describe("turn", () => {
       const result = await turn(stateWithPlan(2), [], deps)
 
       expect(result.action.type).toBe("done")
-      expect(hasActivePlan(result.state)).toBe(false)
+      expect(hasActivePlan(result.state.history)).toBe(false)
       expect(result.blocks[0]).toEqual({ type: "text", content: "" })
     })
   })
