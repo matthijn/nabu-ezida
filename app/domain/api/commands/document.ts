@@ -2,6 +2,27 @@ import type { Block, Annotation } from "~/domain/document"
 
 type Position = "head" | "tail" | string
 
+type CreateArgs = { project_id: string; name: string; description?: string }
+type UpdateArgs = { document_id: string; name: string; description?: string }
+type IdArgs = { document_id: string }
+type InsertBlocksArgs = { document_id: string; position: Position; blocks: Block[] }
+type BlockIdsArgs = { document_id: string; block_ids: string[] }
+type ReplaceBlocksArgs = { document_id: string; block_ids: string[]; blocks: Block[] }
+type MoveBlocksArgs = { document_id: string; block_ids: string[]; position: Position }
+type ReplaceContentArgs = { document_id: string; content: Block[] }
+type UpdateBlockPropsArgs = { document_id: string; block_ids: string[]; props: Record<string, unknown> }
+type TagsArgs = { document_id: string; tags: string[] }
+type AnnotationsArgs = { document_id: string; annotations: Annotation[] }
+type AnnotationIdsArgs = { document_id: string; annotation_ids: string[] }
+type UpdateAnnotationPropsArgs = { document_id: string; annotation_ids: string[]; props: Partial<Pick<Annotation, "color" | "reason" | "payload">> }
+
+const createCommand = <T>(action: string, aggregateType: string, payload: T) => ({
+  type: "Command" as const,
+  action,
+  aggregate_type: aggregateType,
+  payload,
+})
+
 const command = <T>(action: string, aggregateId: string, payload: T) => ({
   type: "Command" as const,
   action,
@@ -18,12 +39,11 @@ const command = <T>(action: string, aggregateId: string, payload: T) => ({
  * import { documentCommands } from "~/domain/api/commands"
  *
  * // Create a research document
- * await api.send(documentCommands.create(
- *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
- *   "proj-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
- *   "Literature Review",
- *   "Systematic review of cognitive load theory papers 2015-2024"
- * ))
+ * await api.send(documentCommands.create_document({
+ *   project_id: "proj-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+ *   name: "Literature Review",
+ *   description: "Systematic review of cognitive load theory papers 2015-2024"
+ * }))
  *
  * // Add findings as blocks
  * const blocks = [{
@@ -31,336 +51,300 @@ const command = <T>(action: string, aggregateId: string, payload: T) => ({
  *   type: "paragraph",
  *   content: [{ type: "text", text: "Chen et al. found significant effects..." }]
  * }]
- * await api.send(documentCommands.insertBlocks("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", "tail", blocks))
+ * await api.send(documentCommands.insert_blocks({
+ *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+ *   position: "tail",
+ *   blocks
+ * }))
  * ```
  */
 export const documentCommands = {
   /**
    * Creates a new document in a project.
-   * @param docId - Unique identifier for the new document
-   * @param projectId - Project to create the document in
-   * @param name - Document title (max 200 chars)
-   * @param description - Optional description (max 2000 chars)
+   * @param args.project_id - Project to create the document in
+   * @param args.name - Document title (max 200 chars)
+   * @param args.description - Optional description (max 2000 chars)
    *
    * @example
    * ```ts
-   * documentCommands.create(
-   *   "doc-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-   *   "proj-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
-   *   "Methodology Chapter",
-   *   "Mixed methods approach for studying working memory"
-   * )
+   * documentCommands.create_document({
+   *   project_id: "proj-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+   *   name: "Methodology Chapter",
+   *   description: "Mixed methods approach for studying working memory"
+   * })
    * ```
    */
-  create: (docId: string, projectId: string, name: string, description = "") =>
-    command("CreateDocument", docId, { project_id: projectId, name, description }),
+  create_document: (args: CreateArgs) =>
+    createCommand("CreateDocument", "Document", { project_id: args.project_id, name: args.name, description: args.description ?? "" }),
 
   /**
    * Updates document metadata (name and description).
-   * @param docId - Document to update
-   * @param name - New document title
-   * @param description - New description
+   * @param args.document_id - Document to update
+   * @param args.name - New document title
+   * @param args.description - New description
    *
    * @example
    * ```ts
-   * documentCommands.update(
-   *   "doc-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-   *   "Methodology & Analysis",
-   *   "Updated to include qualitative coding procedures"
-   * )
+   * documentCommands.update_document({
+   *   document_id: "doc-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+   *   name: "Methodology & Analysis",
+   *   description: "Updated to include qualitative coding procedures"
+   * })
    * ```
    */
-  update: (docId: string, name: string, description = "") =>
-    command("UpdateDocument", docId, { name, description }),
+  update_document: (args: UpdateArgs) =>
+    command("UpdateDocument", args.document_id, { name: args.name, description: args.description ?? "" }),
 
   /**
    * Pins a document for quick access.
-   * @param docId - Document to pin
+   * @param args.document_id - Document to pin
    *
    * @example
    * ```ts
-   * // Pin frequently referenced sources
-   * documentCommands.pin("doc-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e")
+   * documentCommands.pin_document({ document_id: "doc-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e" })
    * ```
    */
-  pin: (docId: string) =>
-    command("PinDocument", docId, {}),
+  pin_document: (args: IdArgs) =>
+    command("PinDocument", args.document_id, {}),
 
   /**
    * Unpins a previously pinned document.
-   * @param docId - Document to unpin
+   * @param args.document_id - Document to unpin
    *
    * @example
    * ```ts
-   * documentCommands.unpin("doc-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e")
+   * documentCommands.unpin_document({ document_id: "doc-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e" })
    * ```
    */
-  unpin: (docId: string) =>
-    command("UnpinDocument", docId, {}),
+  unpin_document: (args: IdArgs) =>
+    command("UnpinDocument", args.document_id, {}),
 
   /**
    * Deletes a document permanently.
-   * @param docId - Document to delete
+   * @param args.document_id - Document to delete
    *
    * @example
    * ```ts
-   * // Remove outdated draft
-   * documentCommands.delete("doc-c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f")
+   * documentCommands.delete_document({ document_id: "doc-c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f" })
    * ```
    */
-  delete: (docId: string) =>
-    command("DeleteDocument", docId, {}),
+  delete_document: (args: IdArgs) =>
+    command("DeleteDocument", args.document_id, {}),
 
   /**
    * Inserts blocks at a position in the document.
-   * @param docId - Target document
-   * @param position - "head", "tail", or a block ID to insert after
-   * @param blocks - Blocks to insert
+   * @param args.document_id - Target document
+   * @param args.position - "head", "tail", or a block ID to insert after
+   * @param args.blocks - Blocks to insert
    *
    * @example
    * ```ts
-   * // Add extracted findings to literature review
    * const findings = [
    *   {
    *     id: "blk-d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
    *     type: "paragraph",
    *     content: [{ type: "text", text: "Chen et al. (2019) reported effect size d=0.82" }]
-   *   },
-   *   {
-   *     id: "blk-e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
-   *     type: "paragraph",
-   *     content: [{ type: "text", text: "Smith & Jones (2020) replicated with d=0.76" }]
    *   }
    * ]
-   * documentCommands.insertBlocks("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", "tail", findings)
-   *
-   * // Insert after specific block
-   * documentCommands.insertBlocks("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", "blk-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d", findings)
+   * documentCommands.insert_blocks({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   position: "tail",
+   *   blocks: findings
+   * })
    * ```
    */
-  insertBlocks: (docId: string, position: Position, blocks: Block[]) =>
-    command("InsertBlocks", docId, { position, blocks }),
+  insert_blocks: (args: InsertBlocksArgs) =>
+    command("InsertBlocks", args.document_id, { position: args.position, blocks: args.blocks }),
 
   /**
    * Deletes blocks from a document.
-   * @param docId - Target document
-   * @param blockIds - IDs of blocks to delete
+   * @param args.document_id - Target document
+   * @param args.block_ids - IDs of blocks to delete
    *
    * @example
    * ```ts
-   * // Remove superseded analysis
-   * documentCommands.deleteBlocks("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
-   *   "blk-f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c",
-   *   "blk-a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d"
-   * ])
+   * documentCommands.delete_blocks({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_ids: ["blk-f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c"]
+   * })
    * ```
    */
-  deleteBlocks: (docId: string, blockIds: string[]) =>
-    command("DeleteBlocks", docId, { block_ids: blockIds }),
+  delete_blocks: (args: BlockIdsArgs) =>
+    command("DeleteBlocks", args.document_id, { block_ids: args.block_ids }),
 
   /**
    * Replaces existing blocks with new blocks.
-   * @param docId - Target document
-   * @param blockIds - IDs of blocks to replace
-   * @param blocks - New blocks to insert in their place
+   * @param args.document_id - Target document
+   * @param args.block_ids - IDs of blocks to replace
+   * @param args.blocks - New blocks to insert in their place
    *
    * @example
    * ```ts
-   * // Update summary with revised findings
    * const revisedSummary = [{
    *   id: "blk-b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e",
    *   type: "paragraph",
-   *   content: [{ type: "text", text: "Meta-analysis shows pooled effect size of 0.79 (CI: 0.65-0.93)" }]
+   *   content: [{ type: "text", text: "Meta-analysis shows pooled effect size of 0.79" }]
    * }]
-   * documentCommands.replaceBlocks(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["blk-c9d0e1f2-a3b4-5c6d-7e8f-9a0b1c2d3e4f"],
-   *   revisedSummary
-   * )
+   * documentCommands.replace_blocks({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_ids: ["blk-c9d0e1f2-a3b4-5c6d-7e8f-9a0b1c2d3e4f"],
+   *   blocks: revisedSummary
+   * })
    * ```
    */
-  replaceBlocks: (docId: string, blockIds: string[], blocks: Block[]) =>
-    command("ReplaceBlocks", docId, { block_ids: blockIds, blocks }),
+  replace_blocks: (args: ReplaceBlocksArgs) =>
+    command("ReplaceBlocks", args.document_id, { block_ids: args.block_ids, blocks: args.blocks }),
 
   /**
    * Moves blocks to a new position.
-   * @param docId - Target document
-   * @param blockIds - IDs of blocks to move
-   * @param position - "head", "tail", or block ID to move after
+   * @param args.document_id - Target document
+   * @param args.block_ids - IDs of blocks to move
+   * @param args.position - "head", "tail", or block ID to move after
    *
    * @example
    * ```ts
-   * // Reorganize sections - move discussion before conclusion
-   * documentCommands.moveBlocks(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["blk-d0e1f2a3-b4c5-6d7e-8f9a-0b1c2d3e4f5a"],
-   *   "blk-e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b"
-   * )
+   * documentCommands.move_blocks({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_ids: ["blk-d0e1f2a3-b4c5-6d7e-8f9a-0b1c2d3e4f5a"],
+   *   position: "blk-e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b"
+   * })
    * ```
    */
-  moveBlocks: (docId: string, blockIds: string[], position: Position) =>
-    command("MoveBlocks", docId, { block_ids: blockIds, position }),
+  move_blocks: (args: MoveBlocksArgs) =>
+    command("MoveBlocks", args.document_id, { block_ids: args.block_ids, position: args.position }),
 
   /**
    * Replaces entire document content.
-   * @param docId - Target document
-   * @param content - New content blocks
+   * @param args.document_id - Target document
+   * @param args.content - New content blocks
    *
    * @example
    * ```ts
-   * // Import converted PDF content
    * const extractedContent = [
    *   {
    *     id: "blk-f2a3b4c5-d6e7-8f9a-0b1c-2d3e4f5a6b7c",
    *     type: "heading",
    *     props: { level: 1 },
    *     content: [{ type: "text", text: "Abstract" }]
-   *   },
-   *   {
-   *     id: "blk-a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d",
-   *     type: "paragraph",
-   *     content: [{ type: "text", text: "This study examines..." }]
    *   }
    * ]
-   * documentCommands.replaceContent("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", extractedContent)
+   * documentCommands.replace_content({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   content: extractedContent
+   * })
    * ```
    */
-  replaceContent: (docId: string, content: Block[]) =>
-    command("ReplaceContent", docId, { content }),
+  replace_content: (args: ReplaceContentArgs) =>
+    command("ReplaceContent", args.document_id, { content: args.content }),
 
   /**
    * Updates properties of existing blocks.
-   * @param docId - Target document
-   * @param blockIds - IDs of blocks to update
-   * @param props - Properties to merge into existing props
+   * @param args.document_id - Target document
+   * @param args.block_ids - IDs of blocks to update
+   * @param args.props - Properties to merge into existing props
    *
    * @example
    * ```ts
-   * // Promote subsection to section heading
-   * documentCommands.updateBlockProps(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["blk-b4c5d6e7-f8a9-0b1c-2d3e-4f5a6b7c8d9e"],
-   *   { level: 1 }
-   * )
-   *
-   * // Update figure dimensions
-   * documentCommands.updateBlockProps(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["blk-c5d6e7f8-a9b0-1c2d-3e4f-5a6b7c8d9e0f"],
-   *   { width: 600 }
-   * )
+   * documentCommands.update_block_props({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_ids: ["blk-b4c5d6e7-f8a9-0b1c-2d3e-4f5a6b7c8d9e"],
+   *   props: { level: 1 }
+   * })
    * ```
    */
-  updateBlockProps: (docId: string, blockIds: string[], props: Record<string, unknown>) =>
-    command("UpdateBlockProps", docId, { block_ids: blockIds, props }),
+  update_block_props: (args: UpdateBlockPropsArgs) =>
+    command("UpdateBlockProps", args.document_id, { block_ids: args.block_ids, props: args.props }),
 
   /**
    * Adds tags to a document for categorization.
-   * @param docId - Target document
-   * @param tags - Tags to add
+   * @param args.document_id - Target document
+   * @param args.tags - Tags to add
    *
    * @example
    * ```ts
-   * // Categorize for systematic review
-   * documentCommands.addTags("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
-   *   "empirical",
-   *   "rct",
-   *   "cognitive-load",
-   *   "included"
-   * ])
+   * documentCommands.add_document_tags({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   tags: ["empirical", "rct", "cognitive-load"]
+   * })
    * ```
    */
-  addTags: (docId: string, tags: string[]) =>
-    command("AddDocumentTags", docId, { tags }),
+  add_document_tags: (args: TagsArgs) =>
+    command("AddDocumentTags", args.document_id, { tags: args.tags }),
 
   /**
    * Removes tags from a document.
-   * @param docId - Target document
-   * @param tags - Tags to remove
+   * @param args.document_id - Target document
+   * @param args.tags - Tags to remove
    *
    * @example
    * ```ts
-   * // Update review status
-   * documentCommands.removeTags("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", ["pending-review"])
+   * documentCommands.remove_document_tags({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   tags: ["pending-review"]
+   * })
    * ```
    */
-  removeTags: (docId: string, tags: string[]) =>
-    command("RemoveDocumentTags", docId, { tags }),
+  remove_document_tags: (args: TagsArgs) =>
+    command("RemoveDocumentTags", args.document_id, { tags: args.tags }),
 
   /**
    * Adds annotations to a document for qualitative coding.
-   * @param docId - Target document
-   * @param annotations - Annotations to add
+   * @param args.document_id - Target document
+   * @param args.annotations - Annotations to add
    *
    * @example
    * ```ts
-   * // Apply coding to interview excerpt
-   * documentCommands.addAnnotations("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
-   *   {
+   * documentCommands.add_annotations({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   annotations: [{
    *     id: "ann-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
    *     text: "I found the interface confusing at first",
    *     actor: "researcher-1",
    *     color: "amber",
    *     reason: "Usability issue identified",
-   *     payload: {
-   *       type: "coding",
-   *       code_id: "code-b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
-   *       confidence: "high"
-   *     }
-   *   }
-   * ])
+   *     payload: { type: "coding", code_id: "code-b2c3d4e5", confidence: "high" }
+   *   }]
+   * })
    * ```
    */
-  addAnnotations: (docId: string, annotations: Annotation[]) =>
-    command("AddAnnotations", docId, { annotations }),
+  add_annotations: (args: AnnotationsArgs) =>
+    command("AddAnnotations", args.document_id, { annotations: args.annotations }),
 
   /**
    * Removes annotations from a document.
-   * @param docId - Target document
-   * @param annotationIds - IDs of annotations to remove
+   * @param args.document_id - Target document
+   * @param args.annotation_ids - IDs of annotations to remove
    *
    * @example
    * ```ts
-   * // Remove coding decision after review
-   * documentCommands.removeAnnotations("doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b", [
-   *   "ann-c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"
-   * ])
+   * documentCommands.remove_annotations({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   annotation_ids: ["ann-c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"]
+   * })
    * ```
    */
-  removeAnnotations: (docId: string, annotationIds: string[]) =>
-    command("RemoveAnnotations", docId, { annotation_ids: annotationIds }),
+  remove_annotations: (args: AnnotationIdsArgs) =>
+    command("RemoveAnnotations", args.document_id, { annotation_ids: args.annotation_ids }),
 
   /**
    * Updates properties of existing annotations.
    * Cannot change text - that would invalidate the position.
-   * @param docId - Target document
-   * @param annotationIds - IDs of annotations to update
-   * @param props - Properties to merge (color, reason, payload)
+   * @param args.document_id - Target document
+   * @param args.annotation_ids - IDs of annotations to update
+   * @param args.props - Properties to merge (color, reason, payload)
    *
    * @example
    * ```ts
-   * // Change code assignment after inter-rater discussion
-   * documentCommands.updateAnnotationProps(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["ann-d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"],
-   *   {
-   *     payload: {
-   *       type: "coding",
-   *       code_id: "code-e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
-   *       confidence: "medium"
-   *     },
+   * documentCommands.update_annotation_props({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   annotation_ids: ["ann-d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"],
+   *   props: {
+   *     payload: { type: "coding", code_id: "code-e5f6a7b8", confidence: "medium" },
    *     reason: "Recoded after team calibration session"
    *   }
-   * )
-   *
-   * // Update confidence level
-   * documentCommands.updateAnnotationProps(
-   *   "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   ["ann-f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c"],
-   *   { payload: { type: "coding", code_id: "code-a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d", confidence: "low" } }
-   * )
+   * })
    * ```
    */
-  updateAnnotationProps: (docId: string, annotationIds: string[], props: Partial<Pick<Annotation, "color" | "reason" | "payload">>) =>
-    command("UpdateAnnotationProps", docId, { annotation_ids: annotationIds, props }),
+  update_annotation_props: (args: UpdateAnnotationPropsArgs) =>
+    command("UpdateAnnotationProps", args.document_id, { annotation_ids: args.annotation_ids, props: args.props }),
 }

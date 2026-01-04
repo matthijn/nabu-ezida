@@ -35,7 +35,7 @@ export default function ProjectFile() {
   const handleMoveBlock = useCallback(
     (blockId: string, position: string) => {
       if (!fileId) return
-      execute(documentCommands.moveBlocks(fileId, [blockId], position))
+      execute(documentCommands.move_blocks({ document_id: fileId, block_ids: [blockId], position }))
     },
     [fileId, execute]
   )

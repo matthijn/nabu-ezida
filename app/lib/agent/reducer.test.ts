@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { reducer } from "./reducer"
-import type { State, Block, Plan } from "./types"
-import { initialState } from "./types"
+import type { State, Plan, Exploration } from "./types"
+import { initialState, getCurrentStep, hasActiveExploration } from "./types"
 
 const createPlan = (stepCount: number, doneCount = 0): Plan => ({
   task: "Test task",
@@ -12,11 +12,22 @@ const createPlan = (stepCount: number, doneCount = 0): Plan => ({
   })),
 })
 
+const createExploration = (findingCount = 0): Exploration => ({
+  question: "Test question",
+  findings: Array.from({ length: findingCount }, (_, i) => ({
+    id: String(i + 1),
+    learned: `Finding ${i + 1}`,
+  })),
+})
+
 const stateWithPlan = (stepCount: number, doneCount = 0): State => ({
   ...initialState,
-  mode: "exec",
   plan: createPlan(stepCount, doneCount),
-  currentStep: doneCount < stepCount ? doneCount : null,
+})
+
+const stateWithExploration = (findingCount = 0): State => ({
+  ...initialState,
+  exploration: createExploration(findingCount),
 })
 
 describe("reducer", () => {
@@ -51,29 +62,28 @@ describe("reducer", () => {
   describe("tool_call blocks", () => {
     const cases = [
       {
-        name: "sets pendingToolCalls",
+        name: "appends tool_call to history",
         state: initialState,
         block: {
           type: "tool_call" as const,
           calls: [{ id: "1", name: "execute_sql", args: { sql: "SELECT 1" } }],
         },
         check: (result: State) => {
-          expect(result.pendingToolCalls).toHaveLength(1)
-          expect(result.pendingToolCalls?.[0].name).toBe("execute_sql")
+          expect(result.history).toHaveLength(1)
+          expect(result.history[0].type).toBe("tool_call")
         },
       },
       {
-        name: "create_plan sets mode to exec and creates plan",
+        name: "create_plan creates plan",
         state: initialState,
         block: {
           type: "tool_call" as const,
           calls: [{ id: "1", name: "create_plan", args: { task: "Do thing", steps: ["Step 1", "Step 2"] } }],
         },
         check: (result: State) => {
-          expect(result.mode).toBe("exec")
           expect(result.plan?.task).toBe("Do thing")
           expect(result.plan?.steps).toHaveLength(2)
-          expect(result.currentStep).toBe(0)
+          expect(getCurrentStep(result)).toBe(0)
         },
       },
       {
@@ -86,11 +96,11 @@ describe("reducer", () => {
         check: (result: State) => {
           expect(result.plan?.steps[0].done).toBe(true)
           expect(result.plan?.steps[1].done).toBe(false)
-          expect(result.currentStep).toBe(1)
+          expect(getCurrentStep(result)).toBe(1)
         },
       },
       {
-        name: "complete_step on last step sets currentStep to null",
+        name: "complete_step on last step results in null currentStep",
         state: stateWithPlan(2, 1),
         block: {
           type: "tool_call" as const,
@@ -98,21 +108,7 @@ describe("reducer", () => {
         },
         check: (result: State) => {
           expect(result.plan?.steps[1].done).toBe(true)
-          expect(result.currentStep).toBe(null)
-        },
-      },
-      {
-        name: "multiple tool calls in one block",
-        state: initialState,
-        block: {
-          type: "tool_call" as const,
-          calls: [
-            { id: "1", name: "execute_sql", args: {} },
-            { id: "2", name: "execute_sql", args: {} },
-          ],
-        },
-        check: (result: State) => {
-          expect(result.pendingToolCalls).toHaveLength(2)
+          expect(getCurrentStep(result)).toBe(null)
         },
       },
     ]
@@ -128,38 +124,97 @@ describe("reducer", () => {
   describe("tool_result blocks", () => {
     const cases = [
       {
-        name: "removes completed call from pendingToolCalls",
-        state: {
-          ...initialState,
-          pendingToolCalls: [
-            { id: "1", name: "a", args: {} },
-            { id: "2", name: "b", args: {} },
-          ],
-        },
-        block: { type: "tool_result" as const, callId: "1", result: { ok: true } },
-        check: (result: State) => {
-          expect(result.pendingToolCalls).toHaveLength(1)
-          expect(result.pendingToolCalls?.[0].id).toBe("2")
-        },
-      },
-      {
-        name: "sets pendingToolCalls to null when last call completes",
-        state: {
-          ...initialState,
-          pendingToolCalls: [{ id: "1", name: "a", args: {} }],
-        },
-        block: { type: "tool_result" as const, callId: "1", result: {} },
-        check: (result: State) => {
-          expect(result.pendingToolCalls).toBe(null)
-        },
-      },
-      {
         name: "appends to history",
         state: initialState,
         block: { type: "tool_result" as const, callId: "1", result: { data: "test" } },
         check: (result: State) => {
           expect(result.history).toHaveLength(1)
           expect(result.history[0].type).toBe("tool_result")
+        },
+      },
+    ]
+
+    cases.forEach(({ name, state, block, check }) => {
+      it(name, () => {
+        const result = reducer(state, block)
+        check(result)
+      })
+    })
+  })
+
+  describe("exploration", () => {
+    const cases = [
+      {
+        name: "start_exploration creates exploration",
+        state: initialState,
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "start_exploration", args: { question: "How does X work?" } }],
+        },
+        check: (result: State) => {
+          expect(hasActiveExploration(result)).toBe(true)
+          expect(result.exploration?.question).toBe("How does X work?")
+          expect(result.exploration?.findings).toHaveLength(0)
+        },
+      },
+      {
+        name: "exploration_step with continue adds finding and keeps exploration",
+        state: stateWithExploration(1),
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "exploration_step", args: { learned: "Found Y", decision: "continue", next: "Check Z" } }],
+        },
+        check: (result: State) => {
+          expect(hasActiveExploration(result)).toBe(true)
+          expect(result.exploration?.findings).toHaveLength(2)
+          expect(result.exploration?.findings[1].learned).toBe("Found Y")
+        },
+      },
+      {
+        name: "exploration_step with answer adds finding and clears exploration",
+        state: stateWithExploration(1),
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "exploration_step", args: { learned: "Answer found", decision: "answer" } }],
+        },
+        check: (result: State) => {
+          expect(hasActiveExploration(result)).toBe(false)
+          expect(result.exploration).toBe(null)
+        },
+      },
+      {
+        name: "exploration_step with plan clears exploration",
+        state: stateWithExploration(2),
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "exploration_step", args: { learned: "Ready to plan", decision: "plan" } }],
+        },
+        check: (result: State) => {
+          expect(hasActiveExploration(result)).toBe(false)
+        },
+      },
+      {
+        name: "create_plan clears active exploration",
+        state: stateWithExploration(2),
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "create_plan", args: { task: "Do thing", steps: ["Step 1"] } }],
+        },
+        check: (result: State) => {
+          expect(hasActiveExploration(result)).toBe(false)
+          expect(result.plan?.task).toBe("Do thing")
+        },
+      },
+      {
+        name: "abort clears both plan and exploration",
+        state: { ...stateWithPlan(2), exploration: createExploration(1) },
+        block: {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "abort", args: { message: "Need help" } }],
+        },
+        check: (result: State) => {
+          expect(result.plan).toBe(null)
+          expect(result.exploration).toBe(null)
         },
       },
     ]

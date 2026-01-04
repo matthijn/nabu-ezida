@@ -32,7 +32,7 @@ const variantToBg: Record<ParticipantVariant, string> = {
 }
 
 const MessageContent = ({ content }: { content: string }) => (
-  <div className="prose prose-sm text-sm text-default-font">
+  <div className="prose prose-sm text-sm text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
     <Markdown>{content}</Markdown>
   </div>
 )

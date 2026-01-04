@@ -23,6 +23,12 @@ export type TurnResult = {
 const findAbort = (calls: ToolCall[]): ToolCall | undefined =>
   calls.find((c) => c.name === "abort")
 
+const formatError = (e: unknown): unknown => {
+  if (e instanceof Error) return { error: e.message }
+  if (typeof e === "object" && e !== null) return e
+  return { error: String(e) }
+}
+
 const executeTool = async (
   call: ToolCall,
   execute: ToolExecutor
@@ -31,8 +37,7 @@ const executeTool = async (
     const result = await execute(call)
     return { type: "tool_result", callId: call.id, result }
   } catch (e) {
-    const error = e instanceof Error ? e.message : String(e)
-    return { type: "tool_result", callId: call.id, result: { error } }
+    return { type: "tool_result", callId: call.id, result: formatError(e) }
   }
 }
 
@@ -65,7 +70,7 @@ export const turn = async (
         const message = (abort.args.message as string) ?? ""
         const textBlock = { type: "text" as const, content: message }
         allBlocks.push(textBlock)
-        currentState = { ...reducer(currentState, textBlock), mode: "chat", plan: null }
+        currentState = { ...reducer(currentState, textBlock), plan: null }
         return { state: currentState, action: { type: "done" }, blocks: allBlocks, abortedPlan }
       }
 

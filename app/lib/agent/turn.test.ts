@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { turn } from "./turn"
 import type { State, Block, ToolCall } from "./types"
-import { initialState } from "./types"
+import { initialState, hasActivePlan } from "./types"
 import * as parser from "./parser"
 
 const createPlan = (stepCount: number, doneCount = 0) => ({
@@ -15,9 +15,7 @@ const createPlan = (stepCount: number, doneCount = 0) => ({
 
 const stateWithPlan = (stepCount: number, doneCount = 0): State => ({
   ...initialState,
-  mode: "exec",
   plan: createPlan(stepCount, doneCount),
-  currentStep: doneCount < stepCount ? doneCount : null,
 })
 
 const mockExecutor = vi.fn(async (call: ToolCall) => ({ executed: call.name }))
@@ -120,7 +118,7 @@ describe("turn", () => {
   })
 
   describe("abort", () => {
-    it("converts abort to text block, exits plan mode, returns done with abortedPlan", async () => {
+    it("converts abort to text block, clears plan, returns done with abortedPlan", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
         calls: [{ id: "1", name: "abort", args: { message: "Need clarification" } }],
@@ -132,7 +130,7 @@ describe("turn", () => {
 
       expect(mockExecutor).not.toHaveBeenCalled()
       expect(result.action.type).toBe("done")
-      expect(result.state.mode).toBe("chat")
+      expect(hasActivePlan(result.state)).toBe(false)
       expect(result.state.plan).toBeNull()
       expect(result.abortedPlan).toEqual(initialPlanState.plan)
       expect(result.blocks).toHaveLength(1)
@@ -149,7 +147,7 @@ describe("turn", () => {
       const result = await turn(stateWithPlan(2), [], deps)
 
       expect(result.action.type).toBe("done")
-      expect(result.state.mode).toBe("chat")
+      expect(hasActivePlan(result.state)).toBe(false)
       expect(result.blocks[0]).toEqual({ type: "text", content: "" })
     })
   })

@@ -20,7 +20,17 @@ export type ToolResultBlock = {
   result: unknown
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock
+export type UserBlock = {
+  type: "user"
+  content: string
+}
+
+export type SystemBlock = {
+  type: "system"
+  content: string
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
 
 export type Step = {
   id: string
@@ -33,13 +43,19 @@ export type Plan = {
   steps: Step[]
 }
 
-export type Mode = "chat" | "exec"
+export type Finding = {
+  id: string
+  learned: string
+}
+
+export type Exploration = {
+  question: string
+  findings: Finding[]
+}
 
 export type State = {
-  mode: Mode
   plan: Plan | null
-  currentStep: number | null
-  pendingToolCalls: ToolCall[] | null
+  exploration: Exploration | null
   history: Block[]
 }
 
@@ -55,9 +71,20 @@ export type DoneAction = {
 export type Action = CallLLMAction | DoneAction
 
 export const initialState: State = {
-  mode: "chat",
   plan: null,
-  currentStep: null,
-  pendingToolCalls: null,
+  exploration: null,
   history: [],
 }
+
+export const hasActivePlan = (state: State): boolean => state.plan !== null
+
+export const getCurrentStep = (state: State): number | null => {
+  if (!state.plan) return null
+  const idx = state.plan.steps.findIndex((step) => !step.done)
+  return idx === -1 ? null : idx
+}
+
+export const isPlanComplete = (state: State): boolean =>
+  state.plan !== null && getCurrentStep(state) === null
+
+export const hasActiveExploration = (state: State): boolean => state.exploration !== null

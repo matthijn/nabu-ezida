@@ -1,6 +1,6 @@
 import { useSyncExternalStore, useCallback, useRef, useState, useMemo } from "react"
 import type { State, Message } from "~/lib/agent"
-import { turn, createToolExecutor, initialState, blocksToMessages } from "~/lib/agent"
+import { turn, createToolExecutor, initialState, blocksToMessages, hasActivePlan, isPlanComplete } from "~/lib/agent"
 import {
   getThread,
   updateThread,
@@ -85,7 +85,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         let lastResult: Awaited<ReturnType<typeof turn>> | null = null
 
         while (true) {
-          const inPlan = currentState.mode === "exec"
+          const inPlan = hasActivePlan(currentState)
           const endpoint = getEndpoint(inPlan)
 
           const result = await turn(currentState, messages, {
@@ -123,11 +123,8 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
         const t = getThread(threadId)
         if (!t) return
 
-        const completedPlan = currentState.plan
-        const allStepsDone = completedPlan?.steps.every((s) => s.done)
-
-        if (allStepsDone && completedPlan) {
-          pushPlanMessage(threadId, t.recipient, completedPlan)
+        if (isPlanComplete(currentState) && currentState.plan) {
+          pushPlanMessage(threadId, t.recipient, currentState.plan)
           agentStateRef.current = { ...agentStateRef.current, plan: null }
           updateThread(threadId, { status: "done", plan: null })
         } else if (lastResult?.abortedPlan) {
