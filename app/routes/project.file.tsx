@@ -5,6 +5,7 @@ import { Editor, EditorDocumentProvider } from "~/lib/editor"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
 import { useCommand } from "~/lib/api/useCommand"
 import { documentCommands } from "~/domain/api/commands"
+import type { BlockOp } from "~/domain/document"
 import {
   FeatherBold,
   FeatherCode2,
@@ -28,7 +29,7 @@ import {
 export default function ProjectFile() {
   const { fileId } = useParams()
   const { project, isConnected } = useProject()
-  const { execute } = useCommand()
+  const { execute, executeAll } = useCommand()
 
   const document = fileId ? project?.documents[fileId] : undefined
 
@@ -38,6 +39,43 @@ export default function ProjectFile() {
       execute(documentCommands.move_blocks({ document_id: fileId, block_ids: [blockId], position }))
     },
     [fileId, execute]
+  )
+
+  const handleSyncBlocks = useCallback(
+    (ops: BlockOp[]) => {
+      if (!fileId || ops.length === 0) return
+
+      const removes = ops.filter((op): op is BlockOp & { type: "remove" } => op.type === "remove")
+      const replaces = ops.filter((op): op is BlockOp & { type: "replace" } => op.type === "replace")
+      const adds = ops.filter((op): op is BlockOp & { type: "add" } => op.type === "add")
+
+      const addsByPosition = adds.reduce((acc, op) => {
+        const pos = op.afterId ?? "head"
+        const existing = acc.get(pos) ?? []
+        acc.set(pos, [...existing, op])
+        return acc
+      }, new Map<string, typeof adds>())
+
+      const commands = [
+        ...(removes.length > 0 ? [documentCommands.delete_blocks({
+          document_id: fileId,
+          block_ids: removes.map(op => op.id),
+        })] : []),
+        ...(replaces.length > 0 ? [documentCommands.replace_blocks({
+          document_id: fileId,
+          block_ids: replaces.map(op => op.block.id!),
+          blocks: replaces.map(op => op.block),
+        })] : []),
+        ...[...addsByPosition.entries()].map(([position, ops]) => documentCommands.insert_blocks({
+          document_id: fileId,
+          position,
+          blocks: ops.map(op => op.block),
+        })),
+      ]
+
+      executeAll(commands)
+    },
+    [fileId, executeAll]
   )
 
   useEffect(() => {
@@ -105,7 +143,7 @@ export default function ProjectFile() {
         />
         <div className="flex w-full flex-col items-start gap-8 pt-8">
           <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-            <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} />
+            <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} />
           </EditorDocumentProvider>
         </div>
       </div>

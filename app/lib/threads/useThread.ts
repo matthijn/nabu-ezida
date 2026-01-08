@@ -11,11 +11,13 @@ import {
 } from "./store"
 import { formatDocumentContext } from "./format"
 import type { QueryResult } from "~/lib/db/types"
+import type { Project } from "~/domain/project"
 
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
 
 type UseThreadOptions = {
   query?: QueryFn
+  project?: Project | null
 }
 
 type UseThreadResult = {
@@ -35,7 +37,7 @@ const isPlanComplete = (history: State["history"]): boolean => {
 }
 
 export const useThread = (threadId: string | null, options: UseThreadOptions = {}): UseThreadResult => {
-  const { query } = options
+  const { query, project } = options
   const abortControllerRef = useRef<AbortController | null>(null)
   const agentStateRef = useRef<State>(initialState)
   const [isExecuting, setIsExecuting] = useState(false)
@@ -57,7 +59,7 @@ export const useThread = (threadId: string | null, options: UseThreadOptions = {
   const thread = useSyncExternalStore(subscribe, getSnapshot)
   const streamingContent = isExecuting ? streaming : null
 
-  const toolExecutor = useMemo(() => createToolExecutor({ query }), [query])
+  const toolExecutor = useMemo(() => createToolExecutor({ query, project: project ?? undefined }), [query, project])
 
   const runStep = useCallback(
     async (content: string) => {

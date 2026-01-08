@@ -10,6 +10,7 @@ export {
   selectDocumentRows,
   selectBlockRows,
   selectAnnotationRows,
+  selectBlockIdsForDocument,
 } from "./selectors"
 export { projectSchema } from "./schema"
 export { syncProjectToDatabase } from "./sync"

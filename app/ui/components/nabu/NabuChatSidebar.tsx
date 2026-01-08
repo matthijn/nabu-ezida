@@ -128,8 +128,8 @@ type NabuChatWindowProps = {
 }
 
 const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
-  const { closeThread, query } = useNabuSidebar()
-  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { query })
+  const { closeThread, query, project } = useNabuSidebar()
+  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { query, project })
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const lastSentRef = useRef<string | null>(null)

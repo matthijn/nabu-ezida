@@ -87,3 +87,44 @@ export const sendCommand = async (command: Command): Promise<CommandResult> => {
     result: await response.json(),
   }
 }
+
+export type BatchResult = {
+  index: number
+  success: boolean
+  error?: string
+  result?: DomainEvent
+}
+
+export type BatchResponse = {
+  results: BatchResult[]
+  successCount: number
+  failureCount: number
+}
+
+export const sendCommands = async (commands: Command[]): Promise<BatchResponse> => {
+  if (commands.length === 0) return { results: [], successCount: 0, failureCount: 0 }
+  if (commands.length === 1) {
+    const result = await sendCommand(commands[0])
+    return { results: [{ index: 0, success: true, result: result.result }], successCount: 1, failureCount: 0 }
+  }
+
+  const url = getApiUrl("/commands")
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(commands),
+  })
+
+  if (!response.ok) {
+    const body = await parseErrorBody(response)
+    const error: CommandError = {
+      status: response.status,
+      statusText: response.statusText,
+      body,
+    }
+    throw error
+  }
+
+  return response.json()
+}

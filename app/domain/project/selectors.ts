@@ -114,3 +114,9 @@ export const selectAnnotationRows = (project: Project): AnnotationRow[] =>
       }
     })
   )
+
+export const selectBlockIdsForDocument = (project: Project, documentId: string): string[] => {
+  const doc = project.documents[documentId]
+  if (!doc) return []
+  return flattenBlocks(documentId, doc.content, null).map(row => row.id)
+}

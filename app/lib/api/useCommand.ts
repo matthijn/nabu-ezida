@@ -2,11 +2,13 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 import {
   sendCommand,
+  sendCommands,
   isCommandError,
   formatCommandError,
   formatNetworkError,
   type Command,
   type CommandResult,
+  type BatchResponse,
 } from "./client"
 
 export const useCommand = () => {
@@ -25,5 +27,20 @@ export const useCommand = () => {
     }
   }, [])
 
-  return { execute }
+  const executeAll = useCallback(async (commands: Command[]): Promise<BatchResponse | null> => {
+    try {
+      return await sendCommands(commands)
+    } catch (error) {
+      if (isCommandError(error)) {
+        const { title, description } = formatCommandError(error)
+        toast.error(title, { description })
+      } else {
+        const { title, description } = formatNetworkError()
+        toast.error(title, { description })
+      }
+      return null
+    }
+  }, [])
+
+  return { execute, executeAll }
 }

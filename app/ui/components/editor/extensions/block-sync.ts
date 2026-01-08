@@ -35,6 +35,18 @@ const applyRemove = (editor: Editor, id: string): boolean => {
 }
 
 const applyAdd = (editor: Editor, block: Block, afterId: string | null): boolean => {
+  if (block.id) {
+    const existing = findNodeByBlockId(editor, block.id)
+    if (existing) {
+      const newNode = blockToNode(editor, block)
+      if (JSON.stringify(existing.node.toJSON()) === JSON.stringify(newNode.toJSON())) {
+        return false // same content, skip
+      }
+      // different content, replace
+      return applyReplace(editor, block)
+    }
+  }
+
   const node = blockToNode(editor, block)
 
   if (afterId === null) {
