@@ -65,6 +65,8 @@ export const NabuQuestion = Node.create({
 
   addAttributes() {
     return {
+      blockId: { default: null },
+      threadId: { default: null },
       initiator: { default: null },
       recipient: { default: null },
       hasSubmitted: { default: false },

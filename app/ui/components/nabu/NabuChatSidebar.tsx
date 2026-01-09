@@ -9,9 +9,10 @@ import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useThread, type ConversationMessage, type Plan, type Step, type TextMessage, type PlanMessage } from "~/lib/threads"
+import { useThread, toRenderMessages, type RenderMessage } from "~/lib/threads"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
-import { TaskProgress, type Task as TaskProgressTask, type TaskStatus as TaskProgressStatus } from "~/ui/components/ai/TaskProgress"
+import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
+import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
 import type { Participant, ParticipantVariant } from "~/domain/participant"
 import { useNabuSidebar } from "./context"
 
@@ -36,20 +37,6 @@ const MessageContent = ({ content }: { content: string }) => (
     <Markdown>{content}</Markdown>
   </div>
 )
-
-const stepToTaskStatus = (done: boolean, isCurrentStep: boolean, isExecuting: boolean): TaskProgressStatus => {
-  if (done) return "done"
-  if (isCurrentStep && isExecuting) return "loading"
-  return "pending"
-}
-
-const planToTasks = (plan: Plan, isExecuting: boolean): TaskProgressTask[] => {
-  const firstPendingIndex = plan.steps.findIndex(s => !s.done)
-  return plan.steps.map((step, index) => ({
-    label: step.description,
-    status: stepToTaskStatus(step.done, index === firstPendingIndex, isExecuting),
-  }))
-}
 
 type ParticipantAvatarProps = {
   participant: Participant
@@ -122,6 +109,41 @@ const useDraggable = (initialPosition: Position) => {
   return { position, handleMouseDown }
 }
 
+type MessageRendererProps = {
+  message: RenderMessage
+  initiator: Participant
+  recipient: Participant
+}
+
+const MessageRenderer = ({ message, initiator, recipient }: MessageRendererProps) => {
+  switch (message.type) {
+    case "text": {
+      const from = message.role === "user" ? initiator : recipient
+      return (
+        <MessageBubble from={from}>
+          <MessageContent content={message.content} />
+        </MessageBubble>
+      )
+    }
+    case "plan":
+      return (
+        <MessageBubble from={recipient}>
+          <PlanProgressCard
+            steps={message.plan.steps}
+            currentStep={message.currentStep}
+            aborted={message.aborted}
+          />
+        </MessageBubble>
+      )
+    case "exploration":
+      return (
+        <MessageBubble from={recipient}>
+          <ExplorationCard exploration={message.exploration} />
+        </MessageBubble>
+      )
+  }
+}
+
 type NabuChatWindowProps = {
   threadId: string
   index: number
@@ -129,37 +151,31 @@ type NabuChatWindowProps = {
 
 const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
   const { closeThread, query, project } = useNabuSidebar()
-  const { thread, send, execute, cancel, isExecuting, streaming } = useThread(threadId, { query, project })
+  const deps = useMemo(() => ({ query, project: project ?? undefined }), [query, project])
+  const { thread, send, execute, cancel, isExecuting, streaming, history } = useThread(threadId)
+  const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastSentRef = useRef<string | null>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16 + index * 20, y: 16 + index * 20 })
 
-  // Execute initial message when opening a new thread
   useEffect(() => {
-    if (!thread) return
-    if (lastSentRef.current === threadId) return
-    if (thread.messages.length > 1) return // Already has conversation
+    if (!thread || isExecuting || history.length === 0) return
+    const lastBlock = history[history.length - 1]
+    if (lastBlock.type === "text") return
+    execute(deps)
+  }, [thread, isExecuting, history, execute, deps])
 
-    lastSentRef.current = threadId
-    setInputValue("")
-    execute()
-  }, [threadId, thread, execute])
-
-  // Focus input when not executing
   useEffect(() => {
-    if (!isExecuting && thread && thread.messages.length > 0) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus()
-      })
+    if (!isExecuting && history.length > 0) {
+      requestAnimationFrame(() => inputRef.current?.focus())
     }
-  }, [isExecuting, thread])
+  }, [isExecuting, history.length])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
-    send(inputValue.trim())
+    send(inputValue.trim(), deps)
     setInputValue("")
-  }, [inputValue, send])
+  }, [inputValue, send, deps])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -180,16 +196,14 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
     return null
   }
 
-  const { initiator, recipient, messages, plan } = thread
+  const { initiator, recipient } = thread
   const variant = recipient.variant
-  const hasPlan = plan !== null && plan.steps.length > 0
 
   return (
     <div
       style={{ right: position.x, bottom: position.y }}
       className={`fixed z-50 flex h-[600px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
     >
-      {/* Header - draggable */}
       <div
         onMouseDown={handleMouseDown}
         className={`flex w-full cursor-move items-center justify-between rounded-t-lg px-4 py-3 ${variantToBg[variant]}`}
@@ -201,14 +215,9 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
               <ParticipantAvatar participant={recipient} size="small" />
             </div>
           </div>
-          <div className="flex flex-col items-start">
-            <span className="text-body-bold font-body-bold text-default-font">
-              Chat with {recipient.name}
-            </span>
-            <span className="text-caption font-caption text-subtext-color">
-              {messages.length} messages
-            </span>
-          </div>
+          <span className="text-body-bold font-body-bold text-default-font">
+            Chat with {recipient.name}
+          </span>
         </div>
         <IconButton
           variant="neutral-tertiary"
@@ -218,35 +227,16 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
         />
       </div>
 
-      {/* Messages */}
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 py-3">
-        {messages.map((msg, i) =>
-          msg.type === "text" ? (
-            <MessageBubble key={i} from={msg.from}>
-              <MessageContent content={msg.content} />
-            </MessageBubble>
-          ) : (
-            <MessageBubble key={i} from={msg.from}>
-              <div className={msg.aborted ? "line-through opacity-60" : ""}>
-                <TaskProgress
-                  title={msg.plan.task}
-                  tasks={planToTasks(msg.plan, false)}
-                  className="bg-brand-50"
-                />
-              </div>
-            </MessageBubble>
-          )
-        )}
-        {hasPlan && (
-          <MessageBubble from={recipient}>
-            <TaskProgress
-              title={plan.task}
-              tasks={planToTasks(plan, isExecuting)}
-              className="bg-brand-50"
-            />
-          </MessageBubble>
-        )}
-        {isExecuting && !hasPlan && (
+        {messages.map((message, i) => (
+          <MessageRenderer
+            key={i}
+            message={message}
+            initiator={initiator}
+            recipient={recipient}
+          />
+        ))}
+        {isExecuting && (
           <MessageBubble from={recipient}>
             {(() => {
               const filtered = streaming ? filterCodeBlocks(streaming) : null
@@ -260,40 +250,32 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
         )}
       </AutoScroll>
 
-      {/* Input / Cancel */}
-      {isExecuting && hasPlan ? (
-        <div className="flex w-full items-center justify-end border-t border-solid border-neutral-border px-4 py-3">
-          <Button
-            variant="neutral-secondary"
-            size="small"
-            icon={<FeatherX />}
-            onClick={cancel}
-          >
+      <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
+        <ParticipantAvatar participant={initiator} />
+        <TextFieldUnstyled className="grow">
+          <TextFieldUnstyled.Input
+            ref={inputRef}
+            placeholder={`Message ${recipient.name}...`}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isExecuting}
+          />
+        </TextFieldUnstyled>
+        {isExecuting ? (
+          <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
             Cancel
           </Button>
-        </div>
-      ) : (
-        <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
-          <ParticipantAvatar participant={initiator} />
-          <TextFieldUnstyled className="grow">
-            <TextFieldUnstyled.Input
-              ref={inputRef}
-              placeholder={`Message ${recipient.name}...`}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isExecuting}
-            />
-          </TextFieldUnstyled>
+        ) : (
           <IconButton
             variant="brand-primary"
             size="small"
             icon={<FeatherSend />}
             onClick={handleSend}
-            disabled={isExecuting || !inputValue.trim()}
+            disabled={!inputValue.trim()}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -1,7 +1,22 @@
 export * from "./types"
-export * from "./selectors"
-export { reducer } from "./reducer"
-export { orchestrator } from "./orchestrator"
+export {
+  derive,
+  lastPlan,
+  hasActivePlan,
+  hasActiveExploration,
+  getMode,
+  isToolCallBlock,
+  findCall,
+  hasCall,
+  type Step,
+  type Finding,
+  type DerivedPlan,
+  type DerivedExploration,
+  type Derived,
+  type Mode,
+} from "./selectors"
+export { appendBlock } from "./reducer"
+export { toNudge } from "./orchestrator"
 export { parse, processLine, initialParseState, blocksToMessages } from "./parser"
 export type { Message, ParseCallbacks, ParseOptions } from "./parser"
 export { createToolExecutor } from "./tools"

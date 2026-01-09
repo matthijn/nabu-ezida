@@ -1,75 +1,71 @@
 import type { DocumentContext, BlockContext } from "~/lib/threads/store"
+import type { DerivedPlan, DerivedExploration, Step, Finding } from "./selectors"
 
-type Step = { description: string; done: boolean }
-type Finding = { direction: string; learned: string }
-type Exploration = { question: string; currentDirection: string | null; findings: Finding[] }
-type Plan = { steps: Step[] }
+const formatCompletedStep = (step: Step, index: number): string =>
+  `${index + 1}. [done] ${step.description} → "${step.summary}"`
 
-// --- Plan Nudge ---
-
-const PLAN_NUDGE = `Plan:
-{steps}
-
-Continue with step {stepNumber}: {stepDescription}`
+const formatPendingStep = (step: Step, index: number): string =>
+  `${index + 1}. [pending] ${step.description}`
 
 const formatStep = (step: Step, index: number): string =>
-  `${index + 1}. [${step.done ? "done" : "pending"}] ${step.description}`
+  step.done ? formatCompletedStep(step, index) : formatPendingStep(step, index)
 
-export const buildPlanNudge = (plan: Plan, stepIndex: number): string =>
-  PLAN_NUDGE
-    .replace("{steps}", plan.steps.map(formatStep).join("\n"))
-    .replace("{stepNumber}", String(stepIndex + 1))
-    .replace("{stepDescription}", plan.steps[stepIndex].description)
+export const buildPlanNudge = (plan: DerivedPlan, stepIndex: number): string => {
+  const current = plan.steps[stepIndex]
+  const total = plan.steps.length
 
-// --- Exploration Nudge ---
+  return `EXECUTING STEP ${stepIndex + 1}/${total}: ${current.description}
 
-const EXPLORATION_NUDGE = `Exploring: {question}{direction}
+${plan.steps.map(formatStep).join("\n")}
 
-Investigate and call exploration_step with what you learn.`
+INSTRUCTIONS:
+1. Execute this step using available tools
+2. When DONE, call complete_step with summary of what you accomplished
+3. Do NOT proceed to next step - system will prompt you
 
-const EXPLORATION_NUDGE_WITH_FINDINGS = `Exploring: {question}
-
-Findings so far:
-{findings}{direction}
-
-Continue investigating, or decide: answer | plan`
-
-const formatFinding = (finding: Finding, index: number): string =>
-  `${index + 1}. [${finding.direction}] ${finding.learned}`
-
-const formatDirection = (dir: string | null): string =>
-  dir ? `\n\nNext: ${dir}` : ""
-
-export const buildExplorationNudge = (exploration: Exploration): string => {
-  const direction = formatDirection(exploration.currentDirection)
-
-  if (exploration.findings.length === 0) {
-    return EXPLORATION_NUDGE
-      .replace("{question}", exploration.question)
-      .replace("{direction}", direction)
-  }
-
-  return EXPLORATION_NUDGE_WITH_FINDINGS
-    .replace("{question}", exploration.question)
-    .replace("{findings}", exploration.findings.map(formatFinding).join("\n"))
-    .replace("{direction}", direction)
+If blocked: call abort with reason`
 }
 
-// --- Document Context ---
+const formatFinding = (finding: Finding, index: number): string =>
+  `${index + 1}. [${finding.direction}] → "${finding.learned}"`
 
-const DOCUMENT_CONTEXT = `Document: "{documentName}" ({documentId})
+export const buildExplorationNudge = (exploration: DerivedExploration): string => {
+  const hasFindings = exploration.findings.length > 0
+  const direction = exploration.currentDirection
+    ? `\nCurrent direction: ${exploration.currentDirection}`
+    : ""
 
-Position in document:
-{beforeBlock}
--> [you are here]
-{afterBlock}`
+  const findings = hasFindings
+    ? `\n\nFindings so far:\n${exploration.findings.map(formatFinding).join("\n")}`
+    : ""
+
+  return `EXPLORING: ${exploration.question}${direction}${findings}
+
+INSTRUCTIONS:
+1. Investigate the current direction using tools
+2. Call exploration_step with:
+   - learned: what you discovered (be specific)
+   - decision: "continue" | "answer" | "plan"
+   - next: (if continuing) your next direction
+
+Do NOT answer directly - use decision "answer" to exit exploration first.
+Each step must yield insight, not just activity.`
+}
+
+export const buildPlanCompletedNudge = (plan: DerivedPlan): string =>
+  `PLAN COMPLETED
+
+${plan.steps.map(formatStep).join("\n")}
+
+All steps done. Briefly summarize what was accomplished. Do NOT call any tools.`
 
 const formatBlock = (block: BlockContext, label: string): string =>
   `${label}: [${block.type}] "${block.textContent}"`
 
 export const buildDocumentContext = (ctx: DocumentContext): string =>
-  DOCUMENT_CONTEXT
-    .replace("{documentName}", ctx.documentName)
-    .replace("{documentId}", ctx.documentId)
-    .replace("{beforeBlock}", ctx.blockBefore ? formatBlock(ctx.blockBefore, "Before") : "[head]")
-    .replace("{afterBlock}", ctx.blockAfter ? formatBlock(ctx.blockAfter, "After") : "[tail]")
+  `Document: "${ctx.documentName}" (${ctx.documentId})
+
+Position:
+${ctx.blockBefore ? formatBlock(ctx.blockBefore, "Before") : "[head]"}
+-> [cursor]
+${ctx.blockAfter ? formatBlock(ctx.blockAfter, "After") : "[tail]"}`

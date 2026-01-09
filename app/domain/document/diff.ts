@@ -5,6 +5,8 @@ export type BlockOp =
   | { type: "add"; block: Block; afterId: string | null }
   | { type: "replace"; block: Block }
 
+const isClientOnly = (block: Block): boolean => block.type === "nabuQuestion"
+
 type BlockMap = Map<string, Block>
 
 const toBlockMap = (blocks: Block[]): BlockMap =>
@@ -17,9 +19,11 @@ const blocksEqual = (a: Block, b: Block): boolean =>
   JSON.stringify(a) === JSON.stringify(b)
 
 export const diffBlocks = (oldBlocks: Block[], newBlocks: Block[]): BlockOp[] => {
-  const oldMap = toBlockMap(oldBlocks)
-  const newMap = toBlockMap(newBlocks)
-  const newIds = getOrderedIds(newBlocks)
+  const filteredOld = oldBlocks.filter((b) => !isClientOnly(b))
+  const filteredNew = newBlocks.filter((b) => !isClientOnly(b))
+  const oldMap = toBlockMap(filteredOld)
+  const newMap = toBlockMap(filteredNew)
+  const newIds = getOrderedIds(filteredNew)
   const ops: BlockOp[] = []
 
   for (const [id] of oldMap) {

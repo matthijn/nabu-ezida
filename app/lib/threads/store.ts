@@ -1,20 +1,5 @@
 import type { Participant } from "~/domain/participant"
-import type { Plan } from "~/lib/agent"
-
-export type TextMessage = {
-  type: "text"
-  from: Participant
-  content: string
-}
-
-export type PlanMessage = {
-  type: "plan"
-  from: Participant
-  plan: Plan
-  aborted?: boolean
-}
-
-export type ConversationMessage = TextMessage | PlanMessage
+import type { Block } from "~/lib/agent"
 
 export type BlockContext = {
   id: string
@@ -29,28 +14,23 @@ export type DocumentContext = {
   blockAfter: BlockContext | null
 }
 
-export type ThreadStatus = "idle" | "executing" | "done"
-
 export type ThreadState = {
   id: string
   initiator: Participant
   recipient: Participant
-  messages: ConversationMessage[]
-  status: ThreadStatus
   documentContext: DocumentContext | null
-  plan: Plan | null
+  agentHistory: Block[]
+  streaming: string
 }
 
-export type ThreadStoreState = Map<string, ThreadState>
+type ThreadStoreState = Map<string, ThreadState>
 
-export type ThreadAction =
+type ThreadAction =
   | { type: "create"; thread: ThreadState }
   | { type: "update"; id: string; updates: Partial<Omit<ThreadState, "id">> }
-  | { type: "push_message"; id: string; message: ConversationMessage }
   | { type: "delete"; id: string }
-  | { type: "clear" }
 
-export const threadReducer = (state: ThreadStoreState, action: ThreadAction): ThreadStoreState => {
+const threadReducer = (state: ThreadStoreState, action: ThreadAction): ThreadStoreState => {
   switch (action.type) {
     case "create": {
       const next = new Map(state)
@@ -64,20 +44,11 @@ export const threadReducer = (state: ThreadStoreState, action: ThreadAction): Th
       next.set(action.id, { ...thread, ...action.updates })
       return next
     }
-    case "push_message": {
-      const thread = state.get(action.id)
-      if (!thread) return state
-      const next = new Map(state)
-      next.set(action.id, { ...thread, messages: [...thread.messages, action.message] })
-      return next
-    }
     case "delete": {
       const next = new Map(state)
       next.delete(action.id)
       return next
     }
-    case "clear":
-      return new Map()
     default: {
       const exhaustive: never = action
       throw new Error(`Unknown action: ${(exhaustive as ThreadAction).type}`)
@@ -95,9 +66,7 @@ const notifyListeners = (threadId: string): void => {
 const dispatch = (action: ThreadAction): void => {
   const affectedId = "id" in action ? action.id : action.type === "create" ? action.thread.id : null
   threads = threadReducer(threads, action)
-  if (affectedId) {
-    notifyListeners(affectedId)
-  }
+  if (affectedId) notifyListeners(affectedId)
 }
 
 export const createThread = (
@@ -111,10 +80,9 @@ export const createThread = (
     id,
     initiator,
     recipient,
-    messages: [{ type: "text", from: initiator, content: initialMessage }],
-    status: "idle",
     documentContext,
-    plan: null,
+    agentHistory: [{ type: "user", content: initialMessage }],
+    streaming: "",
   }
   dispatch({ type: "create", thread })
   return thread
@@ -126,34 +94,18 @@ export const updateThread = (id: string, updates: Partial<Omit<ThreadState, "id"
   dispatch({ type: "update", id, updates })
 }
 
-export const pushMessage = (id: string, message: ConversationMessage): void => {
-  dispatch({ type: "push_message", id, message })
-}
-
-export const pushTextMessage = (id: string, from: Participant, content: string): void => {
-  dispatch({ type: "push_message", id, message: { type: "text", from, content } })
-}
-
-export const pushPlanMessage = (id: string, from: Participant, plan: Plan, aborted = false): void => {
-  dispatch({ type: "push_message", id, message: { type: "plan", from, plan, aborted } })
-}
-
 export const deleteThread = (id: string): void => {
   dispatch({ type: "delete", id })
   listeners.delete(id)
 }
 
 export const clearAllThreads = (): void => {
-  dispatch({ type: "clear" })
+  threads = new Map()
   listeners.clear()
 }
 
 export const subscribeToThread = (id: string, listener: () => void): (() => void) => {
-  if (!listeners.has(id)) {
-    listeners.set(id, new Set())
-  }
+  if (!listeners.has(id)) listeners.set(id, new Set())
   listeners.get(id)!.add(listener)
-  return () => {
-    listeners.get(id)?.delete(listener)
-  }
+  return () => listeners.get(id)?.delete(listener)
 }

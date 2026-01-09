@@ -1,20 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { turn } from "./turn"
 import type { Block, ToolCall } from "./types"
-import { initialState } from "./types"
-import { hasActivePlan, getPlan } from "./selectors"
-import {
-  createPlanCall,
-  completeStepCall,
-  stateWithHistory,
-} from "./test-helpers"
+import { derive, lastPlan, hasActivePlan } from "./selectors"
+import { createPlanCall, completeStepCall, toolResult } from "./test-helpers"
 import * as parser from "./parser"
 
-const stateWithPlan = (stepCount: number, doneCount = 0) =>
-  stateWithHistory([
-    createPlanCall("Test task", Array.from({ length: stepCount }, (_, i) => `Step ${i + 1}`)),
-    ...Array.from({ length: doneCount }, () => completeStepCall()),
-  ])
+const historyWithPlan = (stepCount: number, doneCount = 0): Block[] => [
+  createPlanCall("Test task", Array.from({ length: stepCount }, (_, i) => `Step ${i + 1}`)),
+  toolResult(),
+  ...Array.from({ length: doneCount }, () => [completeStepCall(), toolResult()]).flat(),
+]
 
 const mockExecutor = vi.fn(async (call: ToolCall) => ({ executed: call.name }))
 
@@ -33,12 +28,12 @@ describe("turn", () => {
   })
 
   describe("empty response", () => {
-    it("returns done when parse returns empty", async () => {
+    it("returns null nudge when parse returns empty", async () => {
       mockParse([])
 
-      const result = await turn(initialState, [], deps)
+      const result = await turn([], [], deps)
 
-      expect(result.action.type).toBe("done")
+      expect(result.nudge).toBeNull()
       expect(result.blocks).toEqual([])
     })
   })
@@ -46,32 +41,36 @@ describe("turn", () => {
   describe("text blocks", () => {
     const cases = [
       {
-        name: "returns done for text in chat mode",
-        state: initialState,
+        name: "returns null nudge for text in chat mode",
+        history: [] as Block[],
         blocks: [{ type: "text" as const, content: "Hello" }],
-        expectedAction: "done",
+        expectNudge: false,
       },
       {
-        name: "returns call_llm for text in exec mode with pending step",
-        state: stateWithPlan(2, 0),
+        name: "returns nudge for text in exec mode with pending step",
+        history: historyWithPlan(2, 0),
         blocks: [{ type: "text" as const, content: "Working on it" }],
-        expectedAction: "call_llm",
+        expectNudge: true,
       },
       {
-        name: "returns done when plan is complete",
-        state: stateWithPlan(2, 2),
+        name: "returns null nudge when plan is complete",
+        history: historyWithPlan(2, 2),
         blocks: [{ type: "text" as const, content: "All done" }],
-        expectedAction: "done",
+        expectNudge: false,
       },
     ]
 
-    cases.forEach(({ name, state, blocks, expectedAction }) => {
+    cases.forEach(({ name, history, blocks, expectNudge }) => {
       it(name, async () => {
         mockParse(blocks)
 
-        const result = await turn(state, [], deps)
+        const result = await turn(history, [], deps)
 
-        expect(result.action.type).toBe(expectedAction)
+        if (expectNudge) {
+          expect(result.nudge).not.toBeNull()
+        } else {
+          expect(result.nudge).toBeNull()
+        }
         expect(result.blocks).toEqual(blocks)
       })
     })
@@ -85,7 +84,7 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn(initialState, [], deps)
+      const result = await turn([], [], deps)
 
       expect(mockExecutor).toHaveBeenCalledWith({
         id: "1",
@@ -106,7 +105,7 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn(initialState, [], deps)
+      const result = await turn([], [], deps)
 
       expect(mockExecutor).toHaveBeenCalledTimes(2)
       expect(result.blocks).toHaveLength(3)
@@ -116,21 +115,21 @@ describe("turn", () => {
   })
 
   describe("abort", () => {
-    it("converts abort to text block, clears plan, returns done with abortedPlan", async () => {
+    it("converts abort to text block, marks plan aborted, returns null nudge with abortedPlan", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
         calls: [{ id: "1", name: "abort", args: { message: "Need clarification" } }],
       }
       mockParse([toolCallBlock])
-      const initialPlanState = stateWithPlan(2)
-      const expectedPlan = getPlan(initialPlanState.history)
+      const initialHistory = historyWithPlan(2)
+      const expectedPlan = lastPlan(derive(initialHistory))
 
-      const result = await turn(initialPlanState, [], deps)
+      const result = await turn(initialHistory, [], deps)
 
       expect(mockExecutor).not.toHaveBeenCalled()
-      expect(result.action.type).toBe("done")
-      expect(hasActivePlan(result.state.history)).toBe(false)
-      expect(getPlan(result.state.history)).toBeNull()
+      expect(result.nudge).toBeNull()
+      expect(hasActivePlan(derive(result.history))).toBe(false)
+      expect(lastPlan(derive(result.history))?.aborted).toBe(true)
       expect(result.abortedPlan).toEqual(expectedPlan)
       expect(result.blocks).toHaveLength(1)
       expect(result.blocks[0]).toEqual({ type: "text", content: "Need clarification" })
@@ -143,10 +142,10 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn(stateWithPlan(2), [], deps)
+      const result = await turn(historyWithPlan(2), [], deps)
 
-      expect(result.action.type).toBe("done")
-      expect(hasActivePlan(result.state.history)).toBe(false)
+      expect(result.nudge).toBeNull()
+      expect(hasActivePlan(derive(result.history))).toBe(false)
       expect(result.blocks[0]).toEqual({ type: "text", content: "" })
     })
   })
@@ -162,7 +161,7 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn(initialState, [], { ...deps, execute: failingExecutor })
+      const result = await turn([], [], { ...deps, execute: failingExecutor })
 
       expect(result.blocks).toHaveLength(2)
       expect(result.blocks[1]).toEqual({
@@ -181,7 +180,7 @@ describe("turn", () => {
       ]
       mockParse(blocks)
 
-      const result = await turn(initialState, [], deps)
+      const result = await turn([], [], deps)
 
       expect(result.blocks).toHaveLength(3)
       expect(result.blocks[0].type).toBe("text")

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { reducer } from "./reducer"
+import { appendBlock } from "./reducer"
 import type { Block } from "./types"
-import { initialState } from "./types"
 
-describe("reducer", () => {
+describe("appendBlock", () => {
   const cases = [
     {
       name: "appends text block to history",
@@ -32,21 +31,21 @@ describe("reducer", () => {
 
   cases.forEach(({ name, block }) => {
     it(name, () => {
-      const result = reducer(initialState, block)
-      expect(result.history).toHaveLength(1)
-      expect(result.history[0]).toEqual(block)
+      const result = appendBlock([], block)
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual(block)
     })
   })
 
   it("preserves existing history", () => {
     const existing: Block = { type: "text", content: "First" }
-    const state = { history: [existing] }
+    const history = [existing]
     const block: Block = { type: "text", content: "Second" }
 
-    const result = reducer(state, block)
+    const result = appendBlock(history, block)
 
-    expect(result.history).toHaveLength(2)
-    expect(result.history[0]).toEqual(existing)
-    expect(result.history[1]).toEqual(block)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual(existing)
+    expect(result[1]).toEqual(block)
   })
 })

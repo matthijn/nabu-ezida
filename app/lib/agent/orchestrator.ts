@@ -1,37 +1,46 @@
-import type { State, Block, Action } from "./types"
-import { getPlan, getExploration, getCurrentStep, hasActivePlan, hasActiveExploration } from "./selectors"
-import { buildPlanNudge, buildExplorationNudge } from "./prompts"
+import type { Block } from "./types"
+import { derive, lastPlan, hasActiveExploration, hasActivePlan } from "./selectors"
+import { buildPlanNudge, buildExplorationNudge, buildPlanCompletedNudge } from "./prompts"
 
-type ChainableOrchestrator = (state: State, block: Block) => Action | null
-type FinalOrchestrator = (state: State, block: Block) => Action
+type Nudger = (history: Block[]) => string | null
 
-const explorationOrchestrator: ChainableOrchestrator = (state, _block) => {
-  if (hasActiveExploration(state.history)) {
-    return { type: "call_llm", nudge: buildExplorationNudge(getExploration(state.history)!) }
+const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
+
+const exploreNudge: Nudger = (history) => {
+  const d = derive(history)
+  if (!hasActiveExploration(d)) return null
+  return buildExplorationNudge(d.exploration!)
+}
+
+const planNudge: Nudger = (history) => {
+  const d = derive(history)
+  const plan = lastPlan(d)
+  if (!plan) return null
+
+  if (hasActivePlan(d)) {
+    return buildPlanNudge(plan, plan.currentStep!)
+  }
+
+  if (plan.currentStep === null && !plan.aborted && lastBlock(history)?.type === "tool_result") {
+    return buildPlanCompletedNudge(plan)
+  }
+
+  return null
+}
+
+const toolNudge: Nudger = (history) => {
+  if (lastBlock(history)?.type !== "tool_result") return null
+  const d = derive(history)
+  if (hasActiveExploration(d) || lastPlan(d)) return null
+  return ""
+}
+
+const combine = (...nudgers: Nudger[]): Nudger => (history) => {
+  for (const nudger of nudgers) {
+    const result = nudger(history)
+    if (result !== null) return result
   }
   return null
 }
 
-const planOrchestrator: ChainableOrchestrator = (state, _block) => {
-  if (hasActivePlan(state.history)) {
-    return { type: "call_llm", nudge: buildPlanNudge(getPlan(state.history)!, getCurrentStep(state.history)!) }
-  }
-  return null
-}
-
-const isToolResult = (block: Block): boolean => block.type === "tool_result"
-
-const toolResultOrchestrator: ChainableOrchestrator = (_state, block) => {
-  if (isToolResult(block)) return { type: "call_llm", nudge: "" }
-  return null
-}
-
-const combine = (...orchestrators: ChainableOrchestrator[]): FinalOrchestrator => (state, block) => {
-  for (const orch of orchestrators) {
-    const action = orch(state, block)
-    if (action) return action
-  }
-  return { type: "done" }
-}
-
-export const orchestrator = combine(toolResultOrchestrator, explorationOrchestrator, planOrchestrator)
+export const toNudge = combine(exploreNudge, planNudge, toolNudge)

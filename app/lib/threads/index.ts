@@ -2,25 +2,21 @@ export {
   createThread,
   getThread,
   updateThread,
-  pushMessage,
-  pushTextMessage,
-  pushPlanMessage,
   deleteThread,
   clearAllThreads,
   subscribeToThread,
-  threadReducer,
   type BlockContext,
-  type ConversationMessage,
-  type TextMessage,
-  type PlanMessage,
   type DocumentContext,
   type ThreadState,
-  type ThreadStatus,
-  type ThreadStoreState,
-  type ThreadAction,
 } from "./store"
 
-export type { Plan, Step } from "~/lib/agent"
+export {
+  toRenderMessages,
+  type TextMessage,
+  type PlanMessage,
+  type ExplorationMessage,
+  type RenderMessage,
+} from "./messages"
 
 export { formatDocumentContext } from "./format"
 

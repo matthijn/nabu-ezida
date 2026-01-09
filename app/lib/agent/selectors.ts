@@ -4,11 +4,7 @@ export type Step = {
   id: string
   description: string
   done: boolean
-}
-
-export type Plan = {
-  task: string
-  steps: Step[]
+  summary: string | null
 }
 
 export type Finding = {
@@ -17,19 +13,32 @@ export type Finding = {
   learned: string
 }
 
-export type Exploration = {
+export type DerivedPlan = {
+  task: string
+  steps: Step[]
+  currentStep: number | null
+  aborted: boolean
+}
+
+export type DerivedExploration = {
   question: string
   findings: Finding[]
   currentDirection: string | null
+  completed: boolean
 }
 
-export type DerivedState = {
-  plan: Plan | null
-  exploration: Exploration | null
+export type Derived = {
+  plans: DerivedPlan[]
+  exploration: DerivedExploration | null
 }
 
-const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
+export const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
   block.type === "tool_call"
+
+export const findCall = (block: Block, name: string): ToolCall | undefined =>
+  isToolCallBlock(block) ? block.calls.find((c) => c.name === name) : undefined
+
+export const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
 
 const isCreatePlan = (call: ToolCall): boolean => call.name === "create_plan"
 const isCompleteStep = (call: ToolCall): boolean => call.name === "complete_step"
@@ -37,47 +46,67 @@ const isAbort = (call: ToolCall): boolean => call.name === "abort"
 const isStartExploration = (call: ToolCall): boolean => call.name === "start_exploration"
 const isExplorationStep = (call: ToolCall): boolean => call.name === "exploration_step"
 
-const createPlanFromCall = (call: ToolCall): Plan => ({
-  task: call.args.task as string,
-  steps: (call.args.steps as string[]).map((desc, i) => ({
-    id: String(i + 1),
-    description: desc,
-    done: false,
-  })),
-})
-
-const createExplorationFromCall = (call: ToolCall): Exploration => ({
-  question: call.args.question as string,
-  findings: [],
-  currentDirection: (call.args.direction as string) || null,
-})
-
-const markStepDone = (steps: Step[], index: number): Step[] =>
-  steps.map((s, i) => (i === index ? { ...s, done: true } : s))
-
-const findCurrentStep = (plan: Plan): number | null => {
-  const index = plan.steps.findIndex(s => !s.done)
+const findCurrentStep = (steps: Step[]): number | null => {
+  const index = steps.findIndex((s) => !s.done)
   return index === -1 ? null : index
 }
 
-const addFinding = (exploration: Exploration, direction: string, learned: string): Exploration => ({
+const markStepDone = (steps: Step[], index: number, summary: string): Step[] =>
+  steps.map((s, i) => (i === index ? { ...s, done: true, summary } : s))
+
+const createPlanFromCall = (call: ToolCall): DerivedPlan => {
+  const steps = (call.args.steps as string[]).map((desc, i) => ({
+    id: String(i + 1),
+    description: desc,
+    done: false,
+    summary: null,
+  }))
+  return {
+    task: call.args.task as string,
+    steps,
+    currentStep: 0,
+    aborted: false,
+  }
+}
+
+const createExplorationFromCall = (call: ToolCall): DerivedExploration => ({
+  question: call.args.question as string,
+  findings: [],
+  currentDirection: (call.args.direction as string) || null,
+  completed: false,
+})
+
+const addFinding = (exploration: DerivedExploration, direction: string, learned: string): DerivedExploration => ({
   ...exploration,
   findings: [...exploration.findings, { id: String(exploration.findings.length + 1), direction, learned }],
 })
 
-const processToolCall = (derived: DerivedState, call: ToolCall): DerivedState => {
+const updateLastPlan = (plans: DerivedPlan[], fn: (p: DerivedPlan) => DerivedPlan): DerivedPlan[] => {
+  if (plans.length === 0) return plans
+  return [...plans.slice(0, -1), fn(plans[plans.length - 1])]
+}
+
+const processToolCall = (derived: Derived, call: ToolCall): Derived => {
   if (isAbort(call)) {
-    return { plan: null, exploration: null }
+    return {
+      plans: updateLastPlan(derived.plans, (p) => ({ ...p, aborted: true })),
+      exploration: null,
+    }
   }
 
   if (isCreatePlan(call)) {
-    return { ...derived, plan: createPlanFromCall(call), exploration: null }
+    const clearExploration = derived.exploration?.completed ? derived.exploration : null
+    return { plans: [...derived.plans, createPlanFromCall(call)], exploration: clearExploration }
   }
 
-  if (isCompleteStep(call) && derived.plan) {
-    const currentStep = findCurrentStep(derived.plan)
-    if (currentStep !== null) {
-      return { ...derived, plan: { ...derived.plan, steps: markStepDone(derived.plan.steps, currentStep) } }
+  if (isCompleteStep(call)) {
+    const lastPlan = derived.plans.at(-1)
+    if (!lastPlan || lastPlan.currentStep === null) return derived
+    const summary = (call.args.summary as string) || ""
+    const newSteps = markStepDone(lastPlan.steps, lastPlan.currentStep, summary)
+    return {
+      ...derived,
+      plans: updateLastPlan(derived.plans, () => ({ ...lastPlan, steps: newSteps, currentStep: findCurrentStep(newSteps) })),
     }
   }
 
@@ -85,7 +114,7 @@ const processToolCall = (derived: DerivedState, call: ToolCall): DerivedState =>
     return { ...derived, exploration: createExplorationFromCall(call) }
   }
 
-  if (isExplorationStep(call) && derived.exploration) {
+  if (isExplorationStep(call) && derived.exploration && !derived.exploration.completed) {
     const direction = derived.exploration.currentDirection || ""
     const learned = call.args.learned as string
     const decision = call.args.decision as string
@@ -93,7 +122,7 @@ const processToolCall = (derived: DerivedState, call: ToolCall): DerivedState =>
     const withFinding = addFinding(derived.exploration, direction, learned)
 
     if (decision === "answer" || decision === "plan") {
-      return { ...derived, exploration: null }
+      return { ...derived, exploration: { ...withFinding, currentDirection: null, completed: true } }
     }
     return { ...derived, exploration: { ...withFinding, currentDirection: next || null } }
   }
@@ -101,35 +130,28 @@ const processToolCall = (derived: DerivedState, call: ToolCall): DerivedState =>
   return derived
 }
 
-const processBlock = (derived: DerivedState, block: Block): DerivedState => {
+const processBlock = (derived: Derived, block: Block): Derived => {
   if (!isToolCallBlock(block)) return derived
   return block.calls.reduce(processToolCall, derived)
 }
 
-export const deriveState = (history: Block[]): DerivedState =>
-  history.reduce(processBlock, { plan: null, exploration: null })
+export const derive = (history: Block[]): Derived =>
+  history.reduce(processBlock, { plans: [], exploration: null })
 
-export const getPlan = (history: Block[]): Plan | null => deriveState(history).plan
+export const lastPlan = (d: Derived): DerivedPlan | null => d.plans.at(-1) ?? null
 
-export const getExploration = (history: Block[]): Exploration | null => deriveState(history).exploration
-
-export const getCurrentStep = (history: Block[]): number | null => {
-  const { plan } = deriveState(history)
-  return plan ? findCurrentStep(plan) : null
+export const hasActivePlan = (d: Derived): boolean => {
+  const plan = lastPlan(d)
+  return plan !== null && plan.currentStep !== null && !plan.aborted
 }
 
-export const hasActivePlan = (history: Block[]): boolean => {
-  const { plan } = deriveState(history)
-  return plan !== null && findCurrentStep(plan) !== null
-}
-
-export const hasActiveExploration = (history: Block[]): boolean => deriveState(history).exploration !== null
+export const hasActiveExploration = (d: Derived): boolean =>
+  d.exploration !== null && !d.exploration.completed
 
 export type Mode = "chat" | "plan" | "exploration"
 
-export const getMode = (history: Block[]): Mode => {
-  const { plan, exploration } = deriveState(history)
-  if (exploration !== null) return "exploration"
-  if (plan !== null && findCurrentStep(plan) !== null) return "plan"
+export const getMode = (d: Derived): Mode => {
+  if (hasActiveExploration(d)) return "exploration"
+  if (hasActivePlan(d)) return "plan"
   return "chat"
 }

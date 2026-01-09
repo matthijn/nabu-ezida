@@ -1,4 +1,4 @@
-import type { Block, State } from "./types"
+import type { Block } from "./types"
 
 export const createPlanCall = (task: string, steps: string[]): Block => ({
   type: "tool_call",
@@ -25,4 +25,8 @@ export const explorationStepCall = (learned: string, decision: string, next?: st
   calls: [{ id: "1", name: "exploration_step", args: { learned, decision, next } }],
 })
 
-export const stateWithHistory = (history: Block[]): State => ({ history })
+export const toolResult = (callId = "1", result: unknown = { ok: true }): Block => ({
+  type: "tool_result",
+  callId,
+  result,
+})

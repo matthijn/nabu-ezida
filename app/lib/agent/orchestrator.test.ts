@@ -1,68 +1,68 @@
 import { describe, expect, it } from "vitest"
-import { orchestrator } from "./orchestrator"
-import type { Action } from "./types"
-import { initialState } from "./types"
+import { toNudge } from "./orchestrator"
+import type { Block } from "./types"
 import {
   createPlanCall,
   completeStepCall,
   startExplorationCall,
   explorationStepCall,
-  stateWithHistory,
+  toolResult,
 } from "./test-helpers"
 
-describe("orchestrator", () => {
+describe("toNudge", () => {
   describe("plan execution", () => {
     const cases = [
       {
-        name: "returns call_llm with nudge when plan has pending step",
-        state: stateWithHistory([createPlanCall("Task", ["Step 1", "Step 2"])]),
-        block: { type: "text" as const, content: "Working on it" },
-        check: (action: Action) => {
-          expect(action.type).toBe("call_llm")
-          if (action.type === "call_llm") {
-            expect(action.nudge).toContain("Step 1")
-            expect(action.nudge).toContain("[pending]")
-          }
+        name: "returns nudge when plan has pending step",
+        history: [createPlanCall("Task", ["Step 1", "Step 2"]), toolResult()],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("Step 1")
+          expect(nudge).toContain("[pending]")
         },
       },
       {
-        name: "returns done when plan is complete",
-        state: stateWithHistory([
+        name: "returns null when plan is complete and last block is text",
+        history: [
           createPlanCall("Task", ["Step 1", "Step 2"]),
+          toolResult(),
           completeStepCall(),
+          toolResult(),
           completeStepCall(),
-        ]),
-        block: { type: "text" as const, content: "All done" },
-        check: (action: Action) => {
-          expect(action.type).toBe("done")
+          toolResult(),
+          { type: "text" as const, content: "All done" },
+        ],
+        check: (nudge: string | null) => {
+          expect(nudge).toBeNull()
         },
       },
       {
-        name: "returns done when no plan",
-        state: initialState,
-        block: { type: "text" as const, content: "Hello" },
-        check: (action: Action) => {
-          expect(action.type).toBe("done")
+        name: "returns null when no plan and last block is text",
+        history: [{ type: "text" as const, content: "Hello" }],
+        check: (nudge: string | null) => {
+          expect(nudge).toBeNull()
         },
       },
       {
         name: "nudge includes completed steps with done status",
-        state: stateWithHistory([createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]), completeStepCall()]),
-        block: { type: "text" as const, content: "Next" },
-        check: (action: Action) => {
-          expect(action.type).toBe("call_llm")
-          if (action.type === "call_llm") {
-            expect(action.nudge).toContain("[done]")
-            expect(action.nudge).toContain("Step 2")
-          }
+        history: [
+          createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
+          toolResult(),
+          completeStepCall(),
+          toolResult(),
+        ],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("[done]")
+          expect(nudge).toContain("Step 2")
         },
       },
     ]
 
-    cases.forEach(({ name, state, block, check }) => {
+    cases.forEach(({ name, history, check }) => {
       it(name, () => {
-        const action = orchestrator(state, block)
-        check(action)
+        const nudge = toNudge(history)
+        check(nudge)
       })
     })
   })
@@ -70,23 +70,41 @@ describe("orchestrator", () => {
   describe("after tool results", () => {
     const cases = [
       {
-        name: "returns call_llm after tool result with plan",
-        state: stateWithHistory([createPlanCall("Task", ["Step 1"])]),
-        block: { type: "tool_result" as const, callId: "1", result: {} },
-        expected: { type: "call_llm" },
+        name: "returns nudge after tool result with active plan",
+        history: [createPlanCall("Task", ["Step 1"]), toolResult()],
+        expectNudge: true,
       },
       {
-        name: "returns call_llm after tool result without plan",
-        state: initialState,
-        block: { type: "tool_result" as const, callId: "1", result: {} },
-        expected: { type: "call_llm" },
+        name: "returns empty nudge after tool result without plan (chat mode)",
+        history: [toolResult()],
+        expectNudge: true,
+        expectEmpty: true,
+      },
+      {
+        name: "returns completion nudge after tool result when plan just completed",
+        history: [
+          createPlanCall("Task", ["Step 1", "Step 2"]),
+          toolResult(),
+          completeStepCall(),
+          toolResult(),
+          completeStepCall(),
+          toolResult(),
+        ],
+        expectNudge: true,
+        expectContains: "PLAN COMPLETED",
       },
     ]
 
-    cases.forEach(({ name, state, block, expected }) => {
+    cases.forEach(({ name, history, expectNudge, expectEmpty, expectContains }) => {
       it(name, () => {
-        const result = orchestrator(state, block)
-        expect(result.type).toBe(expected.type)
+        const nudge = toNudge(history)
+        if (expectNudge) {
+          expect(nudge).not.toBeNull()
+          if (expectEmpty) expect(nudge).toBe("")
+          if (expectContains) expect(nudge).toContain(expectContains)
+        } else {
+          expect(nudge).toBeNull()
+        }
       })
     })
   })
@@ -94,55 +112,51 @@ describe("orchestrator", () => {
   describe("exploration", () => {
     const cases = [
       {
-        name: "returns call_llm with nudge when exploration active with no findings",
-        state: stateWithHistory([startExplorationCall("How does X work?")]),
-        block: { type: "text" as const, content: "Investigating" },
-        check: (action: Action) => {
-          expect(action.type).toBe("call_llm")
-          if (action.type === "call_llm") {
-            expect(action.nudge).toContain("How does X work?")
-            expect(action.nudge).toContain("Investigate and call exploration_step")
-          }
+        name: "returns nudge when exploration active with no findings",
+        history: [startExplorationCall("How does X work?"), toolResult()],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("How does X work?")
+          expect(nudge).toContain("exploration_step")
         },
       },
       {
-        name: "returns call_llm with nudge showing findings",
-        state: stateWithHistory([
+        name: "returns nudge showing findings",
+        history: [
           startExplorationCall("Question", "Check A"),
+          toolResult(),
           explorationStepCall("Found A", "continue", "Check B"),
+          toolResult(),
           explorationStepCall("Found B", "continue"),
-        ]),
-        block: { type: "text" as const, content: "Found more" },
-        check: (action: Action) => {
-          expect(action.type).toBe("call_llm")
-          if (action.type === "call_llm") {
-            expect(action.nudge).toContain("Found A")
-            expect(action.nudge).toContain("Found B")
-            expect(action.nudge).toContain("answer | plan")
-          }
+          toolResult(),
+        ],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("Found A")
+          expect(nudge).toContain("Found B")
+          expect(nudge).toContain('"answer"')
         },
       },
       {
         name: "exploration takes priority over plan",
-        state: stateWithHistory([
+        history: [
           createPlanCall("Task", ["Step 1"]),
+          toolResult(),
           startExplorationCall("Question"),
-        ]),
-        block: { type: "text" as const, content: "Both active" },
-        check: (action: Action) => {
-          expect(action.type).toBe("call_llm")
-          if (action.type === "call_llm") {
-            expect(action.nudge).toContain("Exploring:")
-            expect(action.nudge).not.toContain("Plan:")
-          }
+          toolResult(),
+        ],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("EXPLORING:")
+          expect(nudge).not.toContain("EXECUTING STEP")
         },
       },
     ]
 
-    cases.forEach(({ name, state, block, check }) => {
+    cases.forEach(({ name, history, check }) => {
       it(name, () => {
-        const action = orchestrator(state, block)
-        check(action)
+        const nudge = toNudge(history)
+        check(nudge)
       })
     })
   })

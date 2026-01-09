@@ -1,7 +1,7 @@
-import { useCallback, useId, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react"
 import type { Participant } from "~/domain/participant"
-import { createThread, deleteThread, useThread, type DocumentContext, type BlockContext } from "~/lib/threads"
+import { createThread, useThread, type DocumentContext, type BlockContext } from "~/lib/threads"
 import { NabuMentionInput, NabuThreadIndicator, useNabuSidebar } from "~/ui/components/nabu"
 import { useEditorDocument } from "../context"
 
@@ -11,9 +11,24 @@ const extractBlockContext = (node: { type: { name: string }; textContent: string
   textContent: node.textContent.slice(0, 200),
 })
 
+const generateThreadId = (): string => `thread-${crypto.randomUUID()}`
+
 export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, deleteNode }: NodeViewProps) => {
-  const threadId = useId()
   const { openThread } = useNabuSidebar()
+
+  // Generate stable threadId - use ref to keep same ID across renders until persisted
+  const generatedIdRef = useRef<string | null>(null)
+  if (!generatedIdRef.current && !node.attrs.threadId) {
+    generatedIdRef.current = generateThreadId()
+  }
+  const threadId: string = node.attrs.threadId ?? generatedIdRef.current!
+
+  // Persist threadId to attrs if not already set
+  useEffect(() => {
+    if (!node.attrs.threadId && generatedIdRef.current) {
+      updateAttributes({ threadId: generatedIdRef.current })
+    }
+  }, [node.attrs.threadId, updateAttributes])
   const { thread } = useThread(threadId)
   const docInfo = useEditorDocument()
 
@@ -53,11 +68,7 @@ export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, delet
     }
   }, [docInfo, editor, getPos])
 
-  useEffect(() => {
-    return () => {
-      deleteThread(threadId)
-    }
-  }, [threadId])
+  // Thread persists - don't delete on unmount so chat continues in background
 
   const handleSend = useCallback(
     (message: string) => {
@@ -81,7 +92,7 @@ export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, delet
     openThread(threadId)
   }, [openThread, threadId])
 
-  const messageCount = thread?.messages.length ?? 0
+  const messageCount = thread?.agentHistory.length ?? 0
 
   if (!hasSubmitted) {
     return (

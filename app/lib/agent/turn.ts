@@ -1,10 +1,10 @@
-import type { State, Block, Action, ToolCall, ToolResultBlock } from "./types"
+import type { Block, ToolCall, ToolResultBlock } from "./types"
 import type { Message, ParseCallbacks } from "./parser"
-import type { Plan } from "./selectors"
+import type { DerivedPlan } from "./selectors"
 import { parse } from "./parser"
-import { reducer } from "./reducer"
-import { orchestrator } from "./orchestrator"
-import { getPlan } from "./selectors"
+import { appendBlock } from "./reducer"
+import { toNudge } from "./orchestrator"
+import { derive, lastPlan } from "./selectors"
 
 type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
@@ -16,10 +16,10 @@ export type TurnDeps = {
 }
 
 export type TurnResult = {
-  state: State
-  action: Action
+  history: Block[]
+  nudge: string | null
   blocks: Block[]
-  abortedPlan?: Plan
+  abortedPlan?: DerivedPlan
 }
 
 const findAbort = (calls: ToolCall[]): ToolCall | undefined =>
@@ -31,10 +31,7 @@ const formatError = (e: unknown): unknown => {
   return { error: String(e) }
 }
 
-const executeTool = async (
-  call: ToolCall,
-  execute: ToolExecutor
-): Promise<ToolResultBlock> => {
+const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
   try {
     const result = await execute(call)
     return { type: "tool_result", callId: call.id, result }
@@ -46,11 +43,7 @@ const executeTool = async (
 const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
   Promise.all(calls.map((call) => executeTool(call, execute)))
 
-export const turn = async (
-  state: State,
-  messages: Message[],
-  deps: TurnDeps
-): Promise<TurnResult> => {
+export const turn = async (history: Block[], messages: Message[], deps: TurnDeps): Promise<TurnResult> => {
   const { endpoint, execute, callbacks, signal } = deps
   const allBlocks: Block[] = []
 
@@ -59,41 +52,42 @@ export const turn = async (
   console.log("[Turn] Parsed blocks:", JSON.stringify(parsedBlocks, null, 2))
 
   if (parsedBlocks.length === 0) {
-    return { state, action: { type: "done" }, blocks: allBlocks }
+    return { history, nudge: null, blocks: allBlocks }
   }
 
-  let currentState = state
+  let currentHistory = history
 
   for (const block of parsedBlocks) {
     if (block.type === "tool_call") {
       const abort = findAbort(block.calls)
       if (abort) {
-        const abortedPlan = getPlan(currentState.history) ?? undefined
+        const abortedPlan = lastPlan(derive(currentHistory)) ?? undefined
         const message = (abort.args.message as string) ?? ""
         const textBlock = { type: "text" as const, content: message }
+        const abortResult: ToolResultBlock = { type: "tool_result", callId: abort.id, result: { aborted: true } }
         allBlocks.push(textBlock)
-        currentState = reducer(currentState, block)
-        return { state: currentState, action: { type: "done" }, blocks: allBlocks, abortedPlan }
+        currentHistory = appendBlock(currentHistory, block)
+        currentHistory = appendBlock(currentHistory, abortResult)
+        return { history: currentHistory, nudge: null, blocks: allBlocks, abortedPlan }
       }
 
       allBlocks.push(block)
-      currentState = reducer(currentState, block)
+      currentHistory = appendBlock(currentHistory, block)
 
       const resultBlocks = await executeTools(block.calls, execute)
       console.log("[Turn] Tool results:", JSON.stringify(resultBlocks, null, 2))
       for (const resultBlock of resultBlocks) {
         allBlocks.push(resultBlock)
-        currentState = reducer(currentState, resultBlock)
+        currentHistory = appendBlock(currentHistory, resultBlock)
       }
     } else {
       allBlocks.push(block)
-      currentState = reducer(currentState, block)
+      currentHistory = appendBlock(currentHistory, block)
     }
   }
 
-  const lastBlock = allBlocks[allBlocks.length - 1]
-  const action = orchestrator(currentState, lastBlock)
-  console.log("[Turn] Action:", action)
+  const nudge = toNudge(currentHistory)
+  console.log("[Turn] Nudge:", nudge)
 
-  return { state: currentState, action, blocks: allBlocks }
+  return { history: currentHistory, nudge, blocks: allBlocks }
 }

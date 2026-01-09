@@ -31,22 +31,3 @@ export type SystemBlock = {
 }
 
 export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
-
-export type State = {
-  history: Block[]
-}
-
-export type CallLLMAction = {
-  type: "call_llm"
-  nudge: string
-}
-
-export type DoneAction = {
-  type: "done"
-}
-
-export type Action = CallLLMAction | DoneAction
-
-export const initialState: State = {
-  history: [],
-}
