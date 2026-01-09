@@ -59,6 +59,27 @@ ${plan.steps.map(formatStep).join("\n")}
 
 All steps done. Briefly summarize what was accomplished. Do NOT call any tools.`
 
+export const buildStuckNudge = (plan: DerivedPlan, stepIndex: number): string =>
+  `STUCK ON STEP ${stepIndex + 1}/${plan.steps.length}: ${plan.steps[stepIndex].description}
+
+You have made too many attempts without completing this step.
+
+You MUST now either:
+1. Call complete_step if the step is actually done
+2. Call abort with a clear reason why you cannot complete this step
+
+No other actions are allowed. Choose one NOW.`
+
+export const buildExplorationStuckNudge = (exploration: DerivedExploration): string =>
+  `STUCK EXPLORING: ${exploration.question}
+
+You have made too many attempts without progress.
+
+You MUST now call exploration_step with decision "answer" or "plan" to exit.
+If you cannot answer, call abort.
+
+No other actions are allowed. Choose one NOW.`
+
 const formatBlock = (block: BlockContext, label: string): string =>
   `${label}: [${block.type}] "${block.textContent}"`
 

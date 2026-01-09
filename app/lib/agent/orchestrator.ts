@@ -1,14 +1,34 @@
 import type { Block } from "./types"
-import { derive, lastPlan, hasActiveExploration, hasActivePlan } from "./selectors"
-import { buildPlanNudge, buildExplorationNudge, buildPlanCompletedNudge } from "./prompts"
+import {
+  derive,
+  lastPlan,
+  hasActiveExploration,
+  hasActivePlan,
+  actionsSinceStepChange,
+  actionsSinceExplorationChange,
+} from "./selectors"
+import {
+  buildPlanNudge,
+  buildExplorationNudge,
+  buildPlanCompletedNudge,
+  buildStuckNudge,
+  buildExplorationStuckNudge,
+} from "./prompts"
 
 type Nudger = (history: Block[]) => string | null
+
+const STUCK_LIMIT = 10
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
 
 const exploreNudge: Nudger = (history) => {
   const d = derive(history)
   if (!hasActiveExploration(d)) return null
+
+  const actions = actionsSinceExplorationChange(history)
+  if (actions > STUCK_LIMIT) return null
+  if (actions === STUCK_LIMIT) return buildExplorationStuckNudge(d.exploration!)
+
   return buildExplorationNudge(d.exploration!)
 }
 
@@ -18,6 +38,9 @@ const planNudge: Nudger = (history) => {
   if (!plan) return null
 
   if (hasActivePlan(d)) {
+    const actions = actionsSinceStepChange(history)
+    if (actions > STUCK_LIMIT) return null
+    if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)
     return buildPlanNudge(plan, plan.currentStep!)
   }
 

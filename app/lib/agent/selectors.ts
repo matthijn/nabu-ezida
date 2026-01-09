@@ -155,3 +155,28 @@ export const getMode = (d: Derived): Mode => {
   if (hasActivePlan(d)) return "plan"
   return "chat"
 }
+
+const isStepBoundary = (block: Block): boolean =>
+  hasCall(block, "create_plan") || hasCall(block, "complete_step")
+
+const isExplorationBoundary = (block: Block): boolean =>
+  hasCall(block, "start_exploration") || hasCall(block, "exploration_step")
+
+const isAgentAction = (block: Block): boolean =>
+  block.type === "text" || block.type === "tool_call"
+
+const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => boolean): number => {
+  let count = 0
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (isBoundary(block)) break
+    if (isAgentAction(block)) count++
+  }
+  return count
+}
+
+export const actionsSinceStepChange = (history: Block[]): number =>
+  countActionsSinceBoundary(history, isStepBoundary)
+
+export const actionsSinceExplorationChange = (history: Block[]): number =>
+  countActionsSinceBoundary(history, isExplorationBoundary)

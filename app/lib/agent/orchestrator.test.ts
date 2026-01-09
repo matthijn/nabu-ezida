@@ -160,4 +160,68 @@ describe("toNudge", () => {
       })
     })
   })
+
+  describe("stuck detection", () => {
+    const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
+    const manyActions = (count: number): Block[] =>
+      Array.from({ length: count }, () => [toolCallBlock(), toolResult()]).flat()
+
+    const cases = [
+      {
+        name: "returns normal nudge when under limit",
+        history: [createPlanCall("Task", ["Step 1"]), ...manyActions(9)],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("EXECUTING STEP")
+          expect(nudge).not.toContain("STUCK")
+        },
+      },
+      {
+        name: "returns stuck nudge at limit",
+        history: [createPlanCall("Task", ["Step 1"]), ...manyActions(10)],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("STUCK")
+          expect(nudge).toContain("abort")
+        },
+      },
+      {
+        name: "returns null when over limit",
+        history: [createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
+        check: (nudge: string | null) => {
+          expect(nudge).toBeNull()
+        },
+      },
+      {
+        name: "resets count after complete_step",
+        history: [
+          createPlanCall("Task", ["Step 1", "Step 2"]),
+          ...manyActions(9),
+          completeStepCall(),
+          ...manyActions(9),
+        ],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("EXECUTING STEP")
+          expect(nudge).not.toContain("STUCK")
+        },
+      },
+      {
+        name: "exploration stuck nudge at limit",
+        history: [startExplorationCall("Question"), ...manyActions(10)],
+        check: (nudge: string | null) => {
+          expect(nudge).not.toBeNull()
+          expect(nudge).toContain("STUCK")
+          expect(nudge).toContain("exploration_step")
+        },
+      },
+    ]
+
+    cases.forEach(({ name, history, check }) => {
+      it(name, () => {
+        const nudge = toNudge(history)
+        check(nudge)
+      })
+    })
+  })
 })

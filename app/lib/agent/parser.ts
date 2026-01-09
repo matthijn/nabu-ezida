@@ -1,5 +1,6 @@
 import type { Block, ToolCall, TextBlock, ToolCallBlock } from "./types"
 import { getLlmHost } from "~/lib/env"
+import { calculateBackoff } from "~/lib/backoff"
 
 type Message = {
   role: "system" | "user" | "assistant" | "tool"
@@ -157,20 +158,50 @@ export type ParseOptions = {
   signal?: AbortSignal
 }
 
+const RETRYABLE_STATUS = [429, 502, 503]
+const MAX_RETRIES = 3
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+const isRetryable = (status: number): boolean => RETRYABLE_STATUS.includes(status)
+
+type FetchOptions = {
+  url: string
+  body: string
+  signal?: AbortSignal
+}
+
+const fetchWithRetry = async ({ url, body, signal }: FetchOptions): Promise<Response> => {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal,
+    })
+
+    if (response.ok) return response
+
+    if (!isRetryable(response.status) || attempt === MAX_RETRIES) {
+      throw new Error(`LLM request failed: ${response.status}`)
+    }
+
+    const delay = calculateBackoff(attempt, { maxDelay: 10000 })
+    await sleep(delay)
+  }
+
+  throw new Error("LLM request failed: max retries exceeded")
+}
+
 export const parse = async (options: ParseOptions): Promise<Block[]> => {
   const { endpoint, messages, callbacks = {}, signal } = options
   const url = `${getLlmHost()}${endpoint}`
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const response = await fetchWithRetry({
+    url,
     body: JSON.stringify({ messages }),
     signal,
   })
-
-  if (!response.ok) {
-    throw new Error(`LLM request failed: ${response.status}`)
-  }
 
   if (!response.body) {
     throw new Error("No response body")

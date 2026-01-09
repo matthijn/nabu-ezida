@@ -8,6 +8,8 @@ export {
   isToolCallBlock,
   findCall,
   hasCall,
+  actionsSinceStepChange,
+  actionsSinceExplorationChange,
   type Step,
   type Finding,
   type DerivedPlan,
