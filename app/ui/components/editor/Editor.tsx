@@ -12,7 +12,8 @@ import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
 import { DragHandle } from "@tiptap/extension-drag-handle-react"
 import { FeatherGripVertical } from "@subframe/core"
-import { Lock, BlockID, mentionSuggestion, applyBlockOps } from "./extensions"
+import { Lock, BlockID, mentionSuggestion, applyBlockOps, Annotations } from "./extensions"
+import type { Annotation } from "~/domain/document/annotations"
 import {
   Paragraph,
   Heading,
@@ -32,6 +33,7 @@ import type { BlockOp } from "~/domain/document"
 
 export type EditorProps = {
   content?: Block[]
+  annotations?: Annotation[]
   placeholder?: string
   editable?: boolean
   onUpdate?: (blocks: Block[]) => void
@@ -41,6 +43,7 @@ export type EditorProps = {
 
 export const Editor = ({
   content,
+  annotations = [],
   placeholder = "Start typing...",
   editable = true,
   onUpdate,
@@ -106,6 +109,7 @@ export const Editor = ({
       Markdown,
       BlockID,
       Lock,
+      Annotations.configure({ annotations }),
     ],
     content: blocksToTiptap(initialContent.current ?? []),
     editable,

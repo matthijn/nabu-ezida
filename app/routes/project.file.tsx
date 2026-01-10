@@ -143,7 +143,7 @@ export default function ProjectFile() {
         />
         <div className="flex w-full flex-col items-start gap-8 pt-8">
           <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-            <Editor key={fileId} content={document.content} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} />
+            <Editor key={fileId} content={document.content} annotations={document.annotations} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} />
           </EditorDocumentProvider>
         </div>
       </div>
