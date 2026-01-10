@@ -77,14 +77,14 @@ describe("turn", () => {
   })
 
   describe("tool execution", () => {
-    it("executes tools and adds results to blocks", async () => {
+    it("executes tools and adds results to blocks when in plan mode", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
         calls: [{ id: "1", name: "execute_sql", args: { sql: "SELECT 1" } }],
       }
       mockParse([toolCallBlock])
 
-      const result = await turn([], [], deps)
+      const result = await turn(historyWithPlan(2), [], deps)
 
       expect(mockExecutor).toHaveBeenCalledWith({
         id: "1",
@@ -95,7 +95,7 @@ describe("turn", () => {
       expect(result.blocks[1].type).toBe("tool_result")
     })
 
-    it("executes multiple tools in parallel", async () => {
+    it("executes multiple tools in parallel when in plan mode", async () => {
       const toolCallBlock: Block = {
         type: "tool_call",
         calls: [
@@ -105,12 +105,41 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn([], [], deps)
+      const result = await turn(historyWithPlan(2), [], deps)
 
       expect(mockExecutor).toHaveBeenCalledTimes(2)
       expect(result.blocks).toHaveLength(3)
       expect(result.blocks[1].type).toBe("tool_result")
       expect(result.blocks[2].type).toBe("tool_result")
+    })
+
+    it("blocks non-exempt tools in chat mode and returns nudge", async () => {
+      const toolCallBlock: Block = {
+        type: "tool_call",
+        calls: [{ id: "1", name: "execute_sql", args: { sql: "SELECT 1" } }],
+      }
+      mockParse([toolCallBlock])
+
+      const result = await turn([], [], deps)
+
+      expect(mockExecutor).not.toHaveBeenCalled()
+      expect(result.blocks).toHaveLength(0)
+      expect(result.nudge).not.toBeNull()
+      expect(result.nudge).toContain("execute_sql")
+      expect(result.nudge).toContain("create_plan")
+    })
+
+    it("allows mode-exempt tools in chat mode", async () => {
+      const toolCallBlock: Block = {
+        type: "tool_call",
+        calls: [{ id: "1", name: "create_plan", args: { task: "Test", steps: ["Step 1"] } }],
+      }
+      mockParse([toolCallBlock])
+
+      const result = await turn([], [], deps)
+
+      expect(mockExecutor).toHaveBeenCalled()
+      expect(result.blocks).toHaveLength(2)
     })
   })
 
@@ -161,7 +190,7 @@ describe("turn", () => {
       }
       mockParse([toolCallBlock])
 
-      const result = await turn([], [], { ...deps, execute: failingExecutor })
+      const result = await turn(historyWithPlan(2), [], { ...deps, execute: failingExecutor })
 
       expect(result.blocks).toHaveLength(2)
       expect(result.blocks[1]).toEqual({
@@ -170,17 +199,38 @@ describe("turn", () => {
         result: { error: "Database connection failed" },
       })
     })
+
+    it("sanitizes BigInt values in tool results", async () => {
+      const bigIntExecutor = vi.fn(async () => ({
+        count: BigInt(42),
+        nested: { value: BigInt(100) },
+        array: [BigInt(1), BigInt(2)],
+      }))
+      const toolCallBlock: Block = {
+        type: "tool_call",
+        calls: [{ id: "1", name: "execute_sql", args: {} }],
+      }
+      mockParse([toolCallBlock])
+
+      const result = await turn(historyWithPlan(2), [], { ...deps, execute: bigIntExecutor })
+
+      expect(result.blocks[1]).toEqual({
+        type: "tool_result",
+        callId: "1",
+        result: { count: 42, nested: { value: 100 }, array: [1, 2] },
+      })
+    })
   })
 
   describe("mixed content", () => {
-    it("handles text followed by tool call", async () => {
+    it("handles text followed by tool call when in plan mode", async () => {
       const blocks: Block[] = [
         { type: "text", content: "Let me help" },
         { type: "tool_call", calls: [{ id: "1", name: "execute_sql", args: { sql: "SELECT 1" } }] },
       ]
       mockParse(blocks)
 
-      const result = await turn([], [], deps)
+      const result = await turn(historyWithPlan(2), [], deps)
 
       expect(result.blocks).toHaveLength(3)
       expect(result.blocks[0].type).toBe("text")

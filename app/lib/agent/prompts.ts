@@ -80,6 +80,15 @@ If you cannot answer, call abort.
 
 No other actions are allowed. Choose one NOW.`
 
+export const buildModeRequiredNudge = (toolNames: string[]): string =>
+  `You called ${toolNames.join(", ")} but you're not in a mode.
+
+Before using tools, you must enter explore or plan mode:
+- Know the steps? → create_plan (task, steps, success criteria)
+- Need to investigate? → start_exploration (question, first direction)
+
+Tool calls in chat mode are not allowed.`
+
 const formatBlock = (block: BlockContext, label: string): string =>
   `${label}: [${block.type}] "${block.textContent}"`
 

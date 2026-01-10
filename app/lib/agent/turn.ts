@@ -4,7 +4,16 @@ import type { DerivedPlan } from "./selectors"
 import { parse } from "./parser"
 import { appendBlock } from "./reducer"
 import { toNudge } from "./orchestrator"
-import { derive, lastPlan } from "./selectors"
+import { derive, lastPlan, getMode } from "./selectors"
+import { buildModeRequiredNudge } from "./prompts"
+
+const MODE_EXEMPT = new Set([
+  "create_plan",
+  "start_exploration",
+  "complete_step",
+  "exploration_step",
+  "abort",
+])
 
 type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
@@ -25,6 +34,17 @@ export type TurnResult = {
 const findAbort = (calls: ToolCall[]): ToolCall | undefined =>
   calls.find((c) => c.name === "abort")
 
+const sanitizeForJson = (value: unknown): unknown => {
+  if (typeof value === "bigint") return Number(value)
+  if (Array.isArray(value)) return value.map(sanitizeForJson)
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, sanitizeForJson(v)])
+    )
+  }
+  return value
+}
+
 const formatError = (e: unknown): unknown => {
   if (e instanceof Error) return { error: e.message }
   if (typeof e === "object" && e !== null) return e
@@ -34,7 +54,7 @@ const formatError = (e: unknown): unknown => {
 const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
   try {
     const result = await execute(call)
-    return { type: "tool_result", callId: call.id, result }
+    return { type: "tool_result", callId: call.id, result: sanitizeForJson(result) }
   } catch (e) {
     return { type: "tool_result", callId: call.id, result: formatError(e) }
   }
@@ -59,6 +79,15 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
 
   for (const block of parsedBlocks) {
     if (block.type === "tool_call") {
+      const mode = getMode(derive(currentHistory))
+      if (mode === "chat") {
+        const blocked = block.calls.filter((c) => !MODE_EXEMPT.has(c.name))
+        if (blocked.length > 0) {
+          const nudge = buildModeRequiredNudge(blocked.map((c) => c.name))
+          return { history: currentHistory, nudge, blocks: allBlocks }
+        }
+      }
+
       const abort = findAbort(block.calls)
       if (abort) {
         const abortedPlan = lastPlan(derive(currentHistory)) ?? undefined
