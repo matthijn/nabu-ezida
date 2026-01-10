@@ -10,5 +10,6 @@ export default [
     index("routes/designs._index.tsx"),
     route("documents2", "routes/designs.documents2.tsx"),
     route("documents3", "routes/designs.documents3.tsx"),
+    route("codes2", "routes/designs.codes2.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -84,3 +84,5 @@ export const setAnnotations = (annotations: Annotation[]) => ({
   key: annotationPluginKey,
   annotations,
 })
+
+export const getAnnotationPluginKey = () => annotationPluginKey

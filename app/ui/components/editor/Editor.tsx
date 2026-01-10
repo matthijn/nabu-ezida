@@ -7,12 +7,12 @@ import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import { TaskItem } from "@tiptap/extension-task-item"
-import { Link } from "@tiptap/extension-link"
 import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
 import { DragHandle } from "@tiptap/extension-drag-handle-react"
 import { FeatherGripVertical } from "@subframe/core"
 import { Lock, BlockID, mentionSuggestion, applyBlockOps, Annotations } from "./extensions"
+import { AnnotationHover } from "./AnnotationHover"
 import type { Annotation } from "~/domain/document/annotations"
 import {
   Paragraph,
@@ -101,7 +101,6 @@ export const Editor = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       NabuQuestion,
-      Link.configure({ openOnClick: false }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
         suggestion: mentionSuggestion,
@@ -206,7 +205,9 @@ export const Editor = ({
           <FeatherGripVertical className="w-4 h-4 text-neutral-400" />
         </div>
       </DragHandle>
-      <EditorContent editor={editor} className="w-full" />
+      <AnnotationHover annotations={annotations}>
+        <EditorContent editor={editor} className="w-full" />
+      </AnnotationHover>
     </div>
   )
 }

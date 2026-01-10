@@ -21,6 +21,9 @@ export default function DesignsLayout() {
         <NavLink to="/designs/documents3" className={navLinkClass}>
           Documents 3
         </NavLink>
+        <NavLink to="/designs/codes2" className={navLinkClass}>
+          Codes 2
+        </NavLink>
       </nav>
       <div className="flex-1 overflow-auto">
         <Outlet />

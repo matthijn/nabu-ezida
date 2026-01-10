@@ -18,4 +18,5 @@ export type OverlapSegment = {
   from: number
   to: number
   colors: string[]
+  ids: string[]
 }

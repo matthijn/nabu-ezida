@@ -1,43 +1,46 @@
 import type { ResolvedAnnotation, OverlapSegment } from "./types"
 
-type Boundary = { pos: number; isStart: boolean; color: string }
+type Boundary = { pos: number; isStart: boolean; id: string; color: string }
 
 const collectBoundaries = (annotations: ResolvedAnnotation[]): Boundary[] => {
   const boundaries: Boundary[] = []
 
   for (const a of annotations) {
-    boundaries.push({ pos: a.from, isStart: true, color: a.color })
-    boundaries.push({ pos: a.to, isStart: false, color: a.color })
+    boundaries.push({ pos: a.from, isStart: true, id: a.id, color: a.color })
+    boundaries.push({ pos: a.to, isStart: false, id: a.id, color: a.color })
   }
 
   return boundaries.sort((a, b) => a.pos - b.pos)
 }
 
-const uniqueColors = (colors: string[]): string[] => [...new Set(colors)]
+const unique = <T>(items: T[]): T[] => [...new Set(items)]
+
+type ActiveAnnotation = { id: string; color: string }
 
 export const segmentByOverlap = (annotations: ResolvedAnnotation[]): OverlapSegment[] => {
   if (annotations.length === 0) return []
 
   const boundaries = collectBoundaries(annotations)
   const segments: OverlapSegment[] = []
-  let activeColors: string[] = []
+  let active: ActiveAnnotation[] = []
   let lastPos = boundaries[0]?.pos ?? 0
 
   for (const boundary of boundaries) {
-    if (boundary.pos > lastPos && activeColors.length > 0) {
+    if (boundary.pos > lastPos && active.length > 0) {
       segments.push({
         from: lastPos,
         to: boundary.pos,
-        colors: uniqueColors(activeColors),
+        colors: unique(active.map(a => a.color)),
+        ids: unique(active.map(a => a.id)),
       })
     }
 
     if (boundary.isStart) {
-      activeColors = [...activeColors, boundary.color]
+      active = [...active, { id: boundary.id, color: boundary.color }]
     } else {
-      const idx = activeColors.indexOf(boundary.color)
+      const idx = active.findIndex(a => a.id === boundary.id)
       if (idx !== -1) {
-        activeColors = [...activeColors.slice(0, idx), ...activeColors.slice(idx + 1)]
+        active = [...active.slice(0, idx), ...active.slice(idx + 1)]
       }
     }
 
