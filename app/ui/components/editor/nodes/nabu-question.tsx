@@ -94,9 +94,11 @@ export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, delet
 
   const messageCount = thread?.agentHistory.length ?? 0
 
+  const blockId = node.attrs.blockId as string | undefined
+
   if (!hasSubmitted) {
     return (
-      <NodeViewWrapper className="my-2">
+      <NodeViewWrapper className="my-2" data-block-id={blockId}>
         <NabuMentionInput
           recipient={recipient}
           onSend={handleSend}
@@ -107,7 +109,7 @@ export const NabuQuestionView = ({ node, editor, getPos, updateAttributes, delet
   }
 
   return (
-    <NodeViewWrapper className="my-2">
+    <NodeViewWrapper className="my-2" data-block-id={blockId}>
       <NabuThreadIndicator
         initiator={initiator}
         recipient={recipient}

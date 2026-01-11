@@ -17,17 +17,19 @@ const serializeNodeToHtml = (node: Node, schema: Schema): string => {
 
 export const withLock = (Component: ComponentType<LockableViewProps>) => {
   const WrappedComponent = (props: NodeViewProps) => {
+    const blockId = props.node.attrs.blockId as string | undefined
+
     if (isLocked(props.node)) {
       const html = serializeNodeToHtml(props.node, props.editor.schema)
       return (
-        <NodeViewWrapper>
+        <NodeViewWrapper data-block-id={blockId}>
           <div contentEditable={false} dangerouslySetInnerHTML={{ __html: html }} />
         </NodeViewWrapper>
       )
     }
 
     return (
-      <NodeViewWrapper className="mb-4">
+      <NodeViewWrapper className="mb-4" data-block-id={blockId}>
         <Component {...props} />
       </NodeViewWrapper>
     )

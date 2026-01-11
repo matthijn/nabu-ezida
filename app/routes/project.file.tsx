@@ -1,8 +1,9 @@
-import { useEffect, useCallback } from "react"
-import { useParams } from "react-router"
+import { useEffect, useCallback, useRef } from "react"
+import { useParams, useSearchParams } from "react-router"
 import { useProject } from "./project"
 import { Editor, EditorDocumentProvider } from "~/lib/editor"
-import { FileHeader, EditorToolbar } from "~/ui/components/editor"
+import { FileHeader, EditorToolbar, SpotlightOverlay } from "~/ui/components/editor"
+import { parseSpotlight } from "~/domain/spotlight"
 import { useCommand } from "~/lib/api/useCommand"
 import { documentCommands } from "~/domain/api/commands"
 import type { BlockOp } from "~/domain/document"
@@ -28,8 +29,12 @@ import {
 
 export default function ProjectFile() {
   const { fileId } = useParams()
+  const [searchParams] = useSearchParams()
   const { project, isConnected } = useProject()
   const { execute, executeAll } = useCommand()
+  const editorContainerRef = useRef<HTMLDivElement>(null)
+
+  const spotlight = parseSpotlight(searchParams.get("spotlight"))
 
   const document = fileId ? project?.documents[fileId] : undefined
 
@@ -141,7 +146,8 @@ export default function ProjectFile() {
             [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
           ]}
         />
-        <div className="flex w-full flex-col items-start gap-8 pt-8">
+        <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
+          <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
           <EditorDocumentProvider documentId={document.id} documentName={document.name}>
             <Editor key={fileId} content={document.content} annotations={document.annotations} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} />
           </EditorDocumentProvider>
