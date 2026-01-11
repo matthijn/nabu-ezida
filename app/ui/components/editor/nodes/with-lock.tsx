@@ -27,7 +27,7 @@ export const withLock = (Component: ComponentType<LockableViewProps>) => {
     }
 
     return (
-      <NodeViewWrapper className="border border-dashed border-red-300 mb-4">
+      <NodeViewWrapper className="mb-4">
         <Component {...props} />
       </NodeViewWrapper>
     )

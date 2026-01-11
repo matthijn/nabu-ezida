@@ -14,7 +14,7 @@ const createDecorationAttrs = (segment: OverlapSegment) => {
   const bgColors = toBackgroundColors(segment.colors)
   const borderColor = toBorderColor(segment.colors)
   return {
-    class: "rounded px-1 border border-solid",
+    class: "rounded px-1 mx-0.5 border border-solid",
     style: `background: ${createBackground(bgColors)}; border-color: ${borderColor};`,
     "data-annotation-ids": segment.ids.join(","),
     "data-annotation-colors": segment.colors.join(","),
