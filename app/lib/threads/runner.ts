@@ -6,10 +6,12 @@ import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
+type NavigateFn = (url: string) => void
 
 export type RunnerDeps = {
   query?: QueryFn
   project?: Project
+  navigate?: NavigateFn
 }
 
 const runningThreads = new Map<string, AbortController>()
@@ -30,7 +32,7 @@ export const start = async (threadId: string, deps: RunnerDeps = {}): Promise<vo
   const abortController = new AbortController()
   runningThreads.set(threadId, abortController)
 
-  const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project })
+  const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project, navigate: deps.navigate })
 
   let history = thread.agentHistory
 

@@ -70,7 +70,7 @@ export default function ProjectLayout() {
   }
 
   return (
-    <NabuSidebarProvider query={database.query} project={project}>
+    <NabuSidebarProvider query={database.query} project={project} navigate={navigate}>
       <DefaultPageLayout>
         <div className="flex h-full w-full items-start bg-default-background">
           <DocumentsSidebar

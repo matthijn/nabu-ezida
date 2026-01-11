@@ -5,6 +5,7 @@ import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
+type NavigateFn = (url: string) => void
 
 type NabuSidebarContextValue = {
   openThreads: string[]
@@ -13,6 +14,7 @@ type NabuSidebarContextValue = {
   isThreadOpen: (threadId: string) => boolean
   query?: QueryFn
   project: Project | null
+  navigate?: NavigateFn
 }
 
 const NabuSidebarContext = createContext<NabuSidebarContextValue | null>(null)
@@ -21,9 +23,10 @@ type NabuSidebarProviderProps = {
   children: ReactNode
   query?: QueryFn
   project: Project | null
+  navigate?: NavigateFn
 }
 
-export const NabuSidebarProvider = ({ children, query, project }: NabuSidebarProviderProps) => {
+export const NabuSidebarProvider = ({ children, query, project, navigate }: NabuSidebarProviderProps) => {
   const [openThreads, setOpenThreads] = useState<string[]>([])
 
   const openThread = useCallback((threadId: string) => {
@@ -40,7 +43,7 @@ export const NabuSidebarProvider = ({ children, query, project }: NabuSidebarPro
   )
 
   return (
-    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen, query, project }}>
+    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen, query, project, navigate }}>
       {children}
     </NabuSidebarContext.Provider>
   )

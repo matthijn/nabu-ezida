@@ -150,8 +150,8 @@ type NabuChatWindowProps = {
 }
 
 const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
-  const { closeThread, query, project } = useNabuSidebar()
-  const deps = useMemo(() => ({ query, project: project ?? undefined }), [query, project])
+  const { closeThread, query, project, navigate } = useNabuSidebar()
+  const deps = useMemo(() => ({ query, project: project ?? undefined, navigate }), [query, project, navigate])
   const { thread, send, execute, cancel, isExecuting, streaming, history } = useThread(threadId)
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
