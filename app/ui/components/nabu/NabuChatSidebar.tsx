@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
-import Markdown from "react-markdown"
+import Markdown, { type Components } from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
@@ -14,11 +14,52 @@ import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
 import type { Participant } from "~/domain/participant"
+import { resolveFileLink } from "~/domain/spotlight"
 import { useNabu } from "./context"
 
-const MessageContent = ({ content }: { content: string }) => (
+type MessageContentProps = {
+  content: string
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+type MarkdownContext = {
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Components => ({
+  a: (props) => {
+    const href = props.href as string | undefined
+    const resolved = projectId && href ? resolveFileLink(href, projectId) : null
+    const finalHref = resolved ?? href
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (finalHref && navigate) {
+        e.preventDefault()
+        navigate(finalHref)
+      }
+    }
+
+    return (
+      <a
+        href={finalHref}
+        onClick={handleClick}
+        className="bg-brand-100 cursor-pointer hover:bg-brand-200"
+      >
+        {props.children}
+      </a>
+    )
+  },
+})
+
+const allowFileProtocol = (url: string): string => url
+
+const MessageContent = ({ content, projectId, navigate }: MessageContentProps) => (
   <div className="prose prose-sm text-sm text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-    <Markdown>{content}</Markdown>
+    <Markdown components={createMarkdownComponents({ projectId, navigate })} urlTransform={allowFileProtocol}>
+      {content}
+    </Markdown>
   </div>
 )
 
@@ -97,15 +138,17 @@ type MessageRendererProps = {
   message: RenderMessage
   initiator: Participant
   recipient: Participant
+  projectId: string | null
+  navigate?: (url: string) => void
 }
 
-const MessageRenderer = ({ message, initiator, recipient }: MessageRendererProps) => {
+const MessageRenderer = ({ message, initiator, recipient, projectId, navigate }: MessageRendererProps) => {
   switch (message.type) {
     case "text": {
       const from = message.role === "user" ? initiator : recipient
       return (
         <MessageBubble from={from}>
-          <MessageContent content={message.content} />
+          <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
         </MessageBubble>
       )
     }
@@ -215,12 +258,19 @@ export const NabuChatSidebar = () => {
       </div>
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 py-3">
+        {messages.length === 0 && !loading && (
+          <div className="flex h-full items-center justify-center">
+            <span className="text-sm text-subtext-color">How can I help you today?</span>
+          </div>
+        )}
         {messages.map((message, i) => (
           <MessageRenderer
             key={i}
             message={message}
             initiator={initiator}
             recipient={recipient}
+            projectId={project?.id ?? null}
+            navigate={navigate}
           />
         ))}
         {loading && (
@@ -228,7 +278,7 @@ export const NabuChatSidebar = () => {
             {(() => {
               const filtered = streaming ? filterCodeBlocks(streaming) : null
               return filtered ? (
-                <MessageContent content={filtered} />
+                <MessageContent content={filtered} projectId={project?.id ?? null} navigate={navigate} />
               ) : (
                 <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
               )

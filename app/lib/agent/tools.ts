@@ -6,7 +6,6 @@ import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 import { selectBlockIdsForDocument } from "~/domain/project"
 import type { Block } from "~/domain/document"
-import { buildSpotlightUrl } from "~/domain/spotlight"
 
 type Args = Record<string, unknown>
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
@@ -68,16 +67,6 @@ export const createToolExecutor = (deps: ToolDeps) => {
       const documentId = call.args.document_id as string
       const content = call.args.content as Block[]
       return executeReplaceContent(deps.project, documentId, content)
-    }
-
-    if (call.name === "show_blocks") {
-      if (!deps.project) return { error: "Project not available" }
-      if (!deps.navigate) return { error: "Navigation not available" }
-      const documentId = call.args.document_id as string
-      const blockIds = call.args.block_ids as string[]
-      const url = buildSpotlightUrl(deps.project.id, documentId, blockIds)
-      deps.navigate(url)
-      return { success: true, url }
     }
 
     const commandFn = commands[call.name]
