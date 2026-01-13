@@ -26,6 +26,11 @@ import type { Block } from "~/domain/document"
 import { blocksToTiptap, tiptapToBlocks, diffBlocks } from "~/domain/document"
 import type { BlockOp } from "~/domain/document"
 
+export type CursorInfo = {
+  blockId: string
+  blockContent: string
+} | null
+
 export type EditorProps = {
   content?: Block[]
   annotations?: Annotation[]
@@ -34,6 +39,7 @@ export type EditorProps = {
   onUpdate?: (blocks: Block[]) => void
   onMoveBlock?: (blockId: string, targetPosition: string) => void
   onSyncBlocks?: (ops: BlockOp[]) => void
+  cursorRef?: React.MutableRefObject<(() => CursorInfo) | null>
 }
 
 export const Editor = ({
@@ -44,10 +50,9 @@ export const Editor = ({
   onUpdate,
   onMoveBlock,
   onSyncBlocks,
+  cursorRef,
 }: EditorProps) => {
-  const initialContent = useRef(content)
   const prevContent = useRef(content)
-  const isFirstRender = useRef(true)
   const lastSyncedBlocks = useRef<Block[]>(content ?? [])
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -98,7 +103,7 @@ export const Editor = ({
       Lock,
       Annotations.configure({ annotations }),
     ],
-    content: blocksToTiptap(initialContent.current ?? []),
+    content: blocksToTiptap(prevContent.current ?? []),
     editable,
     onUpdate: ({ editor }) => {
       onUpdate?.(tiptapToBlocks(editor.getJSON()))
@@ -120,10 +125,6 @@ export const Editor = ({
   }, [])
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
     if (!editor) return
 
     const oldBlocks = prevContent.current ?? []
@@ -136,6 +137,23 @@ export const Editor = ({
 
     prevContent.current = content
   }, [editor, content])
+
+  useEffect(() => {
+    if (!cursorRef) return
+    cursorRef.current = () => {
+      if (!editor) return null
+      const { from } = editor.state.selection
+      const resolved = editor.state.doc.resolve(from)
+      const blockNode = resolved.node(1)
+      if (!blockNode) return null
+      const blockId = blockNode.attrs.blockId as string | undefined
+      if (!blockId) return null
+      return { blockId, blockContent: blockNode.textContent }
+    }
+    return () => {
+      if (cursorRef) cursorRef.current = null
+    }
+  }, [editor, cursorRef])
 
   return (
     <AnnotationHover annotations={annotations}>

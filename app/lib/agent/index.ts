@@ -17,7 +17,7 @@ export {
   type Derived,
   type Mode,
 } from "./selectors"
-export { appendBlock } from "./reducer"
+export { appendBlock, appendBlocks } from "./reducer"
 export { toNudge } from "./orchestrator"
 export { parse, processLine, initialParseState, blocksToMessages } from "./parser"
 export type { Message, ParseCallbacks, ParseOptions } from "./parser"

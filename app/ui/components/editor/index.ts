@@ -1,5 +1,5 @@
 export { Editor } from "./Editor"
-export type { EditorProps } from "./Editor"
+export type { EditorProps, CursorInfo } from "./Editor"
 export { Lock } from "./extensions"
 export { FileHeader } from "./FileHeader"
 export { EditorToolbar } from "./EditorToolbar"

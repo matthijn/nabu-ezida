@@ -1,8 +1,9 @@
 import { useEffect, useCallback, useRef } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { useProject } from "./project"
-import { Editor, EditorDocumentProvider } from "~/lib/editor"
+import { Editor, EditorDocumentProvider, type CursorInfo } from "~/lib/editor"
 import { FileHeader, EditorToolbar, SpotlightOverlay } from "~/ui/components/editor"
+import { setEditorContext } from "~/lib/chat/context"
 import { parseSpotlight } from "~/domain/spotlight"
 import { useCommand } from "~/lib/api/useCommand"
 import { documentCommands } from "~/domain/api/commands"
@@ -33,10 +34,22 @@ export default function ProjectFile() {
   const { project, isConnected } = useProject()
   const { execute, executeAll } = useCommand()
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  const cursorRef = useRef<(() => CursorInfo) | null>(null)
 
   const spotlight = parseSpotlight(searchParams.get("spotlight"))
 
   const document = fileId ? project?.documents[fileId] : undefined
+
+  useEffect(() => {
+    if (!document) return
+    setEditorContext(() => ({
+      documentId: document.id,
+      documentTitle: document.name,
+      blockId: cursorRef.current?.()?.blockId ?? null,
+      blockContent: cursorRef.current?.()?.blockContent ?? null,
+    }))
+    return () => setEditorContext(undefined)
+  }, [document])
 
   const handleMoveBlock = useCallback(
     (blockId: string, position: string) => {
@@ -149,7 +162,7 @@ export default function ProjectFile() {
         <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
           <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
           <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-            <Editor key={fileId} content={document.content} annotations={document.annotations} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} />
+            <Editor key={fileId} content={document.content} annotations={document.annotations} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
           </EditorDocumentProvider>
         </div>
       </div>
