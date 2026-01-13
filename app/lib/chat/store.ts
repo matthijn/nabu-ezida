@@ -7,6 +7,7 @@ export type ChatState = {
   history: Block[]
   streaming: string
   error: string | null
+  loading: boolean
 }
 
 let chat: ChatState | null = null
@@ -26,6 +27,7 @@ export const openChat = (
     history: [],
     streaming: "",
     error: null,
+    loading: false,
   }
   notify()
 }

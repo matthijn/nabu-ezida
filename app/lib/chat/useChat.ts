@@ -1,16 +1,16 @@
 import { useSyncExternalStore, useCallback } from "react"
 import type { Block } from "~/lib/agent"
 import { getChat, updateChat, subscribe, type ChatState } from "./store"
-import { start, cancel as cancelRunner, isRunning, type RunnerDeps } from "./runner"
+import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
+import { appendBlock } from "~/lib/agent"
 
 type UseChatResult = {
   chat: ChatState | null
   send: (content: string, deps?: RunnerDeps) => void
-  execute: (deps?: RunnerDeps) => void
-  retry: (deps?: RunnerDeps) => void
+  run: (deps?: RunnerDeps) => void
   cancel: () => void
-  isExecuting: boolean
-  streaming: string | null
+  loading: boolean
+  streaming: string
   history: Block[]
   error: string | null
 }
@@ -18,41 +18,32 @@ type UseChatResult = {
 export const useChat = (): UseChatResult => {
   const chat = useSyncExternalStore(subscribe, getChat)
 
-  const isExecuting = isRunning()
-  const streaming = isExecuting ? (chat?.streaming ?? null) : null
+  const loading = chat?.loading ?? false
+  const streaming = chat?.streaming ?? ""
   const history = chat?.history ?? []
   const error = chat?.error ?? null
 
   const send = useCallback(
     (content: string, deps?: RunnerDeps) => {
-      if (!chat || isExecuting) return
+      const current = getChat()
+      if (!current || current.loading) return
       const userBlock: Block = { type: "user", content }
-      updateChat({ history: [...chat.history, userBlock], error: null })
-      start(deps)
+      updateChat({ history: appendBlock(current.history, userBlock) })
+      run(deps)
     },
-    [chat, isExecuting]
+    []
   )
 
-  const execute = useCallback(
+  const runChat = useCallback(
     (deps?: RunnerDeps) => {
-      if (!chat || isExecuting || error) return
-      start(deps)
+      run(deps)
     },
-    [chat, isExecuting, error]
-  )
-
-  const retry = useCallback(
-    (deps?: RunnerDeps) => {
-      if (!chat || isExecuting) return
-      updateChat({ error: null })
-      start(deps)
-    },
-    [chat, isExecuting]
+    []
   )
 
   const cancel = useCallback(() => {
     cancelRunner()
   }, [])
 
-  return { chat, send, execute, retry, cancel, isExecuting, streaming, history, error }
+  return { chat, send, run: runChat, cancel, loading, streaming, history, error }
 }

@@ -135,7 +135,7 @@ type NabuFloatingButtonProps = {
 const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   const { startChat, restoreChat } = useNabu()
 
-  const handleClick = hasChat ? restoreChat : () => startChat(null)
+  const handleClick = hasChat ? restoreChat : startChat
 
   return (
     <button
@@ -150,14 +150,11 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat, query, project, navigate } = useNabu()
   const deps = useMemo(() => ({ query, project: project ?? undefined, navigate }), [query, project, navigate])
-  const { chat, send, execute, retry, cancel, isExecuting, streaming, history, error } = useChat()
+  const { chat, send, run, cancel, loading, streaming, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
-  useEffect(() => {
-    if (chat && !isExecuting) execute(deps)
-  }, [chat, isExecuting, history, execute, deps])
 
   useEffect(() => {
     if (chat) {
@@ -186,8 +183,8 @@ export const NabuChatSidebar = () => {
   }, [minimizeChat])
 
   const handleRetry = useCallback(() => {
-    retry(deps)
-  }, [retry, deps])
+    run(deps)
+  }, [run, deps])
 
   const showFloatingButton = !chat || minimized
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
@@ -226,7 +223,7 @@ export const NabuChatSidebar = () => {
             recipient={recipient}
           />
         ))}
-        {isExecuting && (
+        {loading && (
           <MessageBubble from={recipient}>
             {(() => {
               const filtered = streaming ? filterCodeBlocks(streaming) : null
@@ -257,10 +254,10 @@ export const NabuChatSidebar = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isExecuting}
+            disabled={loading}
           />
         </TextFieldUnstyled>
-        {isExecuting ? (
+        {loading ? (
           <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
             Cancel
           </Button>

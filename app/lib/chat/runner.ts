@@ -1,4 +1,4 @@
-import type { SystemBlock, Block } from "~/lib/agent"
+import type { SystemBlock } from "~/lib/agent"
 import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
 import type { QueryResult } from "~/lib/db/types"
@@ -13,81 +13,46 @@ export type RunnerDeps = {
   navigate?: NavigateFn
 }
 
-let abortController: AbortController | null = null
-
-export const isRunning = (): boolean => abortController !== null
-
-export const start = async (deps: RunnerDeps = {}): Promise<void> => {
+export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const chat = getChat()
   if (!chat) return
-  if (abortController) return
+  if (chat.loading) return
 
-  abortController = new AbortController()
+  const nudge = toNudge(chat.history)
+  if (nudge === null) return
+
+  updateChat({ loading: true, error: null })
+
+  if (nudge !== "") {
+    const nudgeBlock: SystemBlock = { type: "system", content: nudge }
+    updateChat({ history: appendBlock(chat.history, nudgeBlock) })
+  }
+
+  const current = getChat()
+  if (!current) return
 
   const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project, navigate: deps.navigate })
 
-  const history = chat.history
-
-  if (toNudge(history) === null) {
-    abortController = null
-    return
-  }
-
-  updateChat({ history, streaming: "" })
-
   try {
-    let streamingBuffer = ""
+    const result = await turn(current.history, blocksToMessages(current.history), {
+      endpoint: "/chat/converse",
+      execute: toolExecutor,
+      callbacks: {
+        onChunk: (chunk) => {
+          const c = getChat()
+          if (c) updateChat({ streaming: c.streaming + chunk })
+        },
+      },
+    })
 
-    while (true) {
-      if (abortController.signal.aborted) break
-
-      streamingBuffer = ""
-
-      let result
-      try {
-        result = await turn(history, blocksToMessages(history), {
-          endpoint: "/chat/converse",
-          execute: toolExecutor,
-          callbacks: {
-            onChunk: (chunk) => {
-              streamingBuffer += chunk
-              updateChat({ history, streaming: streamingBuffer })
-            },
-          },
-          signal: abortController.signal,
-        })
-      } catch (e) {
-        console.error("[Runner] Error during turn:", e)
-        updateChat({ streaming: "", error: "Something went wrong" })
-        break
-      }
-
-      history = result.history
-      updateChat({ history, streaming: "" })
-
-      if (result.nudge !== null) {
-        const nudgeBlock: SystemBlock = { type: "system", content: result.nudge }
-        history = appendBlock(history, nudgeBlock)
-        continue
-      }
-
-      break
-    }
-  } finally {
-    abortController = null
-    const currentChat = getChat()
-    if (currentChat) {
-      updateChat({ history: currentChat.history, streaming: "" })
-    }
+    updateChat({ history: result.history, streaming: "", loading: false })
+    run(deps)
+  } catch (e) {
+    console.error("[Runner] Error:", e)
+    updateChat({ error: "Something went wrong", loading: false })
   }
 }
 
 export const cancel = (): void => {
-  if (!abortController) return
-  abortController.abort()
-  abortController = null
-  const chat = getChat()
-  if (chat) {
-    updateChat({ streaming: "" })
-  }
+  updateChat({ loading: false })
 }
