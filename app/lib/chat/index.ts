@@ -1,13 +1,12 @@
 export {
-  createThread,
-  getThread,
-  updateThread,
-  deleteThread,
-  clearAllThreads,
-  subscribeToThread,
+  openChat,
+  getChat,
+  updateChat,
+  closeChat,
+  subscribe,
   type BlockContext,
   type DocumentContext,
-  type ThreadState,
+  type ChatState,
 } from "./store"
 
 export {
@@ -20,4 +19,4 @@ export {
 
 export { formatDocumentContext } from "./format"
 
-export { useThread } from "./useThread"
+export { useChat } from "./useChat"

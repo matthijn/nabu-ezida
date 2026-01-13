@@ -7,12 +7,13 @@ import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import { TaskItem } from "@tiptap/extension-task-item"
-import { Mention } from "@tiptap/extension-mention"
 import { Markdown } from "tiptap-markdown"
 import { DragHandle } from "@tiptap/extension-drag-handle-react"
-import { FeatherGripVertical } from "@subframe/core"
-import { Lock, BlockID, mentionSuggestion, applyBlockOps, Annotations } from "./extensions"
+import { FeatherSparkles } from "@subframe/core"
+import { Lock, BlockID, applyBlockOps, Annotations } from "./extensions"
 import { AnnotationHover } from "./AnnotationHover"
+import { useEditorDocument } from "./context"
+import { useNabu } from "~/ui/components/nabu/context"
 import type { Annotation } from "~/domain/document/annotations"
 import {
   Paragraph,
@@ -24,12 +25,34 @@ import {
   Table,
   TaskList,
   Image,
-  NabuQuestion,
 } from "./nodes"
 import type { Block } from "~/domain/document"
 import { blocksToTiptap, tiptapToBlocks, diffBlocks } from "~/domain/document"
+import type { BlockContext } from "~/lib/chat/store"
 
 import type { BlockOp } from "~/domain/document"
+
+const findBlockById = (blocks: Block[], id: string): Block | null => {
+  for (const block of blocks) {
+    if (block.id === id) return block
+    if (block.children) {
+      const found = findBlockById(block.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+const extractText = (content: Block["content"]): string => {
+  if (!content) return ""
+  return content.map((c) => c.text ?? "").join("")
+}
+
+const toBlockContext = (block: Block): BlockContext => ({
+  id: block.id!,
+  type: block.type,
+  textContent: extractText(block.content),
+})
 
 export type EditorProps = {
   content?: Block[]
@@ -54,9 +77,12 @@ export const Editor = ({
   const prevContent = useRef(content)
   const isFirstRender = useRef(true)
   const draggedBlockId = useRef<string | null>(null)
-  const draggedFromPos = useRef<number | null>(null)
   const lastSyncedBlocks = useRef<Block[]>(content ?? [])
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoveredBlockId = useRef<string | null>(null)
+
+  const editorDocument = useEditorDocument()
+  const { startChat, updateContext } = useNabu()
 
   const syncBlocks = useCallback((editor: ReturnType<typeof useEditor>) => {
     if (!editor || !onSyncBlocks) return
@@ -100,11 +126,6 @@ export const Editor = ({
       Image,
       TaskList,
       TaskItem.configure({ nested: true }),
-      NabuQuestion,
-      Mention.configure({
-        HTMLAttributes: { class: "mention" },
-        suggestion: mentionSuggestion,
-      }),
       Markdown,
       BlockID,
       Lock,
@@ -149,10 +170,18 @@ export const Editor = ({
     prevContent.current = content
   }, [editor, content])
 
-  const hoveredBlockId = useRef<string | null>(null)
-
   const handleNodeChange = (data: { node: { attrs: { blockId?: string } } | null }) => {
-    hoveredBlockId.current = data.node?.attrs.blockId ?? null
+    const blockId = data.node?.attrs.blockId ?? null
+    hoveredBlockId.current = blockId
+
+    if (!editorDocument) return
+
+    const block = blockId && content ? findBlockById(content, blockId) : null
+    updateContext({
+      documentId: editorDocument.documentId,
+      documentName: editorDocument.documentName,
+      block: block ? toBlockContext(block) : null,
+    })
   }
 
   const handleDragStart = () => {
@@ -165,7 +194,6 @@ export const Editor = ({
       return
     }
 
-    // Find the new position by looking at what's before the dragged block
     const blocks = tiptapToBlocks(editor.getJSON())
     const draggedId = draggedBlockId.current
 
@@ -193,6 +221,10 @@ export const Editor = ({
     draggedBlockId.current = null
   }
 
+  const handleNabuClick = () => {
+    startChat()
+  }
+
   return (
     <div className="relative w-full">
       <DragHandle
@@ -201,8 +233,11 @@ export const Editor = ({
         onElementDragStart={handleDragStart}
         onElementDragEnd={handleDragEnd}
       >
-        <div className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing rounded hover:bg-neutral-100">
-          <FeatherGripVertical className="w-4 h-4 text-neutral-400" />
+        <div
+          onClick={handleNabuClick}
+          className="flex items-center justify-center w-6 h-6 cursor-pointer rounded hover:bg-brand-50 text-brand-600 opacity-50 hover:opacity-100 transition-opacity"
+        >
+          <FeatherSparkles className="w-4 h-4" />
         </div>
       </DragHandle>
       <AnnotationHover annotations={annotations}>

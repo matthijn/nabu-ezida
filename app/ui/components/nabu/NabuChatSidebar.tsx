@@ -9,28 +9,12 @@ import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useThread, toRenderMessages, type RenderMessage } from "~/lib/threads"
+import { useChat, toRenderMessages, type RenderMessage } from "~/lib/chat"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
-import type { Participant, ParticipantVariant } from "~/domain/participant"
-import { useNabuSidebar } from "./context"
-
-const variantToBorder: Record<ParticipantVariant, string> = {
-  brand: "border-brand-300",
-  neutral: "border-neutral-300",
-  error: "border-error-300",
-  success: "border-success-300",
-  warning: "border-warning-300",
-}
-
-const variantToBg: Record<ParticipantVariant, string> = {
-  brand: "bg-brand-50",
-  neutral: "bg-neutral-50",
-  error: "bg-error-50",
-  success: "bg-success-50",
-  warning: "bg-warning-50",
-}
+import type { Participant } from "~/domain/participant"
+import { useNabu } from "./context"
 
 const MessageContent = ({ content }: { content: string }) => (
   <div className="prose prose-sm text-sm text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
@@ -144,32 +128,46 @@ const MessageRenderer = ({ message, initiator, recipient }: MessageRendererProps
   }
 }
 
-type NabuChatWindowProps = {
-  threadId: string
-  index: number
+type NabuFloatingButtonProps = {
+  hasChat: boolean
 }
 
-const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
-  const { closeThread, query, project, navigate } = useNabuSidebar()
+const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
+  const { startChat, restoreChat } = useNabu()
+
+  const handleClick = hasChat ? restoreChat : () => startChat(null)
+
+  return (
+    <button
+      onClick={handleClick}
+      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors"
+    >
+      <FeatherSparkles className="h-6 w-6 shrink-0" />
+    </button>
+  )
+}
+
+export const NabuChatSidebar = () => {
+  const { minimized, minimizeChat, query, project, navigate } = useNabu()
   const deps = useMemo(() => ({ query, project: project ?? undefined, navigate }), [query, project, navigate])
-  const { thread, send, execute, cancel, isExecuting, streaming, history } = useThread(threadId)
+  const { chat, send, execute, cancel, isExecuting, streaming, history } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
-  const { position, handleMouseDown } = useDraggable({ x: 16 + index * 20, y: 16 + index * 20 })
+  const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
 
   useEffect(() => {
-    if (!thread || isExecuting || history.length === 0) return
+    if (!chat || isExecuting || history.length === 0) return
     const lastBlock = history[history.length - 1]
     if (lastBlock.type === "text") return
     execute(deps)
-  }, [thread, isExecuting, history, execute, deps])
+  }, [chat, isExecuting, history, execute, deps])
 
   useEffect(() => {
-    if (!isExecuting && history.length > 0) {
+    if (chat) {
       requestAnimationFrame(() => inputRef.current?.focus())
     }
-  }, [isExecuting, history.length])
+  }, [chat])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
@@ -187,43 +185,35 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
     [handleSend]
   )
 
-  const handleClose = useCallback(() => {
-    cancel()
-    closeThread(threadId)
-  }, [cancel, closeThread, threadId])
+  const handleMinimize = useCallback(() => {
+    minimizeChat()
+  }, [minimizeChat])
 
-  if (!thread) {
-    return null
-  }
+  const showFloatingButton = !chat || minimized
+  if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
-  const { initiator, recipient } = thread
-  const variant = recipient.variant
+  const { initiator, recipient } = chat
 
   return (
     <div
       style={{ right: position.x, bottom: position.y }}
-      className={`fixed z-50 flex h-[600px] w-80 flex-col rounded-lg border border-solid bg-default-background shadow-xl ${variantToBorder[variant]}`}
+      className="fixed z-50 flex h-[600px] w-80 flex-col rounded-lg border border-solid border-brand-300 bg-default-background shadow-xl"
     >
       <div
         onMouseDown={handleMouseDown}
-        className={`flex w-full cursor-move items-center justify-between rounded-t-lg px-4 py-3 ${variantToBg[variant]}`}
+        className="flex w-full cursor-move items-center justify-between rounded-t-lg bg-brand-50 px-4 py-3"
       >
         <div className="flex items-center gap-2">
-          <div className="flex items-center">
-            <ParticipantAvatar participant={initiator} size="small" />
-            <div className="-ml-1">
-              <ParticipantAvatar participant={recipient} size="small" />
-            </div>
-          </div>
+          <ParticipantAvatar participant={recipient} size="small" />
           <span className="text-body-bold font-body-bold text-default-font">
-            Chat with {recipient.name}
+            {recipient.name}
           </span>
         </div>
         <IconButton
           variant="neutral-tertiary"
           size="small"
           icon={<FeatherMinus />}
-          onClick={handleClose}
+          onClick={handleMinimize}
         />
       </div>
 
@@ -277,17 +267,5 @@ const NabuChatWindow = ({ threadId, index }: NabuChatWindowProps) => {
         )}
       </div>
     </div>
-  )
-}
-
-export const NabuChatSidebar = () => {
-  const { openThreads } = useNabuSidebar()
-
-  return (
-    <>
-      {openThreads.map((threadId, index) => (
-        <NabuChatWindow key={threadId} threadId={threadId} index={index} />
-      ))}
-    </>
   )
 }

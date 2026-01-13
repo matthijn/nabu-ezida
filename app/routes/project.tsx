@@ -9,8 +9,8 @@ import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { FormattedError } from "~/domain/api"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import type { Document } from "~/domain/document"
-import { clearAllThreads } from "~/lib/threads"
-import { NabuSidebarProvider, NabuChatSidebar } from "~/ui/components/nabu"
+import { closeChat } from "~/lib/chat"
+import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 
 type SidebarDocument = {
   id: string
@@ -46,7 +46,7 @@ export default function ProjectLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
-    return () => clearAllThreads()
+    return () => closeChat()
   }, [params.projectId])
 
   const handleError = useCallback((error: FormattedError) => {
@@ -70,7 +70,7 @@ export default function ProjectLayout() {
   }
 
   return (
-    <NabuSidebarProvider query={database.query} project={project} navigate={navigate}>
+    <NabuProvider query={database.query} project={project} navigate={navigate}>
       <DefaultPageLayout>
         <div className="flex h-full w-full items-start bg-default-background">
           <DocumentsSidebar
@@ -92,6 +92,6 @@ export default function ProjectLayout() {
         </div>
         <NabuChatSidebar />
       </DefaultPageLayout>
-    </NabuSidebarProvider>
+    </NabuProvider>
   )
 }

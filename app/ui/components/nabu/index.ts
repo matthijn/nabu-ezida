@@ -1,4 +1,2 @@
-export { NabuSidebarProvider, useNabuSidebar } from "./context"
-export { NabuMentionInput } from "./NabuMentionInput"
-export { NabuThreadIndicator } from "./NabuThreadIndicator"
+export { NabuProvider, useNabu } from "./context"
 export { NabuChatSidebar } from "./NabuChatSidebar"

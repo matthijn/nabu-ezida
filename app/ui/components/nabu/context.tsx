@@ -1,58 +1,72 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useCallback, useState, type ReactNode } from "react"
 import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
+import type { DocumentContext } from "~/lib/chat/store"
+import { openChat, closeChat as closeChatStore, updateCurrentContext } from "~/lib/chat/store"
+import { CURRENT_USER, NABU } from "~/domain/participant"
 
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
 type NavigateFn = (url: string) => void
 
-type NabuSidebarContextValue = {
-  openThreads: string[]
-  openThread: (threadId: string) => void
-  closeThread: (threadId: string) => void
-  isThreadOpen: (threadId: string) => boolean
+type NabuContextValue = {
+  startChat: () => void
+  updateContext: (context: DocumentContext | null) => void
+  closeChat: () => void
+  minimized: boolean
+  minimizeChat: () => void
+  restoreChat: () => void
   query?: QueryFn
   project: Project | null
   navigate?: NavigateFn
 }
 
-const NabuSidebarContext = createContext<NabuSidebarContextValue | null>(null)
+const NabuContext = createContext<NabuContextValue | null>(null)
 
-type NabuSidebarProviderProps = {
+type NabuProviderProps = {
   children: ReactNode
   query?: QueryFn
   project: Project | null
   navigate?: NavigateFn
 }
 
-export const NabuSidebarProvider = ({ children, query, project, navigate }: NabuSidebarProviderProps) => {
-  const [openThreads, setOpenThreads] = useState<string[]>([])
+export const NabuProvider = ({ children, query, project, navigate }: NabuProviderProps) => {
+  const [minimized, setMinimized] = useState(false)
 
-  const openThread = useCallback((threadId: string) => {
-    setOpenThreads((prev) => (prev.includes(threadId) ? prev : [...prev, threadId]))
+  const startChat = useCallback(() => {
+    openChat(CURRENT_USER, NABU)
+    setMinimized(false)
   }, [])
 
-  const closeThread = useCallback((threadId: string) => {
-    setOpenThreads((prev) => prev.filter((id) => id !== threadId))
+  const updateContext = useCallback((context: DocumentContext | null) => {
+    updateCurrentContext(context)
   }, [])
 
-  const isThreadOpen = useCallback(
-    (threadId: string) => openThreads.includes(threadId),
-    [openThreads]
-  )
+  const closeChat = useCallback(() => {
+    closeChatStore()
+    setMinimized(false)
+  }, [])
+
+  const minimizeChat = useCallback(() => {
+    setMinimized(true)
+  }, [])
+
+  const restoreChat = useCallback(() => {
+    setMinimized(false)
+  }, [])
 
   return (
-    <NabuSidebarContext.Provider value={{ openThreads, openThread, closeThread, isThreadOpen, query, project, navigate }}>
+    <NabuContext.Provider value={{ startChat, updateContext, closeChat, minimized, minimizeChat, restoreChat, query, project, navigate }}>
       {children}
-    </NabuSidebarContext.Provider>
+    </NabuContext.Provider>
   )
 }
 
-export const useNabuSidebar = (): NabuSidebarContextValue => {
-  const context = useContext(NabuSidebarContext)
+export const useNabu = (): NabuContextValue => {
+  const context = useContext(NabuContext)
   if (!context) {
-    throw new Error("useNabuSidebar must be used within NabuSidebarProvider")
+    throw new Error("useNabu must be used within NabuProvider")
   }
   return context
 }

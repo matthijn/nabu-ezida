@@ -1,4 +1,4 @@
-import type { DocumentContext, BlockContext } from "~/lib/threads/store"
+import type { DocumentContext } from "~/lib/chat/store"
 import type { DerivedPlan, DerivedExploration, Step, Finding } from "./selectors"
 
 const formatCompletedStep = (step: Step, index: number): string =>
@@ -89,13 +89,9 @@ Before using tools, you must enter explore or plan mode:
 
 Tool calls in chat mode are not allowed.`
 
-const formatBlock = (block: BlockContext, label: string): string =>
-  `${label}: [${block.type}] "${block.textContent}"`
-
 export const buildDocumentContext = (ctx: DocumentContext): string =>
-  `Document: "${ctx.documentName}" (${ctx.documentId})
+  ctx.block
+    ? `The user is looking at: "${ctx.documentName}"
 
-Position:
-${ctx.blockBefore ? formatBlock(ctx.blockBefore, "Before") : "[head]"}
--> [cursor]
-${ctx.blockAfter ? formatBlock(ctx.blockAfter, "After") : "[tail]"}`
+${ctx.block.textContent}`
+    : `The user is looking at: "${ctx.documentName}"`

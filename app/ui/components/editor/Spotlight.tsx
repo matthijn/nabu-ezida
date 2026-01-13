@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
 import type { Spotlight } from "~/domain/spotlight"
+import { serializeSpotlight } from "~/domain/spotlight"
 
 type SpotlightOverlayProps = {
   spotlight: Spotlight | null
@@ -62,10 +63,15 @@ const calculateOverlayRect = (
 const BORDER_WIDTH = 3
 const BORDER_OFFSET = 8
 
+const toSpotlightKey = (spotlight: Spotlight | null): string | null =>
+  spotlight ? serializeSpotlight(spotlight) : null
+
 export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayProps) => {
   const [rect, setRect] = useState<Rect | null>(null)
   const observerRef = useRef<MutationObserver | null>(null)
-  const hasScrolledRef = useRef(false)
+  const scrolledForRef = useRef<string | null>(null)
+
+  const spotlightKey = toSpotlightKey(spotlight)
 
   const updateSpotlight = useCallback(() => {
     const container = containerRef.current
@@ -77,9 +83,10 @@ export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayPr
     const blocks = findBlockElements(container, spotlight)
     if (blocks.length === 0) return false
 
-    if (!hasScrolledRef.current) {
+    const key = toSpotlightKey(spotlight)
+    if (scrolledForRef.current !== key) {
       blocks[0].scrollIntoView({ behavior: "smooth", block: "center" })
-      hasScrolledRef.current = true
+      scrolledForRef.current = key
     }
 
     const newRect = calculateOverlayRect(blocks, container)
@@ -88,7 +95,6 @@ export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayPr
   }, [spotlight, containerRef])
 
   useEffect(() => {
-    hasScrolledRef.current = false
     setRect(null)
 
     const container = containerRef.current
@@ -107,7 +113,7 @@ export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayPr
     return () => {
       observerRef.current?.disconnect()
     }
-  }, [spotlight, containerRef, updateSpotlight])
+  }, [spotlightKey, containerRef, updateSpotlight])
 
   useEffect(() => {
     const handleResize = () => updateSpotlight()
