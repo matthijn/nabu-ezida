@@ -4,8 +4,7 @@ import type { ReactNode } from "react";
 import {
   FeatherBook,
   FeatherFiles,
-  FeatherInbox,
-  FeatherSend,
+  FeatherSearch,
 } from "@subframe/core";
 import { MainSidebar } from "~/ui/custom/sidebar/main";
 import type { NavItem } from "~/ui/custom/sidebar/main";
@@ -13,8 +12,7 @@ import { cn } from "~/ui/utils";
 
 const primaryNavItems: NavItem[] = [
   { id: "documents", icon: <FeatherFiles />, label: "Documents", tooltip: "Browse all your documents", selected: true },
-  { id: "inbox", icon: <FeatherInbox />, label: "Inbox", tooltip: "Tasks from collaborators and Nabu" },
-  { id: "outbox", icon: <FeatherSend />, label: "Outbox", tooltip: "Your requests to people and Nabu" },
+  { id: "search", icon: <FeatherSearch />, label: "Search", tooltip: "Search across documents" },
 ];
 
 const secondaryNavItems: NavItem[] = [

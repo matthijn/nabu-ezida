@@ -1,4 +1,3 @@
-import type { DocumentContext } from "~/lib/chat/store"
 import type { DerivedPlan, DerivedExploration, Step, Finding } from "./selectors"
 
 const formatCompletedStep = (step: Step, index: number): string =>
@@ -88,10 +87,3 @@ Before using tools, you must enter explore or plan mode:
 - Need to investigate? → start_exploration (question, first direction)
 
 Tool calls in chat mode are not allowed.`
-
-export const buildDocumentContext = (ctx: DocumentContext): string =>
-  ctx.block
-    ? `The user is looking at: "${ctx.documentName}"
-
-${ctx.block.textContent}`
-    : `The user is looking at: "${ctx.documentName}"`

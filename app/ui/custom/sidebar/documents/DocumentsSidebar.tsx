@@ -85,7 +85,7 @@ export function DocumentsSidebar({
           icon={<FeatherSearch />}
         >
           <TextField.Input
-            placeholder="Search documents..."
+            placeholder="Filter"
             value={searchValue}
             onChange={(e) => onSearchChange?.(e.target.value)}
           />

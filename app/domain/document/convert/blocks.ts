@@ -41,18 +41,6 @@ const toTiptapConverters: Record<string, BlockToTiptap> = {
     attrs: { blockId: block.id },
     content: [], // TODO: table cell conversion
   }),
-
-  nabuQuestion: (block) => ({
-    type: "nabuQuestion",
-    attrs: {
-      blockId: block.id,
-      threadId: block.props?.threadId ?? null,
-      initiator: block.props?.initiator ?? null,
-      recipient: block.props?.recipient ?? null,
-      hasSubmitted: block.props?.hasSubmitted ?? false,
-      preview: block.props?.preview ?? "",
-    },
-  }),
 }
 
 export const blockToTiptap = (block: Block): JSONContent => {
@@ -101,18 +89,6 @@ const toBlockConverters: Record<string, TiptapToBlock> = {
     id: node.attrs?.blockId,
     type: "table",
     // TODO: table cell conversion
-  }),
-
-  nabuQuestion: (node) => ({
-    id: node.attrs?.blockId,
-    type: "nabuQuestion",
-    props: {
-      threadId: node.attrs?.threadId ?? null,
-      initiator: node.attrs?.initiator ?? null,
-      recipient: node.attrs?.recipient ?? null,
-      hasSubmitted: node.attrs?.hasSubmitted ?? false,
-      preview: node.attrs?.preview ?? "",
-    },
   }),
 }
 

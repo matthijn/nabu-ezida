@@ -1,7 +1,6 @@
 import type { SystemBlock, Block } from "~/lib/agent"
-import { turn, createToolExecutor, blocksToMessages, appendBlock } from "~/lib/agent"
-import { getChat, updateChat, getContextIfChanged, markContextSent } from "./store"
-import { formatDocumentContext } from "./format"
+import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
+import { getChat, updateChat } from "./store"
 import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 
@@ -27,13 +26,11 @@ export const start = async (deps: RunnerDeps = {}): Promise<void> => {
 
   const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project, navigate: deps.navigate })
 
-  let history = chat.history
+  const history = chat.history
 
-  const changedContext = getContextIfChanged()
-  if (changedContext) {
-    const contextBlock: SystemBlock = { type: "system", content: formatDocumentContext(changedContext) }
-    history = appendBlock(history, contextBlock)
-    markContextSent()
+  if (toNudge(history) === null) {
+    abortController = null
+    return
   }
 
   updateChat({ history, streaming: "" })
@@ -45,17 +42,25 @@ export const start = async (deps: RunnerDeps = {}): Promise<void> => {
       if (abortController.signal.aborted) break
 
       streamingBuffer = ""
-      const result = await turn(history, blocksToMessages(history), {
-        endpoint: "/chat/converse",
-        execute: toolExecutor,
-        callbacks: {
-          onChunk: (chunk) => {
-            streamingBuffer += chunk
-            updateChat({ history, streaming: streamingBuffer })
+
+      let result
+      try {
+        result = await turn(history, blocksToMessages(history), {
+          endpoint: "/chat/converse",
+          execute: toolExecutor,
+          callbacks: {
+            onChunk: (chunk) => {
+              streamingBuffer += chunk
+              updateChat({ history, streaming: streamingBuffer })
+            },
           },
-        },
-        signal: abortController.signal,
-      })
+          signal: abortController.signal,
+        })
+      } catch (e) {
+        console.error("[Runner] Error during turn:", e)
+        updateChat({ streaming: "", error: "Something went wrong" })
+        break
+      }
 
       history = result.history
       updateChat({ history, streaming: "" })

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
 import Markdown from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -150,17 +150,13 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat, query, project, navigate } = useNabu()
   const deps = useMemo(() => ({ query, project: project ?? undefined, navigate }), [query, project, navigate])
-  const { chat, send, execute, cancel, isExecuting, streaming, history } = useChat()
+  const { chat, send, execute, retry, cancel, isExecuting, streaming, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
-
   useEffect(() => {
-    if (!chat || isExecuting || history.length === 0) return
-    const lastBlock = history[history.length - 1]
-    if (lastBlock.type === "text") return
-    execute(deps)
+    if (chat && !isExecuting) execute(deps)
   }, [chat, isExecuting, history, execute, deps])
 
   useEffect(() => {
@@ -188,6 +184,10 @@ export const NabuChatSidebar = () => {
   const handleMinimize = useCallback(() => {
     minimizeChat()
   }, [minimizeChat])
+
+  const handleRetry = useCallback(() => {
+    retry(deps)
+  }, [retry, deps])
 
   const showFloatingButton = !chat || minimized
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
@@ -237,6 +237,14 @@ export const NabuChatSidebar = () => {
               )
             })()}
           </MessageBubble>
+        )}
+        {error && (
+          <div className="flex flex-col items-center gap-2 py-4">
+            <span className="text-sm text-subtext-color">{error}</span>
+            <Button variant="neutral-secondary" size="small" icon={<FeatherRefreshCw />} onClick={handleRetry}>
+              Try again
+            </Button>
+          </div>
         )}
       </AutoScroll>
 

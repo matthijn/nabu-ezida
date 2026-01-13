@@ -4,8 +4,6 @@ export {
   updateChat,
   closeChat,
   subscribe,
-  type BlockContext,
-  type DocumentContext,
   type ChatState,
 } from "./store"
 
@@ -16,7 +14,5 @@ export {
   type ExplorationMessage,
   type RenderMessage,
 } from "./messages"
-
-export { formatDocumentContext } from "./format"
 
 export { useChat } from "./useChat"

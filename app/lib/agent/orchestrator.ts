@@ -58,6 +58,13 @@ const toolNudge: Nudger = (history) => {
   return ""
 }
 
+const kickstartNudge: Nudger = (history) => {
+  if (history.length === 0) return null
+  const last = history[history.length - 1]
+  if (last.type === "text" || last.type === "tool_call") return null
+  return ""
+}
+
 const combine = (...nudgers: Nudger[]): Nudger => (history) => {
   for (const nudger of nudgers) {
     const result = nudger(history)
@@ -66,4 +73,4 @@ const combine = (...nudgers: Nudger[]): Nudger => (history) => {
   return null
 }
 
-export const toNudge = combine(exploreNudge, planNudge, toolNudge)
+export const toNudge = combine(kickstartNudge, exploreNudge, planNudge, toolNudge)

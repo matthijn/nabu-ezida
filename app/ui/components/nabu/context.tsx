@@ -3,8 +3,7 @@
 import { createContext, useContext, useCallback, useState, type ReactNode } from "react"
 import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
-import type { DocumentContext } from "~/lib/chat/store"
-import { openChat, closeChat as closeChatStore, updateCurrentContext } from "~/lib/chat/store"
+import { openChat, closeChat as closeChatStore } from "~/lib/chat/store"
 import { CURRENT_USER, NABU } from "~/domain/participant"
 
 type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
@@ -12,7 +11,6 @@ type NavigateFn = (url: string) => void
 
 type NabuContextValue = {
   startChat: () => void
-  updateContext: (context: DocumentContext | null) => void
   closeChat: () => void
   minimized: boolean
   minimizeChat: () => void
@@ -39,10 +37,6 @@ export const NabuProvider = ({ children, query, project, navigate }: NabuProvide
     setMinimized(false)
   }, [])
 
-  const updateContext = useCallback((context: DocumentContext | null) => {
-    updateCurrentContext(context)
-  }, [])
-
   const closeChat = useCallback(() => {
     closeChatStore()
     setMinimized(false)
@@ -57,7 +51,7 @@ export const NabuProvider = ({ children, query, project, navigate }: NabuProvide
   }, [])
 
   return (
-    <NabuContext.Provider value={{ startChat, updateContext, closeChat, minimized, minimizeChat, restoreChat, query, project, navigate }}>
+    <NabuContext.Provider value={{ startChat, closeChat, minimized, minimizeChat, restoreChat, query, project, navigate }}>
       {children}
     </NabuContext.Provider>
   )
