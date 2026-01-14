@@ -30,4 +30,9 @@ export type SystemBlock = {
   content: string
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
+export type AbortBlock = {
+  type: "abort"
+  content: string
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | AbortBlock

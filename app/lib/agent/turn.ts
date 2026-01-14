@@ -92,11 +92,12 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
       if (abort) {
         const abortedPlan = lastPlan(derive(currentHistory)) ?? undefined
         const message = (abort.args.message as string) ?? ""
-        const textBlock = { type: "text" as const, content: message }
+        const abortBlock = { type: "abort" as const, content: message }
         const abortResult: ToolResultBlock = { type: "tool_result", callId: abort.id, result: { aborted: true } }
-        allBlocks.push(textBlock)
+        allBlocks.push(abortBlock)
         currentHistory = appendBlock(currentHistory, block)
         currentHistory = appendBlock(currentHistory, abortResult)
+        currentHistory = appendBlock(currentHistory, abortBlock)
         return { history: currentHistory, nudge: null, blocks: allBlocks, abortedPlan }
       }
 

@@ -7,6 +7,11 @@ export type TextMessage = {
   content: string
 }
 
+export type AbortMessage = {
+  type: "abort"
+  content: string
+}
+
 export type PlanMessage = {
   type: "plan"
   plan: DerivedPlan
@@ -20,7 +25,7 @@ export type ExplorationMessage = {
   completed: boolean
 }
 
-export type RenderMessage = TextMessage | PlanMessage | ExplorationMessage
+export type RenderMessage = TextMessage | AbortMessage | PlanMessage | ExplorationMessage
 
 type Indexed<T> = { index: number; message: T }
 
@@ -28,6 +33,9 @@ const hasContent = (s: string): boolean => s.trim().length > 0
 
 const isTextBlock = (b: Block): b is { type: "user" | "text"; content: string } =>
   b.type === "user" || b.type === "text"
+
+const isAbortBlock = (b: Block): b is { type: "abort"; content: string } =>
+  b.type === "abort"
 
 const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
   history
@@ -42,6 +50,17 @@ const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
         role: block.type === "user" ? "user" : "assistant",
         content: block.content,
       },
+    }))
+
+const abortMessagesIndexed = (history: Block[]): Indexed<AbortMessage>[] =>
+  history
+    .map((b, i) => ({ block: b, index: i }))
+    .filter((item): item is { block: { type: "abort"; content: string }; index: number } =>
+      isAbortBlock(item.block) && hasContent(item.block.content)
+    )
+    .map(({ block, index }) => ({
+      index,
+      message: { type: "abort" as const, content: block.content },
     }))
 
 const findCreationIndices = (history: Block[], toolName: string): number[] =>
@@ -74,6 +93,7 @@ export const toRenderMessages = (history: Block[]): RenderMessage[] => {
   const d = derive(history)
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),
+    ...abortMessagesIndexed(history),
     ...planMessagesIndexed(history, d.plans),
     ...explorationMessagesIndexed(history, d.exploration),
   ]

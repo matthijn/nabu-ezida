@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
 import Markdown, { type Components } from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw, FeatherAlertCircle } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -152,6 +152,15 @@ const MessageRenderer = ({ message, initiator, recipient, projectId, navigate }:
         </MessageBubble>
       )
     }
+    case "abort":
+      return (
+        <MessageBubble from={recipient}>
+          <div className="flex items-start gap-2 rounded-md bg-warning-100 p-2">
+            <FeatherAlertCircle className="h-4 w-4 shrink-0 text-warning-700 mt-0.5" />
+            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          </div>
+        </MessageBubble>
+      )
     case "plan":
       return (
         <MessageBubble from={recipient}>

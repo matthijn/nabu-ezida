@@ -161,7 +161,7 @@ describe("turn", () => {
       expect(lastPlan(derive(result.history))?.aborted).toBe(true)
       expect(result.abortedPlan).toEqual(expectedPlan)
       expect(result.blocks).toHaveLength(1)
-      expect(result.blocks[0]).toEqual({ type: "text", content: "Need clarification" })
+      expect(result.blocks[0]).toEqual({ type: "abort", content: "Need clarification" })
     })
 
     it("handles missing message gracefully", async () => {
@@ -175,7 +175,7 @@ describe("turn", () => {
 
       expect(result.nudge).toBeNull()
       expect(hasActivePlan(derive(result.history))).toBe(false)
-      expect(result.blocks[0]).toEqual({ type: "text", content: "" })
+      expect(result.blocks[0]).toEqual({ type: "abort", content: "" })
     })
   })
 
