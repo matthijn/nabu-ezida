@@ -192,7 +192,7 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   return (
     <button
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors"
+      className="fixed bottom-6 right-10 z-50 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors"
     >
       <FeatherSparkles className="h-6 w-6 shrink-0" />
     </button>

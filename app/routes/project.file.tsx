@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { useProject } from "./project"
-import { Editor, EditorDocumentProvider, type CursorInfo } from "~/lib/editor"
+import { Editor, EditorDocumentProvider, ScrollGutter, type CursorInfo } from "~/lib/editor"
 import { FileHeader, EditorToolbar, SpotlightOverlay } from "~/ui/components/editor"
 import { setEditorContext } from "~/lib/chat/context"
 import { parseSpotlight } from "~/domain/spotlight"
@@ -33,6 +33,7 @@ export default function ProjectFile() {
   const [searchParams] = useSearchParams()
   const { project, isConnected } = useProject()
   const { execute, executeAll } = useCommand()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
   const cursorRef = useRef<(() => CursorInfo) | null>(null)
 
@@ -58,6 +59,14 @@ export default function ProjectFile() {
     },
     [fileId, execute]
   )
+
+  const handleScrollTo = useCallback((percent: number) => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const maxScroll = container.scrollHeight - container.clientHeight
+    const targetScroll = (percent / 100) * maxScroll
+    container.scrollTo({ top: targetScroll, behavior: "smooth" })
+  }, [])
 
   const handleSyncBlocks = useCallback(
     (ops: BlockOp[]) => {
@@ -136,35 +145,38 @@ export default function ProjectFile() {
         ]}
         onAddTag={() => {}}
       />
-      <div className="flex w-full grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto">
-        <EditorToolbar
-          groups={[
-            [
-              { icon: <FeatherHeading1 /> },
-              { icon: <FeatherHeading2 /> },
-              { icon: <FeatherHeading3 /> },
-            ],
-            [
-              { icon: <FeatherBold /> },
-              { icon: <FeatherItalic /> },
-              { icon: <FeatherUnderline /> },
-              { icon: <FeatherStrikethrough /> },
-            ],
-            [{ icon: <FeatherLink /> }, { icon: <FeatherImage /> }],
-            [
-              { icon: <FeatherList /> },
-              { icon: <FeatherListOrdered /> },
-              { icon: <FeatherListChecks /> },
-            ],
-            [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
-          ]}
-        />
-        <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
-          <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
-          <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-            <Editor key={fileId} content={document.content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
-          </EditorDocumentProvider>
+      <div className="flex w-full grow shrink basis-0 min-h-0 items-stretch overflow-hidden">
+        <div ref={scrollContainerRef} className="flex grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto">
+          <EditorToolbar
+            groups={[
+              [
+                { icon: <FeatherHeading1 /> },
+                { icon: <FeatherHeading2 /> },
+                { icon: <FeatherHeading3 /> },
+              ],
+              [
+                { icon: <FeatherBold /> },
+                { icon: <FeatherItalic /> },
+                { icon: <FeatherUnderline /> },
+                { icon: <FeatherStrikethrough /> },
+              ],
+              [{ icon: <FeatherLink /> }, { icon: <FeatherImage /> }],
+              [
+                { icon: <FeatherList /> },
+                { icon: <FeatherListOrdered /> },
+                { icon: <FeatherListChecks /> },
+              ],
+              [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
+            ]}
+          />
+          <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
+            <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
+            <EditorDocumentProvider documentId={document.id} documentName={document.name}>
+              <Editor key={fileId} content={document.content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
+            </EditorDocumentProvider>
+          </div>
         </div>
+        <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />
       </div>
     </>
   )
