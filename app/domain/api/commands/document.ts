@@ -12,7 +12,7 @@ type MoveBlocksArgs = { document_id: string; block_ids: string[]; position: Posi
 type ReplaceContentArgs = { document_id: string; content: Block[] }
 type UpdateBlockPropsArgs = { document_id: string; block_ids: string[]; props: Record<string, unknown> }
 type TagsArgs = { document_id: string; tags: string[] }
-type AnnotationsArgs = { document_id: string; annotations: Annotation[] }
+type AnnotationArgs = { document_id: string; annotation: Annotation }
 type AnnotationIdsArgs = { document_id: string; annotation_ids: string[] }
 type UpdateAnnotationPropsArgs = { document_id: string; annotation_ids: string[]; props: Partial<Pick<Annotation, "color" | "reason" | "payload">> }
 
@@ -288,27 +288,27 @@ export const documentCommands = {
     command("RemoveDocumentTags", args.document_id, { tags: args.tags }),
 
   /**
-   * Adds annotations to a document for qualitative coding.
+   * Adds a single annotation to a document for qualitative coding.
+   * Text is fuzzy-matched against document content.
    * @param args.document_id - Target document
-   * @param args.annotations - Annotations to add
+   * @param args.annotation - Annotation to add
    *
    * @example
    * ```ts
-   * documentCommands.add_annotations({
+   * documentCommands.add_annotation({
    *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   annotations: [{
-   *     id: "ann-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+   *   annotation: {
    *     text: "I found the interface confusing at first",
    *     actor: "researcher-1",
    *     color: "amber",
    *     reason: "Usability issue identified",
    *     payload: { type: "coding", code_id: "code-b2c3d4e5", confidence: "high" }
-   *   }]
+   *   }
    * })
    * ```
    */
-  add_annotations: (args: AnnotationsArgs) =>
-    command("AddAnnotations", args.document_id, { annotations: args.annotations }),
+  add_annotation: (args: AnnotationArgs) =>
+    command("AddAnnotation", args.document_id, { annotation: args.annotation }),
 
   /**
    * Removes annotations from a document.

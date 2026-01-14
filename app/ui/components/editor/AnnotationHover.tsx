@@ -21,13 +21,19 @@ const TOOLTIP_GAP = 4
 const findAnnotationsByIds = (annotations: Annotation[], ids: string[]): Annotation[] =>
   ids.map(id => annotations.find(a => a.id === id)).filter((a): a is Annotation => a !== undefined)
 
-const annotationToEntry = (annotation: Annotation): HighlightEntry => ({
-  id: annotation.id ?? crypto.randomUUID(),
-  color: elementBorder(annotation.color),
-  title: undefined,
-  description: annotation.reason ?? `Highlighted by ${annotation.actor}`,
-  onDelete: () => {},
-})
+const annotationToEntry = (annotation: Annotation): HighlightEntry | null => {
+  if (!annotation.id) return null
+  return {
+    id: annotation.id,
+    color: elementBorder(annotation.color),
+    title: undefined,
+    description: annotation.reason ?? `Highlighted by ${annotation.actor}`,
+    onDelete: () => {},
+  }
+}
+
+const toEntries = (annotations: Annotation[]): HighlightEntry[] =>
+  annotations.map(annotationToEntry).filter((e): e is HighlightEntry => e !== null)
 
 export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -78,7 +84,7 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
   }, [handleMouseEnter, handleMouseLeave])
 
   const hoveredAnnotations = hover ? findAnnotationsByIds(annotations, hover.ids) : []
-  const entries = hoveredAnnotations.map(annotationToEntry)
+  const entries = toEntries(hoveredAnnotations)
 
   return (
     <div ref={containerRef} className="relative">

@@ -26,6 +26,11 @@ export const resolveAnnotationsInDoc = <T>(
   const resolved: ResolvedAnnotation[] = []
 
   for (const annotation of annotations) {
+    if (!annotation.id) {
+      console.warn(`[Annotations] Missing ID for annotation`)
+      continue
+    }
+
     const positions = findAllPositions(state, annotation.text)
 
     if (positions.length === 0) {
@@ -35,7 +40,7 @@ export const resolveAnnotationsInDoc = <T>(
 
     for (const pos of positions) {
       resolved.push({
-        id: annotation.id ?? crypto.randomUUID(),
+        id: annotation.id,
         from: pos.from,
         to: pos.to,
         color: annotation.color,

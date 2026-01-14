@@ -131,7 +131,7 @@ export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayPr
         left: -BORDER_OFFSET,
         width: BORDER_WIDTH,
         height: rect.height,
-        backgroundColor: "var(--color-brand-600)",
+        backgroundColor: "var(--color-brand-200)",
         borderRadius: 2,
         pointerEvents: "none",
         zIndex: 100,
