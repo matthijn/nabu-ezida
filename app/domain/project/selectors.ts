@@ -100,10 +100,10 @@ export const selectBlockRows = (project: Project): BlockRow[] =>
 
 export const selectAnnotationRows = (project: Project): AnnotationRow[] =>
   Object.values(project.documents).flatMap(doc =>
-    doc.annotations.map(ann => {
+    Object.values(doc.annotations).map(ann => {
       const payload = getCodingPayload(ann)
       return {
-        id: ann.id!,
+        id: ann.id,
         document_id: doc.id,
         text: ann.text,
         actor: ann.actor,

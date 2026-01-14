@@ -162,7 +162,7 @@ export default function ProjectFile() {
         <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
           <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
           <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-            <Editor key={fileId} content={document.content} annotations={document.annotations} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
+            <Editor key={fileId} content={document.content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
           </EditorDocumentProvider>
         </div>
       </div>

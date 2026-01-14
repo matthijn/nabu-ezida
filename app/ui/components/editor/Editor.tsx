@@ -8,7 +8,7 @@ import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import { TaskItem } from "@tiptap/extension-task-item"
 import { Markdown } from "tiptap-markdown"
-import { Lock, BlockID, applyBlockOps, Annotations } from "./extensions"
+import { Lock, BlockID, applyBlockOps, Annotations, setAnnotations } from "./extensions"
 import { AnnotationHover } from "./AnnotationHover"
 import type { Annotation } from "~/domain/document/annotations"
 import {
@@ -137,6 +137,13 @@ export const Editor = ({
 
     prevContent.current = content
   }, [editor, content])
+
+  useEffect(() => {
+    if (!editor) return
+    const { tr } = editor.state
+    tr.setMeta(setAnnotations(annotations).key, { annotations })
+    editor.view.dispatch(tr)
+  }, [editor, annotations])
 
   useEffect(() => {
     if (!cursorRef) return

@@ -12,7 +12,7 @@ export type DocumentData = {
   pinned: boolean
   tags: string[]
   content: Block[]
-  annotations: Annotation[]
+  annotations: Record<string, Annotation>
 }
 
 export type Document = {
