@@ -295,287 +295,319 @@ function NabuInbox() {
             </div>
           </div>
         </div>
-        <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-          <div className="flex w-full flex-col items-start gap-3 border-b border-solid border-neutral-border px-6 py-4">
-            <div className="flex w-full items-start gap-2">
-              <div className="flex grow shrink-0 basis-0 items-center gap-2">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Habitat Destruction Framework
-                </span>
-              </div>
-              <IconButton
-                variant="brand-tertiary"
-                size="small"
-                icon={<FeatherPin />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <IconButton
-                size="small"
-                icon={<FeatherShare2 />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <SubframeCore.DropdownMenu.Root>
-                <SubframeCore.DropdownMenu.Trigger asChild={true}>
-                  <IconButton
-                    size="small"
-                    icon={<FeatherMoreHorizontal />}
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                  />
-                </SubframeCore.DropdownMenu.Trigger>
-                <SubframeCore.DropdownMenu.Portal>
-                  <SubframeCore.DropdownMenu.Content
-                    side="bottom"
-                    align="end"
-                    sideOffset={4}
-                    asChild={true}
-                  >
-                    <DropdownMenu>
-                      <DropdownMenu.DropdownItem icon={<FeatherCopy />}>
-                        Duplicate
-                      </DropdownMenu.DropdownItem>
-                      <DropdownMenu.DropdownItem icon={<FeatherFileText />}>
-                        Export
-                      </DropdownMenu.DropdownItem>
-                      <DropdownMenu.DropdownItem icon={<FeatherTrash />}>
-                        Delete
-                      </DropdownMenu.DropdownItem>
-                    </DropdownMenu>
-                  </SubframeCore.DropdownMenu.Content>
-                </SubframeCore.DropdownMenu.Portal>
-              </SubframeCore.DropdownMenu.Root>
-            </div>
-            <div className="flex w-full items-center gap-2">
-              <Badge variant="brand" icon={null}>
-                Framework
-              </Badge>
-              <Badge variant="neutral" icon={null}>
-                Ecology
-              </Badge>
-              <Badge variant="neutral" icon={null}>
-                Conservation
-              </Badge>
-              <Button
-                variant="neutral-tertiary"
-                size="small"
-                icon={<FeatherPlus />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              >
-                Add tag
-              </Button>
-            </div>
+        <div className="flex grow shrink-0 basis-0 items-start self-stretch">
+          <div className="flex w-8 flex-none flex-col items-center gap-1 self-stretch border-r border-solid border-neutral-border bg-neutral-50 px-1 py-12">
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#86efacff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#fcd34dff]" />
+            <div className="flex h-6 w-full flex-none items-start" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#fcd34dff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#f9a8d4ff]" />
+            <div className="flex h-8 w-full flex-none items-start" />
+            <div className="flex h-3 w-full flex-none items-start rounded-full bg-[#86efacff]" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#fca5a5ff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#86efacff]" />
+            <div className="flex h-6 w-full flex-none items-start" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#fcd34dff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#f9a8d4ff]" />
+            <div className="flex h-10 w-full flex-none items-start" />
+            <div className="flex h-3 w-full flex-none items-start rounded-full bg-[#fca5a5ff]" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#fca5a5ff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#f9a8d4ff]" />
+            <div className="flex h-8 w-full flex-none items-start" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#93c5fdff]" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#93c5fdff]" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#93c5fdff]" />
+            <div className="flex h-10 w-full flex-none items-start" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#fcd34dff]" />
+            <div className="flex h-1 w-full flex-none items-start rounded-full bg-[#f9a8d4ff]" />
+            <div className="flex h-6 w-full flex-none items-start" />
+            <div className="flex h-2 w-full flex-none items-start rounded-full bg-[#86efacff]" />
           </div>
-          <div className="flex w-full grow shrink-0 basis-0 flex-col items-start px-24 py-8 overflow-auto mobile:px-6 mobile:py-6">
-            <div className="flex w-full items-center justify-center">
-              <div className="flex items-start gap-1 rounded-full border border-solid border-neutral-border bg-default-background px-2 py-2 shadow-md">
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading1 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading2 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherHeading3 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherBold />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherItalic />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherUnderline />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherStrikethrough />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherLink />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherImage />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherList />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherListOrdered />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherListChecks />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
-                <IconButton
-                  size="small"
-                  icon={<FeatherCode2 />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-                <IconButton
-                  size="small"
-                  icon={<FeatherQuote />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                />
-              </div>
-            </div>
-            <div className="flex w-full max-w-[768px] flex-col items-start gap-8 rounded-lg bg-white px-12 py-10 shadow-md mobile:px-6 mobile:py-6">
-              <div className="flex w-full flex-col items-start gap-4">
-                <span className="text-heading-1 font-heading-1 text-default-font">
-                  Habitat Destruction Framework
-                </span>
-                <span className="text-body font-body text-subtext-color">
-                  A comprehensive analysis of ecosystem degradation patterns and
-                  conservation strategies across tropical regions
-                </span>
-              </div>
-              <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Executive Summary
-                </span>
-                <span className="text-body font-body text-default-font">
-                  This framework establishes a systematic approach to
-                  understanding and addressing habitat destruction in critical
-                  ecosystems. Through extensive field research and data
-                  analysis, we identify key drivers of degradation and propose
-                  evidence-based interventions for biodiversity preservation.
-                </span>
-              </div>
-              <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Key Findings
-                </span>
-                <span className="text-body font-body text-default-font">
-                  Our three-year study across 24 tropical ecosystems reveals
-                  that habitat loss continues at an accelerating rate, with
-                  deforestation patterns showing a 34% increase since 2020.
-                  Agricultural expansion accounts for 68% of observed habitat
-                  destruction, followed by infrastructure development at 19% and
-                  resource extraction at 13%.
-                </span>
-                <span className="text-body font-body text-default-font">
-                  The most vulnerable regions include the Amazon Basin,
-                  Southeast Asian rainforests, and Central African tropical
-                  zones. Species diversity has declined by an average of 42% in
-                  areas experiencing active degradation, with ripple effects
-                  observed in adjacent ecosystems up to 15 kilometers away.
-                </span>
-              </div>
-              <div className="flex w-full flex-col items-start gap-4">
-                <span className="text-heading-3 font-heading-3 text-default-font">
-                  Habitat Loss by Region (2020-2024)
-                </span>
-                <div className="flex w-full flex-col items-start gap-3 rounded-lg border border-solid border-neutral-border bg-neutral-50 px-6 py-6">
-                  <div className="flex w-full items-end gap-4">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-brand-100">
-                        <div className="flex w-full items-start rounded-md bg-brand-600" />
-                      </div>
-                      <span className="text-caption font-caption text-subtext-color">
-                        Amazon
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-warning-100">
-                        <div className="flex w-full items-start rounded-md bg-warning-600" />
-                      </div>
-                      <span className="text-caption font-caption text-subtext-color">
-                        SE Asia
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-error-100">
-                        <div className="flex w-full items-start rounded-md bg-error-600" />
-                      </div>
-                      <span className="text-caption font-caption text-subtext-color">
-                        C. Africa
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-neutral-200">
-                        <div className="flex w-full items-start rounded-md bg-neutral-600" />
-                      </div>
-                      <span className="text-caption font-caption text-subtext-color">
-                        Australia
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-success-100">
-                        <div className="flex w-full items-start rounded-md bg-success-600" />
-                      </div>
-                      <span className="text-caption font-caption text-subtext-color">
-                        C. America
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-caption font-caption text-subtext-color">
-                    Percentage of total habitat loss measured in hectares
-                    (thousands)
+          <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
+            <div className="flex w-full flex-col items-start gap-3 border-b border-solid border-neutral-border px-6 py-4">
+              <div className="flex w-full items-start gap-2">
+                <div className="flex grow shrink-0 basis-0 items-center gap-2">
+                  <span className="text-heading-2 font-heading-2 text-default-font">
+                    Habitat Destruction Framework
                   </span>
                 </div>
+                <IconButton
+                  variant="brand-tertiary"
+                  size="small"
+                  icon={<FeatherPin />}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                />
+                <IconButton
+                  size="small"
+                  icon={<FeatherShare2 />}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                />
+                <SubframeCore.DropdownMenu.Root>
+                  <SubframeCore.DropdownMenu.Trigger asChild={true}>
+                    <IconButton
+                      size="small"
+                      icon={<FeatherMoreHorizontal />}
+                      onClick={(
+                        event: React.MouseEvent<HTMLButtonElement>
+                      ) => {}}
+                    />
+                  </SubframeCore.DropdownMenu.Trigger>
+                  <SubframeCore.DropdownMenu.Portal>
+                    <SubframeCore.DropdownMenu.Content
+                      side="bottom"
+                      align="end"
+                      sideOffset={4}
+                      asChild={true}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenu.DropdownItem icon={<FeatherCopy />}>
+                          Duplicate
+                        </DropdownMenu.DropdownItem>
+                        <DropdownMenu.DropdownItem icon={<FeatherFileText />}>
+                          Export
+                        </DropdownMenu.DropdownItem>
+                        <DropdownMenu.DropdownItem icon={<FeatherTrash />}>
+                          Delete
+                        </DropdownMenu.DropdownItem>
+                      </DropdownMenu>
+                    </SubframeCore.DropdownMenu.Content>
+                  </SubframeCore.DropdownMenu.Portal>
+                </SubframeCore.DropdownMenu.Root>
               </div>
-              <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Methodology
-                </span>
-                <span className="text-body font-body text-default-font">
-                  Data collection involved satellite imagery analysis, ground
-                  surveys, and collaboration with 47 local conservation
-                  organizations. We employed machine learning algorithms to
-                  identify land-use changes and validated findings through
-                  on-site verification in representative sample areas.
-                </span>
-                <span className="text-body font-body text-default-font">
-                  Our biodiversity assessment combined camera trap surveys,
-                  acoustic monitoring, and eDNA sampling to track species
-                  presence and population trends. All methodologies adhere to
-                  IUCN standards and were reviewed by independent ecological
-                  assessment panels.
-                </span>
+              <div className="flex w-full items-center gap-2">
+                <Badge variant="brand" icon={null}>
+                  Framework
+                </Badge>
+                <Badge variant="neutral" icon={null}>
+                  Ecology
+                </Badge>
+                <Badge variant="neutral" icon={null}>
+                  Conservation
+                </Badge>
+                <Button
+                  variant="neutral-tertiary"
+                  size="small"
+                  icon={<FeatherPlus />}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                >
+                  Add tag
+                </Button>
               </div>
-              <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
-                <span className="text-heading-2 font-heading-2 text-default-font">
-                  Recommendations
-                </span>
-                <span className="text-body font-body text-default-font">
-                  Immediate intervention requires establishing protected
-                  corridors between fragmented habitats, implementing stricter
-                  land-use regulations, and investing in restoration projects.
-                  Community engagement programs have shown 73% success rates in
-                  reducing illegal deforestation when paired with sustainable
-                  livelihood alternatives.
-                </span>
-                <span className="text-body font-body text-default-font">
-                  Long-term conservation success depends on policy reform at
-                  national and international levels, increased funding for
-                  monitoring systems, and partnerships between governments,
-                  NGOs, and indigenous communities who serve as primary stewards
-                  of these ecosystems.
-                </span>
+            </div>
+            <div className="flex w-full grow shrink-0 basis-0 flex-col items-start px-24 py-8 overflow-auto mobile:px-6 mobile:py-6">
+              <div className="flex w-full items-center justify-center">
+                <div className="flex items-start gap-1 rounded-full border border-solid border-neutral-border bg-default-background px-2 py-2 shadow-md">
+                  <IconButton
+                    size="small"
+                    icon={<FeatherHeading1 />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherHeading2 />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherHeading3 />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherBold />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherItalic />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherUnderline />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherStrikethrough />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherLink />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherImage />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherList />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherListOrdered />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherListChecks />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherCode2 />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                  <IconButton
+                    size="small"
+                    icon={<FeatherQuote />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  />
+                </div>
+              </div>
+              <div className="flex w-full max-w-[768px] flex-col items-start gap-8 rounded-lg bg-white px-12 py-10 shadow-md mobile:px-6 mobile:py-6">
+                <div className="flex w-full flex-col items-start gap-4">
+                  <span className="text-heading-1 font-heading-1 text-default-font">
+                    Habitat Destruction Framework
+                  </span>
+                  <span className="text-body font-body text-subtext-color">
+                    A comprehensive analysis of ecosystem degradation patterns
+                    and conservation strategies across tropical regions
+                  </span>
+                </div>
+                <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
+                  <span className="text-heading-2 font-heading-2 text-default-font">
+                    Executive Summary
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    This framework establishes a systematic approach to
+                    understanding and addressing habitat destruction in critical
+                    ecosystems. Through extensive field research and data
+                    analysis, we identify key drivers of degradation and propose
+                    evidence-based interventions for biodiversity preservation.
+                  </span>
+                </div>
+                <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
+                  <span className="text-heading-2 font-heading-2 text-default-font">
+                    Key Findings
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    Our three-year study across 24 tropical ecosystems reveals
+                    that habitat loss continues at an accelerating rate, with
+                    deforestation patterns showing a 34% increase since 2020.
+                    Agricultural expansion accounts for 68% of observed habitat
+                    destruction, followed by infrastructure development at 19%
+                    and resource extraction at 13%.
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    The most vulnerable regions include the Amazon Basin,
+                    Southeast Asian rainforests, and Central African tropical
+                    zones. Species diversity has declined by an average of 42%
+                    in areas experiencing active degradation, with ripple
+                    effects observed in adjacent ecosystems up to 15 kilometers
+                    away.
+                  </span>
+                </div>
+                <div className="flex w-full flex-col items-start gap-4">
+                  <span className="text-heading-3 font-heading-3 text-default-font">
+                    Habitat Loss by Region (2020-2024)
+                  </span>
+                  <div className="flex w-full flex-col items-start gap-3 rounded-lg border border-solid border-neutral-border bg-neutral-50 px-6 py-6">
+                    <div className="flex w-full items-end gap-4">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-brand-100">
+                          <div className="flex w-full items-start rounded-md bg-brand-600" />
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          Amazon
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-warning-100">
+                          <div className="flex w-full items-start rounded-md bg-warning-600" />
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          SE Asia
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-error-100">
+                          <div className="flex w-full items-start rounded-md bg-error-600" />
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          C. Africa
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-neutral-200">
+                          <div className="flex w-full items-start rounded-md bg-neutral-600" />
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          Australia
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-64 w-16 flex-none flex-col items-center justify-end rounded-md bg-success-100">
+                          <div className="flex w-full items-start rounded-md bg-success-600" />
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          C. America
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-caption font-caption text-subtext-color">
+                      Percentage of total habitat loss measured in hectares
+                      (thousands)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
+                  <span className="text-heading-2 font-heading-2 text-default-font">
+                    Methodology
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    Data collection involved satellite imagery analysis, ground
+                    surveys, and collaboration with 47 local conservation
+                    organizations. We employed machine learning algorithms to
+                    identify land-use changes and validated findings through
+                    on-site verification in representative sample areas.
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    Our biodiversity assessment combined camera trap surveys,
+                    acoustic monitoring, and eDNA sampling to track species
+                    presence and population trends. All methodologies adhere to
+                    IUCN standards and were reviewed by independent ecological
+                    assessment panels.
+                  </span>
+                </div>
+                <div className="flex w-full flex-col items-start gap-4 border-l-4 border-solid border-brand-500 pl-6">
+                  <span className="text-heading-2 font-heading-2 text-default-font">
+                    Recommendations
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    Immediate intervention requires establishing protected
+                    corridors between fragmented habitats, implementing stricter
+                    land-use regulations, and investing in restoration projects.
+                    Community engagement programs have shown 73% success rates
+                    in reducing illegal deforestation when paired with
+                    sustainable livelihood alternatives.
+                  </span>
+                  <span className="text-body font-body text-default-font">
+                    Long-term conservation success depends on policy reform at
+                    national and international levels, increased funding for
+                    monitoring systems, and partnerships between governments,
+                    NGOs, and indigenous communities who serve as primary
+                    stewards of these ecosystems.
+                  </span>
+                </div>
               </div>
             </div>
           </div>
