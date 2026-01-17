@@ -1,5 +1,6 @@
 import type { Project } from "./types"
 import type { Document, Block, Annotation } from "../document"
+import { blocksToArray, getChildBlocks } from "../document"
 import { getCodingPayload } from "../plugins/coding"
 
 export type ProjectRow = {
@@ -20,7 +21,6 @@ export type DocumentRow = {
   title: string | null
   time: string | null
   updated_at: string
-  original: string
   pinned: boolean
   healthy: boolean
   version: number
@@ -66,36 +66,34 @@ export const selectDocumentRows = (project: Project): DocumentRow[] =>
     title: doc.title ?? null,
     time: doc.time ?? null,
     updated_at: doc.updated_at,
-    original: doc.original,
     pinned: doc.pinned,
     healthy: doc.healthy,
     version: doc.version,
   }))
 
 const flattenBlocks = (
-  documentId: string,
+  doc: Document,
   blocks: Block[],
   parentId: string | null
 ): BlockRow[] =>
   blocks.flatMap((block, index) => {
     const row: BlockRow = {
       id: block.id!,
-      document_id: documentId,
+      document_id: doc.id,
       parent_id: parentId,
       position: index,
       type: block.type,
       props: block.props ? JSON.stringify(block.props) : null,
       content: block.content ? JSON.stringify(block.content) : null,
     }
-    const childRows = block.children
-      ? flattenBlocks(documentId, block.children, block.id!)
-      : []
+    const childBlocks = getChildBlocks(doc.blocks, block.id!)
+    const childRows = flattenBlocks(doc, childBlocks, block.id!)
     return [row, ...childRows]
   })
 
 export const selectBlockRows = (project: Project): BlockRow[] =>
   Object.values(project.documents).flatMap(doc =>
-    flattenBlocks(doc.id, doc.content, null)
+    flattenBlocks(doc, blocksToArray(doc), null)
   )
 
 export const selectAnnotationRows = (project: Project): AnnotationRow[] =>
@@ -118,5 +116,5 @@ export const selectAnnotationRows = (project: Project): AnnotationRow[] =>
 export const selectBlockIdsForDocument = (project: Project, documentId: string): string[] => {
   const doc = project.documents[documentId]
   if (!doc) return []
-  return flattenBlocks(documentId, doc.content, null).map(row => row.id)
+  return flattenBlocks(doc, blocksToArray(doc), null).map(row => row.id)
 }

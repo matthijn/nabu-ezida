@@ -7,7 +7,7 @@ import { setEditorContext } from "~/lib/chat/context"
 import { parseSpotlight } from "~/domain/spotlight"
 import { useCommand } from "~/lib/api/useCommand"
 import { documentCommands } from "~/domain/api/commands"
-import type { BlockOp } from "~/domain/document"
+import { blocksToArrayWithChildren, type BlockOp } from "~/domain/document"
 import {
   FeatherBold,
   FeatherCode2,
@@ -105,11 +105,13 @@ export default function ProjectFile() {
     [fileId, executeAll]
   )
 
+  const content = document ? blocksToArrayWithChildren(document) : []
+
   useEffect(() => {
     if (document) {
-      console.debug("[WebSocket] Document content:", document.content)
+      console.debug("[WebSocket] Document content:", content)
     }
-  }, [document?.content])
+  }, [document?.blocks, document?.head_id])
 
   if (!isConnected) {
     return (
@@ -131,7 +133,7 @@ export default function ProjectFile() {
     <>
       <FileHeader
         title={document.name}
-        tags={document.tags.map((tag: string, i: number) => ({
+        tags={Object.keys(document.tags).map((tag, i) => ({
           label: tag,
           variant: i === 0 ? "brand" : ("neutral" as const),
         }))}
@@ -169,10 +171,10 @@ export default function ProjectFile() {
               [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
             ]}
           />
-          <div ref={editorContainerRef} className="relative flex w-full flex-col items-start gap-8 pt-8">
+          <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
             <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
             <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-              <Editor key={fileId} content={document.content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
+              <Editor key={fileId} content={content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
             </EditorDocumentProvider>
           </div>
         </div>

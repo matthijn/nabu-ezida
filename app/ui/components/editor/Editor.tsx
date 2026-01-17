@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
+import { debounce, type DebouncedFn } from "~/lib/utils"
 import StarterKit from "@tiptap/starter-kit"
 import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
@@ -54,26 +55,22 @@ export const Editor = ({
 }: EditorProps) => {
   const prevContent = useRef(content)
   const lastSyncedBlocks = useRef<Block[]>(content ?? [])
-  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onSyncBlocksRef = useRef(onSyncBlocks)
+  onSyncBlocksRef.current = onSyncBlocks
 
-  const syncBlocks = useCallback((editor: ReturnType<typeof useEditor>) => {
-    if (!editor || !onSyncBlocks) return
-    const currentBlocks = tiptapToBlocks(editor.getJSON())
-    const ops = diffBlocks(lastSyncedBlocks.current, currentBlocks)
-    if (ops.length > 0) {
-      onSyncBlocks(ops)
-      lastSyncedBlocks.current = currentBlocks
-    }
-  }, [onSyncBlocks])
-
-  const debouncedSync = useCallback((editor: ReturnType<typeof useEditor>) => {
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current)
-    }
-    syncTimeoutRef.current = setTimeout(() => {
-      syncBlocks(editor)
+  type EditorSyncFn = (editor: ReturnType<typeof useEditor>) => void
+  const debouncedSyncRef = useRef<DebouncedFn<EditorSyncFn> | undefined>(undefined)
+  if (!debouncedSyncRef.current) {
+    debouncedSyncRef.current = debounce<EditorSyncFn>((editor) => {
+      if (!editor || !onSyncBlocksRef.current) return
+      const currentBlocks = tiptapToBlocks(editor.getJSON())
+      const ops = diffBlocks(lastSyncedBlocks.current, currentBlocks)
+      if (ops.length > 0) {
+        onSyncBlocksRef.current(ops)
+        lastSyncedBlocks.current = currentBlocks
+      }
     }, 1000)
-  }, [syncBlocks])
+  }
 
   const editor = useEditor({
     extensions: [
@@ -107,21 +104,17 @@ export const Editor = ({
     editable,
     onUpdate: ({ editor }) => {
       onUpdate?.(tiptapToBlocks(editor.getJSON()))
-      debouncedSync(editor)
+      debouncedSyncRef.current?.(editor)
     },
     editorProps: {
       attributes: {
-        class: "focus:outline-none min-h-[200px] px-4 py-2",
+        class: "focus:outline-none h-full px-4 py-2",
       },
     },
   })
 
   useEffect(() => {
-    return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
-      }
-    }
+    return () => debouncedSyncRef.current?.cancel()
   }, [])
 
   useEffect(() => {
@@ -164,7 +157,7 @@ export const Editor = ({
 
   return (
     <AnnotationHover annotations={annotations}>
-      <EditorContent editor={editor} className="w-full" />
+      <EditorContent editor={editor} className="w-full grow" />
     </AnnotationHover>
   )
 }

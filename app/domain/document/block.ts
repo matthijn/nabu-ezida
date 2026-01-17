@@ -31,5 +31,10 @@ export type Block = {
   type: BlockType
   props?: BlockProps
   content?: InlineContent[]
+  next_id?: string
+  prev_id?: string
+  first_child_id?: string
+  last_child_id?: string
+  parent_id?: string
   children?: Block[]
 }

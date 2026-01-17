@@ -88,6 +88,11 @@ export const sendCommand = async (command: Command): Promise<CommandResult> => {
   }
 }
 
+export const send = async (command: Command): Promise<{ success: true; event: DomainEvent }> => {
+  const result = await sendCommand(command)
+  return { success: true, event: result.result }
+}
+
 export type BatchResult = {
   index: number
   success: boolean

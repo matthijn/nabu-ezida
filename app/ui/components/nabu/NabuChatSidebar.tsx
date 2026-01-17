@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
+import { useNavigate } from "react-router"
 import Markdown, { type Components } from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw, FeatherAlertCircle } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
@@ -15,6 +16,7 @@ import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
 import type { Participant } from "~/domain/participant"
 import { resolveFileLink } from "~/domain/spotlight"
+import { getState, getQuery, subscribe } from "~/lib/services/projectSync"
 import { useNabu } from "./context"
 
 type MessageContentProps = {
@@ -200,8 +202,16 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
 }
 
 export const NabuChatSidebar = () => {
-  const { minimized, minimizeChat, query, project, navigate } = useNabu()
-  const deps = useMemo(() => ({ query, project: project ?? undefined, navigate }), [query, project, navigate])
+  const { minimized, minimizeChat } = useNabu()
+  const navigate = useNavigate()
+  const [project, setProject] = useState(getState().project)
+
+  useEffect(() => subscribe((state) => setProject(state.project)), [])
+
+  const getDeps = useCallback(() => {
+    const { project } = getState()
+    return { query: getQuery(), project: project ?? undefined, navigate }
+  }, [navigate])
   const { chat, send, run, cancel, loading, streaming, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
@@ -216,9 +226,9 @@ export const NabuChatSidebar = () => {
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
-    send(inputValue.trim(), deps)
+    send(inputValue.trim(), getDeps())
     setInputValue("")
-  }, [inputValue, send, deps])
+  }, [inputValue, send, getDeps])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -235,8 +245,8 @@ export const NabuChatSidebar = () => {
   }, [minimizeChat])
 
   const handleRetry = useCallback(() => {
-    run(deps)
-  }, [run, deps])
+    run(getDeps())
+  }, [run, getDeps])
 
   const showFloatingButton = !chat || minimized
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />

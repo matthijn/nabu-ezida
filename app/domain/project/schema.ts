@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS documents (
   title TEXT,
   time TIMESTAMP,
   updated_at TIMESTAMP,
-  original TEXT,
   pinned BOOLEAN,
   healthy BOOLEAN,
   version INTEGER

@@ -4,7 +4,7 @@ import type { DerivedPlan } from "./selectors"
 import { parse } from "./parser"
 import { appendBlock } from "./reducer"
 import { toNudge } from "./orchestrator"
-import { derive, lastPlan, getMode } from "./selectors"
+import { derive, lastPlan, getMode, isToolCallBlock } from "./selectors"
 import { buildModeRequiredNudge } from "./prompts"
 
 const MODE_EXEMPT = new Set([
@@ -15,7 +15,7 @@ const MODE_EXEMPT = new Set([
   "abort",
 ])
 
-type ToolExecutor = (call: ToolCall) => Promise<unknown>
+export type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
 export type TurnDeps = {
   endpoint: string
@@ -51,7 +51,7 @@ const formatError = (e: unknown): unknown => {
   return { error: String(e) }
 }
 
-const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
+export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
   try {
     const result = await execute(call)
     return { type: "tool_result", callId: call.id, result: sanitizeForJson(result) }
@@ -60,8 +60,25 @@ const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolR
   }
 }
 
-const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
+export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
   Promise.all(calls.map((call) => executeTool(call, execute)))
+
+export const runPrompt = async (
+  endpoint: string,
+  context: string,
+  execute: ToolExecutor
+): Promise<void> => {
+  console.debug("[runPrompt] Calling endpoint:", endpoint)
+  const messages: Message[] = [{ role: "system", content: context }]
+  const blocks = await parse({ endpoint, messages })
+  console.debug("[runPrompt] Received blocks:", blocks.length)
+  const calls = blocks.filter(isToolCallBlock).flatMap(b => b.calls)
+  console.debug("[runPrompt] Tool calls:", calls.map(c => ({ name: c.name, args: c.args })))
+  if (calls.length > 0) {
+    const results = await executeTools(calls, execute)
+    console.debug("[runPrompt] Tool results:", results.map(r => ({ callId: r.callId, result: r.result })))
+  }
+}
 
 export const turn = async (history: Block[], messages: Message[], deps: TurnDeps): Promise<TurnResult> => {
   const { endpoint, execute, callbacks, signal } = deps

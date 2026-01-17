@@ -36,3 +36,11 @@ export type AbortBlock = {
 }
 
 export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | AbortBlock
+
+export type ToolDeps = {
+  query?: <T = unknown>(sql: string) => Promise<{ rows: T[]; rowCount: number }>
+  project?: import("~/domain/project").Project
+  navigate?: (url: string) => void
+}
+
+export type Handler = (deps: ToolDeps, args: Record<string, unknown>) => Promise<unknown>

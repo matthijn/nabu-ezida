@@ -87,7 +87,7 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
   const entries = toEntries(hoveredAnnotations)
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative flex w-full grow flex-col">
       {children}
       {hover && entries.length > 0 && createPortal(
         <div

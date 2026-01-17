@@ -43,3 +43,32 @@ export const diffBlocks = (oldBlocks: Block[], newBlocks: Block[]): BlockOp[] =>
 
   return ops
 }
+
+const hashBlock = (b: Block): string =>
+  JSON.stringify([b.type, b.props, b.content])
+
+const flattenBlockHashes = (blocks: Block[]): string[] => {
+  const result: string[] = []
+  for (const b of blocks) {
+    result.push(hashBlock(b))
+    if (b.children?.length) {
+      result.push(...flattenBlockHashes(b.children))
+    }
+  }
+  return result
+}
+
+export const hasSignificantChange = (
+  oldBlocks: Block[],
+  newBlocks: Block[],
+  threshold = 0.1
+): boolean => {
+  const oldSet = new Set(flattenBlockHashes(oldBlocks))
+  const newSet = new Set(flattenBlockHashes(newBlocks))
+
+  const same = [...oldSet].filter(h => newSet.has(h)).length
+  const total = Math.max(oldSet.size, newSet.size)
+  const changed = 1 - (same / total)
+
+  return changed > threshold
+}

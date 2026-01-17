@@ -1,4 +1,4 @@
-export type { Document, DocumentData } from "./types"
+export type { Document, DocumentData, Tag } from "./types"
 export type {
   Block,
   InlineContent,
@@ -34,4 +34,6 @@ export {
   createBackground,
 } from "./annotations"
 export { blocksToTiptap, tiptapToBlocks } from "./convert/index"
-export { diffBlocks, type BlockOp } from "./diff"
+export { diffBlocks, hasSignificantChange, type BlockOp } from "./diff"
+export { blocksToArray, blocksToArrayWithChildren, getChildBlocks, type BlockTree } from "./selectors"
+export { blocksToMarkdown } from "./markdown"

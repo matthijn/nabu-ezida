@@ -23,5 +23,5 @@ export { parse, processLine, initialParseState, blocksToMessages } from "./parse
 export type { Message, ParseCallbacks, ParseOptions } from "./parser"
 export { createToolExecutor } from "./tools"
 export type { ToolDeps } from "./tools"
-export { turn } from "./turn"
-export type { TurnDeps, TurnResult } from "./turn"
+export { turn, executeTools, executeTool, runPrompt } from "./turn"
+export type { TurnDeps, TurnResult, ToolExecutor } from "./turn"

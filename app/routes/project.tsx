@@ -1,12 +1,9 @@
-import { useCallback, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
-import { toast } from "sonner"
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
-import { useSyncEngine } from "~/hooks/useSyncEngine"
-import { getWsUrl, getApiUrl } from "~/lib/env"
+import { useProjectSync } from "~/hooks/useProjectSync"
+import { getWsUrl } from "~/lib/env"
 import type { Project } from "~/domain/project"
-import { projectSchema, syncProjectToDatabase } from "~/domain/project"
-import type { FormattedError } from "~/domain/api"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import type { Document } from "~/domain/document"
 import { closeChat } from "~/lib/chat"
@@ -24,7 +21,7 @@ const toSidebarDocument = (doc: Document): SidebarDocument => ({
   id: doc.id,
   title: doc.name,
   editedAt: doc.updated_at,
-  tags: doc.tags.map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" : "neutral" })),
+  tags: Object.keys(doc.tags).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" : "neutral" })),
   pinned: doc.pinned,
 })
 
@@ -49,20 +46,8 @@ export default function ProjectLayout() {
     return () => closeChat()
   }, [params.projectId])
 
-  const handleError = useCallback((error: FormattedError) => {
-    toast.error(error.title, { description: error.description })
-  }, [])
+  const { project, isConnected } = useProjectSync(getWsUrl("/ws"), params.projectId!)
 
-  const { state, database } = useSyncEngine<Project>({
-    wsBaseUrl: getWsUrl("/ws"),
-    apiBaseUrl: getApiUrl("/api"),
-    resourceId: params.projectId!,
-    schemaSql: projectSchema,
-    onError: handleError,
-    syncToDatabase: syncProjectToDatabase,
-  })
-
-  const project = state.data
   const documents = selectSidebarDocuments(project)
 
   const handleDocumentSelect = (docId: string) => {
@@ -70,7 +55,7 @@ export default function ProjectLayout() {
   }
 
   return (
-    <NabuProvider query={database.query} project={project} navigate={navigate}>
+    <NabuProvider>
       <DefaultPageLayout>
         <div className="flex h-full w-full items-start bg-default-background">
           <DocumentsSidebar
@@ -87,7 +72,7 @@ export default function ProjectLayout() {
             onExpand={() => setSidebarCollapsed(false)}
           />
           <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-            <Outlet context={{ project, isConnected: state.isConnected }} />
+            <Outlet context={{ project, isConnected }} />
           </div>
         </div>
         <NabuChatSidebar />
