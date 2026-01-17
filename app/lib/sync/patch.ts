@@ -1,11 +1,17 @@
 import { produce } from "immer"
-import { applyPatch, type Operation } from "fast-json-patch"
+import { applyPatch, getValueByPointer, type Operation } from "fast-json-patch"
 
 export type { Operation }
 
 export type PatchableMessage<T> =
   | { type: "snapshot"; data: T }
   | { type: "patch"; data: Operation[] }
+
+const isRemoveForMissingPath = (op: Operation, doc: unknown): boolean =>
+  op.op === "remove" && getValueByPointer(doc, op.path) === undefined
+
+const filterIdempotentRemoves = (ops: Operation[], doc: unknown): Operation[] =>
+  ops.filter(op => !isRemoveForMissingPath(op, doc))
 
 export const applyPatchableMessage = <T>(
   current: T | null,
@@ -20,7 +26,8 @@ export const applyPatchableMessage = <T>(
   }
 
   return produce(current, draft => {
-    applyPatch(draft, message.data, true, true)
+    const ops = filterIdempotentRemoves(message.data, draft)
+    applyPatch(draft, ops, true, true)
   })
 }
 

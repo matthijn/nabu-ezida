@@ -68,7 +68,7 @@ export const runPrompt = async (
   context: string,
   execute: ToolExecutor
 ): Promise<void> => {
-  console.debug("[runPrompt] Calling endpoint:", endpoint)
+  console.debug("[runPrompt] Calling endpoint:", endpoint, "context:", context)
   const messages: Message[] = [{ role: "system", content: context }]
   const blocks = await parse({ endpoint, messages })
   console.debug("[runPrompt] Received blocks:", blocks.length)
