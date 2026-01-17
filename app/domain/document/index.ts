@@ -34,6 +34,13 @@ export {
   createBackground,
 } from "./annotations"
 export { blocksToTiptap, tiptapToBlocks } from "./convert/index"
-export { diffBlocks, hasSignificantChange, type BlockOp } from "./diff"
+export {
+  diffBlocks,
+  hasSignificantChange,
+  hasSignificantDrift,
+  computeBlockFingerprint,
+  type BlockOp,
+  type BlockFingerprint,
+} from "./diff"
 export { blocksToArray, blocksToArrayWithChildren, getChildBlocks, type BlockTree } from "./selectors"
 export { blocksToMarkdown } from "./markdown"

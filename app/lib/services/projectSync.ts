@@ -7,8 +7,8 @@ import { initializeDatabase } from "~/lib/db/init"
 import type { Database } from "~/lib/db/types"
 import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { Project } from "~/domain/project"
-import type { Document } from "~/domain/document"
-import { blocksToMarkdown } from "~/domain/document"
+import type { Document, BlockFingerprint } from "~/domain/document"
+import { blocksToMarkdown, computeBlockFingerprint, hasSignificantDrift } from "~/domain/document"
 
 type ConnectionState = {
   project: Project | null
@@ -26,6 +26,7 @@ let connection: WebSocketConnection | null = null
 let database: Database | null = null
 let currentState: ConnectionState = { project: null, isConnected: false, error: null }
 const listeners = new Set<StateListener>()
+const lastBlockFingerprints = new Map<string, BlockFingerprint>()
 
 const getExecutor = () =>
   createToolExecutor({
@@ -39,11 +40,23 @@ const formatDocumentContext = (doc: Document): string =>
 const isContentChange = (change: DocumentChange): boolean =>
   change.path.includes("/blocks")
 
+const shouldTag = (doc: Document): boolean => {
+  const current = computeBlockFingerprint(Object.values(doc.blocks))
+  const previous = lastBlockFingerprints.get(doc.id)
+  return !previous || hasSignificantDrift(previous, current)
+}
+
+const markTagged = (doc: Document): void => {
+  lastBlockFingerprints.set(doc.id, computeBlockFingerprint(Object.values(doc.blocks)))
+}
+
 const tagDocument = (doc: Document): void => {
+  if (!shouldTag(doc)) return
+
   const context = formatDocumentContext(doc)
-  runPrompt("/chat/tag?tool_choice=required", context, getExecutor()).catch((e) => {
-    console.error("[ProjectSync] Tag prompt failed:", e)
-  })
+  runPrompt("/chat/tag?tool_choice=required", context, getExecutor())
+    .then(() => markTagged(doc))
+    .catch((e) => console.error("[ProjectSync] Tag prompt failed:", e))
 }
 
 const handleDocumentContentChange = (ids: string[]): void => {
@@ -68,7 +81,15 @@ const debouncedFlush = debounce(collected.flush, DOCUMENT_CHANGE_DEBOUNCE_MS)
 const debouncedDbSync = debounce(syncDatabase, DB_SYNC_DEBOUNCE_MS)
 
 const setState = (updates: Partial<ConnectionState>): void => {
+  const prev = currentState
   currentState = { ...currentState, ...updates }
+  console.debug("[ProjectSync] setState", {
+    projectWas: prev.project?.id ?? "null",
+    projectNow: currentState.project?.id ?? "null",
+    isConnected: currentState.isConnected,
+    error: currentState.error,
+    docCount: currentState.project ? Object.keys(currentState.project.documents).length : 0,
+  })
   listeners.forEach((fn) => fn(currentState))
   if (updates.project) debouncedDbSync()
 }

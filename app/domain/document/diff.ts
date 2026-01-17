@@ -58,17 +58,28 @@ const flattenBlockHashes = (blocks: Block[]): string[] => {
   return result
 }
 
+export type BlockFingerprint = Set<string>
+
+export const computeBlockFingerprint = (blocks: Block[]): BlockFingerprint =>
+  new Set(flattenBlockHashes(blocks))
+
+export const hasSignificantDrift = (
+  previous: BlockFingerprint,
+  current: BlockFingerprint,
+  threshold = 0.1
+): boolean => {
+  const same = [...previous].filter(h => current.has(h)).length
+  const total = Math.max(previous.size, current.size)
+  return 1 - same / total > threshold
+}
+
 export const hasSignificantChange = (
   oldBlocks: Block[],
   newBlocks: Block[],
   threshold = 0.1
-): boolean => {
-  const oldSet = new Set(flattenBlockHashes(oldBlocks))
-  const newSet = new Set(flattenBlockHashes(newBlocks))
-
-  const same = [...oldSet].filter(h => newSet.has(h)).length
-  const total = Math.max(oldSet.size, newSet.size)
-  const changed = 1 - (same / total)
-
-  return changed > threshold
-}
+): boolean =>
+  hasSignificantDrift(
+    computeBlockFingerprint(oldBlocks),
+    computeBlockFingerprint(newBlocks),
+    threshold
+  )
