@@ -15,7 +15,6 @@ export type ProjectRow = {
 
 export type DocumentRow = {
   id: string
-  project_id: string
   name: string
   description: string
   title: string | null
@@ -60,7 +59,6 @@ export const selectProjectRow = (project: Project): ProjectRow => ({
 export const selectDocumentRows = (project: Project): DocumentRow[] =>
   Object.values(project.documents).map(doc => ({
     id: doc.id,
-    project_id: doc.project_id,
     name: doc.name,
     description: doc.description,
     title: doc.title ?? null,

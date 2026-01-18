@@ -95,7 +95,7 @@ export const Editor = ({
       Image,
       TaskList,
       TaskItem.configure({ nested: true }),
-      Markdown,
+      Markdown.configure({ transformPastedText: true }),
       BlockID,
       Lock,
       Annotations.configure({ annotations }),

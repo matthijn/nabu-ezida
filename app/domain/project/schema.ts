@@ -1,17 +1,6 @@
 export const projectSchema = `
-CREATE TABLE IF NOT EXISTS projects (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  pinned BOOLEAN,
-  updated_at TIMESTAMP,
-  healthy BOOLEAN,
-  version INTEGER
-);
-
 CREATE TABLE IF NOT EXISTS documents (
   id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
   title TEXT,

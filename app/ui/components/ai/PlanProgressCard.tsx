@@ -2,6 +2,7 @@
 
 import { FeatherCheck, FeatherCircle, FeatherLoader2, FeatherX } from "@subframe/core"
 import type { Step } from "~/lib/agent"
+import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 
 type StepStatus = "done" | "active" | "pending" | "canceled"
 
@@ -36,9 +37,18 @@ type PlanProgressCardProps = {
   steps: Step[]
   currentStep: number | null
   aborted?: boolean
+  projectId: string | null
+  navigate?: (url: string) => void
 }
 
-const StepRow = ({ step, status }: { step: Step; status: StepStatus }) => (
+type StepRowProps = {
+  step: Step
+  status: StepStatus
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const StepRow = ({ step, status, projectId, navigate }: StepRowProps) => (
   <div className="flex w-full items-start gap-2">
     <StepIcon status={status} />
     <div className="flex flex-col items-start gap-0.5">
@@ -47,17 +57,17 @@ const StepRow = ({ step, status }: { step: Step; status: StepStatus }) => (
       </span>
       {step.summary && (
         <span className="text-caption font-caption text-subtext-color">
-          → {step.summary}
+          → <InlineMarkdown projectId={projectId} navigate={navigate}>{step.summary}</InlineMarkdown>
         </span>
       )}
     </div>
   </div>
 )
 
-export const PlanProgressCard = ({ steps, currentStep, aborted = false }: PlanProgressCardProps) => (
+export const PlanProgressCard = ({ steps, currentStep, aborted = false, projectId, navigate }: PlanProgressCardProps) => (
   <div className="flex w-full flex-col items-start gap-1 rounded-md bg-brand-50 px-2 py-2">
     {steps.map((step, i) => (
-      <StepRow key={step.id} step={step} status={getStepStatus(step, currentStep, i, aborted)} />
+      <StepRow key={step.id} step={step} status={getStepStatus(step, currentStep, i, aborted)} projectId={projectId} navigate={navigate} />
     ))}
   </div>
 )

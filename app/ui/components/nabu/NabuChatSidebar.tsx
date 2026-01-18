@@ -170,13 +170,15 @@ const MessageRenderer = ({ message, initiator, recipient, projectId, navigate }:
             steps={message.plan.steps}
             currentStep={message.currentStep}
             aborted={message.aborted}
+            projectId={projectId}
+            navigate={navigate}
           />
         </MessageBubble>
       )
     case "exploration":
       return (
         <MessageBubble from={recipient}>
-          <ExplorationCard exploration={message.exploration} />
+          <ExplorationCard exploration={message.exploration} projectId={projectId} navigate={navigate} />
         </MessageBubble>
       )
   }
