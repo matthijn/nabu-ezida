@@ -41,6 +41,14 @@ export default function ProjectFile() {
 
   const document = fileId ? project?.documents[fileId] : undefined
 
+  console.debug("[HERMES:DEBUG] ProjectFile render", {
+    fileId,
+    hasProject: !!project,
+    hasDocument: !!document,
+    isConnected,
+    docCount: project ? Object.keys(project.documents).length : 0,
+  })
+
   useEffect(() => {
     if (!document) return
     setEditorContext(() => ({
@@ -109,22 +117,16 @@ export default function ProjectFile() {
 
   useEffect(() => {
     if (document) {
-      console.debug("[WebSocket] Document content:", content)
+      console.debug("[HERMES:DEBUG] Document content:", content)
     }
   }, [document?.blocks, document?.head_id])
 
-  if (!isConnected) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-subtext-color">Loading...</div>
-      </div>
-    )
-  }
-
   if (!document) {
+    const message = isConnected ? "File not found" : "Loading..."
+    console.debug("[HERMES:DEBUG] ProjectFile returning", message)
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="text-subtext-color">File not found</div>
+        <div className="text-subtext-color">{message}</div>
       </div>
     )
   }

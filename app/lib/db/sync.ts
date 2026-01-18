@@ -20,7 +20,7 @@ const generateInsertSql = <T extends Record<string, unknown>>(
   const columns = Object.keys(rows[0])
   const valuesSql = rows.map(rowToInsertValues).join(",\n  ")
 
-  return `INSERT INTO ${tableName} (${columns.join(", ")})
+  return `INSERT OR REPLACE INTO ${tableName} (${columns.join(", ")})
 VALUES
   ${valuesSql};`
 }

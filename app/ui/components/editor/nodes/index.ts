@@ -25,6 +25,19 @@ export const Paragraph = BaseParagraph.extend({
 })
 
 export const Heading = BaseHeading.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      backgroundColor: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-background-color"),
+        renderHTML: (attributes) => {
+          if (!attributes.backgroundColor) return {}
+          return { "data-background-color": attributes.backgroundColor }
+        },
+      },
+    }
+  },
   addNodeView: () => ReactNodeViewRenderer(withLock(HeadingView)),
 })
 

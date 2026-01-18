@@ -83,7 +83,7 @@ const debouncedDbSync = debounce(syncDatabase, DB_SYNC_DEBOUNCE_MS)
 const setState = (updates: Partial<ConnectionState>): void => {
   const prev = currentState
   currentState = { ...currentState, ...updates }
-  console.debug("[ProjectSync] setState", {
+  console.debug("[HERMES:DEBUG] ProjectSync setState", {
     projectWas: prev.project?.id ?? "null",
     projectNow: currentState.project?.id ?? "null",
     isConnected: currentState.isConnected,
@@ -95,6 +95,7 @@ const setState = (updates: Partial<ConnectionState>): void => {
 }
 
 const handleMessage = (msg: PatchableMessage<Project>): void => {
+  console.debug("[HERMES:DEBUG] ProjectSync handleMessage", { type: msg.type })
   const newProject = applyPatchableMessage(currentState.project, msg)
   setState({ project: newProject })
 
@@ -112,7 +113,11 @@ const handleMessage = (msg: PatchableMessage<Project>): void => {
 }
 
 export const connect = async (wsBaseUrl: string, projectId: string): Promise<void> => {
-  if (connection) disconnect()
+  console.debug("[HERMES:DEBUG] ProjectSync connect called", { projectId, hasExisting: !!connection })
+  if (connection) {
+    console.debug("[HERMES:DEBUG] ProjectSync disconnecting existing connection")
+    disconnect()
+  }
 
   database = await initializeDatabase(projectSchema)
 
@@ -128,6 +133,7 @@ export const connect = async (wsBaseUrl: string, projectId: string): Promise<voi
 }
 
 export const disconnect = (): void => {
+  console.debug("[HERMES:DEBUG] ProjectSync disconnect called")
   debouncedFlush.cancel()
   debouncedDbSync.cancel()
   collected.clear()

@@ -15,7 +15,11 @@ const toTiptapConverters: Record<string, BlockToTiptap> = {
 
   heading: (block) => ({
     type: "heading",
-    attrs: { blockId: block.id, level: block.props?.level ?? 1 },
+    attrs: {
+      blockId: block.id,
+      level: block.props?.level ?? 1,
+      backgroundColor: block.props?.background_color ?? null,
+    },
     content: inlineToTiptap(block.content),
   }),
 
@@ -62,7 +66,10 @@ const toBlockConverters: Record<string, TiptapToBlock> = {
   heading: (node) => ({
     id: node.attrs?.blockId,
     type: "heading",
-    props: { level: node.attrs?.level ?? 1 },
+    props: {
+      level: node.attrs?.level ?? 1,
+      ...(node.attrs?.backgroundColor && { background_color: node.attrs.backgroundColor }),
+    },
     content: tiptapToInline(node.content),
   }),
 

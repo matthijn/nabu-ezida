@@ -61,7 +61,7 @@ const calculateOverlayRect = (
 }
 
 const BORDER_WIDTH = 3
-const BORDER_OFFSET = 8
+const BORDER_OFFSET = 24
 
 const toSpotlightKey = (spotlight: Spotlight | null): string | null =>
   spotlight ? serializeSpotlight(spotlight) : null
