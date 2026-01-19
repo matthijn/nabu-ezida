@@ -12,20 +12,13 @@ export const useProjectSync = (wsBaseUrl: string, projectId: string): ProjectSyn
   const [state, setState] = useState<ProjectSyncState>(getState)
 
   useEffect(() => {
-    console.debug("[HERMES:DEBUG] useProjectSync effect running", { wsBaseUrl, projectId })
     connect(wsBaseUrl, projectId).catch((e) => {
       console.error("[useProjectSync] Connect failed:", e)
     })
-    return () => {
-      console.debug("[HERMES:DEBUG] useProjectSync effect cleanup")
-      disconnect()
-    }
+    return () => disconnect()
   }, [wsBaseUrl, projectId])
 
-  useEffect(() => subscribe((s) => {
-    console.debug("[HERMES:DEBUG] useProjectSync state update", { projectId: s.project?.id ?? "null", isConnected: s.isConnected })
-    setState(s)
-  }), [])
+  useEffect(() => subscribe(setState), [])
 
   return state
 }

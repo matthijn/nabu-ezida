@@ -16,3 +16,4 @@ export {
 } from "./messages"
 
 export { useChat } from "./useChat"
+export { getSpinnerLabel } from "./spinnerLabel"

@@ -10,7 +10,7 @@ import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useChat, toRenderMessages, type RenderMessage } from "~/lib/chat"
+import { useChat, toRenderMessages, getSpinnerLabel, type RenderMessage } from "~/lib/chat"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
@@ -301,7 +301,10 @@ export const NabuChatSidebar = () => {
               return filtered ? (
                 <MessageContent content={filtered} projectId={project?.id ?? null} navigate={navigate} />
               ) : (
-                <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
+                <div className="flex items-center gap-2">
+                  <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
+                  <span className="text-sm text-subtext-color">{getSpinnerLabel(history)}</span>
+                </div>
               )
             })()}
           </MessageBubble>

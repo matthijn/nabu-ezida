@@ -34,8 +34,38 @@ export const openChat = (
 
 export const getChat = (): ChatState | null => chat
 
+const formatBlock = (block: Block): string => {
+  switch (block.type) {
+    case "user":
+      return `[user] "${block.content.slice(0, 50)}${block.content.length > 50 ? "..." : ""}"`
+    case "system":
+      return `[system/nudge] "${block.content.slice(0, 50)}${block.content.length > 50 ? "..." : ""}"`
+    case "text":
+      return `[assistant] "${block.content.slice(0, 50)}${block.content.length > 50 ? "..." : ""}"`
+    case "tool_call":
+      return `[tool_call] ${block.calls.map(c => `${c.name}(${c.id})`).join(", ")}`
+    case "tool_result":
+      return `[tool_result] id=${block.callId}`
+    case "abort":
+      return `[abort] "${block.content}"`
+    default:
+      return `[unknown]`
+  }
+}
+
+const logHistoryChanges = (oldHistory: Block[], newHistory: Block[]): void => {
+  if (newHistory.length <= oldHistory.length) return
+  const added = newHistory.slice(oldHistory.length)
+  for (const block of added) {
+    console.log(`[History] + ${formatBlock(block)}`)
+  }
+}
+
 export const updateChat = (updates: Partial<ChatState>): void => {
   if (!chat) return
+  if (updates.history) {
+    logHistoryChanges(chat.history, updates.history)
+  }
   chat = { ...chat, ...updates }
   notify()
 }

@@ -4,16 +4,7 @@ import type { DerivedPlan } from "./selectors"
 import { parse } from "./parser"
 import { appendBlock } from "./reducer"
 import { toNudge } from "./orchestrator"
-import { derive, lastPlan, getMode, isToolCallBlock } from "./selectors"
-import { buildModeRequiredNudge } from "./prompts"
-
-const MODE_EXEMPT = new Set([
-  "create_plan",
-  "start_exploration",
-  "complete_step",
-  "exploration_step",
-  "abort",
-])
+import { derive, lastPlan, isToolCallBlock } from "./selectors"
 
 export type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
@@ -68,15 +59,11 @@ export const runPrompt = async (
   context: string,
   execute: ToolExecutor
 ): Promise<void> => {
-  console.debug("[runPrompt] Calling endpoint:", endpoint, "context:", context)
   const messages: Message[] = [{ role: "system", content: context }]
   const blocks = await parse({ endpoint, messages })
-  console.debug("[runPrompt] Received blocks:", blocks.length)
   const calls = blocks.filter(isToolCallBlock).flatMap(b => b.calls)
-  console.debug("[runPrompt] Tool calls:", calls.map(c => ({ name: c.name, args: c.args })))
   if (calls.length > 0) {
-    const results = await executeTools(calls, execute)
-    console.debug("[runPrompt] Tool results:", results.map(r => ({ callId: r.callId, result: r.result })))
+    await executeTools(calls, execute)
   }
 }
 
@@ -84,9 +71,7 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
   const { endpoint, execute, callbacks, signal } = deps
   const allBlocks: Block[] = []
 
-  console.log("[Turn] Messages:", JSON.stringify(messages, null, 2))
   const parsedBlocks = await parse({ endpoint, messages, callbacks, signal })
-  console.log("[Turn] Parsed blocks:", JSON.stringify(parsedBlocks, null, 2))
 
   if (parsedBlocks.length === 0) {
     return { history, nudge: null, blocks: allBlocks }
@@ -96,15 +81,6 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
 
   for (const block of parsedBlocks) {
     if (block.type === "tool_call") {
-      const mode = getMode(derive(currentHistory))
-      if (mode === "chat") {
-        const blocked = block.calls.filter((c) => !MODE_EXEMPT.has(c.name))
-        if (blocked.length > 0) {
-          const nudge = buildModeRequiredNudge(blocked.map((c) => c.name))
-          return { history: currentHistory, nudge, blocks: allBlocks }
-        }
-      }
-
       const abort = findAbort(block.calls)
       if (abort) {
         const abortedPlan = lastPlan(derive(currentHistory)) ?? undefined
@@ -122,7 +98,6 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
       currentHistory = appendBlock(currentHistory, block)
 
       const resultBlocks = await executeTools(block.calls, execute)
-      console.log("[Turn] Tool results:", JSON.stringify(resultBlocks, null, 2))
       for (const resultBlock of resultBlocks) {
         allBlocks.push(resultBlock)
         currentHistory = appendBlock(currentHistory, resultBlock)
@@ -134,7 +109,6 @@ export const turn = async (history: Block[], messages: Message[], deps: TurnDeps
   }
 
   const nudge = toNudge(currentHistory)
-  console.log("[Turn] Nudge:", nudge)
 
   return { history: currentHistory, nudge, blocks: allBlocks }
 }

@@ -41,14 +41,6 @@ export default function ProjectFile() {
 
   const document = fileId ? project?.documents[fileId] : undefined
 
-  console.debug("[HERMES:DEBUG] ProjectFile render", {
-    fileId,
-    hasProject: !!project,
-    hasDocument: !!document,
-    isConnected,
-    docCount: project ? Object.keys(project.documents).length : 0,
-  })
-
   useEffect(() => {
     if (!document) return
     setEditorContext(() => ({
@@ -96,11 +88,13 @@ export default function ProjectFile() {
           document_id: fileId,
           block_ids: removes.map(op => op.id),
         })] : []),
-        ...(replaces.length > 0 ? [documentCommands.replace_blocks({
+        ...replaces.map(op => documentCommands.update_block({
           document_id: fileId,
-          block_ids: replaces.map(op => op.block.id!),
-          blocks: replaces.map(op => op.block),
-        })] : []),
+          block_id: op.block.id!,
+          type: op.block.type,
+          props: op.block.props,
+          content: op.block.content,
+        })),
         ...[...addsByPosition.entries()].map(([position, ops]) => documentCommands.insert_blocks({
           document_id: fileId,
           position,
@@ -115,15 +109,8 @@ export default function ProjectFile() {
 
   const content = document ? blocksToArrayWithChildren(document) : []
 
-  useEffect(() => {
-    if (document) {
-      console.debug("[HERMES:DEBUG] Document content:", content)
-    }
-  }, [document?.blocks, document?.head_id])
-
   if (!document) {
     const message = isConnected ? "File not found" : "Loading..."
-    console.debug("[HERMES:DEBUG] ProjectFile returning", message)
     return (
       <div className="flex h-full w-full items-center justify-center">
         <div className="text-subtext-color">{message}</div>

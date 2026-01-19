@@ -18,10 +18,7 @@ export const addDocumentTags: Handler = async (deps, args) => {
   if (!doc) return { error: "Document not found" }
 
   const tags = filterTagsToAdd(doc.tags, args.tags as string[])
-  if (tags.length === 0) {
-    console.debug("[addDocumentTags] No change", { documentId: args.document_id, existingTags: Object.keys(doc.tags), requestedTags: args.tags })
-    return { success: true }
-  }
+  if (tags.length === 0) return { success: true }
 
   return send(documentCommands.add_document_tags({ document_id: args.document_id as string, tags }))
 }

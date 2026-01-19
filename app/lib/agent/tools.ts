@@ -1,7 +1,6 @@
 import type { ToolCall, ToolDeps, Handler } from "./types"
 import { send, type Command } from "~/lib/api/client"
 import { documentCommands } from "~/domain/api/commands/document"
-import { projectCommands } from "~/domain/api/commands/project"
 import { toSnakeCase } from "~/lib/utils"
 import * as handlers from "./handlers"
 
@@ -28,7 +27,6 @@ const orchestrationTools = new Set([
 ])
 
 const commands: Record<string, (args: Args) => Command> = {
-  ...(projectCommands as unknown as Record<string, (args: Args) => Command>),
   ...(documentCommands as unknown as Record<string, (args: Args) => Command>),
 }
 

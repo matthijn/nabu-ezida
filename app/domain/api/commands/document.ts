@@ -7,10 +7,10 @@ type UpdateArgs = { document_id: string; name: string; description?: string }
 type IdArgs = { document_id: string }
 type InsertBlocksArgs = { document_id: string; position: Position; blocks: Block[] }
 type BlockIdsArgs = { document_id: string; block_ids: string[] }
-type ReplaceBlocksArgs = { document_id: string; block_ids: string[]; blocks: Block[] }
 type MoveBlocksArgs = { document_id: string; block_ids: string[]; position: Position }
 type ReplaceContentArgs = { document_id: string; content: Block[] }
-type UpdateBlockPropsArgs = { document_id: string; block_ids: string[]; props: Record<string, unknown> }
+type InlineContent = { type: string; text?: string; styles?: Record<string, unknown>; href?: string; content?: Array<{ type: string; text: string; styles?: Record<string, unknown> }> }
+type UpdateBlockArgs = { document_id: string; block_id: string; type?: string; props?: Record<string, unknown>; content?: InlineContent[] }
 type TagsArgs = { document_id: string; tags: string[] }
 type AnnotationArgs = { document_id: string; annotation: Annotation }
 type AnnotationIdsArgs = { document_id: string; annotation_ids: string[] }
@@ -173,29 +173,6 @@ export const documentCommands = {
     command("DeleteBlocks", args.document_id, { block_ids: args.block_ids }),
 
   /**
-   * Replaces existing blocks with new blocks.
-   * @param args.document_id - Target document
-   * @param args.block_ids - IDs of blocks to replace
-   * @param args.blocks - New blocks to insert in their place
-   *
-   * @example
-   * ```ts
-   * const revisedSummary = [{
-   *   id: "blk-b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e",
-   *   type: "paragraph",
-   *   content: [{ type: "text", text: "Meta-analysis shows pooled effect size of 0.79" }]
-   * }]
-   * documentCommands.replace_blocks({
-   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   block_ids: ["blk-c9d0e1f2-a3b4-5c6d-7e8f-9a0b1c2d3e4f"],
-   *   blocks: revisedSummary
-   * })
-   * ```
-   */
-  replace_blocks: (args: ReplaceBlocksArgs) =>
-    command("ReplaceBlocks", args.document_id, { block_ids: args.block_ids, blocks: args.blocks }),
-
-  /**
    * Moves blocks to a new position.
    * @param args.document_id - Target document
    * @param args.block_ids - IDs of blocks to move
@@ -238,22 +215,47 @@ export const documentCommands = {
     command("ReplaceContent", args.document_id, { content: args.content }),
 
   /**
-   * Updates properties of existing blocks.
+   * Updates a block's type, properties, and/or content while preserving block ID.
+   * All fields except block_id are optional - only provided fields are updated.
    * @param args.document_id - Target document
-   * @param args.block_ids - IDs of blocks to update
-   * @param args.props - Properties to merge into existing props
+   * @param args.block_id - ID of block to update
+   * @param args.type - New block type (optional)
+   * @param args.props - Properties to merge (optional)
+   * @param args.content - New content (optional)
    *
    * @example
    * ```ts
-   * documentCommands.update_block_props({
+   * // Change text content
+   * documentCommands.update_block({
    *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
-   *   block_ids: ["blk-b4c5d6e7-f8a9-0b1c-2d3e-4f5a6b7c8d9e"],
-   *   props: { level: 1 }
+   *   block_id: "blk-a1b2c3d4",
+   *   content: [{ type: "text", text: "Updated text" }]
+   * })
+   *
+   * // Change styling
+   * documentCommands.update_block({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_id: "blk-a1b2c3d4",
+   *   props: { background_color: "green" }
+   * })
+   *
+   * // Change type and content together
+   * documentCommands.update_block({
+   *   document_id: "doc-7f3b2a1e-4d5c-6e7f-8a9b-0c1d2e3f4a5b",
+   *   block_id: "blk-a1b2c3d4",
+   *   type: "heading",
+   *   props: { level: 2 },
+   *   content: [{ type: "text", text: "New Heading" }]
    * })
    * ```
    */
-  update_block_props: (args: UpdateBlockPropsArgs) =>
-    command("UpdateBlockProps", args.document_id, { block_ids: args.block_ids, props: args.props }),
+  update_block: (args: UpdateBlockArgs) =>
+    command("UpdateBlock", args.document_id, {
+      block_id: args.block_id,
+      ...(args.type && { type: args.type }),
+      ...(args.props && { props: args.props }),
+      ...(args.content && { content: args.content }),
+    }),
 
   /**
    * Adds tags to a document for categorization.

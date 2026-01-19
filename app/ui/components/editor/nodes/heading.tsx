@@ -134,9 +134,9 @@ export const HeadingView = ({ node }: NodeViewProps) => {
 
   const handleColorChange = (color: RadixColor | null) => {
     if (!editorDoc || !blockId) return
-    execute(documentCommands.update_block_props({
+    execute(documentCommands.update_block({
       document_id: editorDoc.documentId,
-      block_ids: [blockId],
+      block_id: blockId,
       props: { background_color: color },
     }))
   }
