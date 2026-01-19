@@ -71,4 +71,12 @@ const combine = (...nudgers: Nudger[]): Nudger => (history) => {
   return null
 }
 
-export const toNudge = combine(exploreNudge, planNudge, toolNudge, userMessageNudge)
+const nudge = combine(exploreNudge, planNudge, toolNudge, userMessageNudge)
+
+export const toNudge: Nudger = (history) => {
+  const lastType = lastBlock(history)?.type ?? "empty"
+  const result = nudge(history)
+  const output = result === null ? "null" : result === "" ? "empty" : "nudge"
+  console.log(`[Nudge] ${lastType} → ${output}`)
+  return result
+}
