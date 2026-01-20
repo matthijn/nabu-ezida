@@ -116,3 +116,6 @@ export const selectBlockIdsForDocument = (project: Project, documentId: string):
   if (!doc) return []
   return flattenBlocks(doc, blocksToArray(doc), null).map(row => row.id)
 }
+
+export const selectDocumentsWithTag = (project: Project, tag: string): Document[] =>
+  Object.values(project.documents).filter(doc => tag in doc.tags)
