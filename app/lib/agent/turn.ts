@@ -57,10 +57,11 @@ export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<
 export const runPrompt = async (
   endpoint: string,
   context: string,
-  execute: ToolExecutor
+  execute: ToolExecutor,
+  signal?: AbortSignal
 ): Promise<void> => {
   const messages: Message[] = [{ role: "system", content: context }]
-  const blocks = await parse({ endpoint, messages })
+  const blocks = await parse({ endpoint, messages, signal })
   const calls = blocks.filter(isToolCallBlock).flatMap(b => b.calls)
   if (calls.length > 0) {
     await executeTools(calls, execute)

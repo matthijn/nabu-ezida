@@ -31,6 +31,7 @@ const commands: Record<string, (args: Args) => Command> = {
 }
 
 export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Promise<unknown> => {
+  console.log("[Tool]", call)
   if (orchestrationTools.has(call.name)) return syntheticOk()
 
   const handler = customHandlers[call.name]

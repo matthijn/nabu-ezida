@@ -35,7 +35,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
 
   try {
     const result = await turn(current.history, blocksToMessages(current.history), {
-      endpoint: "/chat/converse",
+      endpoint: "/converse",
       execute: toolExecutor,
       callbacks: {
         onChunk: (chunk) => {

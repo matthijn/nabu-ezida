@@ -9,6 +9,7 @@ import {
 import { MainSidebar } from "~/ui/custom/sidebar/main";
 import type { NavItem } from "~/ui/custom/sidebar/main";
 import { cn } from "~/ui/utils";
+import { TaskIndicator } from "~/ui/components/TaskIndicator";
 
 const primaryNavItems: NavItem[] = [
   { id: "documents", icon: <FeatherFiles />, label: "Documents", tooltip: "Browse all your documents", selected: true },
@@ -37,5 +38,6 @@ export const DefaultPageLayout = ({ children, className }: DefaultPageLayoutProp
         {children}
       </div>
     ) : null}
+    <TaskIndicator />
   </div>
 );

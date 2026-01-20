@@ -54,7 +54,7 @@ const tagDocument = (doc: Document): void => {
   if (!shouldTag(doc)) return
 
   const context = formatDocumentContext(doc)
-  runPrompt("/chat/tag?tool_choice=required", context, getExecutor())
+  runPrompt("/tag?tool_choice=required", context, getExecutor())
     .then(() => markTagged(doc))
     .catch((e) => console.error("[ProjectSync] Tag prompt failed:", e))
 }

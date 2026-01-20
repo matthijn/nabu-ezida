@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { connect, disconnect, subscribe, getState } from "~/lib/services/projectSync"
+import { startConvertListener } from "~/lib/convert"
 import type { Project } from "~/domain/project"
 
 type ProjectSyncState = {
@@ -19,6 +20,7 @@ export const useProjectSync = (wsBaseUrl: string, projectId: string): ProjectSyn
   }, [wsBaseUrl, projectId])
 
   useEffect(() => subscribe(setState), [])
+  useEffect(() => startConvertListener(), [])
 
   return state
 }

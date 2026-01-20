@@ -74,3 +74,50 @@ export function timeAgo(date: Date): string {
   }
   return ""
 }
+
+type ScopedEntry = {
+  timer: ReturnType<typeof setTimeout>
+  controller: AbortController | null
+}
+
+type ScopedDebounce = {
+  call: (key: string, fn: (signal: AbortSignal) => Promise<void>) => void
+  cancel: (key: string) => void
+  cancelAll: () => void
+}
+
+export const createScopedDebounce = (delay: number): ScopedDebounce => {
+  const entries = new Map<string, ScopedEntry>()
+
+  const cancel = (key: string): void => {
+    const entry = entries.get(key)
+    if (!entry) return
+    clearTimeout(entry.timer)
+    entry.controller?.abort()
+    entries.delete(key)
+  }
+
+  const cancelAll = (): void => {
+    for (const key of entries.keys()) {
+      cancel(key)
+    }
+  }
+
+  const call = (key: string, fn: (signal: AbortSignal) => Promise<void>): void => {
+    cancel(key)
+
+    const timer = setTimeout(() => {
+      const controller = new AbortController()
+      const entry = entries.get(key)
+      if (entry) entry.controller = controller
+
+      fn(controller.signal)
+        .catch(() => {})
+        .finally(() => entries.delete(key))
+    }, delay)
+
+    entries.set(key, { timer, controller: null })
+  }
+
+  return { call, cancel, cancelAll }
+}
