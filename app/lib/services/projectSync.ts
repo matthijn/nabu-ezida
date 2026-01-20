@@ -12,6 +12,7 @@ import { blocksToMarkdown, computeBlockFingerprint, hasSignificantDrift } from "
 
 type ConnectionState = {
   project: Project | null
+  parsed: Record<string, unknown>
   isConnected: boolean
   error: string | null
 }
@@ -24,7 +25,7 @@ const DB_SYNC_DEBOUNCE_MS = 100
 
 let connection: WebSocketConnection | null = null
 let database: Database | null = null
-let currentState: ConnectionState = { project: null, isConnected: false, error: null }
+let currentState: ConnectionState = { project: null, parsed: {}, isConnected: false, error: null }
 const listeners = new Set<StateListener>()
 const lastBlockFingerprints = new Map<string, BlockFingerprint>()
 
@@ -128,7 +129,7 @@ export const disconnect = (): void => {
   connection?.close()
   connection = null
   database = null
-  setState({ project: null, isConnected: false, error: null })
+  setState({ project: null, parsed: {}, isConnected: false, error: null })
 }
 
 export const subscribe = (fn: StateListener): (() => void) => {
@@ -140,3 +141,12 @@ export const subscribe = (fn: StateListener): (() => void) => {
 export const getState = (): ConnectionState => currentState
 
 export const getQuery = () => database?.query
+
+export const setParsed = (kind: string, data: unknown): void => {
+  setState({ parsed: { ...currentState.parsed, [kind]: data } })
+}
+
+export const removeParsed = (kind: string): void => {
+  const { [kind]: _, ...rest } = currentState.parsed
+  setState({ parsed: rest })
+}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
-import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout"
+import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useProjectSync } from "~/hooks/useProjectSync"
 import { getWsUrl } from "~/lib/env"
 import type { Project } from "~/domain/project"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
+import { CodesSidebar, type Codebook } from "~/ui/custom/sidebar/codes"
 import type { Document } from "~/domain/document"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
@@ -38,6 +39,7 @@ export const useProject = () => useOutletContext<ProjectContextValue>()
 export default function ProjectLayout() {
   const params = useParams<{ projectId: string; fileId?: string }>()
   const navigate = useNavigate()
+  const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -46,31 +48,52 @@ export default function ProjectLayout() {
     return () => closeChat()
   }, [params.projectId])
 
-  const { project, isConnected } = useProjectSync(getWsUrl("/ws"), params.projectId!)
+  const { project, parsed, isConnected } = useProjectSync(getWsUrl("/ws"), params.projectId!)
 
   const documents = selectSidebarDocuments(project)
+  const codebook = parsed.codebook as Codebook | undefined
 
   const handleDocumentSelect = (docId: string) => {
     navigate(`/project/${params.projectId}/file/${docId}`)
   }
 
+  const renderSidebar = () => {
+    if (activeNav === "codes" && codebook) {
+      return (
+        <CodesSidebar
+          codebook={codebook}
+          collapsed={sidebarCollapsed}
+          onCollapse={() => setSidebarCollapsed(true)}
+          onExpand={() => setSidebarCollapsed(false)}
+        />
+      )
+    }
+    return (
+      <DocumentsSidebar
+        documents={documents}
+        selectedId={params.fileId}
+        searchValue={searchValue}
+        sortBy={sortBy}
+        collapsed={sidebarCollapsed}
+        onSearchChange={setSearchValue}
+        onSortChange={setSortBy}
+        onDocumentSelect={handleDocumentSelect}
+        onNewDocument={() => {}}
+        onCollapse={() => setSidebarCollapsed(true)}
+        onExpand={() => setSidebarCollapsed(false)}
+      />
+    )
+  }
+
   return (
     <NabuProvider>
-      <DefaultPageLayout>
+      <DefaultPageLayout
+        activeNav={activeNav}
+        showCodes={!!codebook}
+        onNavChange={setActiveNav}
+      >
         <div className="flex h-full w-full items-start bg-default-background">
-          <DocumentsSidebar
-            documents={documents}
-            selectedId={params.fileId}
-            searchValue={searchValue}
-            sortBy={sortBy}
-            collapsed={sidebarCollapsed}
-            onSearchChange={setSearchValue}
-            onSortChange={setSortBy}
-            onDocumentSelect={handleDocumentSelect}
-            onNewDocument={() => {}}
-            onCollapse={() => setSidebarCollapsed(true)}
-            onExpand={() => setSidebarCollapsed(false)}
-          />
+          {renderSidebar()}
           <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
             <Outlet context={{ project, isConnected }} />
           </div>

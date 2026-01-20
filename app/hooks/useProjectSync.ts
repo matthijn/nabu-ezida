@@ -5,6 +5,7 @@ import type { Project } from "~/domain/project"
 
 type ProjectSyncState = {
   project: Project | null
+  parsed: Record<string, unknown>
   isConnected: boolean
   error: string | null
 }
