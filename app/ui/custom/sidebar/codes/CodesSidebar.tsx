@@ -18,6 +18,7 @@ type CodesSidebarProps = {
   collapsed?: boolean
   onCollapse?: () => void
   onExpand?: () => void
+  onEditCode?: (code: Code) => void
 }
 
 const getFirstCode = (codebook: Codebook): Code | null =>
@@ -28,6 +29,7 @@ export const CodesSidebar = ({
   collapsed = false,
   onCollapse,
   onExpand,
+  onEditCode,
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [selectedCode, setSelectedCode] = useState<Code | null>(() => getFirstCode(codebook))
@@ -98,7 +100,7 @@ export const CodesSidebar = ({
       </div>
 
       {selectedCode && (
-        <CodeDetail code={selectedCode} onEdit={() => {}} />
+        <CodeDetail code={selectedCode} onEdit={onEditCode ? () => onEditCode(selectedCode) : undefined} />
       )}
     </div>
   )

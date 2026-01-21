@@ -52,11 +52,11 @@ export const DefaultPageLayout = ({
       onNavItemClick={onNavChange ? (id) => onNavChange(id as ActiveNav) : undefined}
     />
     {children ? (
-      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-4 self-stretch overflow-y-auto bg-default-background" style={{ overflow: "visible" }}>
+      <div className="relative flex grow shrink-0 basis-0 flex-col items-start gap-4 self-stretch overflow-y-auto bg-default-background" style={{ overflow: "visible" }}>
         {children}
+        <TaskIndicator />
       </div>
     ) : null}
-    <TaskIndicator />
   </div>
 );
 

@@ -4,11 +4,13 @@ import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayou
 import { useProjectSync } from "~/hooks/useProjectSync"
 import { getWsUrl } from "~/lib/env"
 import type { Project } from "~/domain/project"
+import { selectDocumentsWithTag } from "~/domain/project/selectors"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
-import { CodesSidebar, type Codebook } from "~/ui/custom/sidebar/codes"
+import { CodesSidebar, type Codebook, type Code } from "~/ui/custom/sidebar/codes"
 import type { Document } from "~/domain/document"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
+import { buildSpotlightUrl } from "~/domain/spotlight/url"
 
 type SidebarDocument = {
   id: string
@@ -57,6 +59,13 @@ export default function ProjectLayout() {
     navigate(`/project/${params.projectId}/file/${docId}`)
   }
 
+  const handleEditCode = (code: Code) => {
+    if (!project || !params.projectId) return
+    const codebookDoc = selectDocumentsWithTag(project, "codebook")[0]
+    if (!codebookDoc) return
+    navigate(buildSpotlightUrl(params.projectId, codebookDoc.id, [code.id]))
+  }
+
   const renderSidebar = () => {
     if (activeNav === "codes" && codebook) {
       return (
@@ -65,6 +74,7 @@ export default function ProjectLayout() {
           collapsed={sidebarCollapsed}
           onCollapse={() => setSidebarCollapsed(true)}
           onExpand={() => setSidebarCollapsed(false)}
+          onEditCode={handleEditCode}
         />
       )
     }
