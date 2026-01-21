@@ -7,6 +7,7 @@ import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextField } from "~/ui/components/TextField";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout";
+import { AlertDialog } from "~/ui/components/AlertDialog";
 import { FeatherBold } from "@subframe/core";
 import { FeatherBook } from "@subframe/core";
 import { FeatherCheck } from "@subframe/core";
@@ -577,6 +578,18 @@ function NabuInbox() {
             </div>
           </div>
         </div>
+        <AlertDialog
+          title="Pending Actions"
+          description="Nabu is attempting to delete codes that are currently in use"
+          entries={[
+            { title: "Delete Habitat Degradation", description: "Used across 12 documents" },
+            { title: "Delete Conservation Success", description: "Used across 8 documents" },
+            { title: "Delete Indigenous Knowledge", description: "Used across 5 documents" },
+          ]}
+          destructiveLabel="Delete All"
+          onDestructive={() => {}}
+          onCancel={() => {}}
+        />
       </div>
     </DefaultPageLayout>
   );
