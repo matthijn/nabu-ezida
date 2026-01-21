@@ -5,6 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const isAbortError = (e: unknown): boolean =>
+  e instanceof Error && e.name === "AbortError"
+
 export const toSnakeCase = (str: string): string =>
   str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
 

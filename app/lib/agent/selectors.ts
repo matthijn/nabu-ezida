@@ -180,3 +180,12 @@ export const actionsSinceStepChange = (history: Block[]): number =>
 
 export const actionsSinceExplorationChange = (history: Block[]): number =>
   countActionsSinceBoundary(history, isExplorationBoundary)
+
+export const hasUnansweredAsk = (history: Block[]): boolean => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (block.type === "user") return false
+    if (hasCall(block, "ask")) return true
+  }
+  return false
+}

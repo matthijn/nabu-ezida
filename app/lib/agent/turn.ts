@@ -1,10 +1,8 @@
 import type { Block, ToolCall, ToolResultBlock } from "./types"
 import type { Message, ParseCallbacks } from "./parser"
-import type { DerivedPlan } from "./selectors"
 import { parse } from "./parser"
 import { appendBlock } from "./reducer"
-import { toNudge } from "./orchestrator"
-import { derive, lastPlan, isToolCallBlock } from "./selectors"
+import { isToolCallBlock } from "./selectors"
 
 export type ToolExecutor = (call: ToolCall) => Promise<unknown>
 
@@ -14,16 +12,6 @@ export type TurnDeps = {
   callbacks?: ParseCallbacks
   signal?: AbortSignal
 }
-
-export type TurnResult = {
-  history: Block[]
-  nudge: string | null
-  blocks: Block[]
-  abortedPlan?: DerivedPlan
-}
-
-const findAbort = (calls: ToolCall[]): ToolCall | undefined =>
-  calls.find((c) => c.name === "abort")
 
 const sanitizeForJson = (value: unknown): unknown => {
   if (typeof value === "bigint") return Number(value)
@@ -68,48 +56,21 @@ export const runPrompt = async (
   }
 }
 
-export const turn = async (history: Block[], messages: Message[], deps: TurnDeps): Promise<TurnResult> => {
+export const turn = async (history: Block[], messages: Message[], deps: TurnDeps): Promise<Block[]> => {
   const { endpoint, execute, callbacks, signal } = deps
-  const allBlocks: Block[] = []
 
   const parsedBlocks = await parse({ endpoint, messages, callbacks, signal })
 
-  if (parsedBlocks.length === 0) {
-    return { history, nudge: null, blocks: allBlocks }
-  }
-
-  let currentHistory = history
-
+  let h = history
   for (const block of parsedBlocks) {
+    h = appendBlock(h, block)
     if (block.type === "tool_call") {
-      const abort = findAbort(block.calls)
-      if (abort) {
-        const abortedPlan = lastPlan(derive(currentHistory)) ?? undefined
-        const message = (abort.args.message as string) ?? ""
-        const abortBlock = { type: "abort" as const, content: message }
-        const abortResult: ToolResultBlock = { type: "tool_result", callId: abort.id, result: { aborted: true } }
-        allBlocks.push(abortBlock)
-        currentHistory = appendBlock(currentHistory, block)
-        currentHistory = appendBlock(currentHistory, abortResult)
-        currentHistory = appendBlock(currentHistory, abortBlock)
-        return { history: currentHistory, nudge: null, blocks: allBlocks, abortedPlan }
+      const results = await executeTools(block.calls, execute)
+      for (const result of results) {
+        h = appendBlock(h, result)
       }
-
-      allBlocks.push(block)
-      currentHistory = appendBlock(currentHistory, block)
-
-      const resultBlocks = await executeTools(block.calls, execute)
-      for (const resultBlock of resultBlocks) {
-        allBlocks.push(resultBlock)
-        currentHistory = appendBlock(currentHistory, resultBlock)
-      }
-    } else {
-      allBlocks.push(block)
-      currentHistory = appendBlock(currentHistory, block)
     }
   }
 
-  const nudge = toNudge(currentHistory)
-
-  return { history: currentHistory, nudge, blocks: allBlocks }
+  return h
 }

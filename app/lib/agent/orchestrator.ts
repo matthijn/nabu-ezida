@@ -6,6 +6,7 @@ import {
   hasActivePlan,
   actionsSinceStepChange,
   actionsSinceExplorationChange,
+  hasUnansweredAsk,
 } from "./selectors"
 import {
   buildPlanNudge,
@@ -74,6 +75,10 @@ const combine = (...nudgers: Nudger[]): Nudger => (history) => {
 const nudge = combine(exploreNudge, planNudge, toolNudge, userMessageNudge)
 
 export const toNudge: Nudger = (history) => {
+  if (hasUnansweredAsk(history)) {
+    console.log(`[Nudge] ask → null (waiting for response)`)
+    return null
+  }
   const lastType = lastBlock(history)?.type ?? "empty"
   const result = nudge(history)
   const output = result === null ? "null" : result === "" ? "empty" : "nudge"

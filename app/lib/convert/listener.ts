@@ -1,5 +1,5 @@
 import { subscribe, getState } from "~/lib/services/projectSync"
-import { createScopedDebounce } from "~/lib/utils"
+import { createScopedDebounce, isAbortError } from "~/lib/utils"
 import { addTask, removeTask } from "~/lib/tasks"
 import { convertDocument } from "./api"
 import type { Document } from "~/domain/document"
@@ -24,7 +24,7 @@ const runConversion = async (docId: string, kind: string, signal: AbortSignal): 
   try {
     await convertDocument(doc, kind, signal)
   } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") return
+    if (isAbortError(e)) return
     console.error(`[Convert] Failed for ${docId}:`, e)
   } finally {
     removeTask(taskKey)

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
 import { useNavigate } from "react-router"
 import Markdown, { type Components } from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw, FeatherAlertCircle } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -11,6 +11,7 @@ import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat, toRenderMessages, getSpinnerLabel, type RenderMessage } from "~/lib/chat"
+import type { Block } from "~/lib/agent"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
@@ -18,12 +19,6 @@ import type { Participant } from "~/domain/participant"
 import { resolveFileLink } from "~/domain/spotlight"
 import { getState, getQuery, subscribe } from "~/lib/services/projectSync"
 import { useNabu } from "./context"
-
-type MessageContentProps = {
-  content: string
-  projectId: string | null
-  navigate?: (url: string) => void
-}
 
 type MarkdownContext = {
   projectId: string | null
@@ -57,12 +52,16 @@ const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Com
 
 const allowFileProtocol = (url: string): string => url
 
+type MessageContentProps = {
+  content: string
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
 const MessageContent = ({ content, projectId, navigate }: MessageContentProps) => (
-  <div className="prose prose-sm text-sm text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-    <Markdown components={createMarkdownComponents({ projectId, navigate })} urlTransform={allowFileProtocol}>
-      {content}
-    </Markdown>
-  </div>
+  <Markdown components={createMarkdownComponents({ projectId, navigate })} urlTransform={allowFileProtocol}>
+    {content}
+  </Markdown>
 )
 
 type ParticipantAvatarProps = {
@@ -83,17 +82,26 @@ const ParticipantAvatar = ({ participant, size = "x-small" }: ParticipantAvatarP
     </Avatar>
   )
 
-type MessageBubbleProps = {
-  from: Participant
+const UserBubble = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex w-full justify-end">
+    <div className="max-w-[80%] rounded-lg bg-brand-100 px-3 py-2">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+        {children}
+      </div>
+    </div>
+  </div>
+)
+
+type AssistantTextProps = {
   children: React.ReactNode
 }
 
-const MessageBubble = ({ from, children }: MessageBubbleProps) => (
-  <div className="flex w-full items-start gap-2">
-    <ParticipantAvatar participant={from} />
-    <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
-      <span className="text-caption-bold font-caption-bold text-default-font">{from.name}</span>
-      {children}
+const AssistantText = ({ children }: AssistantTextProps) => (
+  <div className="flex w-full">
+    <div className="rounded-lg bg-neutral-50 px-3 py-3">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+        {children}
+      </div>
     </div>
   </div>
 )
@@ -138,48 +146,45 @@ const useDraggable = (initialPosition: Position) => {
 
 type MessageRendererProps = {
   message: RenderMessage
-  initiator: Participant
-  recipient: Participant
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const MessageRenderer = ({ message, initiator, recipient, projectId, navigate }: MessageRendererProps) => {
+const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps) => {
   switch (message.type) {
-    case "text": {
-      const from = message.role === "user" ? initiator : recipient
-      return (
-        <MessageBubble from={from}>
-          <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
-        </MessageBubble>
-      )
-    }
-    case "abort":
-      return (
-        <MessageBubble from={recipient}>
-          <div className="flex items-start gap-2 rounded-md bg-warning-100 p-2">
-            <FeatherAlertCircle className="h-4 w-4 shrink-0 text-warning-700 mt-0.5" />
+    case "text":
+      if (message.role === "user") {
+        return (
+          <UserBubble>
             <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
-          </div>
-        </MessageBubble>
+          </UserBubble>
+        )
+      }
+      return (
+        <AssistantText>
+          <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+        </AssistantText>
       )
     case "plan":
       return (
-        <MessageBubble from={recipient}>
-          <PlanProgressCard
-            steps={message.plan.steps}
-            currentStep={message.currentStep}
-            aborted={message.aborted}
-            projectId={projectId}
-            navigate={navigate}
-          />
-        </MessageBubble>
+        <PlanProgressCard
+          steps={message.plan.steps}
+          currentStep={message.currentStep}
+          aborted={message.aborted}
+          ask={message.ask}
+          projectId={projectId}
+          navigate={navigate}
+        />
       )
     case "exploration":
       return (
-        <MessageBubble from={recipient}>
-          <ExplorationCard exploration={message.exploration} projectId={projectId} navigate={navigate} />
-        </MessageBubble>
+        <ExplorationCard
+          exploration={message.exploration}
+          ask={message.ask}
+          aborted={message.aborted}
+          projectId={projectId}
+          navigate={navigate}
+        />
       )
   }
 }
@@ -200,6 +205,30 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
     >
       <FeatherSparkles className="h-6 w-6 shrink-0" />
     </button>
+  )
+}
+
+type LoadingIndicatorProps = {
+  streaming: string
+  history: Block[]
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const LoadingIndicator = ({ streaming, history, projectId, navigate }: LoadingIndicatorProps) => {
+  const filtered = streaming ? filterCodeBlocks(streaming) : null
+  if (filtered) {
+    return (
+      <AssistantText>
+        <MessageContent content={filtered} projectId={projectId} navigate={navigate} />
+      </AssistantText>
+    )
+  }
+  return (
+    <div className="flex w-full items-center gap-2 rounded-lg bg-neutral-50 px-3 py-3">
+      <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin flex-none" />
+      <span className="text-body font-body text-subtext-color">{getSpinnerLabel(history)}</span>
+    </div>
   )
 }
 
@@ -281,37 +310,28 @@ export const NabuChatSidebar = () => {
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 py-3">
         {messages.length === 0 && !loading && (
           <div className="flex h-full items-center justify-center">
-            <span className="text-sm text-subtext-color">How can I help you today?</span>
+            <span className="text-body font-body text-subtext-color">How can I help you today?</span>
           </div>
         )}
         {messages.map((message, i) => (
           <MessageRenderer
             key={i}
             message={message}
-            initiator={initiator}
-            recipient={recipient}
             projectId={project?.id ?? null}
             navigate={navigate}
           />
         ))}
         {loading && (
-          <MessageBubble from={recipient}>
-            {(() => {
-              const filtered = streaming ? filterCodeBlocks(streaming) : null
-              return filtered ? (
-                <MessageContent content={filtered} projectId={project?.id ?? null} navigate={navigate} />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin" />
-                  <span className="text-sm text-subtext-color">{getSpinnerLabel(history)}</span>
-                </div>
-              )
-            })()}
-          </MessageBubble>
+          <LoadingIndicator
+            streaming={streaming}
+            history={history}
+            projectId={project?.id ?? null}
+            navigate={navigate}
+          />
         )}
         {error && (
           <div className="flex flex-col items-center gap-2 py-4">
-            <span className="text-sm text-subtext-color">{error}</span>
+            <span className="text-body font-body text-subtext-color">{error}</span>
             <Button variant="neutral-secondary" size="small" icon={<FeatherRefreshCw />} onClick={handleRetry}>
               Try again
             </Button>

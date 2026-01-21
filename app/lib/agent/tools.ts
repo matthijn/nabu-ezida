@@ -23,7 +23,7 @@ const buildHandlerMap = (fns: Record<string, Handler>): Record<string, Handler> 
 const customHandlers = buildHandlerMap(handlers)
 
 const orchestrationTools = new Set([
-  "create_plan", "complete_step", "abort", "start_exploration", "exploration_step"
+  "create_plan", "complete_step", "abort", "ask", "start_exploration", "exploration_step"
 ])
 
 const commands: Record<string, (args: Args) => Command> = {

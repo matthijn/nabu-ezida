@@ -1,6 +1,7 @@
 import type { SystemBlock } from "~/lib/agent"
 import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
+import { isAbortError } from "~/lib/utils"
 import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 
@@ -13,14 +14,22 @@ export type RunnerDeps = {
   navigate?: NavigateFn
 }
 
+let controller: AbortController | null = null
+
 export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const chat = getChat()
   if (!chat) return
   if (chat.loading) return
 
   const nudge = toNudge(chat.history)
-  if (nudge === null) return
+  if (nudge === null) {
+    controller = null
+    return
+  }
 
+  if (!controller) {
+    controller = new AbortController()
+  }
   updateChat({ loading: true, error: null })
 
   if (nudge !== "") {
@@ -34,9 +43,10 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project, navigate: deps.navigate })
 
   try {
-    const result = await turn(current.history, blocksToMessages(current.history), {
+    const history = await turn(current.history, blocksToMessages(current.history), {
       endpoint: "/converse",
       execute: toolExecutor,
+      signal: controller.signal,
       callbacks: {
         onChunk: (chunk) => {
           const c = getChat()
@@ -45,14 +55,19 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
       },
     })
 
-    updateChat({ history: result.history, streaming: "", loading: false })
+    updateChat({ history, streaming: "", loading: false })
     run(deps)
   } catch (e) {
+    controller = null
+    if (isAbortError(e)) {
+      updateChat({ streaming: "", loading: false })
+      return
+    }
     console.error("[Runner] Error:", e)
-    updateChat({ error: "Something went wrong", loading: false })
+    updateChat({ error: "Something went wrong", streaming: "", loading: false })
   }
 }
 
 export const cancel = (): void => {
-  updateChat({ loading: false })
+  controller?.abort()
 }

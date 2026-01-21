@@ -46,10 +46,6 @@ const formatBlock = (block: Block): string => {
       return `[tool_call] ${block.calls.map(c => `${c.name}(${c.id})`).join(", ")}`
     case "tool_result":
       return `[tool_result] id=${block.callId}`
-    case "abort":
-      return `[abort] "${block.content}"`
-    default:
-      return `[unknown]`
   }
 }
 

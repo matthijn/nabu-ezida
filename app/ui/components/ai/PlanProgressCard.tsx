@@ -1,73 +1,41 @@
 "use client"
 
-import { FeatherCheck, FeatherCircle, FeatherLoader2, FeatherX } from "@subframe/core"
 import type { Step } from "~/lib/agent"
-import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
+import { StepsBlock, type StepItem, type StepType } from "./StepsBlock"
 
-type StepStatus = "done" | "active" | "pending" | "canceled"
-
-const getStepStatus = (step: Step, currentIndex: number | null, stepIndex: number, aborted: boolean): StepStatus => {
-  if (step.done) return "done"
-  if (aborted) return "canceled"
+const getStepType = (step: Step, currentIndex: number | null, stepIndex: number, aborted: boolean): StepType => {
+  if (step.done) return "completed"
+  if (aborted && currentIndex === stepIndex) return "cancelled"
+  if (aborted) return "pending"
   if (currentIndex === stepIndex) return "active"
   return "pending"
 }
 
-const StepIcon = ({ status }: { status: StepStatus }) => {
-  switch (status) {
-    case "done":
-      return <FeatherCheck className="text-caption text-success-600" />
-    case "active":
-      return <FeatherLoader2 className="text-caption text-brand-600 animate-spin" />
-    case "pending":
-      return <FeatherCircle className="text-caption text-neutral-400" />
-    case "canceled":
-      return <FeatherX className="text-caption text-neutral-400" />
-  }
-}
-
-const stepTextColor: Record<StepStatus, string> = {
-  done: "text-default-font",
-  active: "text-default-font",
-  pending: "text-neutral-400",
-  canceled: "text-neutral-400 line-through",
-}
+const toStepItem = (step: Step, currentIndex: number | null, stepIndex: number, aborted: boolean): StepItem => ({
+  type: getStepType(step, currentIndex, stepIndex, aborted),
+  content: step.description,
+  summary: step.summary,
+})
 
 type PlanProgressCardProps = {
   steps: Step[]
   currentStep: number | null
   aborted?: boolean
+  ask?: string | null
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-type StepRowProps = {
-  step: Step
-  status: StepStatus
-  projectId: string | null
-  navigate?: (url: string) => void
+export const PlanProgressCard = ({ steps, currentStep, aborted = false, ask, projectId, navigate }: PlanProgressCardProps) => {
+  const stepItems = steps.map((step, i) => toStepItem(step, currentStep, i, aborted))
+
+  return (
+    <StepsBlock
+      steps={stepItems}
+      ask={ask}
+      aborted={aborted}
+      projectId={projectId}
+      navigate={navigate}
+    />
+  )
 }
-
-const StepRow = ({ step, status, projectId, navigate }: StepRowProps) => (
-  <div className="flex w-full items-start gap-2">
-    <StepIcon status={status} />
-    <div className="flex flex-col items-start gap-0.5">
-      <span className={`text-caption font-caption ${stepTextColor[status]}`}>
-        {step.description}
-      </span>
-      {step.summary && (
-        <span className="text-caption font-caption text-subtext-color">
-          → <InlineMarkdown projectId={projectId} navigate={navigate}>{step.summary}</InlineMarkdown>
-        </span>
-      )}
-    </div>
-  </div>
-)
-
-export const PlanProgressCard = ({ steps, currentStep, aborted = false, projectId, navigate }: PlanProgressCardProps) => (
-  <div className="flex w-full flex-col items-start gap-1 rounded-md bg-brand-50 px-2 py-2">
-    {steps.map((step, i) => (
-      <StepRow key={step.id} step={step} status={getStepStatus(step, currentStep, i, aborted)} projectId={projectId} navigate={navigate} />
-    ))}
-  </div>
-)
