@@ -17,7 +17,6 @@ import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
 import type { Participant } from "~/domain/participant"
 import { resolveFileLink } from "~/domain/spotlight"
-import { getState, getQuery, subscribe } from "~/lib/services/projectSync"
 import { useNabu } from "./context"
 
 type MarkdownContext = {
@@ -235,13 +234,9 @@ const LoadingIndicator = ({ streaming, history, projectId, navigate }: LoadingIn
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat } = useNabu()
   const navigate = useNavigate()
-  const [project, setProject] = useState(getState().project)
-
-  useEffect(() => subscribe((state) => setProject(state.project)), [])
 
   const getDeps = useCallback(() => {
-    const { project } = getState()
-    return { query: getQuery(), project: project ?? undefined, navigate }
+    return { query: undefined, project: undefined, navigate }
   }, [navigate])
   const { chat, send, run, cancel, loading, streaming, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
@@ -317,7 +312,7 @@ export const NabuChatSidebar = () => {
           <MessageRenderer
             key={i}
             message={message}
-            projectId={project?.id ?? null}
+            projectId={null}
             navigate={navigate}
           />
         ))}
@@ -325,7 +320,7 @@ export const NabuChatSidebar = () => {
           <LoadingIndicator
             streaming={streaming}
             history={history}
-            projectId={project?.id ?? null}
+            projectId={null}
             navigate={navigate}
           />
         )}

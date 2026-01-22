@@ -6,26 +6,18 @@ import { FeatherFilePlus } from "@subframe/core"
 export default function ProjectIndex() {
   const { projectId } = useParams()
   const navigate = useNavigate()
-  const { project, isConnected } = useProject()
+  const { files } = useProject()
 
-  const documentIds = project ? Object.keys(project.documents) : []
-  const firstDocId = documentIds[0]
+  const fileNames = Object.keys(files)
+  const firstFile = fileNames[0]
 
   useEffect(() => {
-    if (firstDocId && projectId) {
-      navigate(`/project/${projectId}/file/${firstDocId}`, { replace: true })
+    if (firstFile && projectId) {
+      navigate(`/project/${projectId}/file/${encodeURIComponent(firstFile)}`, { replace: true })
     }
-  }, [firstDocId, projectId, navigate])
+  }, [firstFile, projectId, navigate])
 
-  if (!isConnected) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-subtext-color">Loading...</div>
-      </div>
-    )
-  }
-
-  if (documentIds.length === 0) {
+  if (fileNames.length === 0) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-4">
         <FeatherFilePlus className="h-12 w-12 text-subtext-color" />

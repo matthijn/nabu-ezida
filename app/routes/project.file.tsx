@@ -31,7 +31,7 @@ const getFileRaw = (files: Record<string, unknown>, filename: string): string | 
 }
 
 export default function ProjectFile() {
-  const { files, currentFile, isConnected, getFileTags } = useProject()
+  const { files, currentFile, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
@@ -47,10 +47,9 @@ export default function ProjectFile() {
   }, [])
 
   if (!currentFile || content === undefined) {
-    const message = isConnected ? "Select a file" : "Loading..."
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="text-subtext-color">{message}</div>
+        <div className="text-subtext-color">Select a file</div>
       </div>
     )
   }

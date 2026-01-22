@@ -1,5 +1,4 @@
 import type { Annotation } from "./annotations"
-import type { Block } from "./block"
 
 export type Tag = {
   id: string
@@ -14,9 +13,6 @@ export type DocumentData = {
   updated_at: string
   pinned: boolean
   tags: Record<string, Tag>
-  blocks: Record<string, Block>
-  head_id: string
-  tail_id: string
   annotations: Record<string, Annotation>
 }
 
