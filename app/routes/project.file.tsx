@@ -1,13 +1,9 @@
-import { useEffect, useCallback, useRef } from "react"
-import { useParams, useSearchParams } from "react-router"
+import { useCallback, useRef } from "react"
+import { useParams } from "react-router"
 import { useProject } from "./project"
-import { Editor, EditorDocumentProvider, ScrollGutter, type CursorInfo } from "~/lib/editor"
-import { FileHeader, EditorToolbar, SpotlightOverlay } from "~/ui/components/editor"
-import { setEditorContext } from "~/lib/chat/context"
-import { parseSpotlight } from "~/domain/spotlight"
-import { useCommand } from "~/lib/api/useCommand"
-import { documentCommands } from "~/domain/api/commands"
-import { blocksToArrayWithChildren, type BlockOp } from "~/domain/document"
+import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
+import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
+import { FileHeader, EditorToolbar } from "~/ui/components/editor"
 import {
   FeatherBold,
   FeatherCode2,
@@ -30,35 +26,11 @@ import {
 
 export default function ProjectFile() {
   const { fileId } = useParams()
-  const [searchParams] = useSearchParams()
   const { project, isConnected } = useProject()
-  const { execute, executeAll } = useCommand()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
-  const cursorRef = useRef<(() => CursorInfo) | null>(null)
-
-  const spotlight = parseSpotlight(searchParams.get("spotlight"))
 
   const document = fileId ? project?.documents[fileId] : undefined
-
-  useEffect(() => {
-    if (!document) return
-    setEditorContext(() => ({
-      documentId: document.id,
-      documentTitle: document.name,
-      blockId: cursorRef.current?.()?.blockId ?? null,
-      blockContent: cursorRef.current?.()?.blockContent ?? null,
-    }))
-    return () => setEditorContext(undefined)
-  }, [document])
-
-  const handleMoveBlock = useCallback(
-    (blockId: string, position: string) => {
-      if (!fileId) return
-      execute(documentCommands.move_blocks({ document_id: fileId, block_ids: [blockId], position }))
-    },
-    [fileId, execute]
-  )
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current
@@ -67,47 +39,6 @@ export default function ProjectFile() {
     const targetScroll = (percent / 100) * maxScroll
     container.scrollTo({ top: targetScroll, behavior: "smooth" })
   }, [])
-
-  const handleSyncBlocks = useCallback(
-    (ops: BlockOp[]) => {
-      if (!fileId || ops.length === 0) return
-
-      const removes = ops.filter((op): op is BlockOp & { type: "remove" } => op.type === "remove")
-      const replaces = ops.filter((op): op is BlockOp & { type: "replace" } => op.type === "replace")
-      const adds = ops.filter((op): op is BlockOp & { type: "add" } => op.type === "add")
-
-      const addsByPosition = adds.reduce((acc, op) => {
-        const pos = op.afterId ?? "head"
-        const existing = acc.get(pos) ?? []
-        acc.set(pos, [...existing, op])
-        return acc
-      }, new Map<string, typeof adds>())
-
-      const commands = [
-        ...(removes.length > 0 ? [documentCommands.delete_blocks({
-          document_id: fileId,
-          block_ids: removes.map(op => op.id),
-        })] : []),
-        ...replaces.map(op => documentCommands.update_block({
-          document_id: fileId,
-          block_id: op.block.id!,
-          type: op.block.type,
-          props: op.block.props,
-          content: op.block.content,
-        })),
-        ...[...addsByPosition.entries()].map(([position, ops]) => documentCommands.insert_blocks({
-          document_id: fileId,
-          position,
-          blocks: ops.map(op => op.block),
-        })),
-      ]
-
-      executeAll(commands)
-    },
-    [fileId, executeAll]
-  )
-
-  const content = document ? blocksToArrayWithChildren(document) : []
 
   if (!document) {
     const message = isConnected ? "File not found" : "Loading..."
@@ -161,10 +92,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <SpotlightOverlay spotlight={spotlight} containerRef={editorContainerRef} />
-            <EditorDocumentProvider documentId={document.id} documentName={document.name}>
-              <Editor key={fileId} content={content} annotations={Object.values(document.annotations)} onMoveBlock={handleMoveBlock} onSyncBlocks={handleSyncBlocks} cursorRef={cursorRef} />
-            </EditorDocumentProvider>
+            <MilkdownEditor key={fileId} documentId={document.id} documentName={document.name} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />
