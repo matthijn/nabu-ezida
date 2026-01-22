@@ -9,4 +9,4 @@ export {
   subscribe,
 } from "./store"
 
-export { applyPatch } from "./patch"
+export { applyPatch, applyFilePatch, type FileResult } from "./patch"

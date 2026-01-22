@@ -1,6 +1,5 @@
 import type { Handler } from "../types"
-import { getFileContent, updateFile, deleteFile } from "~/lib/files"
-import { applyPatch } from "~/lib/files"
+import { getFileContent, updateFile, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
 
 type Operation = {
   type: "create_file" | "update_file" | "delete_file"
@@ -12,24 +11,28 @@ type ApplyPatchResult =
   | { status: "completed"; output: string }
   | { status: "failed"; output: string }
 
-const handleCreateFile = (path: string, diff: string): ApplyPatchResult => {
-  const result = applyPatch("", diff)
-  if (!result.ok) {
-    return { status: "failed", output: result.error }
-  }
-  updateFile(path, result.content)
-  return { status: "completed", output: `Created ${path}` }
+const formatValidationError = (result: Extract<FileResult, { status: "validation_error" }>): string => {
+  const issues = result.issues.map(i => `${i.path}: ${i.message}`).join(", ")
+  return `Validation failed for ${result.path}: ${issues}. Current: ${JSON.stringify(result.current)}`
 }
 
-const handleUpdateFile = (path: string, diff: string): ApplyPatchResult => {
-  const current = getFileContent(path)
-  const result = applyPatch(current, diff)
-  if (!result.ok) {
-    return { status: "failed", output: result.error }
+const toApplyPatchResult = (result: FileResult, verb: string): ApplyPatchResult => {
+  switch (result.status) {
+    case "ok":
+      updateFile(result.path, result.content)
+      return { status: "completed", output: `${verb} ${result.path}` }
+    case "error":
+      return { status: "failed", output: result.error }
+    case "validation_error":
+      return { status: "failed", output: formatValidationError(result) }
   }
-  updateFile(path, result.content)
-  return { status: "completed", output: `Updated ${path}` }
 }
+
+const handleCreateFile = (path: string, diff: string): ApplyPatchResult =>
+  toApplyPatchResult(applyFilePatch(path, "", diff), "Created")
+
+const handleUpdateFile = (path: string, diff: string): ApplyPatchResult =>
+  toApplyPatchResult(applyFilePatch(path, getFileContent(path), diff), "Updated")
 
 const handleDeleteFile = (path: string): ApplyPatchResult => {
   deleteFile(path)
