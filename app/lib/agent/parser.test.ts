@@ -17,19 +17,25 @@ describe("parser", () => {
       {
         name: "accumulates text deltas",
         lines: [
-          'data: {"choices":[{"delta":{"content":"Hello"}}]}',
-          'data: {"choices":[{"delta":{"content":" world"}}]}',
-          "data: [DONE]",
+          "event: response.output_text.delta",
+          'data: {"delta":"Hello"}',
+          "event: response.output_text.delta",
+          'data: {"delta":" world"}',
+          "event: response.completed",
+          "data: {}",
         ],
         expectedText: "Hello world",
         expectedChunks: ["Hello", " world"],
       },
       {
-        name: "ignores non-data lines",
+        name: "ignores unknown event types",
         lines: [
-          "event: message",
-          'data: {"choices":[{"delta":{"content":"Hi"}}]}',
-          "data: [DONE]",
+          "event: response.unknown",
+          "data: {}",
+          "event: response.output_text.delta",
+          'data: {"delta":"Hi"}',
+          "event: response.completed",
+          "data: {}",
         ],
         expectedText: "Hi",
         expectedChunks: ["Hi"],
@@ -56,19 +62,36 @@ describe("parser", () => {
       {
         name: "parses single tool call",
         lines: [
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"execute_sql","arguments":""}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"sql\\":"}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"SELECT 1\\"}"}}]}}]}',
-          'data: {"choices":[{"finish_reason":"tool_calls"}]}',
+          "event: response.output_item.done",
+          'data: {"item":{"type":"function_call","call_id":"call_1","name":"execute_sql","arguments":"{\\"sql\\":\\"SELECT 1\\"}"}}',
         ],
         expectedCalls: [{ id: "call_1", name: "execute_sql", args: { sql: "SELECT 1" } }],
       },
       {
+        name: "ignores function call arguments delta (no streaming)",
+        lines: [
+          "event: response.function_call_arguments.delta",
+          'data: {"delta":"{\\"sql"}',
+        ],
+        expectedCalls: [],
+        expectedChunks: [],
+      },
+      {
+        name: "ignores apply_patch diff delta (no streaming)",
+        lines: [
+          "event: response.apply_patch_call_operation_diff.delta",
+          'data: {"delta":"+hello"}',
+        ],
+        expectedCalls: [],
+        expectedChunks: [],
+      },
+      {
         name: "parses multiple tool calls",
         lines: [
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"a","arguments":"{}"}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","function":{"name":"b","arguments":"{}"}}]}}]}',
-          "data: [DONE]",
+          "event: response.output_item.done",
+          'data: {"item":{"type":"function_call","call_id":"call_1","name":"a","arguments":"{}"}}',
+          "event: response.output_item.done",
+          'data: {"item":{"type":"function_call","call_id":"call_2","name":"b","arguments":"{}"}}',
         ],
         expectedCalls: [
           { id: "call_1", name: "a", args: {} },
@@ -76,24 +99,16 @@ describe("parser", () => {
         ],
       },
       {
-        name: "parses parallel tool calls with interleaved args",
+        name: "parses apply_patch call",
         lines: [
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"foo","arguments":""}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","function":{"name":"bar","arguments":""}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"x\\":"}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\\"y\\":"}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"1}"}}]}}]}',
-          'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"2}"}}]}}]}',
-          'data: {"choices":[{"finish_reason":"tool_calls"}]}',
+          "event: response.output_item.done",
+          'data: {"item":{"type":"apply_patch_call","call_id":"call_1","operation":{"type":"create_file","path":"test.md","diff":"+hello"}}}',
         ],
-        expectedCalls: [
-          { id: "call_1", name: "foo", args: { x: 1 } },
-          { id: "call_2", name: "bar", args: { y: 2 } },
-        ],
+        expectedCalls: [{ id: "call_1", name: "apply_patch", args: { operation: { type: "create_file", path: "test.md", diff: "+hello" } } }],
       },
     ]
 
-    cases.forEach(({ name, lines, expectedCalls }) => {
+    cases.forEach(({ name, lines, expectedCalls, expectedChunks }) => {
       it(name, () => {
         let state = initialParseState()
         const chunks: string[] = []
@@ -103,6 +118,9 @@ describe("parser", () => {
         }
 
         expect(state.toolCalls).toEqual(expectedCalls)
+        if (expectedChunks) {
+          expect(chunks).toEqual(expectedChunks)
+        }
       })
     })
   })
@@ -112,9 +130,12 @@ describe("parser", () => {
       let state = initialParseState()
       const chunks: string[] = []
       const lines = [
-        'data: {"choices":[{"delta":{"content":"Let me help"}}]}',
-        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"create_plan","arguments":"{}"}}]}}]}',
-        'data: {"choices":[{"finish_reason":"tool_calls"}]}',
+        "event: response.output_text.delta",
+        'data: {"delta":"Let me help"}',
+        "event: response.output_item.done",
+        'data: {"item":{"type":"function_call","call_id":"call_1","name":"create_plan","arguments":"{}"}}',
+        "event: response.completed",
+        "data: {}",
       ]
 
       for (const line of lines) {
@@ -130,12 +151,12 @@ describe("parser", () => {
     const cases = [
       {
         name: "handles empty lines",
-        lines: ["", "data: [DONE]"],
+        lines: ["", "event: response.completed", "data: {}"],
         expectedText: "",
       },
       {
         name: "handles malformed JSON",
-        lines: ["data: not json", "data: [DONE]"],
+        lines: ["event: response.output_text.delta", "data: not json"],
         expectedText: "",
       },
     ]
@@ -158,12 +179,22 @@ describe("parser", () => {
 describe("blocksToMessages", () => {
   const cases = [
     {
-      name: "converts text block to assistant message",
-      blocks: [{ type: "text" as const, content: "Hello" }],
-      expected: [{ role: "assistant", content: "Hello" }],
+      name: "converts system block to system message",
+      blocks: [{ type: "system" as const, content: "You are helpful" }],
+      expected: [{ type: "message", role: "system", content: "You are helpful" }],
     },
     {
-      name: "converts tool_call block to assistant message with tool_calls",
+      name: "converts user block to user message",
+      blocks: [{ type: "user" as const, content: "Hi" }],
+      expected: [{ type: "message", role: "user", content: "Hi" }],
+    },
+    {
+      name: "converts text block to assistant message",
+      blocks: [{ type: "text" as const, content: "Hello" }],
+      expected: [{ type: "message", role: "assistant", content: "Hello" }],
+    },
+    {
+      name: "converts tool_call block to function_call items",
       blocks: [
         {
           type: "tool_call" as const,
@@ -171,30 +202,42 @@ describe("blocksToMessages", () => {
         },
       ],
       expected: [
-        {
-          role: "assistant",
-          tool_calls: [
-            { id: "1", type: "function", function: { name: "foo", arguments: '{"x":1}' } },
-          ],
-        },
+        { type: "function_call", call_id: "1", status: "completed", name: "foo", arguments: '{"x":1}' },
       ],
     },
     {
-      name: "converts tool_result block to tool message",
-      blocks: [{ type: "tool_result" as const, callId: "1", result: { ok: true } }],
-      expected: [{ role: "tool", tool_call_id: "1", content: '{"ok":true}' }],
+      name: "converts apply_patch tool_call to apply_patch_call",
+      blocks: [
+        {
+          type: "tool_call" as const,
+          calls: [{ id: "1", name: "apply_patch", args: { operation: { type: "create_file", path: "test.md", diff: "+hello" } } }],
+        },
+      ],
+      expected: [
+        { type: "apply_patch_call", call_id: "1", status: "completed", operation: { type: "create_file", path: "test.md", diff: "+hello" } },
+      ],
+    },
+    {
+      name: "converts tool_result block to function_call_output",
+      blocks: [{ type: "tool_result" as const, callId: "1", toolName: "execute_sql", result: { ok: true } }],
+      expected: [{ type: "function_call_output", call_id: "1", status: "completed", output: '{"ok":true}' }],
+    },
+    {
+      name: "converts apply_patch tool_result to apply_patch_call_output",
+      blocks: [{ type: "tool_result" as const, callId: "1", toolName: "apply_patch", result: { success: true } }],
+      expected: [{ type: "apply_patch_call_output", call_id: "1", status: "completed", output: '{"success":true}' }],
     },
     {
       name: "converts mixed blocks in order",
       blocks: [
         { type: "text" as const, content: "Thinking" },
         { type: "tool_call" as const, calls: [{ id: "1", name: "bar", args: {} }] },
-        { type: "tool_result" as const, callId: "1", result: {} },
+        { type: "tool_result" as const, callId: "1", toolName: "bar", result: {} },
       ] as Block[],
       expected: [
-        { role: "assistant", content: "Thinking" },
-        { role: "assistant", tool_calls: [{ id: "1", type: "function", function: { name: "bar", arguments: "{}" } }] },
-        { role: "tool", tool_call_id: "1", content: "{}" },
+        { type: "message", role: "assistant", content: "Thinking" },
+        { type: "function_call", call_id: "1", status: "completed", name: "bar", arguments: "{}" },
+        { type: "function_call_output", call_id: "1", status: "completed", output: "{}" },
       ],
     },
   ]

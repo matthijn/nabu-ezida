@@ -1,5 +1,0 @@
-export { Lock } from "./lock"
-export { BlockID } from "./unique-id"
-export { applyBlockOps } from "./block-sync"
-export { Annotations, setAnnotations } from "~/lib/editor/annotations"
-export type { AnnotationOptions } from "~/lib/editor/annotations"

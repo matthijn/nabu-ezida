@@ -28,33 +28,14 @@ const MilkdownEditorCore = ({ defaultValue }: MilkdownEditorCoreProps) => {
 }
 
 export type MilkdownEditorProps = {
-  documentId: string
-  documentName: string
+  content: string
 }
 
-export const MilkdownEditor = ({ documentId, documentName }: MilkdownEditorProps) => {
-  const placeholder = `# ${documentName}
-
-Welcome to **${documentName}**. This document is using Milkdown.
-
-## Getting Started
-
-Start typing here to edit this document.
-
-- List item one
-- List item two
-- List item three
-
-| Column A | Column B |
-|----------|----------|
-| Cell 1   | Cell 2   |
-| Cell 3   | Cell 4   |
-`
-
+export const MilkdownEditor = ({ content }: MilkdownEditorProps) => {
   return (
     <div className="w-full max-w-[768px] text-default-font">
       <MilkdownProvider>
-        <MilkdownEditorCore defaultValue={placeholder} />
+        <MilkdownEditorCore defaultValue={content} />
       </MilkdownProvider>
     </div>
   )

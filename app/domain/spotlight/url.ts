@@ -1,16 +1,19 @@
 import type { Spotlight } from "./types"
 import { serializeSpotlight } from "./serialize"
 
-const toSpotlight = (blockIds: string[]): Spotlight =>
-  blockIds.length === 1
-    ? { type: "single", blockId: blockIds[0] }
-    : { type: "range", from: blockIds[0], to: blockIds[blockIds.length - 1] }
+const toSpotlight = (texts: string[]): Spotlight =>
+  texts.length === 1
+    ? { type: "single", text: texts[0] }
+    : { type: "range", from: texts[0], to: texts[texts.length - 1] }
+
+const encodeSpotlight = (text: string): string =>
+  encodeURIComponent(text.toLowerCase()).replace(/%20/g, "+")
 
 export const buildSpotlightUrl = (
   projectId: string,
   documentId: string,
-  blockIds: string[]
+  texts: string[]
 ): string => {
-  const spotlight = toSpotlight(blockIds)
-  return `/project/${projectId}/file/${documentId}?spotlight=${serializeSpotlight(spotlight)}`
+  const spotlight = toSpotlight(texts)
+  return `/project/${projectId}/file/${documentId}?spotlight=${encodeSpotlight(serializeSpotlight(spotlight))}`
 }

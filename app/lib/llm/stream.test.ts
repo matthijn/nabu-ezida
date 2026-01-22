@@ -1,67 +1,57 @@
 import { describe, expect, it } from "vitest"
-import { parseSSELine } from "./stream"
+import { parseSSELine, initialParseState } from "./stream"
 
 describe("parseSSELine", () => {
   const cases = [
     {
-      name: "ignores non-data lines",
-      line: "event: message",
-      acc: null,
-      expected: { event: null, toolCallAcc: null },
-    },
-    {
-      name: "handles [DONE] without tool call",
-      line: "data: [DONE]",
-      acc: null,
-      expected: { event: { type: "done" }, toolCallAcc: null },
-    },
-    {
-      name: "handles [DONE] with pending tool call",
-      line: "data: [DONE]",
-      acc: { id: "call_1", name: "search", arguments: '{"q":"test"}' },
-      expected: {
-        event: { type: "tool_call", id: "call_1", name: "search", arguments: '{"q":"test"}' },
-        toolCallAcc: null,
-      },
+      name: "captures event type",
+      lines: ["event: response.output_text.delta"],
+      expected: { event: null, currentEvent: "response.output_text.delta" },
     },
     {
       name: "parses text delta",
-      line: 'data: {"choices":[{"delta":{"content":"Hello"}}]}',
-      acc: null,
-      expected: { event: { type: "text_delta", content: "Hello" }, toolCallAcc: null },
+      lines: ["event: response.output_text.delta", 'data: {"delta":"Hello"}'],
+      expected: { event: { type: "text_delta", content: "Hello" }, currentEvent: "response.output_text.delta" },
     },
     {
-      name: "starts new tool call accumulator",
-      line: 'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"search","arguments":"{"}}]}}]}',
-      acc: null,
-      expected: { event: null, toolCallAcc: { id: "call_1", name: "search", arguments: "{" } },
-    },
-    {
-      name: "accumulates tool call arguments",
-      line: 'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"q"}}]}}]}',
-      acc: { id: "call_1", name: "search", arguments: "{" },
-      expected: { event: null, toolCallAcc: { id: "call_1", name: "search", arguments: "{q" } },
-    },
-    {
-      name: "emits tool call on finish_reason",
-      line: 'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
-      acc: { id: "call_1", name: "search", arguments: '{"q":"test"}' },
+      name: "parses tool call done",
+      lines: [
+        "event: response.function_call_arguments.done",
+        'data: {"call_id":"call_1","name":"search","arguments":"{\\"q\\":\\"test\\"}"}',
+      ],
       expected: {
         event: { type: "tool_call", id: "call_1", name: "search", arguments: '{"q":"test"}' },
-        toolCallAcc: null,
+        currentEvent: "response.function_call_arguments.done",
       },
     },
     {
+      name: "handles response completed",
+      lines: ["event: response.completed", "data: {}"],
+      expected: { event: { type: "done" }, currentEvent: "" },
+    },
+    {
       name: "returns error on invalid JSON",
-      line: "data: {invalid json}",
-      acc: null,
-      expected: { event: { type: "error", message: "Failed to parse SSE chunk" }, toolCallAcc: null },
+      lines: ["event: response.output_text.delta", "data: {invalid json}"],
+      expected: { event: { type: "error", message: "Failed to parse SSE chunk" }, currentEvent: "response.output_text.delta" },
+    },
+    {
+      name: "ignores unknown event types",
+      lines: ["event: response.unknown", "data: {}"],
+      expected: { event: null, currentEvent: "response.unknown" },
     },
   ]
 
-  cases.forEach(({ name, line, acc, expected }) => {
+  cases.forEach(({ name, lines, expected }) => {
     it(name, () => {
-      expect(parseSSELine(line, acc)).toEqual(expected)
+      let state = initialParseState()
+      let lastResult: ReturnType<typeof parseSSELine> = { event: null, state }
+
+      for (const line of lines) {
+        lastResult = parseSSELine(line, lastResult.state)
+      }
+
+      expect(lastResult.event).toEqual(expected.event)
+      expect(lastResult.state.currentEvent).toBe(expected.currentEvent)
     })
   })
 })

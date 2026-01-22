@@ -1,5 +1,5 @@
 import type { Block, ToolCall, ToolResultBlock } from "./types"
-import type { Message, ParseCallbacks } from "./parser"
+import type { InputItem, ParseCallbacks } from "./parser"
 import { parse } from "./parser"
 import { appendBlock } from "./reducer"
 import { isToolCallBlock } from "./selectors"
@@ -33,9 +33,9 @@ const formatError = (e: unknown): unknown => {
 export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
   try {
     const result = await execute(call)
-    return { type: "tool_result", callId: call.id, result: sanitizeForJson(result) }
+    return { type: "tool_result", callId: call.id, toolName: call.name, result: sanitizeForJson(result) }
   } catch (e) {
-    return { type: "tool_result", callId: call.id, result: formatError(e) }
+    return { type: "tool_result", callId: call.id, toolName: call.name, result: formatError(e) }
   }
 }
 
@@ -48,7 +48,7 @@ export const runPrompt = async (
   execute: ToolExecutor,
   signal?: AbortSignal
 ): Promise<void> => {
-  const messages: Message[] = [{ role: "system", content: context }]
+  const messages: InputItem[] = [{ type: "message", role: "system", content: context }]
   const blocks = await parse({ endpoint, messages, signal })
   const calls = blocks.filter(isToolCallBlock).flatMap(b => b.calls)
   if (calls.length > 0) {
@@ -56,7 +56,7 @@ export const runPrompt = async (
   }
 }
 
-export const turn = async (history: Block[], messages: Message[], deps: TurnDeps): Promise<Block[]> => {
+export const turn = async (history: Block[], messages: InputItem[], deps: TurnDeps): Promise<Block[]> => {
   const { endpoint, execute, callbacks, signal } = deps
 
   const parsedBlocks = await parse({ endpoint, messages, callbacks, signal })

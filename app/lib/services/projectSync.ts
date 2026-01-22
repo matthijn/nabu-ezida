@@ -8,7 +8,7 @@ import type { Database } from "~/lib/db/types"
 import { projectSchema, syncProjectToDatabase } from "~/domain/project"
 import type { Project } from "~/domain/project"
 import type { Document, BlockFingerprint } from "~/domain/document"
-import { blocksToMarkdown, computeBlockFingerprint, hasSignificantDrift } from "~/domain/document"
+import { blocksToMarkdown, computeBlockFingerprint, hasSignificantBlockDrift } from "~/domain/document"
 
 type ConnectionState = {
   project: Project | null
@@ -36,7 +36,7 @@ const getExecutor = () =>
   })
 
 const formatDocumentContext = (doc: Document): string =>
-  `Document ID: ${doc.id}\n\nThis is the document:\n----\n${blocksToMarkdown(doc)}`
+  blocksToMarkdown(doc)
 
 const isContentChange = (change: DocumentChange): boolean =>
   change.path.includes("/blocks")
@@ -44,7 +44,7 @@ const isContentChange = (change: DocumentChange): boolean =>
 const shouldTag = (doc: Document): boolean => {
   const current = computeBlockFingerprint(Object.values(doc.blocks))
   const previous = lastBlockFingerprints.get(doc.id)
-  return !previous || hasSignificantDrift(previous, current)
+  return !previous || hasSignificantBlockDrift(previous, current)
 }
 
 const markTagged = (doc: Document): void => {

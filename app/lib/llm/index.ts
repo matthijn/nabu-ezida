@@ -1,2 +1,2 @@
 export * from "./types"
-export { parseSSELine } from "./stream"
+export { parseSSELine, initialParseState } from "./stream"

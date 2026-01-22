@@ -17,6 +17,7 @@ export type ToolCallBlock = {
 export type ToolResultBlock = {
   type: "tool_result"
   callId: string
+  toolName?: string
   result: unknown
 }
 

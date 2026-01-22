@@ -1,5 +1,4 @@
 import { useCallback, useRef } from "react"
-import { useParams } from "react-router"
 import { useProject } from "./project"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -25,12 +24,11 @@ import {
 } from "@subframe/core"
 
 export default function ProjectFile() {
-  const { fileId } = useParams()
-  const { project, isConnected } = useProject()
+  const { files, currentFile, isConnected } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
-  const document = fileId ? project?.documents[fileId] : undefined
+  const content = currentFile ? files[currentFile] : undefined
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current
@@ -40,8 +38,8 @@ export default function ProjectFile() {
     container.scrollTo({ top: targetScroll, behavior: "smooth" })
   }, [])
 
-  if (!document) {
-    const message = isConnected ? "File not found" : "Loading..."
+  if (!currentFile || content === undefined) {
+    const message = isConnected ? "Select a file" : "Loading..."
     return (
       <div className="flex h-full w-full items-center justify-center">
         <div className="text-subtext-color">{message}</div>
@@ -52,12 +50,9 @@ export default function ProjectFile() {
   return (
     <>
       <FileHeader
-        title={document.name}
-        tags={Object.keys(document.tags).map((tag, i) => ({
-          label: tag,
-          variant: i === 0 ? "brand" : ("neutral" as const),
-        }))}
-        pinned={document.pinned}
+        title={currentFile}
+        tags={[]}
+        pinned={false}
         onPin={() => {}}
         onShare={() => {}}
         menuItems={[
@@ -92,7 +87,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={fileId} documentId={document.id} documentName={document.name} />
+            <MilkdownEditor key={currentFile} content={content} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
 import type { Spotlight } from "~/domain/spotlight"
 import { serializeSpotlight } from "~/domain/spotlight"
+import { findText, findTextRange } from "~/lib/text"
 
 type SpotlightOverlayProps = {
   spotlight: Spotlight | null
@@ -12,46 +13,63 @@ type SpotlightOverlayProps = {
 
 type Rect = { top: number; left: number; height: number }
 
-const blockIdSelector = (id: string): string =>
-  `[data-block-id="${id}"]`
+type TextRange = { start: number; end: number }
 
-const findBlockElement = (container: HTMLElement, blockId: string): HTMLElement | null =>
-  container.querySelector(blockIdSelector(blockId))
-
-const findBlockElements = (container: HTMLElement, spotlight: Spotlight): HTMLElement[] => {
+const findSpotlightRange = (spotlight: Spotlight, text: string): TextRange | null => {
   if (spotlight.type === "single") {
-    const el = findBlockElement(container, spotlight.blockId)
-    return el ? [el] : []
+    const match = findText(spotlight.text, text)
+    return match ? { start: match.start, end: match.end } : null
   }
-
-  const fromEl = findBlockElement(container, spotlight.from)
-  const toEl = findBlockElement(container, spotlight.to)
-  if (!fromEl || !toEl) return []
-
-  const blocks: HTMLElement[] = []
-  let current: Element | null = fromEl
-  const toId = spotlight.to
-
-  while (current) {
-    if (current instanceof HTMLElement && current.hasAttribute("data-block-id")) {
-      blocks.push(current)
-      if (current.getAttribute("data-block-id") === toId) break
-    }
-    current = current.nextElementSibling
-  }
-
-  return blocks
+  return findTextRange(spotlight.from, spotlight.to, text)
 }
 
+type NodeOffset = { node: Node; start: number; end: number }
+
+const collectTextNodes = (container: HTMLElement): NodeOffset[] => {
+  const nodes: NodeOffset[] = []
+  let offset = 0
+
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const length = node.textContent?.length ?? 0
+      if (length > 0) {
+        nodes.push({ node, start: offset, end: offset + length })
+        offset += length
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      for (const child of node.childNodes) {
+        walk(child)
+      }
+    }
+  }
+
+  walk(container)
+  return nodes
+}
+
+const findNodesInRange = (nodes: NodeOffset[], range: TextRange): Node[] =>
+  nodes
+    .filter(n => n.start < range.end && n.end > range.start)
+    .map(n => n.node)
+
+const getParentElement = (node: Node): HTMLElement | null =>
+  node.parentElement
+
 const calculateOverlayRect = (
-  blocks: HTMLElement[],
+  nodes: Node[],
   container: HTMLElement
 ): Rect | null => {
-  if (blocks.length === 0) return null
+  if (nodes.length === 0) return null
+
+  const elements = nodes
+    .map(getParentElement)
+    .filter((el): el is HTMLElement => el !== null)
+
+  if (elements.length === 0) return null
 
   const containerRect = container.getBoundingClientRect()
-  const firstRect = blocks[0].getBoundingClientRect()
-  const lastRect = blocks[blocks.length - 1].getBoundingClientRect()
+  const firstRect = elements[0].getBoundingClientRect()
+  const lastRect = elements[elements.length - 1].getBoundingClientRect()
 
   return {
     top: firstRect.top - containerRect.top,
@@ -80,16 +98,22 @@ export const SpotlightOverlay = ({ spotlight, containerRef }: SpotlightOverlayPr
       return false
     }
 
-    const blocks = findBlockElements(container, spotlight)
-    if (blocks.length === 0) return false
+    const text = container.textContent ?? ""
+    const range = findSpotlightRange(spotlight, text)
+    if (!range) return false
+
+    const textNodes = collectTextNodes(container)
+    const nodes = findNodesInRange(textNodes, range)
+    if (nodes.length === 0) return false
 
     const key = toSpotlightKey(spotlight)
     if (scrolledForRef.current !== key) {
-      blocks[0].scrollIntoView({ behavior: "smooth", block: "center" })
+      const firstElement = getParentElement(nodes[0])
+      firstElement?.scrollIntoView({ behavior: "smooth", block: "center" })
       scrolledForRef.current = key
     }
 
-    const newRect = calculateOverlayRect(blocks, container)
+    const newRect = calculateOverlayRect(nodes, container)
     setRect(newRect)
     return true
   }, [spotlight, containerRef])

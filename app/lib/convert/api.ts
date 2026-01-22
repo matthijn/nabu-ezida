@@ -1,11 +1,9 @@
 import { runPrompt, createToolExecutor } from "~/lib/agent"
 import type { Document } from "~/domain/document"
-import { blocksToArrayWithChildren } from "~/domain/document"
+import { blocksToMarkdown } from "~/domain/document"
 
-const formatContext = (doc: Document): string => {
-  const blocks = blocksToArrayWithChildren(doc)
-  return `Document: ${doc.name} (${doc.id})\n\nBlocks:\n${JSON.stringify(blocks, null, 2)}`
-}
+const formatContext = (doc: Document): string =>
+  blocksToMarkdown(doc)
 
 export const convertDocument = async (
   doc: Document,

@@ -1,3 +1,3 @@
 export type Spotlight =
-  | { type: "single"; blockId: string }
+  | { type: "single"; text: string }
   | { type: "range"; from: string; to: string }

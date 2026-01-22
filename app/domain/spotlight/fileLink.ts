@@ -2,21 +2,23 @@ import type { Spotlight } from "./types"
 import { serializeSpotlight } from "./serialize"
 
 const FILE_PROTOCOL = "file://"
-const RANGE_DELIMITER = ".."
+const RANGE_DELIMITER = "..."
 
 type FileLink = {
   documentId: string
   spotlight: Spotlight | null
 }
 
-const parseBlockPart = (blockPart: string): Spotlight | null => {
-  if (!blockPart) return null
-  if (blockPart.includes(RANGE_DELIMITER)) {
-    const [from, to] = blockPart.split(RANGE_DELIMITER)
+const parseTextPart = (textPart: string): Spotlight | null => {
+  if (!textPart) return null
+  if (textPart.includes(RANGE_DELIMITER)) {
+    const idx = textPart.indexOf(RANGE_DELIMITER)
+    const from = textPart.slice(0, idx)
+    const to = textPart.slice(idx + RANGE_DELIMITER.length)
     if (!from || !to) return null
     return { type: "range", from, to }
   }
-  return { type: "single", blockId: blockPart }
+  return { type: "single", text: textPart }
 }
 
 export const parseFileLink = (href: string): FileLink | null => {
@@ -29,8 +31,8 @@ export const parseFileLink = (href: string): FileLink | null => {
   }
 
   const documentId = path.slice(0, slashIndex)
-  const blockPart = path.slice(slashIndex + 1)
-  return { documentId, spotlight: parseBlockPart(blockPart) }
+  const textPart = decodeURIComponent(path.slice(slashIndex + 1))
+  return { documentId, spotlight: parseTextPart(textPart) }
 }
 
 export const resolveFileLink = (href: string, projectId: string): string | null => {
@@ -39,5 +41,5 @@ export const resolveFileLink = (href: string, projectId: string): string | null 
 
   const base = `/project/${projectId}/file/${parsed.documentId}`
   if (!parsed.spotlight) return base
-  return `${base}?spotlight=${serializeSpotlight(parsed.spotlight)}`
+  return `${base}?spotlight=${encodeURIComponent(serializeSpotlight(parsed.spotlight))}`
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useProjectSync } from "~/hooks/useProjectSync"
+import { useFiles } from "~/hooks/useFiles"
 import { getWsUrl } from "~/lib/env"
 import type { Project } from "~/domain/project"
 import { selectDocumentsWithTag } from "~/domain/project/selectors"
@@ -31,9 +32,20 @@ const toSidebarDocument = (doc: Document): SidebarDocument => ({
 const selectSidebarDocuments = (project: Project | null): SidebarDocument[] =>
   project ? Object.values(project.documents).map(toSidebarDocument) : []
 
+const filesToSidebarDocuments = (files: Record<string, string>): SidebarDocument[] =>
+  Object.keys(files).map((filename) => ({
+    id: filename,
+    title: filename,
+    editedAt: "just now",
+    tags: [],
+    pinned: false,
+  }))
+
 export type ProjectContextValue = {
   project: Project | null
   isConnected: boolean
+  files: Record<string, string>
+  currentFile: string | null
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -51,19 +63,21 @@ export default function ProjectLayout() {
   }, [params.projectId])
 
   const { project, parsed, isConnected } = useProjectSync(getWsUrl("/ws"), params.projectId!)
+  const { files, currentFile, setCurrentFile } = useFiles()
 
-  const documents = selectSidebarDocuments(project)
+  const documents = filesToSidebarDocuments(files)
   const codebook = parsed.codebook as Codebook | undefined
 
-  const handleDocumentSelect = (docId: string) => {
-    navigate(`/project/${params.projectId}/file/${docId}`)
+  const handleDocumentSelect = (filename: string) => {
+    setCurrentFile(filename)
+    navigate(`/project/${params.projectId}/file/${encodeURIComponent(filename)}`)
   }
 
   const handleEditCode = (code: Code) => {
     if (!project || !params.projectId) return
     const codebookDoc = selectDocumentsWithTag(project, "codebook")[0]
     if (!codebookDoc) return
-    navigate(buildSpotlightUrl(params.projectId, codebookDoc.id, [code.id]))
+    navigate(buildSpotlightUrl(params.projectId, codebookDoc.id, [code.name]))
   }
 
   const renderSidebar = () => {
@@ -81,7 +95,7 @@ export default function ProjectLayout() {
     return (
       <DocumentsSidebar
         documents={documents}
-        selectedId={params.fileId}
+        selectedId={currentFile ?? undefined}
         searchValue={searchValue}
         sortBy={sortBy}
         collapsed={sidebarCollapsed}
@@ -105,7 +119,7 @@ export default function ProjectLayout() {
         <div className="flex h-full w-full items-start bg-default-background">
           {renderSidebar()}
           <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-            <Outlet context={{ project, isConnected }} />
+            <Outlet context={{ project, isConnected, files, currentFile }} />
           </div>
         </div>
         <NabuChatSidebar />

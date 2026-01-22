@@ -21,6 +21,7 @@ const toolLabels: Record<string, string> = {
   add_annotations: "Annotating",
   remove_annotations: "Removing annotations",
   update_annotation_props: "Updating annotations",
+  apply_patch: "Writing",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {

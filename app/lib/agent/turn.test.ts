@@ -106,6 +106,7 @@ describe("turn", () => {
       expect(result[1]).toEqual({
         type: "tool_result",
         callId: "1",
+        toolName: "execute_sql",
         result: { error: "Database connection failed" },
       })
     })
@@ -127,6 +128,7 @@ describe("turn", () => {
       expect(result[1]).toEqual({
         type: "tool_result",
         callId: "1",
+        toolName: "execute_sql",
         result: { count: 42, nested: { value: 100 }, array: [1, 2] },
       })
     })

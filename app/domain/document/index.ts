@@ -33,14 +33,10 @@ export {
   createBarberPoleGradient,
   createBackground,
 } from "./annotations"
-export { blocksToTiptap, tiptapToBlocks } from "./convert/index"
 export {
-  diffBlocks,
-  hasSignificantChange,
-  hasSignificantDrift,
   computeBlockFingerprint,
-  type BlockOp,
+  hasSignificantBlockDrift,
   type BlockFingerprint,
-} from "./diff"
+} from "./fingerprint"
 export { blocksToArray, blocksToArrayWithChildren, getChildBlocks, type BlockTree } from "./selectors"
 export { blocksToMarkdown } from "./markdown"

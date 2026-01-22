@@ -3,8 +3,9 @@ import type { Block, SystemBlock } from "~/lib/agent"
 export type EditorContext = {
   documentId: string
   documentTitle: string
-  blockId: string | null
-  blockContent: string | null
+  above: string[]
+  below: string[]
+  selection?: string
 }
 
 type GetContextFn = () => EditorContext | null
@@ -25,8 +26,14 @@ export const contextToMessage = (ctx: EditorContext): string => {
     CONTEXT_PREFIX,
     `Document: ${ctx.documentTitle} (${ctx.documentId})`,
   ]
-  if (ctx.blockId && ctx.blockContent) {
-    lines.push(`Cursor at: ${ctx.blockContent} (${ctx.blockId})`)
+  if (ctx.above.length > 0) {
+    lines.push("", "Above cursor:", ...ctx.above)
+  }
+  if (ctx.below.length > 0) {
+    lines.push("", "Below cursor:", ...ctx.below)
+  }
+  if (ctx.selection) {
+    lines.push("", "Selected:", ctx.selection)
   }
   return lines.join("\n")
 }

@@ -20,7 +20,7 @@ export {
 export { appendBlock, appendBlocks } from "./reducer"
 export { toNudge } from "./orchestrator"
 export { parse, processLine, initialParseState, blocksToMessages } from "./parser"
-export type { Message, ParseCallbacks, ParseOptions } from "./parser"
+export type { InputItem, ParseCallbacks, ParseOptions } from "./parser"
 export { createToolExecutor } from "./tools"
 export type { ToolDeps } from "./tools"
 export { turn, executeTools, executeTool, runPrompt } from "./turn"
