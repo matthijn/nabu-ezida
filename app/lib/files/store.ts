@@ -1,4 +1,10 @@
-type Files = Record<string, string>
+import type { DocumentMeta } from "~/domain/sidecar"
+
+export type FileEntry =
+  | { raw: string }
+  | { raw: string; parsed: DocumentMeta }
+
+type Files = Record<string, FileEntry>
 type Listener = () => void
 
 let files: Files = {}
@@ -13,7 +19,18 @@ export const getFiles = (): Files => files
 
 export const getCurrentFile = (): string | null => currentFile
 
-export const getFileContent = (filename: string): string => files[filename] ?? ""
+export const getFileRaw = (filename: string): string =>
+  files[filename]?.raw ?? ""
+
+const toSidecarPath = (filename: string): string =>
+  filename.replace(/\.md$/, ".json")
+
+export const getFileTags = (filename: string): string[] => {
+  const sidecarPath = toSidecarPath(filename)
+  const entry = files[sidecarPath]
+  if (!entry || !("parsed" in entry)) return []
+  return entry.parsed.tags ?? []
+}
 
 export const setFiles = (newFiles: Files): void => {
   files = newFiles
@@ -25,8 +42,13 @@ export const setCurrentFile = (filename: string | null): void => {
   notify()
 }
 
-export const updateFile = (filename: string, content: string): void => {
-  files = { ...files, [filename]: content }
+export const updateFileRaw = (filename: string, raw: string): void => {
+  files = { ...files, [filename]: { raw } }
+  notify()
+}
+
+export const updateFileParsed = (filename: string, raw: string, parsed: DocumentMeta): void => {
+  files = { ...files, [filename]: { raw, parsed } }
   notify()
 }
 

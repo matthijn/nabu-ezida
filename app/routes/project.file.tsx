@@ -23,12 +23,20 @@ import {
   FeatherUnderline,
 } from "@subframe/core"
 
+type FileEntry = { raw: string }
+
+const getFileRaw = (files: Record<string, unknown>, filename: string): string | undefined => {
+  const entry = files[filename] as FileEntry | undefined
+  return entry?.raw
+}
+
 export default function ProjectFile() {
-  const { files, currentFile, isConnected } = useProject()
+  const { files, currentFile, isConnected, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
-  const content = currentFile ? files[currentFile] : undefined
+  const content = currentFile ? getFileRaw(files, currentFile) : undefined
+  const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current
@@ -51,7 +59,7 @@ export default function ProjectFile() {
     <>
       <FileHeader
         title={currentFile}
-        tags={[]}
+        tags={tags}
         pinned={false}
         onPin={() => {}}
         onShare={() => {}}

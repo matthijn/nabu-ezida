@@ -1,4 +1,4 @@
-import { validateDocumentMeta, type ValidationIssue } from "~/domain/sidecar"
+import { validateDocumentMeta, type ValidationIssue, type DocumentMeta } from "~/domain/sidecar"
 
 type Hunk = {
   oldText: string
@@ -10,7 +10,7 @@ type PatchResult =
   | { ok: false; error: string }
 
 export type FileResult =
-  | { path: string; status: "ok"; content: string }
+  | { path: string; status: "ok"; content: string; parsed?: DocumentMeta }
   | { path: string; status: "error"; error: string }
   | { path: string; status: "validation_error"; issues: ValidationIssue[]; current: Record<string, unknown> }
 
@@ -164,7 +164,7 @@ const applyJsonPatch = (path: string, content: string, patch: string): FileResul
     }
   }
 
-  return { path, status: "ok", content: patchResult.content }
+  return { path, status: "ok", content: patchResult.content, parsed: validation.data }
 }
 
 const applyMdPatch = (path: string, content: string, patch: string): FileResult => {

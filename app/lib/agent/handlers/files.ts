@@ -1,5 +1,5 @@
 import type { Handler } from "../types"
-import { getFileContent, updateFile, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
+import { getFileRaw, updateFileRaw, updateFileParsed, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
 
 type Operation = {
   type: "create_file" | "update_file" | "delete_file"
@@ -16,10 +16,18 @@ const formatValidationError = (result: Extract<FileResult, { status: "validation
   return `Validation failed for ${result.path}: ${issues}. Current: ${JSON.stringify(result.current)}`
 }
 
+const storeResult = (result: Extract<FileResult, { status: "ok" }>): void => {
+  if (result.parsed) {
+    updateFileParsed(result.path, result.content, result.parsed)
+  } else {
+    updateFileRaw(result.path, result.content)
+  }
+}
+
 const toApplyPatchResult = (result: FileResult, verb: string): ApplyPatchResult => {
   switch (result.status) {
     case "ok":
-      updateFile(result.path, result.content)
+      storeResult(result)
       return { status: "completed", output: `${verb} ${result.path}` }
     case "error":
       return { status: "failed", output: result.error }
@@ -32,7 +40,7 @@ const handleCreateFile = (path: string, diff: string): ApplyPatchResult =>
   toApplyPatchResult(applyFilePatch(path, "", diff), "Created")
 
 const handleUpdateFile = (path: string, diff: string): ApplyPatchResult =>
-  toApplyPatchResult(applyFilePatch(path, getFileContent(path), diff), "Updated")
+  toApplyPatchResult(applyFilePatch(path, getFileRaw(path), diff), "Updated")
 
 const handleDeleteFile = (path: string): ApplyPatchResult => {
   deleteFile(path)

@@ -32,20 +32,24 @@ const toSidebarDocument = (doc: Document): SidebarDocument => ({
 const selectSidebarDocuments = (project: Project | null): SidebarDocument[] =>
   project ? Object.values(project.documents).map(toSidebarDocument) : []
 
-const filesToSidebarDocuments = (files: Record<string, string>): SidebarDocument[] =>
+const filesToSidebarDocuments = (
+  files: Record<string, unknown>,
+  getFileTags: (filename: string) => string[]
+): SidebarDocument[] =>
   Object.keys(files).map((filename) => ({
     id: filename,
     title: filename,
     editedAt: "just now",
-    tags: [],
+    tags: getFileTags(filename).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" as const : "neutral" as const })),
     pinned: false,
   }))
 
 export type ProjectContextValue = {
   project: Project | null
   isConnected: boolean
-  files: Record<string, string>
+  files: Record<string, unknown>
   currentFile: string | null
+  getFileTags: (filename: string) => string[]
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -63,9 +67,9 @@ export default function ProjectLayout() {
   }, [params.projectId])
 
   const { project, parsed, isConnected } = useProjectSync(getWsUrl("/ws"), params.projectId!)
-  const { files, currentFile, setCurrentFile } = useFiles()
+  const { files, currentFile, setCurrentFile, getFileTags } = useFiles()
 
-  const documents = filesToSidebarDocuments(files)
+  const documents = filesToSidebarDocuments(files, getFileTags)
   const codebook = parsed.codebook as Codebook | undefined
 
   const handleDocumentSelect = (filename: string) => {
@@ -119,7 +123,7 @@ export default function ProjectLayout() {
         <div className="flex h-full w-full items-start bg-default-background">
           {renderSidebar()}
           <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-            <Outlet context={{ project, isConnected, files, currentFile }} />
+            <Outlet context={{ project, isConnected, files, currentFile, getFileTags }} />
           </div>
         </div>
         <NabuChatSidebar />

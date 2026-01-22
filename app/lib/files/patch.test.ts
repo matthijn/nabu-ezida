@@ -97,13 +97,13 @@ describe("applyFilePatch", () => {
   it("json file with valid result", () => {
     const result = applyFilePatch("doc.json", '{"tags": ["old"]}', `-{"tags": ["old"]}
 +{"tags": ["new"]}`)
-    expect(result).toEqual({ path: "doc.json", status: "ok", content: '{"tags": ["new"]}' })
+    expect(result).toEqual({ path: "doc.json", status: "ok", content: '{"tags": ["new"]}', parsed: { tags: ["new"] } })
   })
 
   it("json file with empty object is valid", () => {
     const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `-{"tags": ["foo"]}
 +{}`)
-    expect(result).toEqual({ path: "doc.json", status: "ok", content: "{}" })
+    expect(result).toEqual({ path: "doc.json", status: "ok", content: "{}", parsed: {} })
   })
 
   it("json file with invalid tag format", () => {
@@ -168,7 +168,7 @@ describe("applyFilePatches", () => {
     ])
     expect(result.results).toHaveLength(2)
     expect(result.results[0]).toEqual({ path: "a.md", status: "ok", content: "ab" })
-    expect(result.results[1]).toEqual({ path: "b.json", status: "ok", content: '{"tags":["new"]}' })
+    expect(result.results[1]).toEqual({ path: "b.json", status: "ok", content: '{"tags":["new"]}', parsed: { tags: ["new"] } })
   })
 
   it("mixed success and validation error", () => {
@@ -191,7 +191,7 @@ describe("applyFilePatches", () => {
 +x` },
     ])
     expect(result.results).toHaveLength(2)
-    expect(result.results[0]).toEqual({ path: "a.json", status: "ok", content: '{"tags":["y"]}' })
+    expect(result.results[0]).toEqual({ path: "a.json", status: "ok", content: '{"tags":["y"]}', parsed: { tags: ["y"] } })
     expect(result.results[1].path).toBe("b.md")
     expect(result.results[1].status).toBe("error")
   })

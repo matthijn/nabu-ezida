@@ -1,12 +1,15 @@
 export {
   getFiles,
   getCurrentFile,
-  getFileContent,
+  getFileRaw,
+  getFileTags,
   setFiles,
   setCurrentFile,
-  updateFile,
+  updateFileRaw,
+  updateFileParsed,
   deleteFile,
   subscribe,
+  type FileEntry,
 } from "./store"
 
 export { applyPatch, applyFilePatch, type FileResult } from "./patch"
