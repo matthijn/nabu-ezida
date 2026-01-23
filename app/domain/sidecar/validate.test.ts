@@ -279,7 +279,7 @@ describe("validateFieldChanges", () => {
     expect(rejection).toBeDefined()
     expect(rejection?.reason).toBe("readonly")
     if (rejection?.reason === "readonly") {
-      expect(rejection.hint).toContain("/annotate")
+      expect(rejection.hint).toContain("upsert_annotations")
     }
   })
 

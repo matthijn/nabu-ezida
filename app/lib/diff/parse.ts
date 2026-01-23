@@ -61,6 +61,10 @@ const parseV4ADiff = (patch: string): Hunk[] => {
       continue
     }
 
+    if (!inHunk && (isAddLine(line) || isRemoveLine(line))) {
+      inHunk = true
+    }
+
     if (!inHunk) {
       continue
     }

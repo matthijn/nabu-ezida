@@ -32,5 +32,5 @@ export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]
 }
 
 export const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {
-  annotations: "Use /annotate endpoint to manage annotations",
+  annotations: "Use upsert_annotations and delete_annotations tools",
 }

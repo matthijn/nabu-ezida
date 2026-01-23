@@ -74,6 +74,20 @@ line3`,
 appended`,
       expected: { ok: true, content: "existingappended" },
     },
+    {
+      name: "implicit hunk start with + lines",
+      content: "",
+      patch: `+# Hello
++World`,
+      expected: { ok: true, content: "# Hello\nWorld" },
+    },
+    {
+      name: "implicit hunk start with - and + lines",
+      content: "old content",
+      patch: `-old content
++new content`,
+      expected: { ok: true, content: "new content" },
+    },
   ]
 
   it.each(cases)("$name", ({ content, patch, expected }) => {
