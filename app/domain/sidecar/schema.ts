@@ -14,10 +14,23 @@ const AnnotationSchema = z.object({
   { message: "Either color or code must be set, not both" }
 )
 
+const tagsSchema = z.array(slug).optional()
+const annotationsSchema = z.array(AnnotationSchema).optional()
+
 export const DocumentMeta = z.object({
-  tags: z.array(slug).optional(),
-  annotations: z.array(AnnotationSchema).optional(),
+  tags: tagsSchema,
+  annotations: annotationsSchema,
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
 export type SidecarAnnotation = z.infer<typeof AnnotationSchema>
+export type DocumentMetaField = keyof DocumentMeta
+
+export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } = {
+  tags: tagsSchema,
+  annotations: annotationsSchema,
+}
+
+export const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {
+  annotations: "Use /annotate endpoint to manage annotations",
+}

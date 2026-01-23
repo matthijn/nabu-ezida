@@ -1,5 +1,6 @@
 import type { Handler } from "../types"
 import { getFileRaw, updateFileRaw, updateFileParsed, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
+import type { FieldRejection } from "~/domain/sidecar"
 
 type Operation = {
   type: "create_file" | "update_file" | "delete_file"
@@ -11,12 +12,21 @@ type ApplyPatchResult =
   | { status: "completed"; output: string }
   | { status: "failed"; output: string }
 
-const formatValidationError = (result: Extract<FileResult, { status: "validation_error" }>): string => {
-  const issues = result.issues.map(i => `${i.path}: ${i.message}`).join(", ")
-  return `Validation failed for ${result.path}: ${issues}. Current: ${JSON.stringify(result.current)}`
+const formatRejection = (r: FieldRejection): string =>
+  r.reason === "readonly"
+    ? `${r.field}: readonly - ${r.hint}`
+    : `${r.field}: ${r.issues.map(i => i.message).join(", ")}`
+
+const formatPartialResult = (
+  path: string,
+  verb: string,
+  rejected: FieldRejection[]
+): string => {
+  const rejectedText = rejected.map(formatRejection).join("; ")
+  return `${verb} ${path} (partial). Rejected fields: ${rejectedText}`
 }
 
-const storeResult = (result: Extract<FileResult, { status: "ok" }>): void => {
+const storeOkResult = (result: Extract<FileResult, { status: "ok" }>): void => {
   if (result.parsed) {
     updateFileParsed(result.path, result.content, result.parsed)
   } else {
@@ -24,15 +34,20 @@ const storeResult = (result: Extract<FileResult, { status: "ok" }>): void => {
   }
 }
 
+const storePartialResult = (result: Extract<FileResult, { status: "partial" }>): void => {
+  updateFileParsed(result.path, result.content, result.parsed)
+}
+
 const toApplyPatchResult = (result: FileResult, verb: string): ApplyPatchResult => {
   switch (result.status) {
     case "ok":
-      storeResult(result)
+      storeOkResult(result)
       return { status: "completed", output: `${verb} ${result.path}` }
+    case "partial":
+      storePartialResult(result)
+      return { status: "completed", output: formatPartialResult(result.path, verb, result.rejected) }
     case "error":
       return { status: "failed", output: result.error }
-    case "validation_error":
-      return { status: "failed", output: formatValidationError(result) }
   }
 }
 

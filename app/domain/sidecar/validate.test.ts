@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { validateDocumentMeta } from "./validate"
+import {
+  validateDocumentMeta,
+  getChangedFields,
+  validateField,
+  validateFieldChanges,
+  validateFieldChangesInternal,
+  type FieldRejection,
+} from "./validate"
+import type { DocumentMeta } from "./schema"
 
 describe("validateDocumentMeta", () => {
   const cases = [
@@ -79,5 +87,218 @@ describe("validateDocumentMeta", () => {
         expect(result.current).toEqual(testCase.expectedCurrent)
       }
     }
+  })
+})
+
+describe("getChangedFields", () => {
+  const cases: {
+    name: string
+    original: Partial<DocumentMeta>
+    patched: Partial<DocumentMeta>
+    expected: string[]
+  }[] = [
+    {
+      name: "no changes returns empty",
+      original: { tags: ["foo"] },
+      patched: { tags: ["foo"] },
+      expected: [],
+    },
+    {
+      name: "new field detected",
+      original: {},
+      patched: { tags: ["foo"] },
+      expected: ["tags"],
+    },
+    {
+      name: "removed field detected",
+      original: { tags: ["foo"] },
+      patched: {},
+      expected: ["tags"],
+    },
+    {
+      name: "changed field detected",
+      original: { tags: ["foo"] },
+      patched: { tags: ["bar"] },
+      expected: ["tags"],
+    },
+    {
+      name: "multiple changed fields",
+      original: { tags: ["foo"] },
+      patched: { tags: ["bar"], annotations: [] },
+      expected: ["tags", "annotations"],
+    },
+    {
+      name: "deep equality check on arrays",
+      original: { tags: ["a", "b"] },
+      patched: { tags: ["a", "b"] },
+      expected: [],
+    },
+  ]
+
+  it.each(cases)("$name", ({ original, patched, expected }) => {
+    const result = getChangedFields(original, patched)
+    expect(result.sort()).toEqual(expected.sort())
+  })
+})
+
+describe("validateField", () => {
+  const cases: {
+    name: string
+    field: keyof DocumentMeta
+    value: unknown
+    expectOk: boolean
+  }[] = [
+    {
+      name: "valid tags",
+      field: "tags",
+      value: ["valid-tag"],
+      expectOk: true,
+    },
+    {
+      name: "invalid tags format",
+      field: "tags",
+      value: ["Invalid Tag"],
+      expectOk: false,
+    },
+    {
+      name: "tags not array",
+      field: "tags",
+      value: "not-array",
+      expectOk: false,
+    },
+    {
+      name: "undefined tags valid",
+      field: "tags",
+      value: undefined,
+      expectOk: true,
+    },
+    {
+      name: "valid annotations",
+      field: "annotations",
+      value: [{ text: "test", reason: "note", color: "red" }],
+      expectOk: true,
+    },
+    {
+      name: "invalid annotation missing reason",
+      field: "annotations",
+      value: [{ text: "test", color: "red" }],
+      expectOk: false,
+    },
+  ]
+
+  it.each(cases)("$name", ({ field, value, expectOk }) => {
+    const result = validateField(field, value as DocumentMeta[typeof field])
+    expect(result.ok).toBe(expectOk)
+  })
+})
+
+describe("validateFieldChanges", () => {
+  const cases: {
+    name: string
+    original: Partial<DocumentMeta>
+    patched: Partial<DocumentMeta>
+    expectAccepted: Partial<DocumentMeta>
+    expectRejectedFields: string[]
+    expectRejectedReasons: FieldRejection["reason"][]
+  }[] = [
+    {
+      name: "valid tags accepted",
+      original: {},
+      patched: { tags: ["valid-tag"] },
+      expectAccepted: { tags: ["valid-tag"] },
+      expectRejectedFields: [],
+      expectRejectedReasons: [],
+    },
+    {
+      name: "invalid tags rejected, keeps original",
+      original: { tags: ["old"] },
+      patched: { tags: ["Invalid Tag"] },
+      expectAccepted: { tags: ["old"] },
+      expectRejectedFields: ["tags"],
+      expectRejectedReasons: ["invalid"],
+    },
+    {
+      name: "annotations readonly rejected",
+      original: {},
+      patched: { annotations: [{ text: "test", reason: "note", color: "red" }] },
+      expectAccepted: {},
+      expectRejectedFields: ["annotations"],
+      expectRejectedReasons: ["readonly"],
+    },
+    {
+      name: "valid tags accepted, annotations rejected",
+      original: {},
+      patched: {
+        tags: ["valid-tag"],
+        annotations: [{ text: "test", reason: "note", color: "red" }],
+      },
+      expectAccepted: { tags: ["valid-tag"] },
+      expectRejectedFields: ["annotations"],
+      expectRejectedReasons: ["readonly"],
+    },
+    {
+      name: "invalid tags and readonly annotations both rejected",
+      original: {},
+      patched: {
+        tags: ["Invalid Tag"],
+        annotations: [{ text: "test", reason: "note", color: "red" }],
+      },
+      expectAccepted: {},
+      expectRejectedFields: ["tags", "annotations"],
+      expectRejectedReasons: ["invalid", "readonly"],
+    },
+    {
+      name: "unchanged fields not in rejected",
+      original: { tags: ["same"] },
+      patched: { tags: ["same"] },
+      expectAccepted: { tags: ["same"] },
+      expectRejectedFields: [],
+      expectRejectedReasons: [],
+    },
+  ]
+
+  it.each(cases)(
+    "$name",
+    ({ original, patched, expectAccepted, expectRejectedFields, expectRejectedReasons }) => {
+      const result = validateFieldChanges(original, patched)
+
+      expect(result.accepted).toEqual(expectAccepted)
+
+      const rejectedFields = result.rejected.map((r) => r.field)
+      expect(rejectedFields.sort()).toEqual(expectRejectedFields.sort())
+
+      const rejectedReasons = result.rejected.map((r) => r.reason)
+      expect(rejectedReasons.sort()).toEqual(expectRejectedReasons.sort())
+    }
+  )
+
+  it("readonly rejection includes hint", () => {
+    const result = validateFieldChanges({}, { annotations: [] })
+    const rejection = result.rejected.find((r) => r.field === "annotations")
+
+    expect(rejection).toBeDefined()
+    expect(rejection?.reason).toBe("readonly")
+    if (rejection?.reason === "readonly") {
+      expect(rejection.hint).toContain("/annotate")
+    }
+  })
+
+})
+
+describe("validateFieldChangesInternal", () => {
+  it("accepts readonly annotations", () => {
+    const patched = {
+      annotations: [{ text: "test", reason: "note", color: "red" as const }],
+    }
+    const result = validateFieldChangesInternal({}, patched)
+    expect(result.rejected).toEqual([])
+    expect(result.accepted).toEqual(patched)
+  })
+
+  it("still rejects invalid annotations", () => {
+    const patched = { annotations: [{ text: "missing reason" }] as unknown }
+    const result = validateFieldChangesInternal({}, patched as Partial<DocumentMeta>)
+    expect(result.rejected[0].field).toBe("annotations")
+    expect(result.rejected[0].reason).toBe("invalid")
   })
 })

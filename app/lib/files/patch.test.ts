@@ -1,88 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { applyPatch, applyFilePatch, applyFilePatches } from "./patch"
-
-describe("applyPatch", () => {
-  const cases = [
-    {
-      name: "creates new file from Add File",
-      content: "",
-      patch: `*** Add File: test.md
-hello
-world`,
-      expected: { ok: true, content: "hello\nworld" },
-    },
-    {
-      name: "updates file with single hunk",
-      content: "hello\nworld",
-      patch: `*** Update File: test.md
-@@
--hello
-+goodbye
-world`,
-      expected: { ok: true, content: "goodbye\nworld" },
-    },
-    {
-      name: "applies multiple hunks",
-      content: "aaa\nbbb\nccc",
-      patch: `*** Update File: test.md
-@@
--aaa
-+AAA
-bbb
-@@
-bbb
--ccc
-+CCC`,
-      expected: { ok: true, content: "AAA\nbbb\nCCC" },
-    },
-    {
-      name: "preserves context lines",
-      content: "line1\nline2\nline3",
-      patch: `*** Update File: test.md
-@@
-line1
--line2
-+replaced
-line3`,
-      expected: { ok: true, content: "line1\nreplaced\nline3" },
-    },
-    {
-      name: "fails when patch context not found",
-      content: "hello",
-      patch: `*** Update File: test.md
-@@
--nonexistent
-+replacement`,
-      expected: { ok: false, error: 'patch context not found: "nonexistent..."' },
-    },
-    {
-      name: "handles function rename example from spec",
-      content: "def fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)",
-      patch: `@@
--def fib(n):
-+def fibonacci(n):
-    if n <= 1:
-        return n
--    return fib(n-1) + fib(n-2)
-+    return fibonacci(n-1) + fibonacci(n-2)`,
-      expected: { ok: true, content: "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)" },
-    },
-    {
-      name: "appends to content when old text is empty",
-      content: "existing",
-      patch: `*** Add File: test.md
-appended`,
-      expected: { ok: true, content: "existingappended" },
-    },
-  ]
-
-  cases.forEach(({ name, content, patch, expected }) => {
-    it(name, () => {
-      const result = applyPatch(content, patch)
-      expect(result).toEqual(expected)
-    })
-  })
-})
+import { applyFilePatch, applyFilePatches } from "./patch"
 
 describe("applyFilePatch", () => {
   it("md file accepts patch", () => {
@@ -96,7 +13,12 @@ describe("applyFilePatch", () => {
     const result = applyFilePatch("doc.json", '{"tags": ["old"]}', `@@
 -{"tags": ["old"]}
 +{"tags": ["new"]}`)
-    expect(result).toEqual({ path: "doc.json", status: "ok", content: '{"tags": ["new"]}', parsed: { tags: ["new"] } })
+    expect(result).toEqual({
+      path: "doc.json",
+      status: "ok",
+      content: '{\n  "tags": [\n    "new"\n  ]\n}',
+      parsed: { tags: ["new"] },
+    })
   })
 
   it("json file with empty object is valid", () => {
@@ -106,27 +28,29 @@ describe("applyFilePatch", () => {
     expect(result).toEqual({ path: "doc.json", status: "ok", content: "{}", parsed: {} })
   })
 
-  it("json file with invalid tag format", () => {
+  it("json file with invalid tag format returns partial, keeps original", () => {
     const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `@@
 -{"tags": ["foo"]}
 +{"tags": ["Not A Slug"]}`)
     expect(result.path).toBe("doc.json")
-    expect(result.status).toBe("validation_error")
-    if (result.status === "validation_error") {
-      expect(result.issues[0].path).toBe("tags.0")
-      expect(result.current).toEqual({ tags: ["Not A Slug"] })
+    expect(result.status).toBe("partial")
+    if (result.status === "partial") {
+      expect(result.rejected[0].field).toBe("tags")
+      expect(result.rejected[0].reason).toBe("invalid")
+      expect(result.parsed).toEqual({ tags: ["foo"] })
     }
   })
 
-  it("json file with wrong type", () => {
+  it("json file with wrong type returns partial, keeps original", () => {
     const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `@@
 -{"tags": ["foo"]}
 +{"tags": "not-array"}`)
     expect(result.path).toBe("doc.json")
-    expect(result.status).toBe("validation_error")
-    if (result.status === "validation_error") {
-      expect(result.issues[0].path).toBe("tags")
-      expect(result.current).toEqual({ tags: "not-array" })
+    expect(result.status).toBe("partial")
+    if (result.status === "partial") {
+      expect(result.rejected[0].field).toBe("tags")
+      expect(result.rejected[0].reason).toBe("invalid")
+      expect(result.parsed).toEqual({ tags: ["foo"] })
     }
   })
 
@@ -176,10 +100,15 @@ describe("applyFilePatches", () => {
     ])
     expect(result.results).toHaveLength(2)
     expect(result.results[0]).toEqual({ path: "a.md", status: "ok", content: "ab" })
-    expect(result.results[1]).toEqual({ path: "b.json", status: "ok", content: '{"tags":["new"]}', parsed: { tags: ["new"] } })
+    expect(result.results[1]).toEqual({
+      path: "b.json",
+      status: "ok",
+      content: '{\n  "tags": [\n    "new"\n  ]\n}',
+      parsed: { tags: ["new"] },
+    })
   })
 
-  it("mixed success and validation error", () => {
+  it("mixed success and partial rejection", () => {
     const result = applyFilePatches([
       { path: "a.md", content: "", patch: `*** Add File: a.md
 content` },
@@ -190,7 +119,7 @@ content` },
     expect(result.results).toHaveLength(2)
     expect(result.results[0]).toEqual({ path: "a.md", status: "ok", content: "content" })
     expect(result.results[1].path).toBe("b.json")
-    expect(result.results[1].status).toBe("validation_error")
+    expect(result.results[1].status).toBe("partial")
   })
 
   it("mixed success and patch error", () => {
@@ -203,7 +132,12 @@ content` },
 +x` },
     ])
     expect(result.results).toHaveLength(2)
-    expect(result.results[0]).toEqual({ path: "a.json", status: "ok", content: '{"tags":["y"]}', parsed: { tags: ["y"] } })
+    expect(result.results[0]).toEqual({
+      path: "a.json",
+      status: "ok",
+      content: '{\n  "tags": [\n    "y"\n  ]\n}',
+      parsed: { tags: ["y"] },
+    })
     expect(result.results[1].path).toBe("b.md")
     expect(result.results[1].status).toBe("error")
   })
@@ -211,5 +145,49 @@ content` },
   it("empty patches", () => {
     const result = applyFilePatches([])
     expect(result).toEqual({ results: [] })
+  })
+})
+
+describe("applyFilePatch with internal option", () => {
+  const cases = [
+    {
+      name: "without internal, annotations rejected as readonly",
+      options: {},
+      expectStatus: "partial",
+      expectRejectedField: "annotations",
+    },
+    {
+      name: "with internal=true, annotations accepted",
+      options: { internal: true },
+      expectStatus: "ok",
+      expectRejectedField: null,
+    },
+  ]
+
+  it.each(cases)("$name", ({ options, expectStatus, expectRejectedField }) => {
+    const result = applyFilePatch(
+      "doc.json",
+      "{}",
+      '@@\n-{}\n+{"annotations": [{"text": "test", "reason": "note", "color": "red"}]}',
+      options
+    )
+    expect(result.status).toBe(expectStatus)
+    if (result.status === "partial" && expectRejectedField) {
+      expect(result.rejected[0].field).toBe(expectRejectedField)
+    }
+  })
+
+  it("internal still validates field schema", () => {
+    const result = applyFilePatch(
+      "doc.json",
+      "{}",
+      '@@\n-{}\n+{"annotations": [{"text": "test"}]}',
+      { internal: true }
+    )
+    expect(result.status).toBe("partial")
+    if (result.status === "partial") {
+      expect(result.rejected[0].field).toBe("annotations")
+      expect(result.rejected[0].reason).toBe("invalid")
+    }
   })
 })

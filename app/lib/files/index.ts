@@ -13,4 +13,11 @@ export {
   type FileEntry,
 } from "./store"
 
-export { applyPatch, applyFilePatch, type FileResult } from "./patch"
+export {
+  applyPatch,
+  applyFilePatch,
+  applyFilePatches,
+  computeJsonDiff,
+  type FileResult,
+  type PatchOptions,
+} from "./patch"
