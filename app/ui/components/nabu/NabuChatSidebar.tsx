@@ -215,12 +215,13 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
 
 type LoadingIndicatorProps = {
   streaming: string
+  streamingToolName: string | null
   history: Block[]
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const LoadingIndicator = ({ streaming, history, projectId, navigate }: LoadingIndicatorProps) => {
+const LoadingIndicator = ({ streaming, streamingToolName, history, projectId, navigate }: LoadingIndicatorProps) => {
   const filtered = streaming ? filterCodeBlocks(streaming) : null
   if (filtered) {
     return (
@@ -232,7 +233,7 @@ const LoadingIndicator = ({ streaming, history, projectId, navigate }: LoadingIn
   return (
     <div className="flex w-full items-center gap-2 rounded-lg bg-neutral-50 px-3 py-3">
       <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin flex-none" />
-      <span className="text-body font-body text-subtext-color">{getSpinnerLabel(history)}</span>
+      <span className="text-body font-body text-subtext-color">{getSpinnerLabel(history, streamingToolName)}</span>
     </div>
   )
 }
@@ -244,7 +245,7 @@ export const NabuChatSidebar = () => {
   const getDeps = useCallback(() => {
     return { project: undefined, navigate }
   }, [navigate])
-  const { chat, send, run, cancel, loading, streaming, history, error } = useChat()
+  const { chat, send, run, cancel, loading, streaming, streamingToolName, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -325,6 +326,7 @@ export const NabuChatSidebar = () => {
         {loading && (
           <LoadingIndicator
             streaming={streaming}
+            streamingToolName={streamingToolName}
             history={history}
             projectId={null}
             navigate={navigate}

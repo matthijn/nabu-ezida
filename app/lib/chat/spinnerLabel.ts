@@ -22,8 +22,12 @@ const findLastToolCallName = (history: Block[]): string | null => {
   return null
 }
 
-export const getSpinnerLabel = (history: Block[]): string => {
-  const toolName = findLastToolCallName(history)
+const toLabel = (toolName: string | null): string => {
   if (!toolName) return "Thinking"
   return toolLabels[toolName] ?? "Thinking"
+}
+
+export const getSpinnerLabel = (history: Block[], streamingToolName?: string | null): string => {
+  if (streamingToolName) return toLabel(streamingToolName)
+  return toLabel(findLastToolCallName(history))
 }

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
 import type { Spotlight } from "~/domain/spotlight"
 import { serializeSpotlight } from "~/domain/spotlight"
-import { findText, findTextRange } from "~/lib/text"
 
 type SpotlightOverlayProps = {
   spotlight: Spotlight | null
@@ -15,12 +14,23 @@ type Rect = { top: number; left: number; height: number }
 
 type TextRange = { start: number; end: number }
 
+const findIndexOf = (needle: string, haystack: string): number =>
+  haystack.indexOf(needle)
+
+const findRangeIndexOf = (from: string, to: string, haystack: string): TextRange | null => {
+  const fromIndex = haystack.indexOf(from)
+  if (fromIndex === -1) return null
+  const toIndex = haystack.indexOf(to, fromIndex)
+  if (toIndex === -1) return null
+  return { start: fromIndex, end: toIndex + to.length }
+}
+
 const findSpotlightRange = (spotlight: Spotlight, text: string): TextRange | null => {
   if (spotlight.type === "single") {
-    const match = findText(spotlight.text, text)
-    return match ? { start: match.start, end: match.end } : null
+    const index = findIndexOf(spotlight.text, text)
+    return index !== -1 ? { start: index, end: index + spotlight.text.length } : null
   }
-  return findTextRange(spotlight.from, spotlight.to, text)
+  return findRangeIndexOf(spotlight.from, spotlight.to, text)
 }
 
 type NodeOffset = { node: Node; start: number; end: number }

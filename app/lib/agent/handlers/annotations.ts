@@ -60,14 +60,8 @@ export const upsertAnnotationsTool: Handler = async (_, args) => {
   }
 
   const mdPath = toMdPath(document_id)
-  const docContent = getFileRaw(mdPath)
-
-  if (!docContent) {
-    return { status: "failed", output: `Document not found: ${mdPath}` }
-  }
-
   const existing = getFileAnnotations(mdPath) ?? []
-  const result = prepareUpsertAnnotations(docContent, existing, annotations)
+  const result = prepareUpsertAnnotations(existing, annotations)
 
   saveSidecar(mdPath, result.annotations)
 

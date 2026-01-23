@@ -12,6 +12,7 @@ type InputItem =
 type ParseCallbacks = {
   onChunk?: (text: string) => void
   onBlock?: (block: Block) => void
+  onToolName?: (name: string) => void
 }
 
 const parseToolArgs = (args: string): Record<string, unknown> => {
@@ -26,12 +27,14 @@ type ParseState = {
   currentEvent: string
   textContent: string
   toolCalls: ToolCall[]
+  streamingToolName: string | null
 }
 
 export const initialParseState = (): ParseState => ({
   currentEvent: "",
   textContent: "",
   toolCalls: [],
+  streamingToolName: null,
 })
 
 export const processLine = (
@@ -54,6 +57,14 @@ export const processLine = (
       if (parsed.delta) {
         callbacks.onChunk?.(parsed.delta)
         return { ...state, textContent: state.textContent + parsed.delta }
+      }
+    }
+
+    if (state.currentEvent === "response.output_item.added" && parsed.item?.type === "function_call") {
+      const name = parsed.item.name
+      if (name && name !== state.streamingToolName) {
+        callbacks.onToolName?.(name)
+        return { ...state, streamingToolName: name }
       }
     }
 

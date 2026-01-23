@@ -27,7 +27,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   if (!controller) {
     controller = new AbortController()
   }
-  updateChat({ loading: true, error: null })
+  updateChat({ loading: true, error: null, streamingToolName: null })
 
   if (nudge !== "") {
     const nudgeBlock: SystemBlock = { type: "system", content: nudge }
@@ -49,19 +49,23 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
           const c = getChat()
           if (c) updateChat({ streaming: c.streaming + chunk })
         },
+        onToolName: (name) => {
+          console.log(`[Tool] streaming: ${name}`)
+          updateChat({ streamingToolName: name })
+        },
       },
     })
 
-    updateChat({ history, streaming: "", loading: false })
+    updateChat({ history, streaming: "", streamingToolName: null, loading: false })
     run(deps)
   } catch (e) {
     controller = null
     if (isAbortError(e)) {
-      updateChat({ streaming: "", loading: false })
+      updateChat({ streaming: "", streamingToolName: null, loading: false })
       return
     }
     console.error("[Runner] Error:", e)
-    updateChat({ error: "Something went wrong", streaming: "", loading: false })
+    updateChat({ error: "Something went wrong", streaming: "", streamingToolName: null, loading: false })
   }
 }
 

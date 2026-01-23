@@ -7,8 +7,6 @@ import {
 import type { SidecarAnnotation } from "./schema"
 
 describe("prepareUpsertAnnotations", () => {
-  const docContent = "The quick brown fox jumps over the lazy dog"
-
   const upsertCases: {
     name: string
     existing: SidecarAnnotation[]
@@ -34,12 +32,12 @@ describe("prepareUpsertAnnotations", () => {
       expectAnnotationsCount: 1,
     },
     {
-      name: "rejects when text not found",
+      name: "stores any text without validation",
       existing: [],
       inputs: [{ text: "nonexistent text", reason: "test", color: "blue" }],
-      expectAppliedCount: 0,
-      expectRejectedCount: 1,
-      expectAnnotationsCount: 0,
+      expectAppliedCount: 1,
+      expectRejectedCount: 0,
+      expectAnnotationsCount: 1,
     },
     {
       name: "rejects when neither color nor code",
@@ -90,61 +88,49 @@ describe("prepareUpsertAnnotations", () => {
       expectAnnotationsCount: 1,
     },
     {
-      name: "mixed success and rejection",
+      name: "stores multiple annotations",
       existing: [],
       inputs: [
         { text: "quick brown", reason: "found", color: "red" },
-        { text: "not here", reason: "missing", color: "blue" },
+        { text: "any text", reason: "also stored", color: "blue" },
       ],
-      expectAppliedCount: 1,
-      expectRejectedCount: 1,
-      expectAnnotationsCount: 1,
-    },
-    {
-      name: "case insensitive match",
-      existing: [],
-      inputs: [{ text: "QUICK BROWN", reason: "case", color: "green" }],
-      expectAppliedCount: 1,
+      expectAppliedCount: 2,
       expectRejectedCount: 0,
-      expectAnnotationsCount: 1,
+      expectAnnotationsCount: 2,
     },
   ]
 
   it.each(upsertCases)(
     "$name",
     ({ existing, inputs, expectAppliedCount, expectRejectedCount, expectAnnotationsCount }) => {
-      const result = prepareUpsertAnnotations(docContent, existing, inputs)
+      const result = prepareUpsertAnnotations(existing, inputs)
       expect(result.applied).toHaveLength(expectAppliedCount)
       expect(result.rejected).toHaveLength(expectRejectedCount)
       expect(result.annotations).toHaveLength(expectAnnotationsCount)
     }
   )
 
-  it("applied annotation has matched text from document", () => {
-    const result = prepareUpsertAnnotations(
-      docContent,
-      [],
-      [{ text: "QUICK BROWN", reason: "test", color: "red" }]
-    )
-    expect(result.applied[0].matched).toBe("quick brown")
-    expect(result.annotations[0].text).toBe("quick brown")
+  it("stores text exactly as provided", () => {
+    const result = prepareUpsertAnnotations([], [
+      { text: "QUICK BROWN", reason: "test", color: "red" },
+    ])
+    expect(result.applied[0].text).toBe("QUICK BROWN")
+    expect(result.annotations[0].text).toBe("QUICK BROWN")
   })
 
   it("replaced annotation has updated fields", () => {
     const existing: SidecarAnnotation[] = [{ text: "quick brown", reason: "old", color: "blue" }]
-    const result = prepareUpsertAnnotations(docContent, existing, [
+    const result = prepareUpsertAnnotations(existing, [
       { text: "quick brown", reason: "new", color: "red" },
     ])
     expect(result.annotations[0].reason).toBe("new")
     expect(result.annotations[0].color).toBe("red")
   })
 
-  it("rejection includes error message", () => {
-    const result = prepareUpsertAnnotations(docContent, [], [
-      { text: "missing", reason: "test", color: "red" },
-    ])
-    expect(result.rejected[0].text).toBe("missing")
-    expect(result.rejected[0].error).toBe("Text not found in document")
+  it("rejection includes error message for invalid input", () => {
+    const result = prepareUpsertAnnotations([], [{ text: "test", reason: "test" }])
+    expect(result.rejected[0].text).toBe("test")
+    expect(result.rejected[0].error).toBe("Either color or code must be set")
   })
 })
 

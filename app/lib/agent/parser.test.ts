@@ -4,6 +4,20 @@ import type { Block } from "./types"
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
+  onToolName?: (name: string) => void
+}
+
+type TestContext = {
+  chunks: string[]
+  toolNames: string[]
+}
+
+const processWithCallbacks = (line: string, state: ReturnType<typeof initialParseState>, ctx: TestContext) => {
+  const callbacks: ParseCallbacks = {
+    onChunk: (text) => ctx.chunks.push(text),
+    onToolName: (name) => ctx.toolNames.push(name),
+  }
+  return processLine(line, state, callbacks)
 }
 
 const processWithChunks = (line: string, state: ReturnType<typeof initialParseState>, chunks: string[]) => {
@@ -68,6 +82,15 @@ describe("parser", () => {
         expectedCalls: [{ id: "call_1", name: "execute_sql", args: { sql: "SELECT 1" } }],
       },
       {
+        name: "fires onToolName on output_item.added",
+        lines: [
+          "event: response.output_item.added",
+          'data: {"item":{"type":"function_call","call_id":"call_1","name":"execute_sql"}}',
+        ],
+        expectedCalls: [],
+        expectedToolNames: ["execute_sql"],
+      },
+      {
         name: "ignores function call arguments delta (no streaming)",
         lines: [
           "event: response.function_call_arguments.delta",
@@ -108,18 +131,21 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(({ name, lines, expectedCalls, expectedChunks }) => {
+    cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolNames }) => {
       it(name, () => {
         let state = initialParseState()
-        const chunks: string[] = []
+        const ctx: TestContext = { chunks: [], toolNames: [] }
 
         for (const line of lines) {
-          state = processWithChunks(line, state, chunks)
+          state = processWithCallbacks(line, state, ctx)
         }
 
         expect(state.toolCalls).toEqual(expectedCalls)
         if (expectedChunks) {
-          expect(chunks).toEqual(expectedChunks)
+          expect(ctx.chunks).toEqual(expectedChunks)
+        }
+        if (expectedToolNames) {
+          expect(ctx.toolNames).toEqual(expectedToolNames)
         }
       })
     })

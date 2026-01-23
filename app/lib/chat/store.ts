@@ -6,6 +6,7 @@ export type ChatState = {
   recipient: Participant
   history: Block[]
   streaming: string
+  streamingToolName: string | null
   error: string | null
   loading: boolean
 }
@@ -26,6 +27,7 @@ export const openChat = (
     recipient,
     history: [],
     streaming: "",
+    streamingToolName: null,
     error: null,
     loading: false,
   }

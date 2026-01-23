@@ -33,9 +33,13 @@ const formatError = (e: unknown): unknown => {
 export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
   try {
     const result = await execute(call)
-    return { type: "tool_result", callId: call.id, toolName: call.name, result: sanitizeForJson(result) }
+    const block = { type: "tool_result" as const, callId: call.id, toolName: call.name, result: sanitizeForJson(result) }
+    console.log(`[Tool] result: ${call.name}`, block.result)
+    return block
   } catch (e) {
-    return { type: "tool_result", callId: call.id, toolName: call.name, result: formatError(e) }
+    const block = { type: "tool_result" as const, callId: call.id, toolName: call.name, result: formatError(e) }
+    console.log(`[Tool] error: ${call.name}`, block.result)
+    return block
   }
 }
 
