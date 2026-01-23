@@ -31,14 +31,17 @@ const findExistingByText = (
   annotations: SidecarAnnotation[]
 ): SidecarAnnotation | null => annotations.find((a) => a.text === text) ?? null
 
+const hasValue = (val: string | undefined): boolean =>
+  val !== undefined && val !== ""
+
 const hasColorOrCode = (input: AnnotationInput): boolean =>
-  input.color !== undefined || input.code !== undefined
+  hasValue(input.color) || hasValue(input.code)
 
 const hasBothColorAndCode = (input: AnnotationInput): boolean =>
-  input.color !== undefined && input.code !== undefined
+  hasValue(input.color) && hasValue(input.code)
 
 const toAnnotation = (input: AnnotationInput, matchedText: string): SidecarAnnotation =>
-  input.color !== undefined
+  hasValue(input.color)
     ? { text: matchedText, reason: input.reason, color: input.color as SidecarAnnotation["color"] }
     : { text: matchedText, reason: input.reason, code: input.code }
 
