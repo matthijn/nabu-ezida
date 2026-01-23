@@ -18,29 +18,19 @@ export type MultiPatchResult = {
   results: FileResult[]
 }
 
-const hasHeaders = (patch: string): boolean =>
-  patch.includes("*** Add File:") || patch.includes("*** Update File:") || patch.startsWith("@@@")
+const isHunkStart = (line: string): boolean =>
+  line === "@@" || line.startsWith("@@ ")
 
-const parseRawDiff = (patch: string): Hunk[] => {
-  const lines = patch.split("\n")
-  let oldText = ""
-  let newText = ""
+const isFileHeader = (line: string): boolean =>
+  line.startsWith("*** ")
 
-  for (const line of lines) {
-    if (line.startsWith("-")) {
-      oldText += line.slice(1) + "\n"
-    } else if (line.startsWith("+")) {
-      newText += line.slice(1) + "\n"
-    } else if (line.startsWith(" ")) {
-      oldText += line.slice(1) + "\n"
-      newText += line.slice(1) + "\n"
-    }
-  }
+const isAddLine = (line: string): boolean =>
+  line.startsWith("+")
 
-  return oldText || newText ? [{ oldText, newText }] : []
-}
+const isRemoveLine = (line: string): boolean =>
+  line.startsWith("-")
 
-const parseHeaderedPatch = (patch: string): Hunk[] => {
+const parseV4ADiff = (patch: string): Hunk[] => {
   const lines = patch.split("\n")
   const hunks: Hunk[] = []
   let currentOld = ""
@@ -48,32 +38,37 @@ const parseHeaderedPatch = (patch: string): Hunk[] => {
   let inHunk = false
   let isAddFile = false
 
-  for (const line of lines) {
-    const trimmed = line.trim()
+  const flushHunk = () => {
+    if (inHunk && (currentOld || currentNew)) {
+      hunks.push({ oldText: currentOld, newText: currentNew })
+    }
+    currentOld = ""
+    currentNew = ""
+  }
 
-    if (trimmed === "*** Begin Patch" || trimmed === "*** End Patch") {
-      continue
-    }
-    if (trimmed.startsWith("*** Delete File:")) {
-      continue
-    }
-    if (trimmed.startsWith("*** Update File:")) {
-      isAddFile = false
-      continue
-    }
-    if (trimmed.startsWith("*** Add File:")) {
+  for (const line of lines) {
+    if (line.startsWith("*** Add File:")) {
+      flushHunk()
       isAddFile = true
       inHunk = true
       continue
     }
-    if (line.startsWith("@@@")) {
-      if (inHunk) {
-        hunks.push({ oldText: currentOld, newText: currentNew })
-        currentOld = ""
-        currentNew = ""
-      }
+
+    if (line.startsWith("*** Update File:") || line.startsWith("*** Delete File:")) {
+      flushHunk()
+      isAddFile = false
+      inHunk = false
+      continue
+    }
+
+    if (isHunkStart(line)) {
+      flushHunk()
       inHunk = true
       isAddFile = false
+      continue
+    }
+
+    if (isFileHeader(line)) {
       continue
     }
 
@@ -81,26 +76,21 @@ const parseHeaderedPatch = (patch: string): Hunk[] => {
       continue
     }
 
-    if (line.startsWith("-")) {
+    if (isRemoveLine(line)) {
       currentOld += line.slice(1) + "\n"
-    } else if (line.startsWith("+")) {
+    } else if (isAddLine(line)) {
       currentNew += line.slice(1) + "\n"
-    } else if (!isAddFile && (line.startsWith(" ") || line === "")) {
-      const text = line.startsWith(" ") ? line.slice(1) : line
-      currentOld += text + "\n"
-      currentNew += text + "\n"
+    } else if (!isAddFile) {
+      currentOld += line + "\n"
+      currentNew += line + "\n"
+    } else {
+      currentNew += line + "\n"
     }
   }
 
-  if (inHunk) {
-    hunks.push({ oldText: currentOld, newText: currentNew })
-  }
-
+  flushHunk()
   return hunks
 }
-
-const parsePatch = (patch: string): Hunk[] =>
-  hasHeaders(patch) ? parseHeaderedPatch(patch) : parseRawDiff(patch)
 
 const applyHunk = (content: string, hunk: Hunk): PatchResult => {
   const oldText = hunk.oldText.replace(/\n$/, "")
@@ -118,7 +108,7 @@ const applyHunk = (content: string, hunk: Hunk): PatchResult => {
 }
 
 export const applyPatch = (content: string, patch: string): PatchResult => {
-  const hunks = parsePatch(patch)
+  const hunks = parseV4ADiff(patch)
   let result = content
 
   for (const hunk of hunks) {

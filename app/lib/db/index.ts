@@ -1,5 +1,0 @@
-export { initializeDatabase, createTables } from "./init"
-export { executeQuery } from "./query"
-export { insertRows, clearTable } from "./sync"
-export type { Database, DbError, QueryResult } from "./types"
-export { DatabaseError } from "./types"

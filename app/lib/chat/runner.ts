@@ -2,14 +2,11 @@ import type { SystemBlock } from "~/lib/agent"
 import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
-import type { QueryResult } from "~/lib/db/types"
 import type { Project } from "~/domain/project"
 
-type QueryFn = <T = unknown>(sql: string) => Promise<QueryResult<T>>
 type NavigateFn = (url: string) => void
 
 export type RunnerDeps = {
-  query?: QueryFn
   project?: Project
   navigate?: NavigateFn
 }
@@ -40,7 +37,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const current = getChat()
   if (!current) return
 
-  const toolExecutor = createToolExecutor({ query: deps.query, project: deps.project, navigate: deps.navigate })
+  const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
 
   try {
     const history = await turn(current.history, blocksToMessages(current.history), {

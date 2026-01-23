@@ -32,6 +32,13 @@ export const getFileTags = (filename: string): string[] => {
   return entry.parsed.tags ?? []
 }
 
+export const getFileAnnotations = (filename: string): DocumentMeta["annotations"] => {
+  const sidecarPath = toSidecarPath(filename)
+  const entry = files[sidecarPath]
+  if (!entry || !("parsed" in entry)) return []
+  return entry.parsed.annotations ?? []
+}
+
 export const setFiles = (newFiles: Files): void => {
   files = newFiles
   notify()

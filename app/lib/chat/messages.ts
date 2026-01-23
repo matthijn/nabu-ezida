@@ -23,7 +23,12 @@ export type ExplorationMessage = {
   ask: string | null
 }
 
-export type RenderMessage = TextMessage | PlanMessage | ExplorationMessage
+export type AskMessage = {
+  type: "ask"
+  question: string
+}
+
+export type RenderMessage = TextMessage | PlanMessage | ExplorationMessage | AskMessage
 
 type Indexed<T> = { index: number; message: T }
 
@@ -95,14 +100,28 @@ const explorationMessagesIndexed = (
 
 const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
 
+const findAskIndex = (history: Block[]): number => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (findCall(history[i], "ask")) return i
+  }
+  return history.length - 1
+}
+
+const standaloneAskMessage = (history: Block[], ask: string | null, hasActivePln: boolean, hasActiveExpl: boolean): Indexed<AskMessage>[] => {
+  if (!ask || hasActivePln || hasActiveExpl) return []
+  return [{ index: findAskIndex(history), message: { type: "ask", question: ask } }]
+}
+
 export const toRenderMessages = (history: Block[]): RenderMessage[] => {
   const d = derive(history)
   const ask = findUnansweredAsk(history)
+  const hasActivePln = hasActivePlan(d)
   const hasActiveExpl = hasActiveExploration(d)
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),
     ...planMessagesIndexed(history, d.plans, ask, hasActiveExpl),
     ...explorationMessagesIndexed(history, d.exploration, ask),
+    ...standaloneAskMessage(history, ask, hasActivePln, hasActiveExpl),
   ]
   return indexed.sort(byIndex).map((item) => item.message)
 }

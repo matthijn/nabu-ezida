@@ -4,78 +4,74 @@ import { applyPatch, applyFilePatch, applyFilePatches } from "./patch"
 describe("applyPatch", () => {
   const cases = [
     {
-      name: "creates new file from raw diff",
+      name: "creates new file from Add File",
       content: "",
-      patch: `+hello
-+world`,
+      patch: `*** Add File: test.md
+hello
+world`,
       expected: { ok: true, content: "hello\nworld" },
     },
     {
-      name: "creates new file from Add File patch",
-      content: "",
-      patch: `*** Begin Patch
-*** Add File: test.md
-+hello
-+world
-*** End Patch`,
-      expected: { ok: true, content: "hello\nworld" },
-    },
-    {
-      name: "updates file with Update File patch",
+      name: "updates file with single hunk",
       content: "hello\nworld",
-      patch: `*** Begin Patch
-*** Update File: test.md
-@@@ hello @@@
+      patch: `*** Update File: test.md
+@@
 -hello
 +goodbye
-*** End Patch`,
+world`,
       expected: { ok: true, content: "goodbye\nworld" },
     },
     {
       name: "applies multiple hunks",
       content: "aaa\nbbb\nccc",
-      patch: `*** Begin Patch
-*** Update File: test.md
-@@@ aaa @@@
+      patch: `*** Update File: test.md
+@@
 -aaa
 +AAA
-@@@ ccc @@@
+bbb
+@@
+bbb
 -ccc
-+CCC
-*** End Patch`,
++CCC`,
       expected: { ok: true, content: "AAA\nbbb\nCCC" },
     },
     {
-      name: "preserves context lines in hunk",
+      name: "preserves context lines",
       content: "line1\nline2\nline3",
-      patch: `*** Begin Patch
-*** Update File: test.md
-@@@ line1 @@@
- line1
+      patch: `*** Update File: test.md
+@@
+line1
 -line2
 +replaced
- line3
-*** End Patch`,
+line3`,
       expected: { ok: true, content: "line1\nreplaced\nline3" },
     },
     {
       name: "fails when patch context not found",
       content: "hello",
-      patch: `*** Begin Patch
-*** Update File: test.md
-@@@ x @@@
+      patch: `*** Update File: test.md
+@@
 -nonexistent
-+replacement
-*** End Patch`,
++replacement`,
       expected: { ok: false, error: 'patch context not found: "nonexistent..."' },
+    },
+    {
+      name: "handles function rename example from spec",
+      content: "def fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)",
+      patch: `@@
+-def fib(n):
++def fibonacci(n):
+    if n <= 1:
+        return n
+-    return fib(n-1) + fib(n-2)
++    return fibonacci(n-1) + fibonacci(n-2)`,
+      expected: { ok: true, content: "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)" },
     },
     {
       name: "appends to content when old text is empty",
       content: "existing",
-      patch: `*** Begin Patch
-*** Add File: test.md
-+appended
-*** End Patch`,
+      patch: `*** Add File: test.md
+appended`,
       expected: { ok: true, content: "existingappended" },
     },
   ]
@@ -89,25 +85,30 @@ describe("applyPatch", () => {
 })
 
 describe("applyFilePatch", () => {
-  it("md file accepts any patch", () => {
-    const result = applyFilePatch("doc.md", "hello", "+world")
+  it("md file accepts patch", () => {
+    const result = applyFilePatch("doc.md", "hello", `@@
+-hello
++helloworld`)
     expect(result).toEqual({ path: "doc.md", status: "ok", content: "helloworld" })
   })
 
   it("json file with valid result", () => {
-    const result = applyFilePatch("doc.json", '{"tags": ["old"]}', `-{"tags": ["old"]}
+    const result = applyFilePatch("doc.json", '{"tags": ["old"]}', `@@
+-{"tags": ["old"]}
 +{"tags": ["new"]}`)
     expect(result).toEqual({ path: "doc.json", status: "ok", content: '{"tags": ["new"]}', parsed: { tags: ["new"] } })
   })
 
   it("json file with empty object is valid", () => {
-    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `-{"tags": ["foo"]}
+    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `@@
+-{"tags": ["foo"]}
 +{}`)
     expect(result).toEqual({ path: "doc.json", status: "ok", content: "{}", parsed: {} })
   })
 
   it("json file with invalid tag format", () => {
-    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `-{"tags": ["foo"]}
+    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `@@
+-{"tags": ["foo"]}
 +{"tags": ["Not A Slug"]}`)
     expect(result.path).toBe("doc.json")
     expect(result.status).toBe("validation_error")
@@ -118,7 +119,8 @@ describe("applyFilePatch", () => {
   })
 
   it("json file with wrong type", () => {
-    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `-{"tags": ["foo"]}
+    const result = applyFilePatch("doc.json", '{"tags": ["foo"]}', `@@
+-{"tags": ["foo"]}
 +{"tags": "not-array"}`)
     expect(result.path).toBe("doc.json")
     expect(result.status).toBe("validation_error")
@@ -129,7 +131,8 @@ describe("applyFilePatch", () => {
   })
 
   it("json file with invalid json", () => {
-    const result = applyFilePatch("doc.json", '{"tags": []}', `-{"tags": []}
+    const result = applyFilePatch("doc.json", '{"tags": []}', `@@
+-{"tags": []}
 +{invalid json}`)
     expect(result.path).toBe("doc.json")
     expect(result.status).toBe("error")
@@ -139,7 +142,8 @@ describe("applyFilePatch", () => {
   })
 
   it("json file with patch context not found", () => {
-    const result = applyFilePatch("doc.json", '{"tags": []}', `-{"nonexistent": true}
+    const result = applyFilePatch("doc.json", '{"tags": []}', `@@
+-{"nonexistent": true}
 +{"tags": ["new"]}`)
     expect(result.path).toBe("doc.json")
     expect(result.status).toBe("error")
@@ -149,7 +153,8 @@ describe("applyFilePatch", () => {
   })
 
   it("md file with patch error", () => {
-    const result = applyFilePatch("doc.md", "hello", `-nonexistent
+    const result = applyFilePatch("doc.md", "hello", `@@
+-nonexistent
 +replacement`)
     expect(result.path).toBe("doc.md")
     expect(result.status).toBe("error")
@@ -162,8 +167,11 @@ describe("applyFilePatch", () => {
 describe("applyFilePatches", () => {
   it("all succeed", () => {
     const result = applyFilePatches([
-      { path: "a.md", content: "a", patch: "+b" },
-      { path: "b.json", content: '{"tags":[]}', patch: `-{"tags":[]}
+      { path: "a.md", content: "a", patch: `@@
+-a
++ab` },
+      { path: "b.json", content: '{"tags":[]}', patch: `@@
+-{"tags":[]}
 +{"tags":["new"]}` },
     ])
     expect(result.results).toHaveLength(2)
@@ -173,8 +181,10 @@ describe("applyFilePatches", () => {
 
   it("mixed success and validation error", () => {
     const result = applyFilePatches([
-      { path: "a.md", content: "", patch: "+content" },
-      { path: "b.json", content: '{"tags":[]}', patch: `-{"tags":[]}
+      { path: "a.md", content: "", patch: `*** Add File: a.md
+content` },
+      { path: "b.json", content: '{"tags":[]}', patch: `@@
+-{"tags":[]}
 +{"tags":["Invalid Tag"]}` },
     ])
     expect(result.results).toHaveLength(2)
@@ -185,9 +195,11 @@ describe("applyFilePatches", () => {
 
   it("mixed success and patch error", () => {
     const result = applyFilePatches([
-      { path: "a.json", content: '{"tags":["x"]}', patch: `-{"tags":["x"]}
+      { path: "a.json", content: '{"tags":["x"]}', patch: `@@
+-{"tags":["x"]}
 +{"tags":["y"]}` },
-      { path: "b.md", content: "hello", patch: `-nonexistent
+      { path: "b.md", content: "hello", patch: `@@
+-nonexistent
 +x` },
     ])
     expect(result.results).toHaveLength(2)

@@ -32,6 +32,7 @@ export type ProjectContextValue = {
   files: Record<string, unknown>
   currentFile: string | null
   getFileTags: (filename: string) => string[]
+  getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -48,7 +49,7 @@ export default function ProjectLayout() {
     return () => closeChat()
   }, [params.projectId])
 
-  const { files, currentFile, setCurrentFile, getFileTags } = useFiles()
+  const { files, currentFile, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
 
   const documents = filesToSidebarDocuments(files, getFileTags)
   const codebook = undefined
@@ -102,7 +103,7 @@ export default function ProjectLayout() {
         <div className="flex h-full w-full items-start bg-default-background">
           {renderSidebar()}
           <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-            <Outlet context={{ files, currentFile, getFileTags }} />
+            <Outlet context={{ files, currentFile, getFileTags, getFileAnnotations }} />
           </div>
         </div>
         <NabuChatSidebar />

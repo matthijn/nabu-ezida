@@ -1,13 +1,13 @@
 import type { ResolvedAnnotation, OverlapSegment } from "./types"
 
-type Boundary = { pos: number; isStart: boolean; id: string; color: string }
+type Boundary = { pos: number; isStart: boolean; index: number; color: string }
 
 const collectBoundaries = (annotations: ResolvedAnnotation[]): Boundary[] => {
   const boundaries: Boundary[] = []
 
   for (const a of annotations) {
-    boundaries.push({ pos: a.from, isStart: true, id: a.id, color: a.color })
-    boundaries.push({ pos: a.to, isStart: false, id: a.id, color: a.color })
+    boundaries.push({ pos: a.from, isStart: true, index: a.index, color: a.color })
+    boundaries.push({ pos: a.to, isStart: false, index: a.index, color: a.color })
   }
 
   return boundaries.sort((a, b) => a.pos - b.pos)
@@ -15,7 +15,7 @@ const collectBoundaries = (annotations: ResolvedAnnotation[]): Boundary[] => {
 
 const unique = <T>(items: T[]): T[] => [...new Set(items)]
 
-type ActiveAnnotation = { id: string; color: string }
+type ActiveAnnotation = { index: number; color: string }
 
 export const segmentByOverlap = (annotations: ResolvedAnnotation[]): OverlapSegment[] => {
   if (annotations.length === 0) return []
@@ -31,14 +31,13 @@ export const segmentByOverlap = (annotations: ResolvedAnnotation[]): OverlapSegm
         from: lastPos,
         to: boundary.pos,
         colors: unique(active.map(a => a.color)),
-        ids: unique(active.map(a => a.id)),
       })
     }
 
     if (boundary.isStart) {
-      active = [...active, { id: boundary.id, color: boundary.color }]
+      active = [...active, { index: boundary.index, color: boundary.color }]
     } else {
-      const idx = active.findIndex(a => a.id === boundary.id)
+      const idx = active.findIndex(a => a.index === boundary.index)
       if (idx !== -1) {
         active = [...active.slice(0, idx), ...active.slice(idx + 1)]
       }

@@ -13,7 +13,6 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.30.0",
     "@milkdown/kit": "^7.18.0",
     "@milkdown/react": "^7.18.0",
     "@milkdown/theme-nord": "^7.18.0",

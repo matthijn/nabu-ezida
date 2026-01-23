@@ -11,16 +11,16 @@ export const findTextPosition = (
   return { from: index, to: index + searchText.length }
 }
 
-export const resolveTextAnnotations = <T>(
+export const resolveTextAnnotations = (
   fullText: string,
-  annotations: Annotation<T>[]
+  annotations: Annotation[]
 ): ResolvedAnnotation[] =>
   annotations
-    .map(a => {
+    .map((a, i) => {
       const pos = findTextPosition(fullText, a.text)
       if (!pos) return null
       return {
-        id: a.id,
+        index: i,
         from: pos.from,
         to: pos.to,
         color: a.color,

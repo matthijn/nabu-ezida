@@ -1,14 +1,12 @@
-export type Annotation<TPayload = unknown> = {
-  id: string
+export type Annotation = {
   text: string
-  actor: string
   color: string
   reason?: string
-  payload?: TPayload
+  code?: string
 }
 
 export type ResolvedAnnotation = {
-  id: string
+  index: number
   from: number
   to: number
   color: string
@@ -18,5 +16,4 @@ export type OverlapSegment = {
   from: number
   to: number
   colors: string[]
-  ids: string[]
 }

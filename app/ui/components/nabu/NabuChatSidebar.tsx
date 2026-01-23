@@ -185,6 +185,12 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
           navigate={navigate}
         />
       )
+    case "ask":
+      return (
+        <AssistantText>
+          <MessageContent content={message.question} projectId={projectId} navigate={navigate} />
+        </AssistantText>
+      )
   }
 }
 
@@ -236,12 +242,12 @@ export const NabuChatSidebar = () => {
   const navigate = useNavigate()
 
   const getDeps = useCallback(() => {
-    return { query: undefined, project: undefined, navigate }
+    return { project: undefined, navigate }
   }, [navigate])
   const { chat, send, run, cancel, loading, streaming, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
 
   useEffect(() => {
@@ -257,7 +263,7 @@ export const NabuChatSidebar = () => {
   }, [inputValue, send, getDeps])
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault()
         handleSend()
@@ -334,10 +340,9 @@ export const NabuChatSidebar = () => {
         )}
       </AutoScroll>
 
-      <div className="flex w-full items-center gap-2 border-t border-solid border-neutral-border px-4 py-3">
-        <ParticipantAvatar participant={initiator} />
-        <TextFieldUnstyled className="grow">
-          <TextFieldUnstyled.Input
+      <div className="flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3">
+        <TextFieldUnstyled className="grow min-h-5">
+          <TextFieldUnstyled.Textarea
             ref={inputRef}
             placeholder={`Message ${recipient.name}...`}
             value={inputValue}

@@ -3,6 +3,7 @@ export {
   getCurrentFile,
   getFileRaw,
   getFileTags,
+  getFileAnnotations,
   setFiles,
   setCurrentFile,
   updateFileRaw,

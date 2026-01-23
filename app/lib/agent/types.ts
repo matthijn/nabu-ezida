@@ -34,7 +34,6 @@ export type SystemBlock = {
 export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
 
 export type ToolDeps = {
-  query?: <T = unknown>(sql: string) => Promise<{ rows: T[]; rowCount: number }>
   project?: import("~/domain/project").Project
   navigate?: (url: string) => void
 }

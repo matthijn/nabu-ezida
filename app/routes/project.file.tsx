@@ -31,11 +31,12 @@ const getFileRaw = (files: Record<string, unknown>, filename: string): string | 
 }
 
 export default function ProjectFile() {
-  const { files, currentFile, getFileTags } = useProject()
+  const { files, currentFile, getFileTags, getFileAnnotations } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
   const content = currentFile ? getFileRaw(files, currentFile) : undefined
+  const annotations = currentFile ? getFileAnnotations(currentFile) ?? [] : []
   const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
 
   const handleScrollTo = useCallback((percent: number) => {
@@ -94,7 +95,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={currentFile} content={content} />
+            <MilkdownEditor key={currentFile} content={content} annotations={annotations} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />

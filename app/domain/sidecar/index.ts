@@ -1,5 +1,5 @@
 export { DocumentMeta } from "./schema"
-export type { DocumentMeta as DocumentMetaType } from "./schema"
+export type { DocumentMeta as DocumentMetaType, SidecarAnnotation } from "./schema"
 export {
   validateDocumentMeta,
   type ValidationResult,

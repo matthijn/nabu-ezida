@@ -5,7 +5,7 @@ export type HighlightEntry = {
   id: string
   color: string
   title?: string
-  description: string
+  description?: string
   onDelete?: () => void
 }
 
@@ -45,9 +45,11 @@ export const HighlightTooltip = ({ entries }: HighlightTooltipProps) => {
                   {entry.title}
                 </span>
               )}
-              <span className="text-caption font-caption text-subtext-color">
-                {entry.description}
-              </span>
+              {entry.description && (
+                <span className="text-caption font-caption text-subtext-color">
+                  {entry.description}
+                </span>
+              )}
             </div>
             {entry.onDelete && (
               <IconButton
