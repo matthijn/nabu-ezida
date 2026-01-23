@@ -7,6 +7,8 @@ export type FileEntry =
 type Files = Record<string, FileEntry>
 type Listener = () => void
 
+const STORAGE_KEY = "nabu:files"
+
 let files: Files = {}
 let currentFile: string | null = null
 const listeners = new Set<Listener>()
@@ -71,4 +73,24 @@ export const deleteFile = (filename: string): void => {
 export const subscribe = (listener: Listener): (() => void) => {
   listeners.add(listener)
   return () => listeners.delete(listener)
+}
+
+export const persistFiles = (): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(files))
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
+export const restoreFiles = (): void => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      files = JSON.parse(stored) as Files
+      notify()
+    }
+  } catch {
+    // parse error or localStorage unavailable
+  }
 }

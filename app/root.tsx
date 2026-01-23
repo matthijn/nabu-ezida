@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import {
   isRouteErrorResponse,
   Links,
@@ -9,6 +10,7 @@ import {
 import { Toaster } from "sonner"
 
 import type { Route } from "./+types/root"
+import { persistFiles, restoreFiles } from "~/lib/files"
 import "./styles/index.css"
 
 export const links: Route.LinksFunction = () => [
@@ -24,6 +26,16 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+const FilePersistence = () => {
+  useEffect(() => {
+    restoreFiles()
+    const handlePageHide = () => persistFiles()
+    window.addEventListener("pagehide", handlePageHide)
+    return () => window.removeEventListener("pagehide", handlePageHide)
+  }, [])
+  return null
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -34,6 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <FilePersistence />
         {children}
         <Toaster />
         <ScrollRestoration />

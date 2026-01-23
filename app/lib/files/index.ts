@@ -10,6 +10,8 @@ export {
   updateFileParsed,
   deleteFile,
   subscribe,
+  persistFiles,
+  restoreFiles,
   type FileEntry,
 } from "./store"
 
