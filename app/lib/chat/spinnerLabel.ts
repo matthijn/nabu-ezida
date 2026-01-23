@@ -6,7 +6,7 @@ const toolLabels: Record<string, string> = {
   create_plan: "Planning",
   complete_step: "Thinking",
   abort: "Stopping",
-  execute_sql: "Reading",
+  shell: "Reading",
   upsert_annotations: "Annotating",
   delete_annotations: "Removing annotations",
   apply_patch: "Writing",

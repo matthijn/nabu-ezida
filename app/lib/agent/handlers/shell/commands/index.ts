@@ -1,0 +1,5 @@
+export { cat } from "./cat"
+export { ls } from "./ls"
+export { grep } from "./grep"
+export { find } from "./find"
+export { wc } from "./wc"

@@ -8,6 +8,14 @@ type InputItem =
   | { type: "function_call_output"; call_id: string; status: string; output: string }
   | { type: "apply_patch_call"; call_id: string; status: string; operation: { type: string; path: string; diff: string } }
   | { type: "apply_patch_call_output"; call_id: string; status: string; output: string }
+  | { type: "shell_call"; call_id: string; status: string; action: { commands: string[] } }
+  | { type: "shell_call_output"; call_id: string; output: ShellCommandOutput[] }
+
+type ShellCommandOutput = {
+  stdout: string
+  stderr: string
+  outcome: { type: "exit"; exit_code: number } | { type: "timeout" }
+}
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
@@ -60,11 +68,21 @@ export const processLine = (
       }
     }
 
-    if (state.currentEvent === "response.output_item.added" && parsed.item?.type === "function_call") {
-      const name = parsed.item.name
-      if (name && name !== state.streamingToolName) {
-        callbacks.onToolName?.(name)
-        return { ...state, streamingToolName: name }
+    if (state.currentEvent === "response.output_item.added") {
+      if (parsed.item?.type === "function_call") {
+        const name = parsed.item.name
+        if (name && name !== state.streamingToolName) {
+          callbacks.onToolName?.(name)
+          return { ...state, streamingToolName: name }
+        }
+      }
+      if (parsed.item?.type === "shell_call" && state.streamingToolName !== "shell") {
+        callbacks.onToolName?.("shell")
+        return { ...state, streamingToolName: "shell" }
+      }
+      if (parsed.item?.type === "apply_patch_call" && state.streamingToolName !== "apply_patch") {
+        callbacks.onToolName?.("apply_patch")
+        return { ...state, streamingToolName: "apply_patch" }
       }
     }
 
@@ -89,6 +107,14 @@ export const processLine = (
               diff: item.operation.diff,
             },
           },
+        }
+        return { ...state, toolCalls: [...state.toolCalls, toolCall] }
+      }
+      if (item.type === "shell_call") {
+        const toolCall: ToolCall = {
+          id: item.call_id,
+          name: "shell",
+          args: { commands: item.action.commands },
         }
         return { ...state, toolCalls: [...state.toolCalls, toolCall] }
       }
@@ -222,6 +248,14 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
           operation: { type: op.type, path: op.path, diff: op.diff },
         }
       }
+      if (c.name === "shell") {
+        return {
+          type: "shell_call" as const,
+          call_id: c.id,
+          status: "completed",
+          action: { commands: c.args.commands as string[] },
+        }
+      }
       return {
         type: "function_call" as const,
         call_id: c.id,
@@ -238,6 +272,13 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
         call_id: block.callId,
         status: "completed",
         output: JSON.stringify(block.result),
+      }
+    }
+    if (block.toolName === "shell") {
+      return {
+        type: "shell_call_output" as const,
+        call_id: block.callId,
+        output: block.result as ShellCommandOutput[],
       }
     }
     return {
