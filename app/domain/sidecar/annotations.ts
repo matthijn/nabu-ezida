@@ -1,4 +1,5 @@
 import type { SidecarAnnotation } from "./schema"
+import { mdToPlainText } from "~/lib/text/markdown"
 
 export type AnnotationInput = {
   text: string
@@ -26,10 +27,12 @@ const hasColorOrCode = (input: AnnotationInput): boolean =>
 const hasBothColorAndCode = (input: AnnotationInput): boolean =>
   hasValue(input.color) && hasValue(input.code)
 
-const toAnnotation = (input: AnnotationInput): SidecarAnnotation =>
-  hasValue(input.color)
-    ? { text: input.text, reason: input.reason, color: input.color as SidecarAnnotation["color"] }
-    : { text: input.text, reason: input.reason, code: input.code }
+const toAnnotation = (input: AnnotationInput): SidecarAnnotation => {
+  const text = mdToPlainText(input.text)
+  return hasValue(input.color)
+    ? { text, reason: input.reason, color: input.color as SidecarAnnotation["color"] }
+    : { text, reason: input.reason, code: input.code }
+}
 
 const upsertIntoList = (
   annotations: SidecarAnnotation[],
