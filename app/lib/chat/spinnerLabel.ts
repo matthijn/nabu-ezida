@@ -4,7 +4,7 @@ const toolLabels: Record<string, string> = {
   start_exploration: "Exploring",
   exploration_step: "Investigating",
   create_plan: "Planning",
-  complete_step: "Progressing",
+  complete_step: "Thinking",
   abort: "Stopping",
   execute_sql: "Reading",
   upsert_annotations: "Annotating",

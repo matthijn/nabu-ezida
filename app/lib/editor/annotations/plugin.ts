@@ -12,13 +12,15 @@ type TextRange = { from: number; to: number }
 const textOffsetToPos = (doc: Node, offset: number): number => {
   let result = 0
   let textSeen = 0
+  let found = false
 
   doc.descendants((node, nodePos) => {
-    if (textSeen > offset) return false
+    if (found || textSeen > offset) return false
     if (node.isText) {
       const len = node.text?.length ?? 0
       if (textSeen + len >= offset) {
         result = nodePos + (offset - textSeen)
+        found = true
         return false
       }
       textSeen += len

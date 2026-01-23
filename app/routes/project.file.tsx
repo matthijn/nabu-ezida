@@ -30,6 +30,14 @@ const getFileRaw = (files: Record<string, unknown>, filename: string): string | 
   return entry?.raw
 }
 
+const isJsonFile = (filename: string): boolean => filename.endsWith(".json")
+
+const wrapAsCodeBlock = (content: string, lang: string): string =>
+  `\`\`\`${lang}\n${content}\n\`\`\``
+
+const formatContent = (content: string, filename: string): string =>
+  isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
+
 export default function ProjectFile() {
   const { files, currentFile, getFileTags, getFileAnnotations } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -95,7 +103,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={currentFile} content={content} annotations={annotations} />
+            <MilkdownEditor key={currentFile} content={formatContent(content, currentFile)} annotations={annotations} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />
