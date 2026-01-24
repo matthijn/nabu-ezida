@@ -1,49 +1,28 @@
 import type { GutterMark, AnnotationMeasurement } from "./types"
 
-type AnnotationExtent = {
-  id: string
+type Extent = {
   color: string
   top: number
   bottom: number
 }
 
-const groupByAnnotationId = (measurements: AnnotationMeasurement[]): AnnotationExtent[] => {
-  const byId = new Map<string, { color: string; tops: number[]; bottoms: number[] }>()
-
-  for (const m of measurements) {
-    for (const id of m.ids) {
-      const existing = byId.get(id)
-      if (existing) {
-        existing.tops.push(m.absoluteTop)
-        existing.bottoms.push(m.absoluteTop + m.height)
-      } else {
-        byId.set(id, {
-          color: m.color,
-          tops: [m.absoluteTop],
-          bottoms: [m.absoluteTop + m.height],
-        })
-      }
-    }
-  }
-
-  return [...byId.entries()].map(([id, data]) => ({
-    id,
-    color: data.color,
-    top: Math.min(...data.tops),
-    bottom: Math.max(...data.bottoms),
+const measurementToExtents = (m: AnnotationMeasurement): Extent[] =>
+  m.colors.map((color) => ({
+    color,
+    top: m.absoluteTop,
+    bottom: m.absoluteTop + m.height,
   }))
-}
 
 type GutterSlot = {
   top: number
   bottom: number
-  extents: AnnotationExtent[]
+  extents: Extent[]
 }
 
-const extentsOverlap = (a: AnnotationExtent, b: AnnotationExtent): boolean =>
+const extentsOverlap = (a: Extent, b: Extent): boolean =>
   a.top < b.bottom && a.bottom > b.top
 
-const groupIntoSlots = (extents: AnnotationExtent[]): GutterSlot[] => {
+const groupIntoSlots = (extents: Extent[]): GutterSlot[] => {
   const slots: GutterSlot[] = []
 
   for (const extent of extents) {
@@ -76,7 +55,6 @@ const slotToGutterMarks = (slot: GutterSlot, scrollHeight: number): GutterMark[]
     topPercent: slotTopPercent + index * sliceHeight,
     heightPercent: sliceHeight,
     colors: [extent.color],
-    ids: [extent.id],
   }))
 }
 
@@ -86,7 +64,7 @@ export const calculateGutterMarks = (
 ): GutterMark[] => {
   if (scrollHeight === 0 || measurements.length === 0) return []
 
-  const extents = groupByAnnotationId(measurements)
+  const extents = measurements.flatMap(measurementToExtents)
   const slots = groupIntoSlots(extents)
 
   return slots.flatMap((slot) => slotToGutterMarks(slot, scrollHeight))
