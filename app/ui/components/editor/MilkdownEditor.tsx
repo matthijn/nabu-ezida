@@ -6,33 +6,44 @@ import { gfm } from "@milkdown/kit/preset/gfm"
 import { history } from "@milkdown/kit/plugin/history"
 import { clipboard } from "@milkdown/kit/plugin/clipboard"
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
+import { ProsemirrorAdapterProvider, useNodeViewFactory } from "@prosemirror-adapter/react"
 import { $prose } from "@milkdown/utils"
 import type { Annotation } from "~/domain/document/annotations"
 import { createAnnotationsPlugin } from "~/lib/editor/annotations"
 import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
+import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 
 type MilkdownEditorCoreProps = {
   defaultValue: string
   annotations: Annotation[]
+  debugMode: boolean
 }
 
-const MilkdownEditorCore = ({ defaultValue, annotations }: MilkdownEditorCoreProps) => {
+const MilkdownEditorCore = ({ defaultValue, annotations, debugMode }: MilkdownEditorCoreProps) => {
+  const nodeViewFactory = useNodeViewFactory()
   const annotationsPlugin = $prose(() => createAnnotationsPlugin(annotations))
   const hiddenBlocksPlugin = $prose(() => createHiddenBlocksPlugin())
+  const calloutBlocksPlugin = createCalloutBlocksPlugin(nodeViewFactory)
 
-  useEditor((root) =>
-    Editor.make()
-      .config((ctx) => {
-        ctx.set(rootCtx, root)
-        ctx.set(defaultValueCtx, defaultValue)
-      })
-      .use(commonmark)
-      .use(gfm)
-      .use(history)
-      .use(clipboard)
-      .use(annotationsPlugin)
-      .use(hiddenBlocksPlugin)
+  useEditor(
+    (root) => {
+      const editor = Editor.make()
+        .config((ctx) => {
+          ctx.set(rootCtx, root)
+          ctx.set(defaultValueCtx, defaultValue)
+        })
+        .use(commonmark)
+        .use(gfm)
+        .use(history)
+        .use(clipboard)
+        .use(annotationsPlugin)
+
+      if (debugMode) return editor
+
+      return editor.use(hiddenBlocksPlugin).use(calloutBlocksPlugin)
+    },
+    [debugMode]
   )
 
   return (
@@ -45,13 +56,16 @@ const MilkdownEditorCore = ({ defaultValue, annotations }: MilkdownEditorCorePro
 export type MilkdownEditorProps = {
   content: string
   annotations?: Annotation[]
+  debugMode?: boolean
 }
 
-export const MilkdownEditor = ({ content, annotations = [] }: MilkdownEditorProps) => {
+export const MilkdownEditor = ({ content, annotations = [], debugMode = false }: MilkdownEditorProps) => {
   return (
     <div className="w-full max-w-[768px] text-default-font">
       <MilkdownProvider>
-        <MilkdownEditorCore defaultValue={content} annotations={annotations} />
+        <ProsemirrorAdapterProvider>
+          <MilkdownEditorCore defaultValue={content} annotations={annotations} debugMode={debugMode} />
+        </ProsemirrorAdapterProvider>
       </MilkdownProvider>
     </div>
   )

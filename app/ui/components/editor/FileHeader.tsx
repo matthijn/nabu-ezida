@@ -5,7 +5,7 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
+import { FeatherBug, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -24,8 +24,10 @@ type FileHeaderProps = {
   title: string
   tags?: Tag[]
   pinned?: boolean
+  debugMode?: boolean
   onPin?: () => void
   onShare?: () => void
+  onDebug?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
   className?: string
@@ -35,8 +37,10 @@ export const FileHeader = ({
   title,
   tags = [],
   pinned = false,
+  debugMode = false,
   onPin,
   onShare,
+  onDebug,
   menuItems = [],
   onAddTag,
   className,
@@ -66,6 +70,14 @@ export const FileHeader = ({
           size="small"
           icon={<FeatherShare2 />}
           onClick={onShare}
+        />
+      )}
+      {onDebug && (
+        <IconButton
+          variant={debugMode ? "brand-tertiary" : "neutral-tertiary"}
+          size="small"
+          icon={<FeatherBug />}
+          onClick={onDebug}
         />
       )}
       {menuItems.length > 0 && (

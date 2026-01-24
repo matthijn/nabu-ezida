@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useProject } from "./project"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -42,6 +42,9 @@ export default function ProjectFile() {
   const { files, currentFile, getFileTags, getFileAnnotations } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  const [debugMode, setDebugMode] = useState(false)
+
+  const toggleDebugMode = useCallback(() => setDebugMode((prev) => !prev), [])
 
   const content = currentFile ? getFileRaw(files, currentFile) : undefined
   const annotations = currentFile ? getFileAnnotations(currentFile) ?? [] : []
@@ -69,8 +72,10 @@ export default function ProjectFile() {
         title={currentFile}
         tags={tags}
         pinned={false}
+        debugMode={debugMode}
         onPin={() => {}}
         onShare={() => {}}
+        onDebug={toggleDebugMode}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
           { icon: <FeatherFileText />, label: "Export", onClick: () => {} },
@@ -103,7 +108,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={currentFile} content={formatContent(content, currentFile)} annotations={annotations} />
+            <MilkdownEditor key={`${currentFile}-${debugMode}`} content={formatContent(content, currentFile)} annotations={annotations} debugMode={debugMode} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />

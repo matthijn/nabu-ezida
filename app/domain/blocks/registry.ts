@@ -1,10 +1,12 @@
 import { z } from "zod"
 import { DocumentMeta } from "~/domain/sidecar/schema"
+import { CalloutSchema } from "./callout"
 
 type BlockTypeConfig = {
   schema: z.ZodType
   readonly: string[]
-  renderer: "hidden" | "code-card"
+  immutable: string[]
+  renderer: "hidden" | "callout"
   singleton: boolean
 }
 
@@ -12,8 +14,16 @@ export const blockTypes: Record<string, BlockTypeConfig> = {
   "json-attributes": {
     schema: DocumentMeta,
     readonly: ["annotations"],
+    immutable: [],
     renderer: "hidden",
     singleton: true,
+  },
+  "json-callout": {
+    schema: CalloutSchema,
+    readonly: [],
+    immutable: ["id"],
+    renderer: "callout",
+    singleton: false,
   },
 }
 
