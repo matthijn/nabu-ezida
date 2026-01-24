@@ -1,5 +1,5 @@
 import type { Handler } from "../types"
-import { getFileRaw, updateFileRaw, updateFileParsed, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
+import { getFileRaw, updateFileRaw, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
 import type { FieldRejection } from "~/domain/sidecar"
 
 type Operation = {
@@ -26,25 +26,17 @@ const formatPartialResult = (
   return `${verb} ${path} (partial). Rejected fields: ${rejectedText}`
 }
 
-const storeOkResult = (result: Extract<FileResult, { status: "ok" }>): void => {
-  if (result.parsed) {
-    updateFileParsed(result.path, result.content, result.parsed)
-  } else {
-    updateFileRaw(result.path, result.content)
-  }
-}
-
-const storePartialResult = (result: Extract<FileResult, { status: "partial" }>): void => {
-  updateFileParsed(result.path, result.content, result.parsed)
+const storeResult = (result: Extract<FileResult, { status: "ok" | "partial" }>): void => {
+  updateFileRaw(result.path, result.content)
 }
 
 const toApplyPatchResult = (result: FileResult, verb: string): ApplyPatchResult => {
   switch (result.status) {
     case "ok":
-      storeOkResult(result)
+      storeResult(result)
       return { status: "completed", output: `${verb} ${result.path}` }
     case "partial":
-      storePartialResult(result)
+      storeResult(result)
       return { status: "completed", output: formatPartialResult(result.path, verb, result.rejected) }
     case "error":
       return { status: "failed", output: result.error }

@@ -7,7 +7,6 @@ export {
   setFiles,
   setCurrentFile,
   updateFileRaw,
-  updateFileParsed,
   deleteFile,
   subscribe,
   persistFiles,

@@ -9,6 +9,7 @@ import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
 import { $prose } from "@milkdown/utils"
 import type { Annotation } from "~/domain/document/annotations"
 import { createAnnotationsPlugin } from "~/lib/editor/annotations"
+import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 
 type MilkdownEditorCoreProps = {
@@ -18,6 +19,7 @@ type MilkdownEditorCoreProps = {
 
 const MilkdownEditorCore = ({ defaultValue, annotations }: MilkdownEditorCoreProps) => {
   const annotationsPlugin = $prose(() => createAnnotationsPlugin(annotations))
+  const hiddenBlocksPlugin = $prose(() => createHiddenBlocksPlugin())
 
   useEditor((root) =>
     Editor.make()
@@ -30,6 +32,7 @@ const MilkdownEditorCore = ({ defaultValue, annotations }: MilkdownEditorCorePro
       .use(history)
       .use(clipboard)
       .use(annotationsPlugin)
+      .use(hiddenBlocksPlugin)
   )
 
   return (

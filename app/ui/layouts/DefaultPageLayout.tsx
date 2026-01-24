@@ -9,7 +9,6 @@ import {
 import { MainSidebar } from "~/ui/custom/sidebar/main";
 import type { NavItem } from "~/ui/custom/sidebar/main";
 import { cn } from "~/ui/utils";
-import { TaskIndicator } from "~/ui/components/TaskIndicator";
 
 type ActiveNav = "documents" | "search" | "codes";
 
@@ -54,7 +53,6 @@ export const DefaultPageLayout = ({
     {children ? (
       <div className="relative flex grow shrink-0 basis-0 flex-col items-start gap-4 self-stretch overflow-y-auto bg-default-background" style={{ overflow: "visible" }}>
         {children}
-        <TaskIndicator />
       </div>
     ) : null}
   </div>

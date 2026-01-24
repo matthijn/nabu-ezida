@@ -1,8 +1,7 @@
 import type { DocumentMeta } from "~/domain/sidecar"
+import { findSingletonBlock, parseBlockJson } from "~/domain/blocks"
 
-export type FileEntry =
-  | { raw: string }
-  | { raw: string; parsed: DocumentMeta }
+export type FileEntry = { raw: string }
 
 type Files = Record<string, FileEntry>
 type Listener = () => void
@@ -14,31 +13,33 @@ let currentFile: string | null = null
 const listeners = new Set<Listener>()
 
 const notify = (): void => {
-  listeners.forEach(l => l())
+  listeners.forEach((l) => l())
 }
 
 export const getFiles = (): Files => files
 
 export const getCurrentFile = (): string | null => currentFile
 
-export const getFileRaw = (filename: string): string =>
-  files[filename]?.raw ?? ""
+export const getFileRaw = (filename: string): string => files[filename]?.raw ?? ""
 
-const toSidecarPath = (filename: string): string =>
-  filename.replace(/\.md$/, ".json")
+const getSidecarData = (filename: string): DocumentMeta | null => {
+  const raw = getFileRaw(filename)
+  if (!raw) return null
+
+  const block = findSingletonBlock(raw, "json-attributes")
+  if (!block) return null
+
+  return parseBlockJson<DocumentMeta>(block)
+}
 
 export const getFileTags = (filename: string): string[] => {
-  const sidecarPath = toSidecarPath(filename)
-  const entry = files[sidecarPath]
-  if (!entry || !("parsed" in entry)) return []
-  return entry.parsed.tags ?? []
+  const sidecar = getSidecarData(filename)
+  return sidecar?.tags ?? []
 }
 
 export const getFileAnnotations = (filename: string): DocumentMeta["annotations"] => {
-  const sidecarPath = toSidecarPath(filename)
-  const entry = files[sidecarPath]
-  if (!entry || !("parsed" in entry)) return []
-  return entry.parsed.annotations ?? []
+  const sidecar = getSidecarData(filename)
+  return sidecar?.annotations ?? []
 }
 
 export const setFiles = (newFiles: Files): void => {
@@ -53,11 +54,6 @@ export const setCurrentFile = (filename: string | null): void => {
 
 export const updateFileRaw = (filename: string, raw: string): void => {
   files = { ...files, [filename]: { raw } }
-  notify()
-}
-
-export const updateFileParsed = (filename: string, raw: string, parsed: DocumentMeta): void => {
-  files = { ...files, [filename]: { raw, parsed } }
   notify()
 }
 

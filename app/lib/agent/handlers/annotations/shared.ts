@@ -1,30 +1,28 @@
-import { getFileRaw, updateFileParsed } from "~/lib/files"
-import type { SidecarAnnotation } from "~/domain/sidecar"
+import { getFileRaw, updateFileRaw } from "~/lib/files"
+import { findSingletonBlock, parseBlockJson, replaceSingletonBlock } from "~/domain/blocks"
+import type { SidecarAnnotation, DocumentMeta } from "~/domain/sidecar"
 
 export const toMdPath = (documentId: string): string =>
   documentId.endsWith(".md") ? documentId : `${documentId}.md`
 
-const toSidecarPath = (mdPath: string): string =>
-  mdPath.replace(/\.md$/, ".json")
-
-const getCurrentSidecar = (mdPath: string): Record<string, unknown> => {
-  const sidecarPath = toSidecarPath(mdPath)
-  const raw = getFileRaw(sidecarPath)
+const getCurrentSidecar = (mdPath: string): DocumentMeta => {
+  const raw = getFileRaw(mdPath)
   if (!raw) return {}
-  try {
-    return JSON.parse(raw) as Record<string, unknown>
-  } catch {
-    return {}
-  }
+  const block = findSingletonBlock(raw, "json-attributes")
+  if (!block) return {}
+  return parseBlockJson<DocumentMeta>(block) ?? {}
 }
 
 export const saveSidecar = (
   mdPath: string,
   annotations: SidecarAnnotation[]
 ): void => {
-  const sidecarPath = toSidecarPath(mdPath)
+  const markdown = getFileRaw(mdPath)
+  if (!markdown) return
+
   const current = getCurrentSidecar(mdPath)
   const updated = { ...current, annotations }
-  const raw = JSON.stringify(updated, null, 2)
-  updateFileParsed(sidecarPath, raw, updated)
+  const sidecarJson = JSON.stringify(updated, null, 2)
+  const newMarkdown = replaceSingletonBlock(markdown, "json-attributes", sidecarJson)
+  updateFileRaw(mdPath, newMarkdown)
 }

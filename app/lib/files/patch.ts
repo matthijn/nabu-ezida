@@ -6,9 +6,14 @@ import {
   type FieldRejection,
   type DocumentMetaType,
 } from "~/domain/sidecar"
+import {
+  replaceUuidPlaceholders,
+  validateMarkdownBlocks,
+  type UuidMapping,
+} from "~/domain/blocks"
 
 export type FileResult =
-  | { path: string; status: "ok"; content: string; parsed?: DocumentMetaType }
+  | { path: string; status: "ok"; content: string; parsed?: DocumentMetaType; generatedIds?: UuidMapping }
   | { path: string; status: "partial"; content: string; parsed: DocumentMetaType; rejected: FieldRejection[] }
   | { path: string; status: "error"; error: string }
 
@@ -21,6 +26,7 @@ export type PatchOptions = {
 }
 
 const isJsonFile = (path: string): boolean => path.endsWith(".json")
+const isMdFile = (path: string): boolean => path.endsWith(".md")
 
 const applyJsonPatch = (
   path: string,
@@ -58,11 +64,29 @@ const applyJsonPatch = (
 }
 
 const applyMdPatch = (path: string, content: string, patch: string): FileResult => {
-  const result = applyDiff(content, patch)
-  if (!result.ok) {
-    return { path, status: "error", error: result.error }
+  const { result: patchWithIds, generated } = replaceUuidPlaceholders(patch)
+
+  const diffResult = applyDiff(content, patchWithIds)
+  if (!diffResult.ok) {
+    return { path, status: "error", error: diffResult.error }
   }
-  return { path, status: "ok", content: result.content }
+
+  const validation = validateMarkdownBlocks(diffResult.content)
+  if (!validation.valid) {
+    const errorMessages = validation.errors.map((e) =>
+      e.field ? `${e.block}.${e.field}: ${e.message}` : `${e.block}: ${e.message}`
+    )
+    return { path, status: "error", error: errorMessages.join("; ") }
+  }
+
+  const hasGeneratedIds = Object.keys(generated).length > 0
+
+  return {
+    path,
+    status: "ok",
+    content: diffResult.content,
+    ...(hasGeneratedIds && { generatedIds: generated }),
+  }
 }
 
 export const applyFilePatch = (

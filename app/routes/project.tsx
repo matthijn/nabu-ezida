@@ -52,7 +52,7 @@ export default function ProjectLayout() {
   const { files, currentFile, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
 
   const documents = filesToSidebarDocuments(files, getFileTags)
-  const codebook = undefined
+  const codebook: Codebook | undefined = undefined
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
