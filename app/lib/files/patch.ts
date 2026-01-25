@@ -1,5 +1,6 @@
 import { applyDiff, generateDiff } from "~/lib/diff"
-import { parseJson } from "~/lib/json"
+import { parseJson, repairJsonNewlines } from "~/lib/json"
+import { parseCodeBlocks } from "~/domain/blocks"
 import {
   validateFieldChanges,
   validateFieldChangesInternal,
@@ -27,6 +28,30 @@ export type PatchOptions = {
 
 const isJsonFile = (path: string): boolean => path.endsWith(".json")
 const isMdFile = (path: string): boolean => path.endsWith(".md")
+const isJsonBlock = (language: string): boolean => language.startsWith("json")
+
+const repairJsonBlocks = (markdown: string): string => {
+  const blocks = parseCodeBlocks(markdown).filter((b) => isJsonBlock(b.language))
+  if (blocks.length === 0) return markdown
+
+  let result = markdown
+  let offset = 0
+
+  for (const block of blocks) {
+    const repaired = repairJsonNewlines(block.content)
+    if (repaired === block.content) continue
+
+    const blockStart = block.start + offset
+    const blockEnd = block.end + offset
+    const original = result.slice(blockStart, blockEnd)
+    const replaced = original.replace(block.content, repaired)
+
+    result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
+    offset += replaced.length - original.length
+  }
+
+  return result
+}
 
 const applyJsonPatch = (
   path: string,
@@ -71,7 +96,8 @@ const applyMdPatch = (path: string, content: string, patch: string): FileResult 
     return { path, status: "error", error: diffResult.error }
   }
 
-  const validation = validateMarkdownBlocks(diffResult.content)
+  const repairedContent = repairJsonBlocks(diffResult.content)
+  const validation = validateMarkdownBlocks(repairedContent)
   if (!validation.valid) {
     const errorMessages = validation.errors.map((e) =>
       e.field ? `${e.block}.${e.field}: ${e.message}` : `${e.block}: ${e.message}`
@@ -84,7 +110,7 @@ const applyMdPatch = (path: string, content: string, patch: string): FileResult 
   return {
     path,
     status: "ok",
-    content: diffResult.content,
+    content: repairedContent,
     ...(hasGeneratedIds && { generatedIds: generated }),
   }
 }

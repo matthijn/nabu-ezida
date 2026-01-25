@@ -20,8 +20,9 @@ const validateBlockJson = (language: string, content: string): ValidationError[]
   let parsed: unknown
   try {
     parsed = JSON.parse(content)
-  } catch {
-    return [{ block: language, message: "Invalid JSON" }]
+  } catch (e) {
+    const reason = e instanceof SyntaxError ? e.message : "Unknown error"
+    return [{ block: language, message: `Invalid JSON: ${reason}` }]
   }
 
   const result = config.schema.safeParse(parsed)

@@ -1,1 +1,1 @@
-export { parseJson, type JsonResult } from "./parse"
+export { parseJson, repairJsonNewlines, type JsonResult } from "./parse"
