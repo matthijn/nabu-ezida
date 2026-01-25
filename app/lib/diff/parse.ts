@@ -8,13 +8,16 @@ export type DiffResult =
   | { ok: false; error: string }
 
 const isHunkStart = (line: string): boolean =>
-  line === "@@" || line.startsWith("@@ ")
+  line === "@@" || line.startsWith("@@ ") || line === "+@@" || line.startsWith("+@@ ")
 
 const isFileHeader = (line: string): boolean =>
   line.startsWith("*** ")
 
 const isAddLine = (line: string): boolean =>
   line.startsWith("+")
+
+const stripAddPrefix = (line: string): string =>
+  line.startsWith("++") ? line.slice(2) : line.slice(1)
 
 const isRemoveLine = (line: string): boolean =>
   line.startsWith("-")
@@ -72,7 +75,7 @@ const parseV4ADiff = (patch: string): Hunk[] => {
     if (isRemoveLine(line)) {
       currentOld += line.slice(1) + "\n"
     } else if (isAddLine(line)) {
-      currentNew += line.slice(1) + "\n"
+      currentNew += stripAddPrefix(line) + "\n"
     } else if (!isAddFile) {
       currentOld += line + "\n"
       currentNew += line + "\n"
@@ -85,6 +88,23 @@ const parseV4ADiff = (patch: string): Hunk[] => {
   return hunks
 }
 
+const trimLines = (text: string): string =>
+  text.split("\n").map(line => line.trim()).join("\n")
+
+const findWithTrimmedMatch = (content: string, oldText: string): string | null => {
+  const trimmedOld = trimLines(oldText)
+  const contentLines = content.split("\n")
+  const oldLines = trimmedOld.split("\n")
+
+  for (let i = 0; i <= contentLines.length - oldLines.length; i++) {
+    const slice = contentLines.slice(i, i + oldLines.length)
+    if (slice.map(l => l.trim()).join("\n") === trimmedOld) {
+      return slice.join("\n")
+    }
+  }
+  return null
+}
+
 const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const oldText = hunk.oldText.replace(/\n$/, "")
   const newText = hunk.newText.replace(/\n$/, "")
@@ -94,11 +114,16 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
     return { ok: true, content: content + (needsSeparator ? "\n" : "") + newText }
   }
 
-  if (!content.includes(oldText)) {
-    return { ok: false, error: `patch context not found: "${oldText.slice(0, 50)}..."` }
+  if (content.includes(oldText)) {
+    return { ok: true, content: content.replace(oldText, newText) }
   }
 
-  return { ok: true, content: content.replace(oldText, newText) }
+  const actualMatch = findWithTrimmedMatch(content, oldText)
+  if (actualMatch) {
+    return { ok: true, content: content.replace(actualMatch, trimLines(newText)) }
+  }
+
+  return { ok: false, error: `patch context not found: "${oldText.slice(0, 50)}..."` }
 }
 
 export const applyDiff = (content: string, patch: string): DiffResult => {

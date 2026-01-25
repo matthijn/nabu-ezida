@@ -129,6 +129,29 @@ appended`,
 +\`\`\``,
       expected: { ok: true, content: "# Doc\n\nIntro text.\n\n```json-callout\n{\"id\": \"test\", \"type\": \"codebook\"}\n```" },
     },
+    {
+      name: "create file with @@ and + lines",
+      content: "",
+      patch: `@@
++# Coffee Bean Research Codebook`,
+      expected: { ok: true, content: "# Coffee Bean Research Codebook" },
+    },
+    {
+      name: "malformed: LLM prefixes @@ with +",
+      content: "",
+      patch: `+@@
+++# Coffee Bean Research Codebook`,
+      expected: { ok: true, content: "# Coffee Bean Research Codebook" },
+    },
+    {
+      name: "forgiving: LLM adds leading space to context lines",
+      content: "# Coffee Bean Research Codebook",
+      patch: `@@
+ # Coffee Bean Research Codebook
++
++This is a paragraph.`,
+      expected: { ok: true, content: "# Coffee Bean Research Codebook\n\nThis is a paragraph." },
+    },
   ]
 
   it.each(cases)("$name", ({ content, patch, expected }) => {

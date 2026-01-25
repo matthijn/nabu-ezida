@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { Editor, rootCtx, defaultValueCtx } from "@milkdown/kit/core"
 import { commonmark } from "@milkdown/kit/preset/commonmark"
 import { gfm } from "@milkdown/kit/preset/gfm"
@@ -7,9 +8,9 @@ import { history } from "@milkdown/kit/plugin/history"
 import { clipboard } from "@milkdown/kit/plugin/clipboard"
 import { gapCursor } from "@milkdown/kit/prose/gapcursor"
 import "@milkdown/kit/prose/gapcursor/style/gapcursor.css"
-import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
+import { Milkdown, MilkdownProvider, useEditor, useInstance } from "@milkdown/react"
 import { ProsemirrorAdapterProvider, useNodeViewFactory } from "@prosemirror-adapter/react"
-import { $prose } from "@milkdown/utils"
+import { $prose, replaceAll } from "@milkdown/utils"
 import type { Annotation } from "~/domain/document/annotations"
 import { createAnnotationsPlugin } from "~/lib/editor/annotations"
 import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
@@ -28,6 +29,8 @@ const MilkdownEditorCore = ({ defaultValue, annotations, debugMode }: MilkdownEd
   const hiddenBlocksPlugin = $prose(() => createHiddenBlocksPlugin())
   const gapCursorPlugin = $prose(gapCursor)
   const calloutBlocksPlugin = createCalloutBlocksPlugin(nodeViewFactory)
+  const prevContentRef = useRef(defaultValue)
+  const [loading, getEditor] = useInstance()
 
   useEditor(
     (root) => {
@@ -49,6 +52,13 @@ const MilkdownEditorCore = ({ defaultValue, annotations, debugMode }: MilkdownEd
     },
     [debugMode]
   )
+
+  useEffect(() => {
+    if (loading) return
+    if (defaultValue === prevContentRef.current) return
+    prevContentRef.current = defaultValue
+    getEditor()?.action(replaceAll(defaultValue))
+  }, [loading, getEditor, defaultValue])
 
   return (
     <AnnotationHover annotations={annotations}>

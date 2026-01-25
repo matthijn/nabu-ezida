@@ -39,8 +39,16 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
 
   const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
 
+  const messages = blocksToMessages(current.history)
+  const counts = messages.reduce<Record<string, number>>((acc, m) => {
+    acc[m.type] = (acc[m.type] ?? 0) + 1
+    return acc
+  }, {})
+  const summary = Object.entries(counts).map(([t, n]) => `${n} ${t}`).join(", ")
+  console.log(`[Runner] Sending ${messages.length} messages: ${summary}`)
+
   try {
-    const history = await turn(current.history, blocksToMessages(current.history), {
+    const history = await turn(current.history, messages, {
       endpoint: "/converse",
       execute: toolExecutor,
       signal: controller.signal,
