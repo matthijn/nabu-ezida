@@ -5,11 +5,16 @@ const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
 const calloutType = z.enum(["codebook", "code", "idea", "quote", "note"])
 
+const normalizeNewlines = (text: string): string =>
+  text.replace(/\\n/g, "\n").replace(/\n{2,}/g, "\n")
+
+const normalizedString = z.string().transform(normalizeNewlines)
+
 export const CalloutSchema = z.object({
   id: z.string(),
   type: calloutType,
   title: z.string(),
-  content: z.string(),
+  content: normalizedString,
   color: radixColor,
   collapsed: z.boolean(),
 })

@@ -24,12 +24,8 @@ type CalloutContentProps = {
   data: CalloutBlock
 }
 
-const normalizeNewlines = (text: string): string =>
-  text.replace(/\\n/g, "\n").replace(/\n{2,}/g, "\n")
-
 export const CalloutContent = ({ data }: CalloutContentProps) => {
   const { type, title, content, color, collapsed } = data
-  const normalizedContent = normalizeNewlines(content)
 
   return (
     <>
@@ -47,7 +43,7 @@ export const CalloutContent = ({ data }: CalloutContentProps) => {
             {title}
           </span>
           <div className="text-body font-body text-default-font prose prose-sm max-w-none">
-            <Markdown>{normalizedContent}</Markdown>
+            <Markdown>{content}</Markdown>
           </div>
         </div>
       )}

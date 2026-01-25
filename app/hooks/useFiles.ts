@@ -5,6 +5,7 @@ import {
   getFileRaw,
   getFileTags,
   getFileAnnotations,
+  getCodebook,
   setCurrentFile,
   subscribe,
 } from "~/lib/files"
@@ -12,8 +13,9 @@ import {
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const currentFile = useSyncExternalStore(subscribe, getCurrentFile)
+  const codebook = useSyncExternalStore(subscribe, getCodebook)
 
-  return { files, currentFile, setCurrentFile, getFileTags, getFileAnnotations }
+  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations }
 }
 
 export const useCurrentFileContent = () => {

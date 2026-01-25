@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
-import { CodesSidebar, type Codebook, type Code } from "~/ui/custom/sidebar/codes"
+import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
@@ -49,10 +49,9 @@ export default function ProjectLayout() {
     return () => closeChat()
   }, [params.projectId])
 
-  const { files, currentFile, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
+  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
 
   const documents = filesToSidebarDocuments(files, getFileTags)
-  const codebook: Codebook | undefined = undefined
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)

@@ -1,20 +1,72 @@
 import type { DocumentMeta } from "~/domain/sidecar"
-import { findSingletonBlock, parseBlockJson } from "~/domain/blocks"
+import {
+  findSingletonBlock,
+  findBlocksByLanguage,
+  parseBlockJson,
+  CalloutSchema,
+  type CalloutBlock,
+} from "~/domain/blocks"
 
-export type FileEntry = { raw: string }
+type ParsedBlocks = {
+  sidecar: DocumentMeta | null
+  callouts: CalloutBlock[]
+}
+
+export type FileEntry = {
+  raw: string
+  parsed: ParsedBlocks
+}
 
 type Files = Record<string, FileEntry>
 type Listener = () => void
+type Code = { id: string; name: string; color: string; detail: string }
+type Codebook = { categories: { name: string; codes: Code[] }[] }
 
 const STORAGE_KEY = "nabu:files"
 
 let files: Files = {}
 let currentFile: string | null = null
+let cachedCodebook: Codebook | undefined = undefined
 const listeners = new Set<Listener>()
 
+const calloutToCode = (callout: CalloutBlock): Code => ({
+  id: callout.id,
+  name: callout.title,
+  color: callout.color,
+  detail: callout.content,
+})
+
+const recomputeCodebook = (): void => {
+  const codes = Object.values(files)
+    .flatMap((f) => f.parsed.callouts.filter((c) => c.type === "codebook"))
+    .map(calloutToCode)
+  cachedCodebook = codes.length === 0 ? undefined : { categories: [{ name: "Codes", codes }] }
+}
+
 const notify = (): void => {
+  recomputeCodebook()
   listeners.forEach((l) => l())
 }
+
+const parseFileBlocks = (raw: string): ParsedBlocks => {
+  const sidecarBlock = findSingletonBlock(raw, "json-attributes")
+  const sidecar = sidecarBlock ? parseBlockJson<DocumentMeta>(sidecarBlock) : null
+
+  const calloutBlocks = findBlocksByLanguage(raw, "json-callout")
+  const callouts = calloutBlocks
+    .map((block) => {
+      const result = CalloutSchema.safeParse(JSON.parse(block.content))
+      return result.success ? result.data : null
+    })
+    .filter((c): c is CalloutBlock => c !== null)
+
+  return { sidecar, callouts }
+}
+
+const createFileEntry = (raw: string): FileEntry => ({
+  raw,
+  parsed: parseFileBlocks(raw),
+})
 
 export const getFiles = (): Files => files
 
@@ -22,28 +74,24 @@ export const getCurrentFile = (): string | null => currentFile
 
 export const getFileRaw = (filename: string): string => files[filename]?.raw ?? ""
 
-const getSidecarData = (filename: string): DocumentMeta | null => {
-  const raw = getFileRaw(filename)
-  if (!raw) return null
+export const getFileTags = (filename: string): string[] =>
+  files[filename]?.parsed.sidecar?.tags ?? []
 
-  const block = findSingletonBlock(raw, "json-attributes")
-  if (!block) return null
+export const getFileAnnotations = (filename: string): DocumentMeta["annotations"] =>
+  files[filename]?.parsed.sidecar?.annotations ?? []
 
-  return parseBlockJson<DocumentMeta>(block)
-}
+export const getFileCodes = (filename: string): CalloutBlock[] =>
+  files[filename]?.parsed.callouts.filter((c) => c.type === "codebook") ?? []
 
-export const getFileTags = (filename: string): string[] => {
-  const sidecar = getSidecarData(filename)
-  return sidecar?.tags ?? []
-}
+export const getAllCodes = (): CalloutBlock[] =>
+  Object.values(files).flatMap((f) => f.parsed.callouts.filter((c) => c.type === "codebook"))
 
-export const getFileAnnotations = (filename: string): DocumentMeta["annotations"] => {
-  const sidecar = getSidecarData(filename)
-  return sidecar?.annotations ?? []
-}
+export const getCodebook = (): Codebook | undefined => cachedCodebook
 
-export const setFiles = (newFiles: Files): void => {
-  files = newFiles
+export const setFiles = (rawFiles: Record<string, { raw: string }>): void => {
+  files = Object.fromEntries(
+    Object.entries(rawFiles).map(([name, { raw }]) => [name, createFileEntry(raw)])
+  )
   notify()
 }
 
@@ -53,7 +101,7 @@ export const setCurrentFile = (filename: string | null): void => {
 }
 
 export const updateFileRaw = (filename: string, raw: string): void => {
-  files = { ...files, [filename]: { raw } }
+  files = { ...files, [filename]: createFileEntry(raw) }
   notify()
 }
 
@@ -73,7 +121,10 @@ export const subscribe = (listener: Listener): (() => void) => {
 
 export const persistFiles = (): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(files))
+    const rawOnly = Object.fromEntries(
+      Object.entries(files).map(([name, { raw }]) => [name, { raw }])
+    )
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rawOnly))
   } catch {
     // localStorage full or unavailable
   }
@@ -83,8 +134,8 @@ export const restoreFiles = (): void => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      files = JSON.parse(stored) as Files
-      notify()
+      const rawFiles = JSON.parse(stored) as Record<string, { raw: string }>
+      setFiles(rawFiles)
     }
   } catch {
     // parse error or localStorage unavailable
