@@ -72,7 +72,7 @@ line3`,
       content: "existing",
       patch: `*** Add File: test.md
 appended`,
-      expected: { ok: true, content: "existingappended" },
+      expected: { ok: true, content: "existing\nappended" },
     },
     {
       name: "implicit hunk start with + lines",
@@ -87,6 +87,47 @@ appended`,
       patch: `-old content
 +new content`,
       expected: { ok: true, content: "new content" },
+    },
+    {
+      name: "append with @@ and + lines only",
+      content: "# Title",
+      patch: `@@
++
++New paragraph here.`,
+      expected: { ok: true, content: "# Title\n\nNew paragraph here." },
+    },
+    {
+      name: "append to empty file with @@ and + lines",
+      content: "",
+      patch: `@@
++# Title`,
+      expected: { ok: true, content: "# Title" },
+    },
+    {
+      name: "append multiple sections incrementally",
+      content: "# Title",
+      patch: `@@
++
++Section one content.`,
+      expected: { ok: true, content: "# Title\n\nSection one content." },
+    },
+    {
+      name: "real scenario: append with empty + line",
+      content: "# Codebook",
+      patch: `@@
++
++This is a *sample* qualitative codebook for analyzing texts.`,
+      expected: { ok: true, content: "# Codebook\n\nThis is a *sample* qualitative codebook for analyzing texts." },
+    },
+    {
+      name: "append json block without anchor",
+      content: "# Doc\n\nIntro text.",
+      patch: `@@
++
++\`\`\`json-callout
++{"id": "test", "type": "codebook"}
++\`\`\``,
+      expected: { ok: true, content: "# Doc\n\nIntro text.\n\n```json-callout\n{\"id\": \"test\", \"type\": \"codebook\"}\n```" },
     },
   ]
 

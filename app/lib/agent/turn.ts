@@ -43,8 +43,32 @@ export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promis
   }
 }
 
-export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
-  Promise.all(calls.map((call) => executeTool(call, execute)))
+const countHunks = (diff: string): number => (diff.match(/@@/g) ?? []).length
+
+const logPatchSummary = (calls: ToolCall[]): void => {
+  const patches = calls.filter((c) => c.name === "apply_patch")
+  if (patches.length === 0) return
+
+  const byFile = patches.reduce<Record<string, { patches: number; hunks: number }>>((acc, call) => {
+    const op = call.args.operation as { path?: string; diff?: string } | undefined
+    const path = op?.path ?? "unknown"
+    const hunks = countHunks(op?.diff ?? "")
+    if (!acc[path]) acc[path] = { patches: 0, hunks: 0 }
+    acc[path].patches += 1
+    acc[path].hunks += hunks
+    return acc
+  }, {})
+
+  const summary = Object.entries(byFile)
+    .map(([file, { patches, hunks }]) => `${file}: ${patches} patch(es), ${hunks} hunk(s)`)
+    .join(", ")
+  console.log(`[Patches] ${patches.length} total — ${summary}`)
+}
+
+export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> => {
+  logPatchSummary(calls)
+  return Promise.all(calls.map((call) => executeTool(call, execute)))
+}
 
 export const runPrompt = async (
   endpoint: string,
@@ -63,13 +87,24 @@ export const runPrompt = async (
 export const turn = async (history: Block[], messages: InputItem[], deps: TurnDeps): Promise<Block[]> => {
   const { endpoint, execute, callbacks, signal } = deps
 
-  const parsedBlocks = await parse({ endpoint, messages, callbacks, signal })
+  const pendingResults = new Map<string, Promise<ToolResultBlock>>()
+
+  const onToolCall = (call: ToolCall): void => {
+    console.log(`[Tool] executing immediately: ${call.name}`)
+    pendingResults.set(call.id, executeTool(call, execute))
+  }
+
+  const mergedCallbacks = { ...callbacks, onToolCall }
+
+  const parsedBlocks = await parse({ endpoint, messages, callbacks: mergedCallbacks, signal })
 
   let h = history
   for (const block of parsedBlocks) {
     h = appendBlock(h, block)
     if (block.type === "tool_call") {
-      const results = await executeTools(block.calls, execute)
+      const results = await Promise.all(
+        block.calls.map((call) => pendingResults.get(call.id) ?? executeTool(call, execute))
+      )
       for (const result of results) {
         h = appendBlock(h, result)
       }

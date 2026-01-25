@@ -90,7 +90,8 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const newText = hunk.newText.replace(/\n$/, "")
 
   if (oldText === "") {
-    return { ok: true, content: content + newText }
+    const needsSeparator = content.length > 0 && !content.endsWith("\n")
+    return { ok: true, content: content + (needsSeparator ? "\n" : "") + newText }
   }
 
   if (!content.includes(oldText)) {

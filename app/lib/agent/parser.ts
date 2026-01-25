@@ -21,6 +21,7 @@ type ParseCallbacks = {
   onChunk?: (text: string) => void
   onBlock?: (block: Block) => void
   onToolName?: (name: string) => void
+  onToolCall?: (call: ToolCall) => void
 }
 
 const parseToolArgs = (args: string): Record<string, unknown> => {
@@ -94,6 +95,7 @@ export const processLine = (
           name: item.name,
           args: parseToolArgs(item.arguments),
         }
+        callbacks.onToolCall?.(toolCall)
         return { ...state, toolCalls: [...state.toolCalls, toolCall] }
       }
       if (item.type === "apply_patch_call") {
@@ -108,6 +110,7 @@ export const processLine = (
             },
           },
         }
+        callbacks.onToolCall?.(toolCall)
         return { ...state, toolCalls: [...state.toolCalls, toolCall] }
       }
       if (item.type === "shell_call") {
@@ -116,6 +119,7 @@ export const processLine = (
           name: "shell",
           args: { commands: item.action.commands },
         }
+        callbacks.onToolCall?.(toolCall)
         return { ...state, toolCalls: [...state.toolCalls, toolCall] }
       }
     }
