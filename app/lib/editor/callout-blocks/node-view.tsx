@@ -15,6 +15,17 @@ const parseCalloutData = (content: string) => {
   }
 }
 
+type BlockSpacerProps = {
+  onClick: () => void
+}
+
+const BlockSpacer = ({ onClick }: BlockSpacerProps) => (
+  <div
+    className="h-2 w-full cursor-text hover:bg-neutral-100 transition-colors rounded"
+    onClick={onClick}
+  />
+)
+
 export const CalloutNodeView = () => {
   const { node, view, getPos, contentRef } = useNodeViewContext()
 
@@ -47,5 +58,19 @@ export const CalloutNodeView = () => {
     view.dispatch(tr)
   }
 
-  return <CalloutBlockView data={data} onDelete={handleDelete} />
+  const handleInsertBefore = () => {
+    const pos = getPos()
+    if (pos === undefined) return
+    const paragraph = view.state.schema.nodes.paragraph.create()
+    const tr = view.state.tr.insert(pos, paragraph)
+    view.dispatch(tr)
+    view.focus()
+  }
+
+  return (
+    <>
+      <BlockSpacer onClick={handleInsertBefore} />
+      <CalloutBlockView data={data} onDelete={handleDelete} />
+    </>
+  )
 }

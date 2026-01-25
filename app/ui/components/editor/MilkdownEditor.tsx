@@ -5,6 +5,8 @@ import { commonmark } from "@milkdown/kit/preset/commonmark"
 import { gfm } from "@milkdown/kit/preset/gfm"
 import { history } from "@milkdown/kit/plugin/history"
 import { clipboard } from "@milkdown/kit/plugin/clipboard"
+import { gapCursor } from "@milkdown/kit/prose/gapcursor"
+import "@milkdown/kit/prose/gapcursor/style/gapcursor.css"
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
 import { ProsemirrorAdapterProvider, useNodeViewFactory } from "@prosemirror-adapter/react"
 import { $prose } from "@milkdown/utils"
@@ -24,6 +26,7 @@ const MilkdownEditorCore = ({ defaultValue, annotations, debugMode }: MilkdownEd
   const nodeViewFactory = useNodeViewFactory()
   const annotationsPlugin = $prose(() => createAnnotationsPlugin(annotations))
   const hiddenBlocksPlugin = $prose(() => createHiddenBlocksPlugin())
+  const gapCursorPlugin = $prose(gapCursor)
   const calloutBlocksPlugin = createCalloutBlocksPlugin(nodeViewFactory)
 
   useEditor(
@@ -37,6 +40,7 @@ const MilkdownEditorCore = ({ defaultValue, annotations, debugMode }: MilkdownEd
         .use(gfm)
         .use(history)
         .use(clipboard)
+        .use(gapCursorPlugin)
         .use(annotationsPlugin)
 
       if (debugMode) return editor
