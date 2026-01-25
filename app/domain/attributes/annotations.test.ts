@@ -4,12 +4,12 @@ import {
   prepareDeleteAnnotations,
   type AnnotationInput,
 } from "./annotations"
-import type { SidecarAnnotation } from "./schema"
+import type { StoredAnnotation } from "./schema"
 
 describe("prepareUpsertAnnotations", () => {
   const upsertCases: {
     name: string
-    existing: SidecarAnnotation[]
+    existing: StoredAnnotation[]
     inputs: AnnotationInput[]
     expectAppliedCount: number
     expectRejectedCount: number
@@ -119,7 +119,7 @@ describe("prepareUpsertAnnotations", () => {
   })
 
   it("replaced annotation has updated fields", () => {
-    const existing: SidecarAnnotation[] = [{ text: "quick brown", reason: "old", color: "blue" }]
+    const existing: StoredAnnotation[] = [{ text: "quick brown", reason: "old", color: "blue" }]
     const result = prepareUpsertAnnotations(existing, [
       { text: "quick brown", reason: "new", color: "red" },
     ])
@@ -137,7 +137,7 @@ describe("prepareUpsertAnnotations", () => {
 describe("prepareDeleteAnnotations", () => {
   const deleteCases: {
     name: string
-    existing: SidecarAnnotation[]
+    existing: StoredAnnotation[]
     texts: string[]
     expectAnnotationsCount: number
   }[] = [
@@ -185,7 +185,7 @@ describe("prepareDeleteAnnotations", () => {
   })
 
   it("preserves correct annotation when deleting", () => {
-    const existing: SidecarAnnotation[] = [
+    const existing: StoredAnnotation[] = [
       { text: "keep me", reason: "a", color: "red" },
       { text: "delete me", reason: "b", color: "blue" },
     ]

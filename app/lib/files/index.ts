@@ -3,6 +3,7 @@ export {
   getCurrentFile,
   getFileRaw,
   getFileTags,
+  getStoredAnnotations,
   getFileAnnotations,
   getFileCodes,
   getAllCodes,

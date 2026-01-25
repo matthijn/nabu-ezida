@@ -1,6 +1,6 @@
 import type { Handler } from "../types"
 import { getFileRaw, updateFileRaw, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
-import type { FieldRejection } from "~/domain/sidecar"
+import type { FieldRejection } from "~/domain/attributes"
 
 type Operation = {
   type: "create_file" | "update_file" | "delete_file"

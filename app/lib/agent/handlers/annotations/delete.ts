@@ -1,7 +1,6 @@
 import type { Handler } from "../../types"
-import { getFileAnnotations } from "~/lib/files"
-import { prepareDeleteAnnotations } from "~/domain/sidecar"
-import { saveSidecar, toMdPath } from "./shared"
+import { prepareDeleteAnnotations } from "~/domain/attributes"
+import { getStoredAnnotations, saveAnnotations, toMdPath } from "./shared"
 
 type DeleteArgs = {
   document_id: string
@@ -19,12 +18,12 @@ export const deleteAnnotationsTool: Handler = async (_, args) => {
   }
 
   const mdPath = toMdPath(document_id)
-  const existing = getFileAnnotations(mdPath) ?? []
+  const existing = getStoredAnnotations(mdPath)
   const beforeCount = existing.length
 
   const result = prepareDeleteAnnotations(existing, texts)
 
-  saveSidecar(mdPath, result.annotations)
+  saveAnnotations(mdPath, result.annotations)
 
   const deletedCount = beforeCount - result.annotations.length
 

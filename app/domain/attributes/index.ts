@@ -1,5 +1,5 @@
 export { DocumentMeta } from "./schema"
-export type { DocumentMeta as DocumentMetaType, SidecarAnnotation, DocumentMetaField } from "./schema"
+export type { DocumentMeta as DocumentMetaType, StoredAnnotation, DocumentMetaField } from "./schema"
 export {
   validateDocumentMeta,
   validateFieldChanges,

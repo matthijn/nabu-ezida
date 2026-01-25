@@ -1,7 +1,6 @@
 import type { Handler } from "../../types"
-import { getFileAnnotations } from "~/lib/files"
-import { prepareUpsertAnnotations, type AnnotationInput } from "~/domain/sidecar"
-import { saveSidecar, toMdPath } from "./shared"
+import { prepareUpsertAnnotations, type AnnotationInput } from "~/domain/attributes"
+import { getStoredAnnotations, saveAnnotations, toMdPath } from "./shared"
 
 type UpsertArgs = {
   document_id: string
@@ -19,10 +18,10 @@ export const upsertAnnotationsTool: Handler = async (_, args) => {
   }
 
   const mdPath = toMdPath(document_id)
-  const existing = getFileAnnotations(mdPath) ?? []
+  const existing = getStoredAnnotations(mdPath)
   const result = prepareUpsertAnnotations(existing, annotations)
 
-  saveSidecar(mdPath, result.annotations)
+  saveAnnotations(mdPath, result.annotations)
 
   const appliedCount = result.applied.length
   const rejectedCount = result.rejected.length

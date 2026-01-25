@@ -1,28 +1,23 @@
-import { getFileRaw, updateFileRaw } from "~/lib/files"
-import { findSingletonBlock, parseBlockJson, replaceSingletonBlock } from "~/domain/blocks"
-import type { SidecarAnnotation, DocumentMeta } from "~/domain/sidecar"
+import { getFileRaw, getStoredAnnotations as getAnnotations, getFileTags, updateFileRaw } from "~/lib/files"
+import { replaceSingletonBlock } from "~/domain/blocks"
+import type { StoredAnnotation } from "~/domain/attributes"
 
 export const toMdPath = (documentId: string): string =>
   documentId.endsWith(".md") ? documentId : `${documentId}.md`
 
-const getCurrentSidecar = (mdPath: string): DocumentMeta => {
-  const raw = getFileRaw(mdPath)
-  if (!raw) return {}
-  const block = findSingletonBlock(raw, "json-attributes")
-  if (!block) return {}
-  return parseBlockJson<DocumentMeta>(block) ?? {}
-}
+export const getStoredAnnotations = (mdPath: string): StoredAnnotation[] =>
+  getAnnotations(mdPath)
 
-export const saveSidecar = (
+export const saveAnnotations = (
   mdPath: string,
-  annotations: SidecarAnnotation[]
+  annotations: StoredAnnotation[]
 ): void => {
   const markdown = getFileRaw(mdPath)
   if (!markdown) return
 
-  const current = getCurrentSidecar(mdPath)
-  const updated = { ...current, annotations }
-  const sidecarJson = JSON.stringify(updated, null, 2)
-  const newMarkdown = replaceSingletonBlock(markdown, "json-attributes", sidecarJson)
+  const tags = getFileTags(mdPath)
+  const meta = tags.length > 0 ? { tags, annotations } : { annotations }
+  const metaJson = JSON.stringify(meta, null, 2)
+  const newMarkdown = replaceSingletonBlock(markdown, "json-attributes", metaJson)
   updateFileRaw(mdPath, newMarkdown)
 }

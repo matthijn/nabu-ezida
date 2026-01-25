@@ -23,7 +23,7 @@ export const DocumentMeta = z.object({
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
-export type SidecarAnnotation = z.infer<typeof AnnotationSchema>
+export type StoredAnnotation = z.infer<typeof AnnotationSchema>
 export type DocumentMetaField = keyof DocumentMeta
 
 export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } = {

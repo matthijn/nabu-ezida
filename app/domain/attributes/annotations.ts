@@ -1,4 +1,4 @@
-import type { SidecarAnnotation } from "./schema"
+import type { StoredAnnotation } from "./schema"
 import { mdToPlainText } from "~/lib/text/markdown"
 
 export type AnnotationInput = {
@@ -9,13 +9,13 @@ export type AnnotationInput = {
 }
 
 export type UpsertResult = {
-  applied: SidecarAnnotation[]
+  applied: StoredAnnotation[]
   rejected: { text: string; error: string }[]
-  annotations: SidecarAnnotation[]
+  annotations: StoredAnnotation[]
 }
 
 export type DeleteResult = {
-  annotations: SidecarAnnotation[]
+  annotations: StoredAnnotation[]
 }
 
 const hasValue = (val: string | undefined): boolean =>
@@ -27,17 +27,17 @@ const hasColorOrCode = (input: AnnotationInput): boolean =>
 const hasBothColorAndCode = (input: AnnotationInput): boolean =>
   hasValue(input.color) && hasValue(input.code)
 
-const toAnnotation = (input: AnnotationInput): SidecarAnnotation => {
+const toAnnotation = (input: AnnotationInput): StoredAnnotation => {
   const text = mdToPlainText(input.text)
   return hasValue(input.color)
-    ? { text, reason: input.reason, color: input.color as SidecarAnnotation["color"] }
+    ? { text, reason: input.reason, color: input.color as StoredAnnotation["color"] }
     : { text, reason: input.reason, code: input.code }
 }
 
 const upsertIntoList = (
-  annotations: SidecarAnnotation[],
-  newAnnotation: SidecarAnnotation
-): SidecarAnnotation[] => {
+  annotations: StoredAnnotation[],
+  newAnnotation: StoredAnnotation
+): StoredAnnotation[] => {
   const exists = annotations.some((a) => a.text === newAnnotation.text)
   if (exists) {
     return annotations.map((a) => (a.text === newAnnotation.text ? newAnnotation : a))
@@ -46,10 +46,10 @@ const upsertIntoList = (
 }
 
 export const prepareUpsertAnnotations = (
-  existingAnnotations: SidecarAnnotation[],
+  existingAnnotations: StoredAnnotation[],
   inputs: AnnotationInput[]
 ): UpsertResult => {
-  const applied: SidecarAnnotation[] = []
+  const applied: StoredAnnotation[] = []
   const rejected: { text: string; error: string }[] = []
   let annotations = [...existingAnnotations]
 
@@ -71,14 +71,14 @@ export const prepareUpsertAnnotations = (
   return { applied, rejected, annotations }
 }
 
-const annotationMatchesText = (annotation: SidecarAnnotation, text: string): boolean =>
+const annotationMatchesText = (annotation: StoredAnnotation, text: string): boolean =>
   annotation.text.toLowerCase() === text.toLowerCase()
 
-const matchesAnyText = (annotation: SidecarAnnotation, texts: string[]): boolean =>
+const matchesAnyText = (annotation: StoredAnnotation, texts: string[]): boolean =>
   texts.some((text) => annotationMatchesText(annotation, text))
 
 export const prepareDeleteAnnotations = (
-  existingAnnotations: SidecarAnnotation[],
+  existingAnnotations: StoredAnnotation[],
   texts: string[]
 ): DeleteResult => ({
   annotations: existingAnnotations.filter((a) => !matchesAnyText(a, texts)),

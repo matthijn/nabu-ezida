@@ -1,4 +1,5 @@
-import type { DocumentMeta } from "~/domain/sidecar"
+import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes"
+import type { Annotation } from "~/domain/document/annotations"
 import {
   findSingletonBlock,
   findBlocksByLanguage,
@@ -8,7 +9,7 @@ import {
 } from "~/domain/blocks"
 
 type ParsedBlocks = {
-  sidecar: DocumentMeta | null
+  attributes: DocumentMeta | null
   callouts: CalloutBlock[]
 }
 
@@ -29,28 +30,11 @@ let currentFile: string | null = null
 let cachedCodebook: Codebook | undefined = undefined
 const listeners = new Set<Listener>()
 
-const calloutToCode = (callout: CalloutBlock): Code => ({
-  id: callout.id,
-  name: callout.title,
-  color: callout.color,
-  detail: callout.content,
-})
-
-const recomputeCodebook = (): void => {
-  const codes = Object.values(files)
-    .flatMap((f) => f.parsed.callouts.filter((c) => c.type === "codebook"))
-    .map(calloutToCode)
-  cachedCodebook = codes.length === 0 ? undefined : { categories: [{ name: "Codes", codes }] }
-}
-
-const notify = (): void => {
-  recomputeCodebook()
-  listeners.forEach((l) => l())
-}
+const notify = (): void => listeners.forEach((l) => l())
 
 const parseFileBlocks = (raw: string): ParsedBlocks => {
-  const sidecarBlock = findSingletonBlock(raw, "json-attributes")
-  const sidecar = sidecarBlock ? parseBlockJson<DocumentMeta>(sidecarBlock) : null
+  const attributesBlock = findSingletonBlock(raw, "json-attributes")
+  const attributes = attributesBlock ? parseBlockJson<DocumentMeta>(attributesBlock) : null
 
   const calloutBlocks = findBlocksByLanguage(raw, "json-callout")
   const callouts = calloutBlocks
@@ -60,7 +44,7 @@ const parseFileBlocks = (raw: string): ParsedBlocks => {
     })
     .filter((c): c is CalloutBlock => c !== null)
 
-  return { sidecar, callouts }
+  return { attributes, callouts }
 }
 
 const createFileEntry = (raw: string): FileEntry => ({
@@ -75,10 +59,10 @@ export const getCurrentFile = (): string | null => currentFile
 export const getFileRaw = (filename: string): string => files[filename]?.raw ?? ""
 
 export const getFileTags = (filename: string): string[] =>
-  files[filename]?.parsed.sidecar?.tags ?? []
+  files[filename]?.parsed.attributes?.tags ?? []
 
-export const getFileAnnotations = (filename: string): DocumentMeta["annotations"] =>
-  files[filename]?.parsed.sidecar?.annotations ?? []
+export const getStoredAnnotations = (filename: string): StoredAnnotation[] =>
+  files[filename]?.parsed.attributes?.annotations ?? []
 
 export const getFileCodes = (filename: string): CalloutBlock[] =>
   files[filename]?.parsed.callouts.filter((c) => c.type === "codebook") ?? []
@@ -86,12 +70,46 @@ export const getFileCodes = (filename: string): CalloutBlock[] =>
 export const getAllCodes = (): CalloutBlock[] =>
   Object.values(files).flatMap((f) => f.parsed.callouts.filter((c) => c.type === "codebook"))
 
+const findCodeById = (id: string): CalloutBlock | undefined =>
+  getAllCodes().find((c) => c.id === id)
+
+const calloutToCode = (callout: CalloutBlock): Code => ({
+  id: callout.id,
+  name: callout.title,
+  color: callout.color,
+  detail: callout.content,
+})
+
+const recomputeCodebook = (): void => {
+  const codes = getAllCodes().map(calloutToCode)
+  cachedCodebook = codes.length === 0 ? undefined : { categories: [{ name: "Codes", codes }] }
+}
+
 export const getCodebook = (): Codebook | undefined => cachedCodebook
+
+const DEFAULT_ANNOTATION_COLOR = "gray"
+
+const resolveAnnotationColor = (annotation: StoredAnnotation): string => {
+  if (annotation.color) return annotation.color
+  if (annotation.code) return findCodeById(annotation.code)?.color ?? DEFAULT_ANNOTATION_COLOR
+  return DEFAULT_ANNOTATION_COLOR
+}
+
+const toAnnotation = (stored: StoredAnnotation): Annotation => ({
+  text: stored.text,
+  color: resolveAnnotationColor(stored),
+  reason: stored.reason,
+  code: stored.code,
+})
+
+export const getFileAnnotations = (filename: string): Annotation[] =>
+  getStoredAnnotations(filename).map(toAnnotation)
 
 export const setFiles = (rawFiles: Record<string, { raw: string }>): void => {
   files = Object.fromEntries(
     Object.entries(rawFiles).map(([name, { raw }]) => [name, createFileEntry(raw)])
   )
+  recomputeCodebook()
   notify()
 }
 
@@ -102,6 +120,7 @@ export const setCurrentFile = (filename: string | null): void => {
 
 export const updateFileRaw = (filename: string, raw: string): void => {
   files = { ...files, [filename]: createFileEntry(raw) }
+  recomputeCodebook()
   notify()
 }
 
@@ -111,6 +130,7 @@ export const deleteFile = (filename: string): void => {
   if (currentFile === filename) {
     currentFile = null
   }
+  recomputeCodebook()
   notify()
 }
 

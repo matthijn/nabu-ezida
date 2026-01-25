@@ -6,7 +6,7 @@ import {
   validateFieldChangesInternal,
   type FieldRejection,
   type DocumentMetaType,
-} from "~/domain/sidecar"
+} from "~/domain/attributes"
 import {
   replaceUuidPlaceholders,
   validateMarkdownBlocks,

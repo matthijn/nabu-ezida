@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { DocumentMeta } from "~/domain/sidecar/schema"
+import { DocumentMeta } from "~/domain/attributes/schema"
 import { CalloutSchema } from "./callout"
 
 type BlockTypeConfig = {
