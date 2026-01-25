@@ -121,14 +121,6 @@ describe("parser", () => {
           { id: "call_2", name: "b", args: {} },
         ],
       },
-      {
-        name: "parses apply_patch call",
-        lines: [
-          "event: response.output_item.done",
-          'data: {"item":{"type":"apply_patch_call","call_id":"call_1","operation":{"type":"create_file","path":"test.md","diff":"+hello"}}}',
-        ],
-        expectedCalls: [{ id: "call_1", name: "apply_patch", args: { operation: { type: "create_file", path: "test.md", diff: "+hello" } } }],
-      },
     ]
 
     cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolNames }) => {
@@ -232,26 +224,9 @@ describe("blocksToMessages", () => {
       ],
     },
     {
-      name: "converts apply_patch tool_call to apply_patch_call",
-      blocks: [
-        {
-          type: "tool_call" as const,
-          calls: [{ id: "1", name: "apply_patch", args: { operation: { type: "create_file", path: "test.md", diff: "+hello" } } }],
-        },
-      ],
-      expected: [
-        { type: "apply_patch_call", call_id: "1", status: "completed", operation: { type: "create_file", path: "test.md", diff: "+hello" } },
-      ],
-    },
-    {
       name: "converts tool_result block to function_call_output",
       blocks: [{ type: "tool_result" as const, callId: "1", toolName: "execute_sql", result: { ok: true } }],
       expected: [{ type: "function_call_output", call_id: "1", status: "completed", output: '{"ok":true}' }],
-    },
-    {
-      name: "converts apply_patch tool_result to apply_patch_call_output",
-      blocks: [{ type: "tool_result" as const, callId: "1", toolName: "apply_patch", result: { success: true } }],
-      expected: [{ type: "apply_patch_call_output", call_id: "1", status: "completed", output: '{"success":true}' }],
     },
     {
       name: "converts mixed blocks in order",

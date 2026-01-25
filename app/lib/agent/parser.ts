@@ -6,16 +6,6 @@ type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
   | { type: "function_call"; call_id: string; status: string; name: string; arguments: string }
   | { type: "function_call_output"; call_id: string; status: string; output: string }
-  | { type: "apply_patch_call"; call_id: string; status: string; operation: { type: string; path: string; diff: string } }
-  | { type: "apply_patch_call_output"; call_id: string; status: string; output: string }
-  | { type: "shell_call"; call_id: string; status: string; action: { commands: string[] } }
-  | { type: "shell_call_output"; call_id: string; output: ShellCommandOutput[] }
-
-type ShellCommandOutput = {
-  stdout: string
-  stderr: string
-  outcome: { type: "exit"; exit_code: number } | { type: "timeout" }
-}
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
@@ -77,14 +67,6 @@ export const processLine = (
           return { ...state, streamingToolName: name }
         }
       }
-      if (parsed.item?.type === "shell_call" && state.streamingToolName !== "shell") {
-        callbacks.onToolName?.("shell")
-        return { ...state, streamingToolName: "shell" }
-      }
-      if (parsed.item?.type === "apply_patch_call" && state.streamingToolName !== "apply_patch") {
-        callbacks.onToolName?.("apply_patch")
-        return { ...state, streamingToolName: "apply_patch" }
-      }
     }
 
     if (state.currentEvent === "response.output_item.done" && parsed.item) {
@@ -94,30 +76,6 @@ export const processLine = (
           id: item.call_id,
           name: item.name,
           args: parseToolArgs(item.arguments),
-        }
-        callbacks.onToolCall?.(toolCall)
-        return { ...state, toolCalls: [...state.toolCalls, toolCall] }
-      }
-      if (item.type === "apply_patch_call") {
-        const toolCall: ToolCall = {
-          id: item.call_id,
-          name: "apply_patch",
-          args: {
-            operation: {
-              type: item.operation.type,
-              path: item.operation.path,
-              diff: item.operation.diff,
-            },
-          },
-        }
-        callbacks.onToolCall?.(toolCall)
-        return { ...state, toolCalls: [...state.toolCalls, toolCall] }
-      }
-      if (item.type === "shell_call") {
-        const toolCall: ToolCall = {
-          id: item.call_id,
-          name: "shell",
-          args: { commands: item.action.commands },
         }
         callbacks.onToolCall?.(toolCall)
         return { ...state, toolCalls: [...state.toolCalls, toolCall] }
@@ -242,51 +200,17 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
     return { type: "message", role: "user", content: block.content }
   }
   if (block.type === "tool_call") {
-    return block.calls.map((c) => {
-      if (c.name === "apply_patch") {
-        const op = c.args.operation as { type: string; path: string; diff: string }
-        return {
-          type: "apply_patch_call" as const,
-          call_id: c.id,
-          status: "completed",
-          operation: { type: op.type, path: op.path, diff: op.diff },
-        }
-      }
-      if (c.name === "shell") {
-        return {
-          type: "shell_call" as const,
-          call_id: c.id,
-          status: "completed",
-          action: { commands: c.args.commands as string[] },
-        }
-      }
-      return {
-        type: "function_call" as const,
-        call_id: c.id,
-        status: "completed",
-        name: c.name,
-        arguments: JSON.stringify(c.args),
-      }
-    })
+    return block.calls.map((c) => ({
+      type: "function_call" as const,
+      call_id: c.id,
+      status: "completed",
+      name: c.name,
+      arguments: JSON.stringify(c.args),
+    }))
   }
   if (block.type === "tool_result") {
-    if (block.toolName === "apply_patch") {
-      return {
-        type: "apply_patch_call_output" as const,
-        call_id: block.callId,
-        status: "completed",
-        output: JSON.stringify(block.result),
-      }
-    }
-    if (block.toolName === "shell") {
-      return {
-        type: "shell_call_output" as const,
-        call_id: block.callId,
-        output: block.result as ShellCommandOutput[],
-      }
-    }
     return {
-      type: "function_call_output",
+      type: "function_call_output" as const,
       call_id: block.callId,
       status: "completed",
       output: JSON.stringify(block.result),

@@ -6,10 +6,10 @@ const toolLabels: Record<string, string> = {
   create_plan: "Planning",
   complete_step: "Thinking",
   abort: "Stopping",
-  shell: "Reading",
+  run_local_shell: "Reading",
   upsert_annotations: "Annotating",
   delete_annotations: "Removing annotations",
-  apply_patch: "Writing",
+  apply_local_patch: "Writing",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {

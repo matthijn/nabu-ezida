@@ -46,7 +46,7 @@ export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promis
 const countHunks = (diff: string): number => (diff.match(/@@/g) ?? []).length
 
 const logPatchSummary = (calls: ToolCall[]): void => {
-  const patches = calls.filter((c) => c.name === "apply_patch")
+  const patches = calls.filter((c) => c.name === "apply_local_patch")
   if (patches.length === 0) return
 
   const byFile = patches.reduce<Record<string, { patches: number; hunks: number }>>((acc, call) => {
