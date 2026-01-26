@@ -19,10 +19,10 @@ export const createShell = (files: Files) => {
       .join("\n\n")
 
   const exec = (input: string): string => {
-    const trimmed = input.trim()
+    const trimmed = input.trim().replace(/\s*2>\/dev\/null\s*/g, " ")
 
-    if (!trimmed) return ""
-    if (trimmed === "help") return helpText()
+    if (!trimmed.trim()) return ""
+    if (trimmed.trim() === "help") return helpText()
 
     const unsupported = trimmed.match(/\|\||>>|>|<|`|\$\(/)
     if (unsupported) {

@@ -149,32 +149,24 @@ content` },
 })
 
 describe("applyFilePatch with internal option", () => {
-  const cases = [
-    {
-      name: "without internal, annotations rejected as readonly",
-      options: {},
-      expectStatus: "partial",
-      expectRejectedField: "annotations",
-    },
-    {
-      name: "with internal=true, annotations accepted",
-      options: { internal: true },
-      expectStatus: "ok",
-      expectRejectedField: null,
-    },
-  ]
-
-  it.each(cases)("$name", ({ options, expectStatus, expectRejectedField }) => {
+  it("annotations accepted without internal option", () => {
     const result = applyFilePatch(
       "doc.json",
       "{}",
       '@@\n-{}\n+{"annotations": [{"text": "test", "reason": "note", "color": "red"}]}',
-      options
+      {}
     )
-    expect(result.status).toBe(expectStatus)
-    if (result.status === "partial" && expectRejectedField) {
-      expect(result.rejected[0].field).toBe(expectRejectedField)
-    }
+    expect(result.status).toBe("ok")
+  })
+
+  it("annotations accepted with internal=true", () => {
+    const result = applyFilePatch(
+      "doc.json",
+      "{}",
+      '@@\n-{}\n+{"annotations": [{"text": "test", "reason": "note", "color": "red"}]}',
+      { internal: true }
+    )
+    expect(result.status).toBe("ok")
   })
 
   it("internal still validates field schema", () => {

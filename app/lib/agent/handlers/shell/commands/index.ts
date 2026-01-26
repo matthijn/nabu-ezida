@@ -1,4 +1,6 @@
 export { cat } from "./cat"
+export { head } from "./head"
+export { tail } from "./tail"
 export { ls } from "./ls"
 export { grep } from "./grep"
 export { find } from "./find"

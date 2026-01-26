@@ -218,34 +218,37 @@ describe("validateFieldChanges", () => {
       expectRejectedReasons: ["invalid"],
     },
     {
-      name: "annotations readonly rejected",
+      name: "annotations accepted",
       original: {},
       patched: { annotations: [{ text: "test", reason: "note", color: "red" }] },
-      expectAccepted: {},
-      expectRejectedFields: ["annotations"],
-      expectRejectedReasons: ["readonly"],
+      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red" }] },
+      expectRejectedFields: [],
+      expectRejectedReasons: [],
     },
     {
-      name: "valid tags accepted, annotations rejected",
+      name: "valid tags and annotations both accepted",
       original: {},
       patched: {
         tags: ["valid-tag"],
         annotations: [{ text: "test", reason: "note", color: "red" }],
       },
-      expectAccepted: { tags: ["valid-tag"] },
-      expectRejectedFields: ["annotations"],
-      expectRejectedReasons: ["readonly"],
+      expectAccepted: {
+        tags: ["valid-tag"],
+        annotations: [{ text: "test", reason: "note", color: "red" }],
+      },
+      expectRejectedFields: [],
+      expectRejectedReasons: [],
     },
     {
-      name: "invalid tags and readonly annotations both rejected",
+      name: "invalid tags rejected, valid annotations accepted",
       original: {},
       patched: {
         tags: ["Invalid Tag"],
         annotations: [{ text: "test", reason: "note", color: "red" }],
       },
-      expectAccepted: {},
-      expectRejectedFields: ["tags", "annotations"],
-      expectRejectedReasons: ["invalid", "readonly"],
+      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red" }] },
+      expectRejectedFields: ["tags"],
+      expectRejectedReasons: ["invalid"],
     },
     {
       name: "unchanged fields not in rejected",
@@ -272,21 +275,10 @@ describe("validateFieldChanges", () => {
     }
   )
 
-  it("readonly rejection includes hint", () => {
-    const result = validateFieldChanges({}, { annotations: [] })
-    const rejection = result.rejected.find((r) => r.field === "annotations")
-
-    expect(rejection).toBeDefined()
-    expect(rejection?.reason).toBe("readonly")
-    if (rejection?.reason === "readonly") {
-      expect(rejection.hint).toContain("upsert_annotations")
-    }
-  })
-
 })
 
 describe("validateFieldChangesInternal", () => {
-  it("accepts readonly annotations", () => {
+  it("accepts valid annotations", () => {
     const patched = {
       annotations: [{ text: "test", reason: "note", color: "red" as const }],
     }

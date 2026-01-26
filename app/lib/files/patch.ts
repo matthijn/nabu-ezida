@@ -10,13 +10,17 @@ import {
 import {
   replaceUuidPlaceholders,
   validateMarkdownBlocks,
+  extractProse,
   type UuidMapping,
+  type ValidationContext,
+  type ValidationError,
 } from "~/domain/blocks"
+import { getAllCodes } from "./store"
 
 export type FileResult =
   | { path: string; status: "ok"; content: string; parsed?: DocumentMetaType; generatedIds?: UuidMapping }
   | { path: string; status: "partial"; content: string; parsed: DocumentMetaType; rejected: FieldRejection[] }
-  | { path: string; status: "error"; error: string }
+  | { path: string; status: "error"; error: string; blockErrors?: ValidationError[] }
 
 export type MultiPatchResult = {
   results: FileResult[]
@@ -88,6 +92,19 @@ const applyJsonPatch = (
   return { path, status: "ok", content: prettyContent, parsed: accepted }
 }
 
+const buildValidationContext = (markdown: string): ValidationContext => ({
+  documentProse: extractProse(markdown),
+  availableCodes: getAllCodes().map((c) => ({ id: c.id, name: c.title })),
+})
+
+const formatBlockErrors = (errors: ValidationError[]): string =>
+  errors.map((e) => {
+    const location = e.field ? `${e.block}.${e.field}` : e.block
+    const hint = e.hint ? ` Available: ${JSON.stringify(e.hint)}` : ""
+    const current = e.currentBlock ? `\nCurrent block:\n${e.currentBlock}` : ""
+    return `${location}: ${e.message}${hint}${current}`
+  }).join("\n")
+
 const applyMdPatch = (path: string, content: string, patch: string): FileResult => {
   const { result: patchWithIds, generated } = replaceUuidPlaceholders(patch)
 
@@ -97,12 +114,16 @@ const applyMdPatch = (path: string, content: string, patch: string): FileResult 
   }
 
   const repairedContent = repairJsonBlocks(diffResult.content)
-  const validation = validateMarkdownBlocks(repairedContent)
+  const context = buildValidationContext(repairedContent)
+  const validation = validateMarkdownBlocks(repairedContent, { context, original: content })
+
   if (!validation.valid) {
-    const errorMessages = validation.errors.map((e) =>
-      e.field ? `${e.block}.${e.field}: ${e.message}` : `${e.block}: ${e.message}`
-    )
-    return { path, status: "error", error: errorMessages.join("; ") }
+    return {
+      path,
+      status: "error",
+      error: formatBlockErrors(validation.errors),
+      blockErrors: validation.errors,
+    }
   }
 
   const hasGeneratedIds = Object.keys(generated).length > 0

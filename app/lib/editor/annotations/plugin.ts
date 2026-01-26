@@ -9,24 +9,34 @@ const pluginKey = new PluginKey("annotations")
 
 type TextRange = { from: number; to: number }
 
-const textOffsetToPos = (doc: Node, offset: number): number => {
+export const textOffsetToPos = (doc: Node, offset: number): number => {
   let result = 0
   let textSeen = 0
   let found = false
+  let lastNodeEnd = 0
 
   doc.descendants((node, nodePos) => {
     if (found || textSeen > offset) return false
-    if (node.isText) {
-      const len = node.text?.length ?? 0
-      if (textSeen + len >= offset) {
+
+    const nodeText = node.textContent
+    const len = nodeText.length
+
+    if (len > 0 && node.isLeaf) {
+      lastNodeEnd = nodePos + node.nodeSize
+      if (textSeen + len > offset) {
         result = nodePos + (offset - textSeen)
         found = true
         return false
       }
       textSeen += len
     }
-    return true
+
+    return !node.isLeaf
   })
+
+  if (!found && offset === textSeen) {
+    return lastNodeEnd
+  }
 
   return result
 }

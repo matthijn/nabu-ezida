@@ -8,6 +8,7 @@ export {
   getFileCodes,
   getAllCodes,
   getCodebook,
+  getCodeTitle,
   setFiles,
   setCurrentFile,
   updateFileRaw,

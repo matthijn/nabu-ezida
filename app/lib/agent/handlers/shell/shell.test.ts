@@ -166,6 +166,74 @@ describe("shell", () => {
     })
   })
 
+  describe("head", () => {
+    const cases: TestCase[] = [
+      {
+        name: "shows first 10 lines by default",
+        files: { "f.txt": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12" },
+        command: "head f.txt",
+        expected: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+      },
+      {
+        name: "shows first n lines with -n",
+        files: { "f.txt": "a\nb\nc\nd\ne" },
+        command: "head -n 3 f.txt",
+        expected: "a\nb\nc",
+      },
+      {
+        name: "works with stdin",
+        files: { "f.txt": "1\n2\n3\n4\n5" },
+        command: "cat f.txt | head -n 2",
+        expected: "1\n2",
+      },
+      {
+        name: "returns error for missing file",
+        files: {},
+        command: "head missing.txt",
+        expected: "head: missing.txt: No such file",
+      },
+    ]
+
+    it.each(cases)("$name", ({ files, command, expected }) => {
+      const shell = createShell(makeFiles(files))
+      expect(shell.exec(command)).toBe(expected)
+    })
+  })
+
+  describe("tail", () => {
+    const cases: TestCase[] = [
+      {
+        name: "shows last 10 lines by default",
+        files: { "f.txt": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12" },
+        command: "tail f.txt",
+        expected: "3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
+      },
+      {
+        name: "shows last n lines with -n",
+        files: { "f.txt": "a\nb\nc\nd\ne" },
+        command: "tail -n 3 f.txt",
+        expected: "c\nd\ne",
+      },
+      {
+        name: "works with stdin",
+        files: { "f.txt": "1\n2\n3\n4\n5" },
+        command: "cat f.txt | tail -n 2",
+        expected: "4\n5",
+      },
+      {
+        name: "returns error for missing file",
+        files: {},
+        command: "tail missing.txt",
+        expected: "tail: missing.txt: No such file",
+      },
+    ]
+
+    it.each(cases)("$name", ({ files, command, expected }) => {
+      const shell = createShell(makeFiles(files))
+      expect(shell.exec(command)).toBe(expected)
+    })
+  })
+
   describe("find", () => {
     const cases: TestCase[] = [
       {
@@ -315,6 +383,12 @@ describe("shell", () => {
         files: {},
         command: "cat < file.txt",
         expectContains: "Unsupported operator: '<'",
+      },
+      {
+        name: "strips 2>/dev/null silently",
+        files: { "f.txt": "hello" },
+        command: "cat f.txt 2>/dev/null",
+        expectContains: "hello",
       },
       {
         name: "rejects command substitution",

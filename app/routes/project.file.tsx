@@ -47,6 +47,9 @@ export default function ProjectFile() {
   const toggleDebugMode = useCallback(() => setDebugMode((prev) => !prev), [])
 
   const content = currentFile ? getFileRaw(files, currentFile) : undefined
+  const copyRawMarkdown = useCallback(() => {
+    if (content) navigator.clipboard.writeText(content)
+  }, [content])
   const annotations = currentFile ? getFileAnnotations(currentFile) ?? [] : []
   const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
 
@@ -76,6 +79,7 @@ export default function ProjectFile() {
         onPin={() => {}}
         onShare={() => {}}
         onDebug={toggleDebugMode}
+        onCopyRaw={copyRawMarkdown}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
           { icon: <FeatherFileText />, label: "Export", onClick: () => {} },

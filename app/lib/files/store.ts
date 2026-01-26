@@ -73,6 +73,9 @@ export const getAllCodes = (): CalloutBlock[] =>
 const findCodeById = (id: string): CalloutBlock | undefined =>
   getAllCodes().find((c) => c.id === id)
 
+export const getCodeTitle = (id: string): string | undefined =>
+  findCodeById(id)?.title
+
 const calloutToCode = (callout: CalloutBlock): Code => ({
   id: callout.id,
   name: callout.title,

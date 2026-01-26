@@ -13,10 +13,3 @@ export {
   type FieldRejection,
   type FieldValidationResult,
 } from "./validate"
-export {
-  prepareUpsertAnnotations,
-  prepareDeleteAnnotations,
-  type AnnotationInput,
-  type UpsertResult,
-  type DeleteResult,
-} from "./annotations"

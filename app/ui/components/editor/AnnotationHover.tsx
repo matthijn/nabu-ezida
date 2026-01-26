@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import type { Annotation } from "~/domain/document/annotations"
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/lib/colors/radix"
+import { getCodeTitle } from "~/lib/files"
 
 type HoverState = {
   text: string
@@ -27,7 +28,7 @@ const findMatchingAnnotations = (annotations: Annotation[], text: string): Annot
 const annotationToEntry = (annotation: Annotation, index: number): HighlightEntry => ({
   id: String(index),
   color: elementBorder(annotation.color),
-  title: annotation.code,
+  title: annotation.code ? getCodeTitle(annotation.code) : undefined,
   description: annotation.reason,
 })
 
