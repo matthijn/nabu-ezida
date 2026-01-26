@@ -6,6 +6,7 @@ import { TextField } from "~/ui/components/TextField";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
 import { Button } from "~/ui/components/Button";
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem";
+import { matchesAny } from "~/lib/filter";
 import { SectionHeader } from "./SectionHeader";
 import { DocumentItem } from "./DocumentItem";
 
@@ -44,8 +45,12 @@ export function DocumentsSidebar({
   onCollapse,
   onExpand,
 }: DocumentsSidebarProps) {
-  const pinnedDocs = documents.filter((d) => d.pinned);
-  const allDocs = documents.filter((d) => !d.pinned);
+  const matchesSearch = (doc: Document): boolean =>
+    matchesAny(searchValue, [doc.title, ...doc.tags.map((t) => t.label)])
+
+  const filtered = documents.filter(matchesSearch)
+  const pinnedDocs = filtered.filter((d) => d.pinned);
+  const allDocs = filtered.filter((d) => !d.pinned);
 
   if (collapsed) {
     return (

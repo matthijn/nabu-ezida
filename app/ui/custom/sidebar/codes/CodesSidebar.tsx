@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   FeatherChevronsLeft,
   FeatherChevronsRight,
@@ -9,7 +9,8 @@ import {
 } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { TextField } from "~/ui/components/TextField"
-import type { Codebook, Code } from "./types"
+import { matchesAny } from "~/lib/filter"
+import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeCategorySection } from "./CodeCategorySection"
 import { CodeDetail } from "./CodeDetail"
 
@@ -24,6 +25,19 @@ type CodesSidebarProps = {
 const getFirstCode = (codebook: Codebook): Code | null =>
   codebook.categories[0]?.codes[0] ?? null
 
+const filterCode = (code: Code, query: string): boolean =>
+  matchesAny(query, [code.name, code.detail])
+
+const filterCategory = (category: CodeCategory, query: string): CodeCategory => ({
+  ...category,
+  codes: category.codes.filter((code) => filterCode(code, query)),
+})
+
+const filterCodebook = (codebook: Codebook, query: string): CodeCategory[] =>
+  codebook.categories
+    .map((cat) => filterCategory(cat, query))
+    .filter((cat) => cat.codes.length > 0)
+
 export const CodesSidebar = ({
   codebook,
   collapsed = false,
@@ -33,6 +47,11 @@ export const CodesSidebar = ({
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [selectedCode, setSelectedCode] = useState<Code | null>(() => getFirstCode(codebook))
+
+  const filteredCategories = useMemo(
+    () => filterCodebook(codebook, searchValue),
+    [codebook, searchValue]
+  )
 
   const handleCodeSelect = (code: Code) => {
     setSelectedCode(code.id === selectedCode?.id ? null : code)
@@ -89,7 +108,7 @@ export const CodesSidebar = ({
       </div>
 
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 px-4 py-4 overflow-auto">
-        {codebook.categories.map((category) => (
+        {filteredCategories.map((category) => (
           <CodeCategorySection
             key={category.name}
             category={category}
