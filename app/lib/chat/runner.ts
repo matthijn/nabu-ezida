@@ -1,4 +1,4 @@
-import type { SystemBlock } from "~/lib/agent"
+import type { SystemBlock, Block } from "~/lib/agent"
 import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
@@ -13,13 +13,16 @@ export type RunnerDeps = {
 
 let controller: AbortController | null = null
 
+const appendNudges = (history: Block[], nudges: string[]): Block[] =>
+  nudges.reduce((h, content) => appendBlock(h, { type: "system", content } as SystemBlock), history)
+
 export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const chat = getChat()
   if (!chat) return
   if (chat.loading) return
 
-  const nudge = toNudge(chat.history)
-  if (nudge === null) {
+  const nudges = toNudge(chat.history)
+  if (nudges.length === 0) {
     controller = null
     return
   }
@@ -29,9 +32,9 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   }
   updateChat({ loading: true, error: null, streamingToolName: null })
 
-  if (nudge !== "") {
-    const nudgeBlock: SystemBlock = { type: "system", content: nudge }
-    updateChat({ history: appendBlock(chat.history, nudgeBlock) })
+  const nonEmpty = nudges.filter((n) => n !== "")
+  if (nonEmpty.length > 0) {
+    updateChat({ history: appendNudges(chat.history, nonEmpty) })
   }
 
   const current = getChat()

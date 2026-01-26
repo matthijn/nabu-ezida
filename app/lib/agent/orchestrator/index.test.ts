@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { toNudge } from "./orchestrator"
-import type { Block } from "./types"
+import { toNudge } from "./index"
+import type { Block } from "../types"
 import {
   createPlanCall,
   completeStepCall,
@@ -8,7 +8,7 @@ import {
   startExplorationCall,
   explorationStepCall,
   toolResult,
-} from "./test-helpers"
+} from "../test-helpers"
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
 const manyActions = (count: number): Block[] =>
@@ -17,8 +17,8 @@ const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 
 type NudgeExpectation =
-  | { type: "null" }
-  | { type: "empty" }
+  | { type: "none" }
+  | { type: "emptyNudge" }
   | { type: "contains"; text: string }
   | { type: "contains_not"; text: string; not: string }
 
@@ -27,6 +27,8 @@ type TestCase = {
   history: Block[]
   expect: NudgeExpectation
 }
+
+const joinNudges = (nudges: string[]): string => nudges.join("\n")
 
 describe("toNudge", () => {
   const cases: TestCase[] = [
@@ -54,7 +56,7 @@ describe("toNudge", () => {
     {
       name: "exploring, >10 actions → null (stops)",
       history: [startExplorationCall("Question"), ...manyActions(11)],
-      expect: { type: "null" },
+      expect: { type: "none" },
     },
     {
       name: "exploration completed with answer → empty nudge",
@@ -64,7 +66,7 @@ describe("toNudge", () => {
         explorationStepCall("Found it", "answer"),
         toolResult(),
       ],
-      expect: { type: "empty" },
+      expect: { type: "emptyNudge" },
     },
 
     // After tool_result during plan execution
@@ -81,7 +83,7 @@ describe("toNudge", () => {
     {
       name: "executing plan step, >10 actions → null (stops)",
       history: [createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
-      expect: { type: "null" },
+      expect: { type: "none" },
     },
     {
       name: "plan step count resets after complete_step",
@@ -117,7 +119,7 @@ describe("toNudge", () => {
         toolResult(),
         textBlock("Summary"),
       ],
-      expect: { type: "null" },
+      expect: { type: "none" },
     },
 
     // Plan aborted
@@ -129,28 +131,28 @@ describe("toNudge", () => {
         abortCall("Cannot continue"),
         toolResult(),
       ],
-      expect: { type: "null" },
+      expect: { type: "none" },
     },
 
     // No exploration, no plan (chat mode)
     {
-      name: "no exploration, no plan, tool_result → empty nudge",
+      name: "no exploration, no plan, tool_result → memory nudge",
       history: [toolResult()],
-      expect: { type: "empty" },
+      expect: { type: "contains", text: "REMINDER" },
     },
 
     // After user message
     {
       name: "user message → empty nudge",
       history: [userMessage("Hello")],
-      expect: { type: "empty" },
+      expect: { type: "emptyNudge" },
     },
 
     // After text (no nudge needed)
     {
       name: "text block only → null",
       history: [textBlock("Response")],
-      expect: { type: "null" },
+      expect: { type: "none" },
     },
 
     // Exploration takes priority over plan
@@ -182,20 +184,22 @@ describe("toNudge", () => {
 
   cases.forEach(({ name, history, expect: expectation }) => {
     it(name, () => {
-      const nudge = toNudge(history)
+      const result = toNudge(history)
+      const nudge = joinNudges(result)
       switch (expectation.type) {
-        case "null":
-          expect(nudge).toBeNull()
+        case "none":
+          expect(result).toEqual([])
           break
-        case "empty":
-          expect(nudge).toBe("")
+        case "emptyNudge":
+          expect(result.length).toBeGreaterThan(0)
+          expect(result.every((r) => r === "")).toBe(true)
           break
         case "contains":
-          expect(nudge).not.toBeNull()
+          expect(result.length).toBeGreaterThan(0)
           expect(nudge).toContain(expectation.text)
           break
         case "contains_not":
-          expect(nudge).not.toBeNull()
+          expect(result.length).toBeGreaterThan(0)
           expect(nudge).toContain(expectation.text)
           expect(nudge).not.toContain(expectation.not)
           break

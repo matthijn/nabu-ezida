@@ -5,7 +5,6 @@ import {
   FeatherArrowRight,
   FeatherCheck,
   FeatherCircle,
-  FeatherHelpCircle,
   FeatherLightbulb,
   FeatherLoader2,
   FeatherX,
@@ -68,17 +67,6 @@ const StepRow = ({ step, context }: StepRowProps) => (
   </div>
 )
 
-type AskBoxProps = {
-  question: string
-}
-
-const AskBox = ({ question }: AskBoxProps) => (
-  <div className="flex w-full items-start gap-2 rounded-md border border-solid border-brand-300 bg-brand-50 px-3 py-2 mt-1">
-    <FeatherHelpCircle className="text-body text-brand-600 mt-0.5 flex-none" />
-    <span className="text-body font-body text-brand-700">{question}</span>
-  </div>
-)
-
 type AbortBoxProps = {
   message?: string
 }
@@ -92,7 +80,6 @@ const AbortBox = ({ message = "Cancelled by user" }: AbortBoxProps) => (
 
 export type StepsBlockProps = {
   steps: StepItem[]
-  ask?: string | null
   aborted?: boolean
   projectId: string | null
   navigate?: (url: string) => void
@@ -101,7 +88,7 @@ export type StepsBlockProps = {
 const toCancelledIfAborted = (step: StepItem, aborted: boolean): StepItem =>
   aborted && step.type === "active" ? { ...step, type: "cancelled" } : step
 
-export const StepsBlock = ({ steps, ask, aborted, projectId, navigate }: StepsBlockProps) => {
+export const StepsBlock = ({ steps, aborted, projectId, navigate }: StepsBlockProps) => {
   const context: MarkdownContext = { projectId, navigate }
   const displaySteps = steps.map((step) => toCancelledIfAborted(step, !!aborted))
 
@@ -110,7 +97,6 @@ export const StepsBlock = ({ steps, ask, aborted, projectId, navigate }: StepsBl
       {displaySteps.map((step, i) => (
         <StepRow key={i} step={step} context={context} />
       ))}
-      {ask && <AskBox question={ask} />}
       {aborted && <AbortBox />}
     </div>
   )

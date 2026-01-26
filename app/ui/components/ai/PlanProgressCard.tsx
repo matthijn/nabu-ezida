@@ -21,18 +21,16 @@ type PlanProgressCardProps = {
   steps: Step[]
   currentStep: number | null
   aborted?: boolean
-  ask?: string | null
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-export const PlanProgressCard = ({ steps, currentStep, aborted = false, ask, projectId, navigate }: PlanProgressCardProps) => {
+export const PlanProgressCard = ({ steps, currentStep, aborted = false, projectId, navigate }: PlanProgressCardProps) => {
   const stepItems = steps.map((step, i) => toStepItem(step, currentStep, i, aborted))
 
   return (
     <StepsBlock
       steps={stepItems}
-      ask={ask}
       aborted={aborted}
       projectId={projectId}
       navigate={navigate}

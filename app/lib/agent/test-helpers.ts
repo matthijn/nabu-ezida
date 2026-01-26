@@ -31,11 +31,6 @@ export const toolResult = (callId = "1", result: unknown = { ok: true }): Block 
   result,
 })
 
-export const askCall = (question = "What should I do?"): Block => ({
-  type: "tool_call",
-  calls: [{ id: "1", name: "ask", args: { question } }],
-})
-
 export const userBlock = (content: string): Block => ({
   type: "user",
   content,

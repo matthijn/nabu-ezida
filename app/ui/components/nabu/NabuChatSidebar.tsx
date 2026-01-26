@@ -170,7 +170,6 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
           steps={message.plan.steps}
           currentStep={message.currentStep}
           aborted={message.aborted}
-          ask={message.ask}
           projectId={projectId}
           navigate={navigate}
         />
@@ -179,17 +178,10 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
       return (
         <ExplorationCard
           exploration={message.exploration}
-          ask={message.ask}
           aborted={message.aborted}
           projectId={projectId}
           navigate={navigate}
         />
-      )
-    case "ask":
-      return (
-        <AssistantText>
-          <MessageContent content={message.question} projectId={projectId} navigate={navigate} />
-        </AssistantText>
       )
   }
 }

@@ -13,6 +13,29 @@ export type ProcessResult = {
 
 type StatusCallback = (id: string, status: ImportStatus, extra?: Partial<ImportFile>) => void
 
+const ATTRIBUTES_BLOCK_REGEX = /```json-attributes\n([\s\S]*?)\n```/
+
+const createAttributesBlock = (tags: string[]): string =>
+  `\`\`\`json-attributes\n${JSON.stringify({ tags }, null, 2)}\n\`\`\``
+
+const injectTags = (content: string, tags: string[]): string => {
+  if (tags.length === 0) return content
+
+  const match = content.match(ATTRIBUTES_BLOCK_REGEX)
+  if (!match) {
+    return `${content}\n\n${createAttributesBlock(tags)}`
+  }
+
+  try {
+    const existing = JSON.parse(match[1]) as { tags?: string[] }
+    const merged = [...new Set([...(existing.tags ?? []), ...tags])]
+    const updated = JSON.stringify({ ...existing, tags: merged }, null, 2)
+    return content.replace(ATTRIBUTES_BLOCK_REGEX, `\`\`\`json-attributes\n${updated}\n\`\`\``)
+  } catch {
+    return content
+  }
+}
+
 const getExistingNames = (): Set<string> => new Set(Object.keys(getFiles()))
 
 const createFileOnServer = (projectId: string, path: string, diff: string): void => {
@@ -23,11 +46,13 @@ const createFileOnServer = (projectId: string, path: string, diff: string): void
 const processMarkdownFile = (
   file: File,
   content: string,
-  projectId: string | undefined
+  projectId: string | undefined,
+  tags: string[]
 ): ProcessResult => {
   const existingNames = getExistingNames()
   const finalPath = deduplicateName(file.name, existingNames)
-  const diff = generateDiff("", content)
+  const contentWithTags = injectTags(content, tags)
+  const diff = generateDiff("", contentWithTags)
 
   const result = applyFilePatch(finalPath, "", diff)
 
@@ -47,7 +72,8 @@ const processMarkdownFile = (
 export const processFile = async (
   file: File,
   projectId: string | undefined,
-  onStatus: StatusCallback
+  onStatus: StatusCallback,
+  tags: string[] = []
 ): Promise<void> => {
   const id = file.name
 
@@ -67,7 +93,7 @@ export const processFile = async (
 
   onStatus(id, "processing")
 
-  const processResult = processMarkdownFile(file, readResult.content, projectId)
+  const processResult = processMarkdownFile(file, readResult.content, projectId, tags)
 
   onStatus(id, processResult.status, {
     error: processResult.error,
@@ -75,12 +101,14 @@ export const processFile = async (
   })
 }
 
+type FileWithTags = { file: File; tags: string[] }
+
 export const processFiles = async (
-  files: File[],
+  files: FileWithTags[],
   projectId: string | undefined,
   onStatus: StatusCallback
 ): Promise<void> => {
-  for (const file of files) {
-    await processFile(file, projectId, onStatus)
+  for (const { file, tags } of files) {
+    await processFile(file, projectId, onStatus, tags)
   }
 }

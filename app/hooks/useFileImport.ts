@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { produce } from "immer"
-import { processFiles, isMarkdownFile, type ImportFile, type ImportStatus } from "~/lib/import"
+import { processFiles, isMarkdownFile, readDroppedItems, type ImportFile, type ImportStatus, type FileWithPath } from "~/lib/import"
 
 type ImportState = {
   files: Record<string, ImportFile>
@@ -54,13 +54,12 @@ export const useFileImport = (projectId: string | undefined) => {
   )
 
   const addFiles = useCallback(
-    async (fileList: FileList | File[]) => {
-      const newFiles = Array.from(fileList)
-      if (newFiles.length === 0) return
+    async (filesWithPath: FileWithPath[]) => {
+      if (filesWithPath.length === 0) return
 
       setState((prev) =>
         produce(prev, (draft) => {
-          for (const file of newFiles) {
+          for (const { file } of filesWithPath) {
             if (!draft.files[file.name]) {
               draft.files[file.name] = createImportFile(file)
             }
@@ -69,7 +68,9 @@ export const useFileImport = (projectId: string | undefined) => {
         })
       )
 
-      const markdownFiles = newFiles.filter((f) => isMarkdownFile(f.name))
+      const markdownFiles = filesWithPath
+        .filter(({ file }) => isMarkdownFile(file.name))
+        .map(({ file, pathTags }) => ({ file, tags: pathTags }))
       await processFiles(markdownFiles, projectId, updateFileStatus)
 
       setState((prev) =>
@@ -106,15 +107,15 @@ export const useFileImport = (projectId: string | undefined) => {
   }, [])
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
       dragCounterRef.current = 0
       setIsDragging(false)
 
-      const { files } = e.dataTransfer
-      if (files.length > 0) {
-        addFiles(files)
+      const filesWithPath = await readDroppedItems(e.dataTransfer)
+      if (filesWithPath.length > 0) {
+        addFiles(filesWithPath)
       }
     },
     [addFiles]

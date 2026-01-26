@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "./types"
-import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, hasUnansweredAsk } from "./selectors"
+import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode } from "./selectors"
 import {
   createPlanCall,
   completeStepCall,
   abortCall,
   startExplorationCall,
   explorationStepCall,
-  askCall,
   userBlock,
 } from "./test-helpers"
 
@@ -195,57 +194,4 @@ describe("selectors", () => {
     })
   })
 
-  describe("hasUnansweredAsk", () => {
-    const cases = [
-      {
-        name: "empty history returns false",
-        history: [] as Block[],
-        expected: false,
-      },
-      {
-        name: "ask tool call returns true",
-        history: [askCall("What do you prefer?")],
-        expected: true,
-      },
-      {
-        name: "ask followed by user returns false",
-        history: [askCall("What do you prefer?"), userBlock("Option A")],
-        expected: false,
-      },
-      {
-        name: "user followed by ask returns true",
-        history: [userBlock("Do something"), askCall("What do you prefer?")],
-        expected: true,
-      },
-      {
-        name: "ask, user, ask returns true",
-        history: [
-          askCall("First question?"),
-          userBlock("First answer"),
-          askCall("Second question?"),
-        ],
-        expected: true,
-      },
-      {
-        name: "plan with ask returns true",
-        history: [createPlanCall("Task", ["Step 1"]), askCall("Which approach?")],
-        expected: true,
-      },
-      {
-        name: "plan with ask and user returns false",
-        history: [
-          createPlanCall("Task", ["Step 1"]),
-          askCall("Which approach?"),
-          userBlock("Use approach A"),
-        ],
-        expected: false,
-      },
-    ]
-
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        expect(hasUnansweredAsk(history)).toBe(expected)
-      })
-    })
-  })
 })

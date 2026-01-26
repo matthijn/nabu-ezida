@@ -7,8 +7,6 @@ import {
   abortCall,
   startExplorationCall,
   explorationStepCall,
-  askCall,
-  userBlock as agentUserBlock,
 } from "~/lib/agent/test-helpers"
 
 const userBlock = (content: string): Block => ({ type: "user", content })
@@ -67,7 +65,6 @@ describe("toRenderMessages", () => {
             expect(messages[0].plan.steps).toHaveLength(3)
             expect(messages[0].currentStep).toBe(0)
             expect(messages[0].aborted).toBe(false)
-            expect(messages[0].ask).toBe(null)
           }
         },
       },
@@ -154,34 +151,6 @@ describe("toRenderMessages", () => {
           }
         },
       },
-      {
-        name: "ask during plan shows ask in plan message",
-        history: [
-          createPlanCall("Task", ["Step 1", "Step 2"]),
-          askCall("Which approach?"),
-        ],
-        check: (messages: RenderMessage[]) => {
-          expect(messages).toHaveLength(1)
-          if (messages[0].type === "plan") {
-            expect(messages[0].ask).toBe("Which approach?")
-          }
-        },
-      },
-      {
-        name: "answered ask does not show in plan",
-        history: [
-          createPlanCall("Task", ["Step 1", "Step 2"]),
-          askCall("Which approach?"),
-          agentUserBlock("Option A"),
-        ],
-        check: (messages: RenderMessage[]) => {
-          expect(messages).toHaveLength(2)
-          if (messages[0].type === "plan") {
-            expect(messages[0].ask).toBe(null)
-          }
-          expect(messages[1].type).toBe("text")
-        },
-      },
     ]
 
     cases.forEach(({ name, history, check }) => {
@@ -201,7 +170,6 @@ describe("toRenderMessages", () => {
             expect(messages[0].exploration.question).toBe("How does X work?")
             expect(messages[0].exploration.currentDirection).toBe("Check docs")
             expect(messages[0].exploration.findings).toHaveLength(0)
-            expect(messages[0].ask).toBe(null)
             expect(messages[0].aborted).toBe(false)
           }
         },
@@ -255,19 +223,6 @@ describe("toRenderMessages", () => {
         history: [startExplorationCall("Question"), abortCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(0)
-        },
-      },
-      {
-        name: "ask during exploration shows ask in exploration message",
-        history: [
-          startExplorationCall("Question", "Look at A"),
-          askCall("Which area to explore?"),
-        ],
-        check: (messages: RenderMessage[]) => {
-          expect(messages).toHaveLength(1)
-          if (messages[0].type === "exploration") {
-            expect(messages[0].ask).toBe("Which area to explore?")
-          }
         },
       },
     ]

@@ -1,4 +1,4 @@
-import type { Block } from "./types"
+import type { Block } from "../types"
 import {
   derive,
   lastPlan,
@@ -6,17 +6,15 @@ import {
   hasActivePlan,
   actionsSinceStepChange,
   actionsSinceExplorationChange,
-  hasUnansweredAsk,
-} from "./selectors"
+} from "../selectors"
 import {
   buildPlanNudge,
   buildExplorationNudge,
   buildPlanCompletedNudge,
   buildStuckNudge,
   buildExplorationStuckNudge,
-} from "./prompts"
-
-type Nudger = (history: Block[]) => string | null
+} from "../prompts"
+import { combine, type Nudger } from "./nudge"
 
 const STUCK_LIMIT = 10
 
@@ -64,24 +62,4 @@ const userMessageNudge: Nudger = (history) => {
   return ""
 }
 
-const combine = (...nudgers: Nudger[]): Nudger => (history) => {
-  for (const nudger of nudgers) {
-    const result = nudger(history)
-    if (result !== null) return result
-  }
-  return null
-}
-
-const nudge = combine(exploreNudge, planNudge, toolNudge, userMessageNudge)
-
-export const toNudge: Nudger = (history) => {
-  if (hasUnansweredAsk(history)) {
-    console.log(`[Nudge] ask → null (waiting for response)`)
-    return null
-  }
-  const lastType = lastBlock(history)?.type ?? "empty"
-  const result = nudge(history)
-  const output = result === null ? "null" : result === "" ? "empty" : "nudge"
-  console.log(`[Nudge] ${lastType} → ${output}`)
-  return result
-}
+export const toolOrchestrationNudge: Nudger = combine(exploreNudge, planNudge, toolNudge, userMessageNudge)

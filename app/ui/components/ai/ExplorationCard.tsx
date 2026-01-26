@@ -20,19 +20,17 @@ const toStepItems = (exploration: DerivedExploration): StepItem[] => {
 
 type ExplorationCardProps = {
   exploration: DerivedExploration
-  ask?: string | null
   aborted?: boolean
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-export const ExplorationCard = ({ exploration, ask, aborted, projectId, navigate }: ExplorationCardProps) => {
+export const ExplorationCard = ({ exploration, aborted, projectId, navigate }: ExplorationCardProps) => {
   const steps = toStepItems(exploration)
 
   return (
     <StepsBlock
       steps={steps}
-      ask={ask}
       aborted={aborted}
       projectId={projectId}
       navigate={navigate}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef } from "react"
 import { useProject } from "./project"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -39,12 +39,9 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, getFileTags, getFileAnnotations } = useProject()
+  const { files, currentFile, debugMode, toggleDebugMode, getFileTags, getFileAnnotations } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
-  const [debugMode, setDebugMode] = useState(false)
-
-  const toggleDebugMode = useCallback(() => setDebugMode((prev) => !prev), [])
 
   const content = currentFile ? getFileRaw(files, currentFile) : undefined
   const copyRawMarkdown = useCallback(() => {

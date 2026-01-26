@@ -1,4 +1,5 @@
 export { processFile, processFiles, type ProcessResult } from "./process"
 export { deduplicateName } from "./dedupe"
 export { readFileContent, isMarkdownFile } from "./read"
+export { readDroppedItems, type FileWithPath } from "./folder"
 export type { ImportFile, ImportStatus, ImportProgress } from "./types"

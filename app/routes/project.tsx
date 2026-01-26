@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
@@ -19,11 +19,17 @@ type SidebarDocument = {
   pinned: boolean
 }
 
+const isHiddenFile = (filename: string): boolean =>
+  filename.includes(".hidden.")
+
 const filesToSidebarDocuments = (
   files: Record<string, unknown>,
-  getFileTags: (filename: string) => string[]
+  getFileTags: (filename: string) => string[],
+  debugMode: boolean
 ): SidebarDocument[] =>
-  Object.keys(files).map((filename) => ({
+  Object.keys(files)
+    .filter((filename) => debugMode || !isHiddenFile(filename))
+    .map((filename) => ({
     id: filename,
     title: filename,
     editedAt: "just now",
@@ -34,6 +40,8 @@ const filesToSidebarDocuments = (
 export type ProjectContextValue = {
   files: Record<string, unknown>
   currentFile: string | null
+  debugMode: boolean
+  toggleDebugMode: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -47,6 +55,9 @@ export default function ProjectLayout() {
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [debugMode, setDebugMode] = useState(false)
+
+  const toggleDebugMode = useCallback(() => setDebugMode((prev) => !prev), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -65,7 +76,7 @@ export default function ProjectLayout() {
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
   const fileImport = useFileImport(params.projectId)
 
-  const documents = filesToSidebarDocuments(files, getFileTags)
+  const documents = filesToSidebarDocuments(files, getFileTags, debugMode)
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -117,7 +128,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugMode, toggleDebugMode, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />
