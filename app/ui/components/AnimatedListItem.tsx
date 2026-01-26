@@ -10,11 +10,12 @@ type AnimatedListItemProps = {
 
 export const AnimatedListItem = ({ children, className }: AnimatedListItemProps) => (
   <motion.div
+    layout
     className={`w-full ${className ?? ""}`}
-    initial={{ opacity: 0, scale: 0.8 }}
+    initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.8 }}
-    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+    exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0 }}
+    transition={{ type: "spring", stiffness: 500, damping: 30 }}
   >
     {children}
   </motion.div>
