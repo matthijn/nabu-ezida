@@ -2,10 +2,12 @@ import { useState, useEffect } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
+import { useFileImport } from "~/hooks/useFileImport"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
+import { FileDropOverlay } from "~/ui/components/import"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
 import { createWebSocket, applyCommand } from "~/lib/sync"
 
@@ -61,6 +63,7 @@ export default function ProjectLayout() {
   }, [params.projectId])
 
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
+  const fileImport = useFileImport(params.projectId)
 
   const documents = filesToSidebarDocuments(files, getFileTags)
 
@@ -105,19 +108,30 @@ export default function ProjectLayout() {
 
   return (
     <NabuProvider>
-      <DefaultPageLayout
-        activeNav={activeNav}
-        showCodes={!!codebook}
-        onNavChange={setActiveNav}
-      >
-        <div className="flex h-full w-full items-start bg-default-background">
-          {renderSidebar()}
-          <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-            <Outlet context={{ files, currentFile, getFileTags, getFileAnnotations }} />
+      <div {...fileImport.dragHandlers} className="contents">
+        <DefaultPageLayout
+          activeNav={activeNav}
+          showCodes={!!codebook}
+          onNavChange={setActiveNav}
+        >
+          <div className="flex h-full w-full items-start bg-default-background">
+            {renderSidebar()}
+            <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
+              <Outlet context={{ files, currentFile, getFileTags, getFileAnnotations }} />
+            </div>
           </div>
-        </div>
-        <NabuChatSidebar />
-      </DefaultPageLayout>
+          <NabuChatSidebar />
+        </DefaultPageLayout>
+        <FileDropOverlay
+          isVisible={fileImport.isVisible}
+          isDragging={fileImport.isDragging}
+          files={fileImport.files}
+          progress={fileImport.progress}
+          isProcessing={fileImport.isProcessing}
+          dragHandlers={fileImport.dragHandlers}
+          onDismiss={fileImport.dismiss}
+        />
+      </div>
     </NabuProvider>
   )
 }
