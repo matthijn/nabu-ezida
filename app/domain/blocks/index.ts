@@ -2,4 +2,4 @@ export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, type Validat
 export { parseCodeBlocks, findBlocksByLanguage, findSingletonBlock, parseBlockJson, replaceSingletonBlock, type CodeBlock } from "./parse"
 export { replaceUuidPlaceholders, hasUuidPlaceholders, type UuidMapping } from "./uuid"
 export { validateMarkdownBlocks, wouldViolateSingleton, extractProse, type ValidationError, type ValidationResult, type ValidateOptions } from "./validate"
-export { CalloutSchema, type CalloutBlock, type CalloutType } from "./callout"
+export { CalloutSchema, parseCallout, type CalloutBlock, type CalloutType } from "./callout"

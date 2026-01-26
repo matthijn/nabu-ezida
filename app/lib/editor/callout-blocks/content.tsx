@@ -1,7 +1,6 @@
 "use client"
 
 import type { ReactNode } from "react"
-import Markdown from "react-markdown"
 import * as SubframeCore from "@subframe/core"
 import {
   FeatherBook,
@@ -11,6 +10,7 @@ import {
   FeatherAlertCircle,
 } from "@subframe/core"
 import type { CalloutBlock, CalloutType } from "~/domain/blocks/callout"
+import { MarkdownContent } from "~/ui/components/editor/MarkdownContent"
 
 const CALLOUT_ICONS: Record<CalloutType, ReactNode> = {
   codebook: <FeatherBook />,
@@ -42,9 +42,7 @@ export const CalloutContent = ({ data }: CalloutContentProps) => {
           <span className="text-heading-2 font-heading-2 text-default-font">
             {title}
           </span>
-          <div className="text-body font-body text-default-font prose prose-sm max-w-none">
-            <Markdown>{content}</Markdown>
-          </div>
+          <MarkdownContent content={content} />
         </div>
       )}
       {collapsed && (

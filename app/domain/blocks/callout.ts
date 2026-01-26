@@ -21,3 +21,13 @@ export const CalloutSchema = z.object({
 
 export type CalloutBlock = z.infer<typeof CalloutSchema>
 export type CalloutType = z.infer<typeof calloutType>
+
+export const parseCallout = (content: string): CalloutBlock | null => {
+  try {
+    const json = JSON.parse(content)
+    const result = CalloutSchema.safeParse(json)
+    return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}

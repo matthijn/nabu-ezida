@@ -1,19 +1,9 @@
 "use client"
 
-import { useNodeViewContext } from "@prosemirror-adapter/react"
+import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapter/react"
 import { getBlockConfig } from "~/domain/blocks"
-import { CalloutSchema } from "~/domain/blocks/callout"
+import { parseCallout } from "~/domain/blocks/callout"
 import { CalloutBlockView } from "./view"
-
-const parseCalloutData = (content: string) => {
-  try {
-    const json = JSON.parse(content)
-    const result = CalloutSchema.safeParse(json)
-    return result.success ? result.data : null
-  } catch {
-    return null
-  }
-}
 
 type BlockSpacerProps = {
   onClick: () => void
@@ -26,29 +16,28 @@ const BlockSpacer = ({ onClick }: BlockSpacerProps) => (
   />
 )
 
+type CodeBlockFallbackProps = {
+  language: string | undefined
+  contentRef: NodeViewContentRef
+  invalid?: boolean
+}
+
+const CodeBlockFallback = ({ language, contentRef, invalid }: CodeBlockFallbackProps) => (
+  <pre className={`code-block${invalid ? " code-block-invalid" : ""}`} data-language={language}>
+    <code ref={contentRef} />
+  </pre>
+)
+
 export const CalloutNodeView = () => {
   const { node, view, getPos, contentRef } = useNodeViewContext()
 
   const language = node.attrs.language as string | undefined
   const config = language ? getBlockConfig(language) : undefined
   const isCallout = config?.renderer === "callout"
+  const data = isCallout ? parseCallout(node.textContent) : null
 
-  if (!isCallout) {
-    return (
-      <pre className="code-block" data-language={language}>
-        <code ref={contentRef} />
-      </pre>
-    )
-  }
-
-  const data = parseCalloutData(node.textContent)
-
-  if (!data) {
-    return (
-      <pre className="code-block code-block-invalid" data-language={language}>
-        <code ref={contentRef} />
-      </pre>
-    )
+  if (!isCallout || !data) {
+    return <CodeBlockFallback language={language} contentRef={contentRef} invalid={isCallout && !data} />
   }
 
   const handleDelete = () => {
@@ -70,7 +59,9 @@ export const CalloutNodeView = () => {
   return (
     <>
       <BlockSpacer onClick={handleInsertBefore} />
-      <CalloutBlockView data={data} onDelete={handleDelete} />
+      <div contentEditable={false}>
+        <CalloutBlockView data={data} onDelete={handleDelete} />
+      </div>
     </>
   )
 }

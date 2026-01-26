@@ -4,7 +4,7 @@ import {
   findSingletonBlock,
   findBlocksByLanguage,
   parseBlockJson,
-  CalloutSchema,
+  parseCallout,
   type CalloutBlock,
 } from "~/domain/blocks"
 
@@ -38,10 +38,7 @@ const parseFileBlocks = (raw: string): ParsedBlocks => {
 
   const calloutBlocks = findBlocksByLanguage(raw, "json-callout")
   const callouts = calloutBlocks
-    .map((block) => {
-      const result = CalloutSchema.safeParse(JSON.parse(block.content))
-      return result.success ? result.data : null
-    })
+    .map((block) => parseCallout(block.content))
     .filter((c): c is CalloutBlock => c !== null)
 
   return { attributes, callouts }

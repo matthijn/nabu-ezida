@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { AnimatePresence } from "framer-motion"
 import { FeatherChevronDown, FeatherChevronRight } from "@subframe/core"
+import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import type { CodeCategory, Code } from "./types"
 import { CodeItem } from "./CodeItem"
 
@@ -35,15 +37,18 @@ export const CodeCategorySection = ({
           {category.name.toUpperCase()}
         </span>
       </div>
-      {expanded &&
-        category.codes.map((code) => (
-          <CodeItem
-            key={code.id}
-            code={code}
-            selected={code.id === selectedCodeId}
-            onClick={() => onCodeSelect?.(code)}
-          />
-        ))}
+      <AnimatePresence initial={false}>
+        {expanded &&
+          category.codes.map((code) => (
+            <AnimatedListItem key={code.id}>
+              <CodeItem
+                code={code}
+                selected={code.id === selectedCodeId}
+                onClick={() => onCodeSelect?.(code)}
+              />
+            </AnimatedListItem>
+          ))}
+      </AnimatePresence>
     </div>
   )
 }

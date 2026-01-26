@@ -1,9 +1,11 @@
 "use client";
+import { AnimatePresence } from "framer-motion";
 import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch, FeatherPlus } from "@subframe/core";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextField } from "~/ui/components/TextField";
 import { ToggleGroup } from "~/ui/components/ToggleGroup";
 import { Button } from "~/ui/components/Button";
+import { AnimatedListItem } from "~/ui/components/AnimatedListItem";
 import { SectionHeader } from "./SectionHeader";
 import { DocumentItem } from "./DocumentItem";
 
@@ -118,32 +120,38 @@ export function DocumentsSidebar({
         {pinnedDocs.length > 0 && (
           <div className="flex w-full flex-col items-start gap-1">
             <SectionHeader>PINNED</SectionHeader>
-            {pinnedDocs.map((doc) => (
-              <DocumentItem
-                key={doc.id}
-                title={doc.title}
-                editedAt={doc.editedAt}
-                tags={doc.tags}
-                selected={doc.id === selectedId}
-                onClick={() => onDocumentSelect?.(doc.id)}
-              />
-            ))}
+            <AnimatePresence initial={false}>
+              {pinnedDocs.map((doc) => (
+                <AnimatedListItem key={doc.id}>
+                  <DocumentItem
+                    title={doc.title}
+                    editedAt={doc.editedAt}
+                    tags={doc.tags}
+                    selected={doc.id === selectedId}
+                    onClick={() => onDocumentSelect?.(doc.id)}
+                  />
+                </AnimatedListItem>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
         {allDocs.length > 0 && (
           <div className="flex w-full flex-col items-start gap-1">
             <SectionHeader>ALL DOCUMENTS</SectionHeader>
-            {allDocs.map((doc) => (
-              <DocumentItem
-                key={doc.id}
-                title={doc.title}
-                editedAt={doc.editedAt}
-                tags={doc.tags}
-                selected={doc.id === selectedId}
-                onClick={() => onDocumentSelect?.(doc.id)}
-              />
-            ))}
+            <AnimatePresence initial={false}>
+              {allDocs.map((doc) => (
+                <AnimatedListItem key={doc.id}>
+                  <DocumentItem
+                    title={doc.title}
+                    editedAt={doc.editedAt}
+                    tags={doc.tags}
+                    selected={doc.id === selectedId}
+                    onClick={() => onDocumentSelect?.(doc.id)}
+                  />
+                </AnimatedListItem>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
