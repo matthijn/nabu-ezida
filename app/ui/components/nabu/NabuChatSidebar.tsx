@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import Markdown, { type Components } from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
@@ -241,10 +241,12 @@ const LoadingIndicator = ({ streaming, streamingToolName, history, projectId, na
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat } = useNabu()
   const navigate = useNavigate()
+  const params = useParams<{ projectId: string }>()
 
   const getDeps = useCallback(() => {
-    return { project: undefined, navigate }
-  }, [navigate])
+    const project = params.projectId ? { id: params.projectId } : undefined
+    return { project, navigate }
+  }, [navigate, params.projectId])
   const { chat, send, run, cancel, loading, streaming, streamingToolName, history, error } = useChat()
   const messages = useMemo(() => toRenderMessages(history), [history])
   const [inputValue, setInputValue] = useState("")

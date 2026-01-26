@@ -7,6 +7,7 @@ import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
+import { createWebSocket, applyCommand } from "~/lib/sync"
 
 type SidebarDocument = {
   id: string
@@ -47,6 +48,16 @@ export default function ProjectLayout() {
 
   useEffect(() => {
     return () => closeChat()
+  }, [params.projectId])
+
+  useEffect(() => {
+    if (!params.projectId) return
+
+    const connection = createWebSocket(params.projectId, {
+      onCommand: applyCommand,
+    })
+
+    return () => connection.close()
   }, [params.projectId])
 
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()

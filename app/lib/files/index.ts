@@ -13,6 +13,7 @@ export {
   setCurrentFile,
   updateFileRaw,
   deleteFile,
+  renameFile,
   subscribe,
   persistFiles,
   restoreFiles,

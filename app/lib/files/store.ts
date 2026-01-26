@@ -134,6 +134,19 @@ export const deleteFile = (filename: string): void => {
   notify()
 }
 
+export const renameFile = (oldName: string, newName: string): void => {
+  const entry = files[oldName]
+  if (!entry) return
+
+  const { [oldName]: _, ...rest } = files
+  files = { ...rest, [newName]: entry }
+
+  if (currentFile === oldName) {
+    currentFile = newName
+  }
+  notify()
+}
+
 export const subscribe = (listener: Listener): (() => void) => {
   listeners.add(listener)
   return () => listeners.delete(listener)

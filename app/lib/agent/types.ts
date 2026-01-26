@@ -34,7 +34,7 @@ export type SystemBlock = {
 export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
 
 export type ToolDeps = {
-  project?: import("~/domain/project").Project
+  project?: { id: string }
   navigate?: (url: string) => void
 }
 
