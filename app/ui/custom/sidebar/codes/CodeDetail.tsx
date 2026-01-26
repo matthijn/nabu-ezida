@@ -48,7 +48,7 @@ type CodeDetailProps = {
 
 export const CodeDetail = ({ code, onEdit }: CodeDetailProps) => (
   <div
-    className="flex w-full flex-col items-start gap-3 border-t-2 border-solid px-4 py-4"
+    className="flex w-full flex-col items-start gap-3 border-t-2 border-solid px-4 py-4 max-h-64 overflow-y-auto"
     style={{
       borderColor: hoveredElementBorder(code.color),
       backgroundColor: elementBackground(code.color),

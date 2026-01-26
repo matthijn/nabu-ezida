@@ -1,6 +1,6 @@
 "use client"
 
-import { Editor, rootCtx, defaultValueCtx, editorViewOptionsCtx } from "@milkdown/kit/core"
+import { Editor, rootCtx, defaultValueCtx } from "@milkdown/kit/core"
 import { commonmark } from "@milkdown/kit/preset/commonmark"
 import { gfm } from "@milkdown/kit/preset/gfm"
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
@@ -15,7 +15,6 @@ const MarkdownContentCore = ({ content }: MarkdownContentCoreProps) => {
       .config((ctx) => {
         ctx.set(rootCtx, root)
         ctx.set(defaultValueCtx, content)
-        ctx.set(editorViewOptionsCtx, { editable: () => false })
       })
       .use(commonmark)
       .use(gfm)
