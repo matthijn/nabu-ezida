@@ -1,8 +1,14 @@
 import type { Files } from "../types"
 
-export type Result = { output: string; error?: string }
+export type Operation =
+  | { type: "create"; path: string; content: string }
+  | { type: "delete"; path: string }
+  | { type: "rename"; oldPath: string; newPath: string }
 
-export const ok = (output: string): Result => ({ output })
+export type Result = { output: string; error?: string; operations?: Operation[] }
+
+export const ok = (output: string, operations?: Operation[]): Result =>
+  operations ? { output, operations } : { output }
 export const err = (error: string): Result => ({ output: "", error })
 
 type FlagDef = { alias?: string; description: string; value?: boolean }

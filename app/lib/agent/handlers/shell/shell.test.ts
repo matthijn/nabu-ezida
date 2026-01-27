@@ -74,10 +74,11 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected, expectContains }) => {
       const shell = createShell(makeFiles(files))
+      const result = shell.exec(command)
       if (expectContains) {
-        expect(shell.exec(command)).toContain(expectContains)
+        expect(result.output).toContain(expectContains)
       } else {
-        expect(shell.exec(command)).toBe(expected)
+        expect(result.output).toBe(expected)
       }
     })
   })
@@ -118,10 +119,11 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected, expectContains }) => {
       const shell = createShell(makeFiles(files))
+      const result = shell.exec(command)
       if (expectContains) {
-        expect(shell.exec(command)).toContain(expectContains)
+        expect(result.output).toContain(expectContains)
       } else {
-        expect(shell.exec(command)).toBe(expected)
+        expect(result.output).toBe(expected)
       }
     })
   })
@@ -162,7 +164,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -196,7 +198,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -230,7 +232,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -258,7 +260,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -298,7 +300,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -332,7 +334,7 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
     })
   })
 
@@ -390,7 +392,94 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expected }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toBe(expected)
+      expect(shell.exec(command).output).toBe(expected)
+    })
+  })
+
+  describe("rm", () => {
+    it("emits delete operation for single file", () => {
+      const shell = createShell(makeFiles({ "a.txt": "content" }))
+      const result = shell.exec("rm a.txt")
+      expect(result.output).toBe("rm a.txt")
+      expect(result.operations).toEqual([{ type: "delete", path: "a.txt" }])
+    })
+
+    it("emits delete operations for multiple files", () => {
+      const shell = createShell(makeFiles({ "a.txt": "a", "b.txt": "b" }))
+      const result = shell.exec("rm a.txt b.txt")
+      expect(result.operations).toEqual([
+        { type: "delete", path: "a.txt" },
+        { type: "delete", path: "b.txt" },
+      ])
+    })
+
+    it("emits delete operations for glob pattern", () => {
+      const shell = createShell(makeFiles({ "a.txt": "a", "b.txt": "b", "c.md": "c" }))
+      const result = shell.exec("rm *.txt")
+      expect(result.operations).toEqual([
+        { type: "delete", path: "a.txt" },
+        { type: "delete", path: "b.txt" },
+      ])
+    })
+
+    it("reports error for missing file", () => {
+      const shell = createShell(makeFiles({}))
+      const result = shell.exec("rm missing.txt")
+      expect(result.output).toContain("No such file")
+      expect(result.operations).toEqual([])
+    })
+
+    it("reports error for no matches on glob", () => {
+      const shell = createShell(makeFiles({ "a.md": "a" }))
+      const result = shell.exec("rm *.txt")
+      expect(result.output).toContain("no matches")
+      expect(result.operations).toEqual([])
+    })
+  })
+
+  describe("mv", () => {
+    it("emits rename operation", () => {
+      const shell = createShell(makeFiles({ "old.txt": "content" }))
+      const result = shell.exec("mv old.txt new.txt")
+      expect(result.output).toBe("mv old.txt new.txt")
+      expect(result.operations).toEqual([{ type: "rename", oldPath: "old.txt", newPath: "new.txt" }])
+    })
+
+    it("reports error for missing source", () => {
+      const shell = createShell(makeFiles({}))
+      const result = shell.exec("mv missing.txt new.txt")
+      expect(result.output).toContain("No such file")
+      expect(result.operations).toEqual([])
+    })
+
+    it("reports error when destination exists", () => {
+      const shell = createShell(makeFiles({ "a.txt": "a", "b.txt": "b" }))
+      const result = shell.exec("mv a.txt b.txt")
+      expect(result.output).toContain("already exists")
+      expect(result.operations).toEqual([])
+    })
+  })
+
+  describe("cp", () => {
+    it("emits create operation with source content", () => {
+      const shell = createShell(makeFiles({ "src.txt": "content" }))
+      const result = shell.exec("cp src.txt dest.txt")
+      expect(result.output).toBe("cp src.txt dest.txt")
+      expect(result.operations).toEqual([{ type: "create", path: "dest.txt", content: "content" }])
+    })
+
+    it("reports error for missing source", () => {
+      const shell = createShell(makeFiles({}))
+      const result = shell.exec("cp missing.txt new.txt")
+      expect(result.output).toContain("No such file")
+      expect(result.operations).toEqual([])
+    })
+
+    it("reports error when destination exists", () => {
+      const shell = createShell(makeFiles({ "a.txt": "a", "b.txt": "b" }))
+      const result = shell.exec("cp a.txt b.txt")
+      expect(result.output).toContain("already exists")
+      expect(result.operations).toEqual([])
     })
   })
 
@@ -436,14 +525,14 @@ describe("shell", () => {
 
     it.each(cases)("$name", ({ files, command, expectContains }) => {
       const shell = createShell(makeFiles(files))
-      expect(shell.exec(command)).toContain(expectContains)
+      expect(shell.exec(command).output).toContain(expectContains)
     })
   })
 
   describe("help", () => {
     it("returns help text", () => {
       const shell = createShell(makeFiles({}))
-      const help = shell.exec("help")
+      const help = shell.exec("help").output
       expect(help).toContain("cat - Print file contents")
       expect(help).toContain("grep - Search for patterns in files")
       expect(help).toContain("ls - List files")
@@ -453,15 +542,15 @@ describe("shell", () => {
   describe("empty input", () => {
     it("returns empty for empty input", () => {
       const shell = createShell(makeFiles({}))
-      expect(shell.exec("")).toBe("")
-      expect(shell.exec("   ")).toBe("")
+      expect(shell.exec("").output).toBe("")
+      expect(shell.exec("   ").output).toBe("")
     })
   })
 
   describe("quoted arguments", () => {
     it("handles quoted arguments with spaces", () => {
       const shell = createShell(makeFiles({ "my file.txt": "content" }))
-      expect(shell.exec('cat "my file.txt"')).toBe("content")
+      expect(shell.exec('cat "my file.txt"').output).toBe("content")
     })
   })
 })

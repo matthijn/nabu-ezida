@@ -1,8 +1,10 @@
 import type { Files } from "./types"
-import type { Result } from "./commands/command"
+import type { Result, Operation } from "./commands/command"
 import * as commands from "./commands"
 
-export type { Files }
+export type { Files, Operation }
+
+export type ExecResult = { output: string; operations: Operation[] }
 
 type Segment = { cmd: string; nextOp: "&&" | "||" | ";" | null }
 
@@ -42,6 +44,7 @@ export const createShell = (files: Files) => {
   const runPipeline = (stmt: string, stdin: string): Result => {
     const pipeline = stmt.split(/\s*\|\s*/).map((s) => s.trim()).filter(Boolean)
     let output = stdin
+    const operations: Operation[] = []
 
     for (const cmd of pipeline) {
       const tokens = cmd.match(/(?:[^\s"]+|"[^"]*")+/g) || []
@@ -55,26 +58,28 @@ export const createShell = (files: Files) => {
       }
 
       const result = handler(args, output)
-      if (result.error) return result
+      if (result.operations) operations.push(...result.operations)
+      if (result.error) return { ...result, operations }
       output = result.output
     }
 
-    return { output }
+    return { output, operations: operations.length > 0 ? operations : undefined }
   }
 
-  const exec = (input: string): string => {
+  const exec = (input: string): ExecResult => {
     const trimmed = input.trim().replace(/\s*2>\/dev\/null\s*/g, " ")
 
-    if (!trimmed) return ""
-    if (trimmed === "help") return helpText()
+    if (!trimmed) return { output: "", operations: [] }
+    if (trimmed === "help") return { output: helpText(), operations: [] }
 
     const unsupported = trimmed.match(/>>|>|<|`|\$\(/)
     if (unsupported) {
-      return `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`
+      return { output: `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`, operations: [] }
     }
 
     const segments = parseSegments(trimmed)
     const outputs: string[] = []
+    const operations: Operation[] = []
     let lastSuccess = true
 
     for (let i = 0; i < segments.length; i++) {
@@ -90,12 +95,15 @@ export const createShell = (files: Files) => {
       if (!shouldRun) continue
 
       const result = runPipeline(cmd, "")
+      if (result.operations) operations.push(...result.operations)
       lastSuccess = !result.error
       outputs.push(result.error ?? result.output)
     }
 
-    return outputs.join("\n")
+    return { output: outputs.join("\n"), operations }
   }
 
   return { exec, commands: handlers, helpText }
 }
+
+export const getCommandNames = (): string[] => Object.keys(commands)

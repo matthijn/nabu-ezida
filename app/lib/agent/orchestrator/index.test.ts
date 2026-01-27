@@ -16,7 +16,8 @@ const manyActions = (count: number): Block[] =>
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
-const writeMemoryBlock = (): Block => ({ type: "system", content: "## REMINDER: Only if needed" })
+const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
+const shellBlock = (): Block => ({ type: "system", content: "## SHELL AVAILABLE" })
 const memoryFile = { "memory.hidden.md": { raw: "user prefs", parsed: { meta: {}, blocks: [] } } }
 
 type NudgeExpectation =
@@ -66,6 +67,7 @@ describe("toNudge", () => {
       name: "exploration completed with answer → empty nudge",
       history: [
         readMemoryBlock(),
+        shellBlock(),
         startExplorationCall("Question"),
         toolResult(),
         explorationStepCall("Found it", "answer"),
@@ -133,6 +135,7 @@ describe("toNudge", () => {
       name: "plan aborted → null (stops)",
       history: [
         readMemoryBlock(),
+        shellBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         abortCall("Cannot continue"),
