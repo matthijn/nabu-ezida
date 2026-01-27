@@ -7,7 +7,7 @@ const STUCK_LIMIT = 10
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
 
-export const planNudge: Nudger = (history, files) => {
+export const planNudge: Nudger = (history, files, _emptyNudge) => {
   const d = derive(history, files)
   const plan = lastPlan(d)
   if (!plan) return null
@@ -34,8 +34,10 @@ const formatCompletedStep = (step: Step): string => {
 const formatPendingStep = (step: Step): string =>
   `${step.id}. [pending] ${step.description}`
 
-const formatCurrentStep = (step: Step): string =>
-  `${step.id}. [current] ${step.description}  ← current`
+const formatCurrentStep = (step: Step): string => {
+  const expectedPart = step.expected ? `\n   expected: "${step.expected}"` : ""
+  return `${step.id}. [current] ${step.description}  ← current${expectedPart}`
+}
 
 const formatStep = (step: Step, currentIndex: number, index: number): string => {
   if (index === currentIndex) return formatCurrentStep(step)
@@ -55,12 +57,78 @@ const formatSectionResult = (result: SectionResult): string => {
 const formatSectionProgress = (section: Section, sectionIndex: number, totalSections: number): string =>
   `Section ${sectionIndex + 1}/${totalSections} (${section.file} ${section.indexInFile}/${section.totalInFile})`
 
-const formatCompletedStepList = (steps: Step[]): string =>
-  steps.map((s) => formatCompletedStep(s)).join("\n")
+type ResultEntry = {
+  stepId: string
+  description: string
+  expected: string | null
+  section: string | null  // e.g., "doc.md 1/2" or null for regular steps
+  summary: string | null
+  internal: string | null
+}
 
-const formatCompletedPerSection = (plan: DerivedPlan): string => {
-  if (!plan.perSection || plan.perSection.completedSections.length === 0) return ""
-  return `\nCompleted sections:\n${plan.perSection.completedSections.map(formatSectionResult).join("\n")}\n`
+const collectResults = (plan: DerivedPlan): ResultEntry[] => {
+  const results: ResultEntry[] = []
+  const ps = plan.perSection
+
+  for (const step of plan.steps) {
+    if (!step.done) continue
+
+    // Check if this step is a per_section inner step
+    if (ps) {
+      const { firstInnerStepIndex, innerStepCount } = ps
+      const stepIndex = plan.steps.indexOf(step)
+      const isInnerStep = stepIndex >= firstInnerStepIndex && stepIndex < firstInnerStepIndex + innerStepCount
+
+      if (isInnerStep) {
+        // For inner steps, get results from completedSections instead
+        // Only output section results once (when we hit the first inner step)
+        if (stepIndex === firstInnerStepIndex) {
+          const totalSections = ps.sections.length
+          for (const section of ps.completedSections) {
+            for (const inner of section.innerResults) {
+              const innerStep = plan.steps.find((s) => s.id === inner.stepId)
+              results.push({
+                stepId: inner.stepId,
+                description: innerStep?.description ?? "",
+                expected: innerStep?.expected ?? null,
+                section: `${section.file} ${section.indexInFile}/${totalSections}`,
+                summary: inner.summary,
+                internal: inner.internal,
+              })
+            }
+          }
+        }
+        continue
+      }
+    }
+
+    // Regular step
+    results.push({
+      stepId: step.id,
+      description: step.description,
+      expected: step.expected,
+      section: null,
+      summary: step.summary,
+      internal: step.internal,
+    })
+  }
+
+  return results
+}
+
+const formatResultEntry = (entry: ResultEntry): string => {
+  const sectionPart = entry.section ? ` (${entry.section})` : ""
+  const internalPart = entry.internal ? ` [context: ${entry.internal}]` : ""
+  if (entry.expected) {
+    return `${entry.stepId}. ${entry.description}${sectionPart}:\n   expected: "${entry.expected}"\n   result: "${entry.summary ?? ""}"${internalPart}`
+  }
+  return `${entry.stepId}. ${entry.description}${sectionPart}: "${entry.summary ?? ""}"${internalPart}`
+}
+
+const formatPlanResults = (plan: DerivedPlan): string => {
+  const results = collectResults(plan)
+  const lines = results.map(formatResultEntry).join("\n")
+  return `<plan-results task="${plan.task}">\n${lines}\n</plan-results>`
 }
 
 const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
@@ -72,7 +140,7 @@ const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
   const sectionProgress = formatSectionProgress(section, ps.currentSection, totalSections)
 
   const previousSections = ps.completedSections.length > 0
-    ? `\nPrevious sections:\n${ps.completedSections.map(formatSectionResult).join("\n")}\n`
+    ? `\nPrevious section results:\n${ps.completedSections.map(formatSectionResult).join("\n")}\n`
     : ""
 
   const stepList = plan.steps.map((s, i) => formatStep(s, stepIndex, i)).join("\n")
@@ -80,9 +148,9 @@ const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
   return `EXECUTING STEP ${current.id}: ${current.description}
 ${sectionProgress}
 
-<section>
+<section ${section.file} ${section.indexInFile}/${section.totalInFile}>
 ${section.content}
-</section>
+</section ${section.file} ${section.indexInFile}/${section.totalInFile}>
 ${previousSections}
 ${stepList}
 
@@ -121,9 +189,9 @@ If blocked: call abort with reason`
 const buildPlanCompletedNudge = (plan: DerivedPlan): string =>
   `PLAN COMPLETED
 
-${formatCompletedStepList(plan.steps)}
-${formatCompletedPerSection(plan)}
-All steps done. Briefly summarize what was accomplished. Do NOT call any tools.`
+${formatPlanResults(plan)}
+
+Summarize what was accomplished. Do NOT call any tools.`
 
 const buildStuckNudge = (plan: DerivedPlan, stepIndex: number): string =>
   `STUCK ON STEP ${plan.steps[stepIndex].id}: ${plan.steps[stepIndex].description}

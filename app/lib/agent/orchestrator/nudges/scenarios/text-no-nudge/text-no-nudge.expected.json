@@ -1,0 +1,5 @@
+[
+  { "type": "user", "content": "hi" },
+  { "type": "system", "content": "EMPTY_NUDGE" },
+  { "type": "text", "content": "Hello! How can I help?" }
+]

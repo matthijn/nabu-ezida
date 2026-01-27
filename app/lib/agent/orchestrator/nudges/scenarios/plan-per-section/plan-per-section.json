@@ -1,0 +1,10 @@
+[
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "create_plan", "args": { "task": "Analyze files", "steps": [{ "title": "Read files", "expected": "Document loaded and structure understood" }, { "per_section": [{ "title": "Analyze section", "expected": "Codes extracted with supporting context" }] }], "files": ["doc.md"] }}]},
+  { "type": "tool_result", "callId": "1", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "complete_step", "args": { "summary": "Read the files", "internal": "doc.md loaded" }}]},
+  { "type": "tool_result", "callId": "2", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "3", "name": "complete_step", "args": { "summary": "Analyzed section one", "internal": "3 key themes found" }}]},
+  { "type": "tool_result", "callId": "3", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "4", "name": "complete_step", "args": { "summary": "Analyzed section two", "internal": "2 patterns identified" }}]},
+  { "type": "tool_result", "callId": "4", "result": {} }
+]

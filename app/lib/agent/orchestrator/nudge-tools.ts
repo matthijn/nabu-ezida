@@ -3,9 +3,9 @@ import type { FileEntry } from "~/lib/files"
 
 export type Files = Record<string, FileEntry>
 
-export type Nudger = (history: Block[], files: Files) => string | null
+export type Nudger = (history: Block[], files: Files, emptyNudge: string) => string | null
 
-export type MultiNudger = (history: Block[], files: Files) => string[]
+export type MultiNudger = (history: Block[], files: Files, emptyNudge?: string) => string[]
 
 const filterNonNull = (results: (string | null)[]): string[] =>
   results.filter((r): r is string => r !== null)
@@ -34,13 +34,13 @@ export const firedWithin = (history: Block[], marker: string, n: number): boolea
   return since <= n
 }
 
-export const combine = (...nudgers: Nudger[]): Nudger => (history, files) => {
+export const combine = (...nudgers: Nudger[]): Nudger => (history, files, emptyNudge) => {
   for (const nudger of nudgers) {
-    const result = nudger(history, files)
+    const result = nudger(history, files, emptyNudge)
     if (result !== null) return result
   }
   return null
 }
 
-export const collect = (...nudgers: Nudger[]): MultiNudger => (history, files) =>
-  filterNonNull(nudgers.map((n) => n(history, files)))
+export const collect = (...nudgers: Nudger[]): MultiNudger => (history, files, emptyNudge = "") =>
+  filterNonNull(nudgers.map((n) => n(history, files, emptyNudge)))

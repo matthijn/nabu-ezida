@@ -2,12 +2,16 @@ import type { Block, ToolCall } from "./types"
 import { splitByLines } from "~/lib/text"
 
 // Input type from create_plan args
-export type StepDef = string | { per_section: string[] }
+export type StepDefSimple = string
+export type StepDefObject = { title: string; expected?: string }
+export type StepDefPerSection = { per_section: (StepDefSimple | StepDefObject)[] }
+export type StepDef = StepDefSimple | StepDefObject | StepDefPerSection
 
 // Flattened step with tracking
 export type Step = {
   id: string  // "1", "2.1", "2.2", "3" etc.
   description: string
+  expected: string | null
   done: boolean
   internal: string | null
   summary: string | null
@@ -88,8 +92,14 @@ const findCurrentStep = (steps: Step[]): number | null => {
 const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string): Step[] =>
   steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
 
-const isPerSection = (step: StepDef): step is { per_section: string[] } =>
+const isPerSection = (step: StepDef): step is StepDefPerSection =>
   typeof step === "object" && "per_section" in step
+
+const isStepObject = (step: StepDefSimple | StepDefObject): step is StepDefObject =>
+  typeof step === "object" && "title" in step
+
+const extractStep = (def: StepDefSimple | StepDefObject): { description: string; expected: string | null } =>
+  isStepObject(def) ? { description: def.title, expected: def.expected ?? null } : { description: def, expected: null }
 
 const SECTION_TARGET_LINES = 50
 
@@ -118,10 +128,12 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
   for (const def of stepDefs) {
     if (isPerSection(def)) {
       const firstInnerIndex = steps.length
-      def.per_section.forEach((desc, i) => {
+      def.per_section.forEach((innerDef, i) => {
+        const { description, expected } = extractStep(innerDef)
         steps.push({
           id: `${topIndex + 1}.${i + 1}`,
-          description: desc,
+          description,
+          expected,
           done: false,
           internal: null,
           summary: null,
@@ -129,9 +141,11 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
       })
       perSectionInfo = { topIndex, innerCount: def.per_section.length, firstInnerIndex }
     } else {
+      const { description, expected } = extractStep(def)
       steps.push({
         id: String(topIndex + 1),
-        description: def,
+        description,
+        expected,
         done: false,
         internal: null,
         summary: null,

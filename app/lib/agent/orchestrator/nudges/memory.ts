@@ -7,7 +7,7 @@ const WRITE_MARKER = "## WRITE REMINDER: Only if needed"
 
 const MEMORY_FILE = "memory.hidden.md"
 
-const readMemoryNudge: Nudger = (history, files) => {
+const readMemoryNudge: Nudger = (history, files, _emptyNudge) => {
   if (!afterToolResult(history)) return null
   if (alreadyFired(history, READ_MARKER)) return null
 
@@ -16,15 +16,15 @@ const readMemoryNudge: Nudger = (history, files) => {
 
   return `
 ${READ_MARKER}
-<memory>
+<file ${MEMORY_FILE}>
 ${memory.raw}
-</memory>
+</file ${MEMORY_FILE}>
 
 Continue.
 `
 }
 
-const writeMemoryNudge: Nudger = (history, files) => {
+const writeMemoryNudge: Nudger = (history, files, _emptyNudge) => {
   if (!afterToolResult(history)) return null
   if (firedWithin(history, WRITE_MARKER, WRITE_INTERVAL)) return null
 

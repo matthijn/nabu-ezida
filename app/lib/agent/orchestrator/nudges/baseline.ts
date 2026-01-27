@@ -3,14 +3,14 @@ import { combine, type Nudger } from "../nudge-tools"
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
 
-const afterToolResult: Nudger = (history) => {
+const afterToolResult: Nudger = (history, _files, emptyNudge) => {
   if (lastBlock(history)?.type !== "tool_result") return null
-  return ""
+  return emptyNudge
 }
 
-const afterUserMessage: Nudger = (history) => {
+const afterUserMessage: Nudger = (history, _files, emptyNudge) => {
   if (lastBlock(history)?.type !== "user") return null
-  return ""
+  return emptyNudge
 }
 
 export const baselineNudge: Nudger = combine(afterToolResult, afterUserMessage)

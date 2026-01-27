@@ -1,0 +1,12 @@
+[
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "start_exploration", "args": { "question": "How to add feature?", "direction": "Check existing code" }}]},
+  { "type": "tool_result", "callId": "1", "result": {} },
+  { "type": "system", "content": "EXPLORING: How to add feature?\nCurrent direction: Check existing code\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity." },
+  { "type": "system", "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n" },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "exploration_step", "args": { "learned": "Need to modify handler", "decision": "plan" }}]},
+  { "type": "tool_result", "callId": "2", "result": {} },
+  { "type": "system", "content": "EMPTY_NUDGE" },
+  { "type": "tool_call", "calls": [{ "id": "3", "name": "create_plan", "args": { "task": "Add the feature", "steps": ["Modify handler", "Add tests"] }}]},
+  { "type": "tool_result", "callId": "3", "result": {} },
+  { "type": "system", "content": "EXECUTING STEP 1: Modify handler\n\n1. [current] Modify handler  ← current\n2. [pending] Add tests\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" }
+]

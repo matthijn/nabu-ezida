@@ -4,7 +4,7 @@ import { derive, hasActiveExploration, actionsSinceExplorationChange } from "../
 
 const STUCK_LIMIT = 30
 
-export const explorationNudge: Nudger = (history, files) => {
+export const explorationNudge: Nudger = (history, files, _emptyNudge) => {
   const d = derive(history, files)
   if (!hasActiveExploration(d)) return null
 

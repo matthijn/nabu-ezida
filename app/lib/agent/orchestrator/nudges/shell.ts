@@ -7,7 +7,7 @@ const REMINDER_MARKER = "## SHELL REMINDER"
 
 const commandList = (): string => getCommandNames().join(", ")
 
-const shellIntroNudge: Nudger = (history) => {
+const shellIntroNudge: Nudger = (history, _files, _emptyNudge) => {
   if (!afterToolResult(history)) return null
   if (alreadyFired(history, INTRO_MARKER)) return null
 
@@ -21,7 +21,7 @@ Continue.
 `
 }
 
-const shellReminderNudge: Nudger = (history) => {
+const shellReminderNudge: Nudger = (history, _files, _emptyNudge) => {
   if (!afterToolResult(history)) return null
   if (firedWithin(history, REMINDER_MARKER, REMINDER_INTERVAL)) return null
 

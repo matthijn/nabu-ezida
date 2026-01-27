@@ -1,0 +1,5 @@
+[
+  { "type": "user", "content": "List files" },
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "list_files", "args": {} }]},
+  { "type": "tool_result", "callId": "1", "result": {} }
+]

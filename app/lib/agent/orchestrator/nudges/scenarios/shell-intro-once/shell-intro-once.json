@@ -1,0 +1,6 @@
+[
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "list_files", "args": {} }]},
+  { "type": "tool_result", "callId": "1", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "list_files", "args": {} }]},
+  { "type": "tool_result", "callId": "2", "result": {} }
+]
