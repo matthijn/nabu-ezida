@@ -1,8 +1,9 @@
 import type { Block } from "./types"
+import type { StepDef } from "./selectors"
 
-export const createPlanCall = (task: string, steps: string[]): Block => ({
+export const createPlanCall = (task: string, steps: StepDef[], files?: string[]): Block => ({
   type: "tool_call",
-  calls: [{ id: "1", name: "create_plan", args: { task, steps } }],
+  calls: [{ id: "1", name: "create_plan", args: { task, steps, files } }],
 })
 
 export const completeStepCall = (summary = "Done", internal?: string): Block => ({

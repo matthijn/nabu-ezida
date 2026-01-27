@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { mdToPlainText, parseMarkdownBlocks, splitByLines } from "./markdown"
+import { mdToPlainText, parseMarkdownBlocks, splitByLines, stripAttributesBlock } from "./markdown"
 
 describe("mdToPlainText", () => {
   const cases: { name: string; input: string; expected: string }[] = [
@@ -86,6 +86,18 @@ describe("parseMarkdownBlocks", () => {
     const blocks = parseMarkdownBlocks(input)
     expect(blocks.map((b) => ({ type: b.type, lines: [b.startLine, b.endLine] }))).toEqual(expected)
   })
+
+  it("extracts lang from code blocks", () => {
+    const input = "```javascript\nconst x = 1\n```"
+    const blocks = parseMarkdownBlocks(input)
+    expect(blocks[0].lang).toBe("javascript")
+  })
+
+  it("returns null lang for non-code blocks", () => {
+    const input = "# Heading"
+    const blocks = parseMarkdownBlocks(input)
+    expect(blocks[0].lang).toBe(null)
+  })
 })
 
 describe("splitByLines", () => {
@@ -129,5 +141,90 @@ describe("splitByLines", () => {
     expect(rejoined).toContain("Paragraph.")
     expect(rejoined).toContain("- item 1")
     expect(rejoined).toContain("- item 2")
+  })
+
+  it("strips attributes block when option enabled", () => {
+    const input = `# Title
+
+\`\`\`json-attributes
+{
+  "tags": ["interview"],
+  "annotations": []
+}
+\`\`\`
+
+Some content here.`
+    const chunks = splitByLines(input, 50, { stripAttributes: true })
+    const rejoined = chunks.join("\n\n")
+    expect(rejoined).toContain("# Title")
+    expect(rejoined).toContain("Some content here.")
+    expect(rejoined).not.toContain("json-attributes")
+    expect(rejoined).not.toContain("tags")
+  })
+
+  it("keeps attributes block when option not set", () => {
+    const input = `# Title
+
+\`\`\`json-attributes
+{"tags": ["test"]}
+\`\`\`
+
+Content.`
+    const chunks = splitByLines(input, 50)
+    const rejoined = chunks.join("\n\n")
+    expect(rejoined).toContain("json-attributes")
+  })
+})
+
+describe("stripAttributesBlock", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    {
+      name: "strips attributes block from content",
+      input: `# Title
+
+\`\`\`json-attributes
+{"tags": ["interview"]}
+\`\`\`
+
+Content here.`,
+      expected: `# Title
+
+Content here.`,
+    },
+    {
+      name: "handles content without attributes block",
+      input: "# Title\n\nJust content.",
+      expected: "# Title\n\nJust content.",
+    },
+    {
+      name: "strips multiple attributes blocks",
+      input: `\`\`\`json-attributes
+{"a": 1}
+\`\`\`
+
+Text.
+
+\`\`\`json-attributes
+{"b": 2}
+\`\`\``,
+      expected: "Text.",
+    },
+    {
+      name: "preserves other code blocks",
+      input: `\`\`\`json-attributes
+{"tags": []}
+\`\`\`
+
+\`\`\`javascript
+const x = 1
+\`\`\``,
+      expected: `\`\`\`javascript
+const x = 1
+\`\`\``,
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(stripAttributesBlock(input)).toBe(expected)
   })
 })
