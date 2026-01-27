@@ -124,7 +124,7 @@ describe("splitByLines", () => {
       name: "keeps list together",
       input: "Intro.\n\n- item 1\n- item 2\n- item 3\n- item 4\n\nOutro.",
       targetLines: 4,
-      expectedChunks: 3,
+      expectedChunks: 2, // Intro + list stay together (5 lines), then Outro
     },
   ]
 

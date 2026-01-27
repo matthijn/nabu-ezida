@@ -1,0 +1,4 @@
+[
+  "# Chapter One\n\nThis is the introduction to chapter one. It sets the stage for what follows.\n\n## Section A\n\nHere we discuss the first topic in detail.\n\n### Implementation Details\n\nThe implementation requires careful consideration.\n\n```javascript\nconst config = {\n  name: \"example\",\n  value: 42\n}\n```\n\nMore explanation after the code block.\n\n## Section B\n\nThis section covers a different topic entirely.\n\n- First important point\n- Second important point\n- Third important point\n- Fourth important point",
+  "A concluding paragraph for section B.\n\n# Chapter Two\n\nThe second chapter begins here with new material.\n\n## Final Section\n\nWrapping up the document with final thoughts."
+]
