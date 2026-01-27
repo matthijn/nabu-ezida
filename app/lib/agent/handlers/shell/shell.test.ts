@@ -109,10 +109,10 @@ describe("shell", () => {
         expectContains: "ls: only root listing allowed",
       },
       {
-        name: "returns empty message when no files",
+        name: "returns empty when no files",
         files: {},
         command: "ls",
-        expected: "ls: no files",
+        expected: "",
       },
     ]
 
@@ -339,16 +339,52 @@ describe("shell", () => {
   describe("chaining", () => {
     const cases: TestCase[] = [
       {
-        name: "chains commands with &&",
+        name: "&& runs second when first succeeds",
         files: { "a.txt": "aaa", "b.txt": "bbb" },
         command: "cat a.txt && cat b.txt",
         expected: "aaa\nbbb",
       },
       {
-        name: "chains commands with ;",
+        name: "&& skips second when first fails",
+        files: { "b.txt": "bbb" },
+        command: "cat missing.txt && cat b.txt",
+        expected: "cat: missing.txt: No such file",
+      },
+      {
+        name: "|| runs second when first fails",
+        files: { "b.txt": "bbb" },
+        command: "cat missing.txt || cat b.txt",
+        expected: "cat: missing.txt: No such file\nbbb",
+      },
+      {
+        name: "|| skips second when first succeeds",
+        files: { "a.txt": "aaa", "b.txt": "bbb" },
+        command: "cat a.txt || cat b.txt",
+        expected: "aaa",
+      },
+      {
+        name: "; runs both regardless of success",
+        files: { "b.txt": "bbb" },
+        command: "cat missing.txt ; cat b.txt",
+        expected: "cat: missing.txt: No such file\nbbb",
+      },
+      {
+        name: "; runs both when both succeed",
         files: { "a.txt": "aaa", "b.txt": "bbb" },
         command: "cat a.txt ; cat b.txt",
         expected: "aaa\nbbb",
+      },
+      {
+        name: "mixed && and || operators",
+        files: { "c.txt": "ccc" },
+        command: "cat missing.txt && cat also-missing.txt || cat c.txt",
+        expected: "cat: missing.txt: No such file\nccc",
+      },
+      {
+        name: "&& chain stops at first failure",
+        files: { "a.txt": "aaa", "c.txt": "ccc" },
+        command: "cat a.txt && cat missing.txt && cat c.txt",
+        expected: "aaa\ncat: missing.txt: No such file",
       },
     ]
 
@@ -395,12 +431,6 @@ describe("shell", () => {
         files: {},
         command: "echo $(cat file.txt)",
         expectContains: "Unsupported operator: '$('",
-      },
-      {
-        name: "rejects or operator",
-        files: {},
-        command: "cat /a.txt || cat /b.txt",
-        expectContains: "Unsupported operator: '||'",
       },
     ]
 

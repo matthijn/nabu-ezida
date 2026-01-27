@@ -1,3 +1,3 @@
-export { DocumentsSidebar, type Document } from "./DocumentsSidebar";
-export { DocumentItem } from "./DocumentItem";
+export { DocumentsSidebar } from "./DocumentsSidebar";
+export { DocumentItem, type DocumentItemProps } from "./DocumentItem";
 export { SectionHeader } from "./SectionHeader";

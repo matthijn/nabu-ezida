@@ -1,15 +1,10 @@
-import type { SystemBlock, Block } from "~/lib/agent"
+import type { SystemBlock, Block, ToolDeps } from "~/lib/agent"
 import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
-import type { Project } from "~/domain/project"
+import { getFiles } from "~/lib/files"
 
-type NavigateFn = (url: string) => void
-
-export type RunnerDeps = {
-  project?: Project
-  navigate?: NavigateFn
-}
+export type RunnerDeps = ToolDeps
 
 let controller: AbortController | null = null
 
@@ -21,7 +16,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   if (!chat) return
   if (chat.loading) return
 
-  const nudges = toNudge(chat.history)
+  const nudges = toNudge(chat.history, getFiles())
   if (nudges.length === 0) {
     controller = null
     return

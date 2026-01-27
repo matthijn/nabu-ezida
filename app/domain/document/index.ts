@@ -1,4 +1,3 @@
-export type { Document, DocumentData, Tag } from "./types"
 export type {
   Annotation,
   ResolvedAnnotation,

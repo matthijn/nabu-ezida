@@ -1,4 +1,4 @@
-import { command } from "./command"
+import { command, ok, err } from "./command"
 
 export const head = command({
   description: "Output first lines of file",
@@ -10,12 +10,11 @@ export const head = command({
     const count = parseInt(flagValues["-n"] ?? "10", 10) || 10
 
     const filename = paths[0]
-    const content = filename
-      ? files.get(filename) ?? `head: ${filename}: No such file`
-      : stdin
+    if (filename && !files.has(filename)) {
+      return err(`head: ${filename}: No such file`)
+    }
 
-    if (content.startsWith("head:")) return content
-
-    return content.split("\n").slice(0, count).join("\n")
+    const content = filename ? files.get(filename)! : stdin
+    return ok(content.split("\n").slice(0, count).join("\n"))
   },
 })

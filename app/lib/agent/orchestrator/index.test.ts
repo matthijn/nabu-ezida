@@ -15,6 +15,8 @@ const manyActions = (count: number): Block[] =>
   Array.from({ length: count }, () => [toolCallBlock(), toolResult()]).flat()
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
+const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
+const writeMemoryBlock = (): Block => ({ type: "system", content: "## REMINDER: Only if needed" })
 
 type NudgeExpectation =
   | { type: "none" }
@@ -54,13 +56,14 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "exploring, >10 actions → null (stops)",
-      history: [startExplorationCall("Question"), ...manyActions(11)],
-      expect: { type: "none" },
+      name: "exploring, >10 actions → exploration stops, write memory fires",
+      history: [readMemoryBlock(), writeMemoryBlock(), startExplorationCall("Question"), ...manyActions(11)],
+      expect: { type: "contains", text: "REMINDER" },
     },
     {
       name: "exploration completed with answer → empty nudge",
       history: [
+        readMemoryBlock(),
         startExplorationCall("Question"),
         toolResult(),
         explorationStepCall("Found it", "answer"),
@@ -81,9 +84,9 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "executing plan step, >10 actions → null (stops)",
-      history: [createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
-      expect: { type: "none" },
+      name: "executing plan step, >10 actions → plan stops, write memory fires",
+      history: [readMemoryBlock(), writeMemoryBlock(), createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
+      expect: { type: "contains", text: "REMINDER" },
     },
     {
       name: "plan step count resets after complete_step",
@@ -113,6 +116,7 @@ describe("toNudge", () => {
     {
       name: "plan completed, last block is text → null",
       history: [
+        readMemoryBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         completeStepCall(),
@@ -126,6 +130,7 @@ describe("toNudge", () => {
     {
       name: "plan aborted → null (stops)",
       history: [
+        readMemoryBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         abortCall("Cannot continue"),
@@ -136,9 +141,9 @@ describe("toNudge", () => {
 
     // No exploration, no plan (chat mode)
     {
-      name: "no exploration, no plan, tool_result → memory nudge",
+      name: "no exploration, no plan, first tool_result → read memory nudge",
       history: [toolResult()],
-      expect: { type: "contains", text: "REMINDER" },
+      expect: { type: "contains", text: "READ MEMORY" },
     },
 
     // After user message
@@ -184,7 +189,7 @@ describe("toNudge", () => {
 
   cases.forEach(({ name, history, expect: expectation }) => {
     it(name, () => {
-      const result = toNudge(history)
+      const result = toNudge(history, {})
       const nudge = joinNudges(result)
       switch (expectation.type) {
         case "none":

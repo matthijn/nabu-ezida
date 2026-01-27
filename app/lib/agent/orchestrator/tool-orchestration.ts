@@ -20,7 +20,7 @@ const STUCK_LIMIT = 10
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
 
-const exploreNudge: Nudger = (history) => {
+const exploreNudge: Nudger = (history, _files) => {
   const d = derive(history)
   if (!hasActiveExploration(d)) return null
 
@@ -31,7 +31,7 @@ const exploreNudge: Nudger = (history) => {
   return buildExplorationNudge(d.exploration!)
 }
 
-const planNudge: Nudger = (history) => {
+const planNudge: Nudger = (history, _files) => {
   const d = derive(history)
   const plan = lastPlan(d)
   if (!plan) return null
@@ -50,14 +50,14 @@ const planNudge: Nudger = (history) => {
   return null
 }
 
-const toolNudge: Nudger = (history) => {
+const toolNudge: Nudger = (history, _files) => {
   if (lastBlock(history)?.type !== "tool_result") return null
   const d = derive(history)
   if (hasActiveExploration(d) || lastPlan(d)) return null
   return ""
 }
 
-const userMessageNudge: Nudger = (history) => {
+const userMessageNudge: Nudger = (history, _files) => {
   if (lastBlock(history)?.type !== "user") return null
   return ""
 }

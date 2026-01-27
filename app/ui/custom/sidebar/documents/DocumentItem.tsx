@@ -1,7 +1,7 @@
 "use client";
 import { Badge } from "~/ui/components/Badge";
 
-interface DocumentItemProps {
+export type DocumentItemProps = {
   title: string;
   editedAt: string;
   tags: Array<{ label: string; variant?: "brand" | "neutral" }>;

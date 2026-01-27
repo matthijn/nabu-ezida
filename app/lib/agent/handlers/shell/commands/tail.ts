@@ -1,4 +1,4 @@
-import { command } from "./command"
+import { command, ok, err } from "./command"
 
 export const tail = command({
   description: "Output last lines of file",
@@ -10,13 +10,11 @@ export const tail = command({
     const count = parseInt(flagValues["-n"] ?? "10", 10) || 10
 
     const filename = paths[0]
-    const content = filename
-      ? files.get(filename) ?? `tail: ${filename}: No such file`
-      : stdin
+    if (filename && !files.has(filename)) {
+      return err(`tail: ${filename}: No such file`)
+    }
 
-    if (content.startsWith("tail:")) return content
-
-    const lines = content.split("\n")
-    return lines.slice(-count).join("\n")
+    const content = filename ? files.get(filename)! : stdin
+    return ok(content.split("\n").slice(-count).join("\n"))
   },
 })

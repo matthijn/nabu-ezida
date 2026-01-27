@@ -1,13 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DocumentsSidebar } from "./DocumentsSidebar";
-import type { Document } from "./DocumentsSidebar";
 
-const sampleDocuments: Document[] = [
+const sampleDocuments = [
   {
     id: "1",
     title: "Habitat Destruction Framework",
     editedAt: "Edited 2 hours ago",
-    tags: [{ label: "Framework", variant: "brand" }],
+    tags: [{ label: "Framework", variant: "brand" as const }],
     pinned: true,
   },
   {

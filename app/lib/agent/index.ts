@@ -18,7 +18,7 @@ export {
   type Mode,
 } from "./selectors"
 export { appendBlock, appendBlocks } from "./reducer"
-export { toNudge, combine, collect, type Nudger, type MultiNudger } from "./orchestrator"
+export { toNudge, combine, collect, type Nudger, type MultiNudger, type Files } from "./orchestrator"
 export { parse, processLine, initialParseState, blocksToMessages } from "./parser"
 export type { InputItem, ParseCallbacks, ParseOptions } from "./parser"
 export { createToolExecutor } from "./tools"

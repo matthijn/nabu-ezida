@@ -1,7 +1,12 @@
 import type { Files } from "../types"
 
+export type Result = { output: string; error?: string }
+
+export const ok = (output: string): Result => ({ output })
+export const err = (error: string): Result => ({ output: "", error })
+
 type FlagDef = { alias?: string; description: string; value?: boolean }
-type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => string
+type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result
 type CommandDef = {
   description: string
   usage: string
@@ -10,7 +15,7 @@ type CommandDef = {
 }
 
 export type Command = CommandDef & {
-  createHandler: (files: Files) => (args: string[], stdin: string) => string
+  createHandler: (files: Files) => (args: string[], stdin: string) => Result
 }
 
 export const command = (def: CommandDef): Command => {
@@ -30,7 +35,7 @@ export const command = (def: CommandDef): Command => {
   const createHandler = (files: Files) => {
     const innerHandler = def.handler(files)
 
-    return (args: string[], stdin: string = ""): string => {
+    return (args: string[], stdin: string = ""): Result => {
       const flags = new Set<string>()
       const flagValues: Record<string, string> = {}
       const positional: string[] = []
@@ -45,11 +50,10 @@ export const command = (def: CommandDef): Command => {
                   `  ${f}${alias ? `, ${alias}` : ""}: ${description}`
               )
               .join("\n")
-            return `Unsupported option: '${arg}'\nSupported:\n${available || "  (none)"}`
+            return { output: "", error: `Unsupported option: '${arg}'\nSupported:\n${available || "  (none)"}` }
           }
           flags.add(arg)
 
-          // Get canonical name
           let canonical = arg
           for (const [k, { alias }] of Object.entries(def.flags)) {
             if (alias === arg) {
@@ -58,7 +62,6 @@ export const command = (def: CommandDef): Command => {
             }
           }
 
-          // Consume next arg if value flag
           if (valueFlags.has(arg) && i + 1 < args.length) {
             flagValues[canonical] = args[++i]
           }

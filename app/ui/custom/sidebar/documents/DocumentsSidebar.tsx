@@ -8,18 +8,12 @@ import { Button } from "~/ui/components/Button";
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem";
 import { matchesAny } from "~/lib/filter";
 import { SectionHeader } from "./SectionHeader";
-import { DocumentItem } from "./DocumentItem";
+import { DocumentItem, type DocumentItemProps } from "./DocumentItem";
 
-export interface Document {
-  id: string;
-  title: string;
-  editedAt: string;
-  tags: Array<{ label: string; variant?: "brand" | "neutral" }>;
-  pinned?: boolean;
-}
+type ListItem = { id: string; pinned?: boolean } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
 
 interface DocumentsSidebarProps {
-  documents: Document[];
+  documents: ListItem[];
   selectedId?: string;
   searchValue?: string;
   sortBy?: "modified" | "name";
@@ -45,7 +39,7 @@ export function DocumentsSidebar({
   onCollapse,
   onExpand,
 }: DocumentsSidebarProps) {
-  const matchesSearch = (doc: Document): boolean =>
+  const matchesSearch = (doc: ListItem): boolean =>
     matchesAny(searchValue, [doc.title, ...doc.tags.map((t) => t.label)])
 
   const filtered = documents.filter(matchesSearch)

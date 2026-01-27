@@ -1,4 +1,4 @@
-import { command } from "./command"
+import { command, ok, err } from "./command"
 
 export const grep = command({
   description: "Search for patterns in files",
@@ -9,7 +9,7 @@ export const grep = command({
   },
   handler: (files) => (args, flags, stdin, _flagValues) => {
     const [pattern, filename] = args
-    if (!pattern) return "grep: missing pattern"
+    if (!pattern) return err("grep: missing pattern")
 
     const re = new RegExp(pattern, flags.has("-i") ? "i" : "")
     const results: string[] = []
@@ -32,7 +32,7 @@ export const grep = command({
           results.push(flags.has("-n") ? `${i + 1}:\t${line}` : line)
         }
       })
-      return results.join("\n")
+      return ok(results.join("\n"))
     }
 
     if (filename) {
@@ -40,7 +40,7 @@ export const grep = command({
       if (content) {
         searchFile(filename, content)
       } else {
-        return `grep: ${filename}: No such file`
+        return err(`grep: ${filename}: No such file`)
       }
     } else {
       for (const [filePath, content] of files) {
@@ -48,6 +48,6 @@ export const grep = command({
       }
     }
 
-    return results.join("\n")
+    return ok(results.join("\n"))
   },
 })

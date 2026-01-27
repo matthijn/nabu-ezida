@@ -1,5 +1,5 @@
 import { minimatch } from "minimatch"
-import { command } from "./command"
+import { command, ok } from "./command"
 
 export const find = command({
   description: "Find files by name pattern",
@@ -10,9 +10,6 @@ export const find = command({
   handler: (files) => (_args, _flags, _stdin, flagValues) => {
     const pattern = flagValues["-name"] || "*"
 
-    return [...files.keys()]
-      .filter((k) => minimatch(k, pattern))
-      .sort()
-      .join("\n")
+    return ok([...files.keys()].filter((k) => minimatch(k, pattern)).sort().join("\n"))
   },
 })

@@ -1,9 +1,9 @@
 import type { Block } from "../types"
-import { collect, type MultiNudger } from "./nudge"
+import { collect, type MultiNudger, type Files } from "./nudge"
 import { toolOrchestrationNudge } from "./tool-orchestration"
 import { memoryNudge } from "./memory"
 
-export { combine, collect, type Nudger, type MultiNudger } from "./nudge"
+export { combine, collect, type Nudger, type MultiNudger, type Files } from "./nudge"
 export { toolOrchestrationNudge } from "./tool-orchestration"
 export { memoryNudge } from "./memory"
 
@@ -12,8 +12,8 @@ const lastBlockType = (history: Block[]): string =>
 
 const nudge = collect(toolOrchestrationNudge, memoryNudge)
 
-export const toNudge: MultiNudger = (history) => {
-  const results = nudge(history)
+export const toNudge: MultiNudger = (history, files) => {
+  const results = nudge(history, files)
   console.log(`[Nudge] ${lastBlockType(history)} → ${results.length} nudge(s)`)
   return results
 }
