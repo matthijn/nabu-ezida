@@ -5,6 +5,7 @@ export type DocumentItemProps = {
   title: string;
   editedAt: string;
   tags: Array<{ label: string; variant?: "brand" | "neutral" }>;
+  lineCount?: number;
   selected?: boolean;
   onClick?: () => void;
 }
@@ -13,6 +14,7 @@ export function DocumentItem({
   title,
   editedAt,
   tags,
+  lineCount,
   selected = false,
   onClick,
 }: DocumentItemProps) {
@@ -41,6 +43,11 @@ export function DocumentItem({
             </Badge>
           ))}
         </div>
+        {lineCount !== undefined && (
+          <span className="text-caption font-caption text-subtext-color">
+            {lineCount} lines
+          </span>
+        )}
       </div>
     </div>
   );

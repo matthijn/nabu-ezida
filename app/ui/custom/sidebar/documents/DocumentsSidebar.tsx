@@ -10,7 +10,7 @@ import { matchesAny } from "~/lib/filter";
 import { SectionHeader } from "./SectionHeader";
 import { DocumentItem, type DocumentItemProps } from "./DocumentItem";
 
-type ListItem = { id: string; pinned?: boolean } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
+type ListItem = { id: string; pinned?: boolean; lineCount?: number } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
 
 interface DocumentsSidebarProps {
   documents: ListItem[];
@@ -18,6 +18,7 @@ interface DocumentsSidebarProps {
   searchValue?: string;
   sortBy?: "modified" | "name";
   collapsed?: boolean;
+  debugMode?: boolean;
   onSearchChange?: (value: string) => void;
   onSortChange?: (sort: "modified" | "name") => void;
   onDocumentSelect?: (id: string) => void;
@@ -32,6 +33,7 @@ export function DocumentsSidebar({
   searchValue = "",
   sortBy = "modified",
   collapsed = false,
+  debugMode = false,
   onSearchChange,
   onSortChange,
   onDocumentSelect,
@@ -126,6 +128,7 @@ export function DocumentsSidebar({
                     title={doc.title}
                     editedAt={doc.editedAt}
                     tags={doc.tags}
+                    lineCount={debugMode ? doc.lineCount : undefined}
                     selected={doc.id === selectedId}
                     onClick={() => onDocumentSelect?.(doc.id)}
                   />
@@ -145,6 +148,7 @@ export function DocumentsSidebar({
                     title={doc.title}
                     editedAt={doc.editedAt}
                     tags={doc.tags}
+                    lineCount={debugMode ? doc.lineCount : undefined}
                     selected={doc.id === selectedId}
                     onClick={() => onDocumentSelect?.(doc.id)}
                   />

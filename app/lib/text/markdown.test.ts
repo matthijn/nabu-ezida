@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { mdToPlainText } from "./markdown"
+import { mdToPlainText, parseMarkdownBlocks, splitByLines } from "./markdown"
 
 describe("mdToPlainText", () => {
   const cases: { name: string; input: string; expected: string }[] = [
@@ -42,5 +42,92 @@ describe("mdToPlainText", () => {
 
   it.each(cases)("$name", ({ input, expected }) => {
     expect(mdToPlainText(input)).toBe(expected)
+  })
+})
+
+describe("parseMarkdownBlocks", () => {
+  const cases: { name: string; input: string; expected: { type: string; lines: [number, number] }[] }[] = [
+    {
+      name: "parses heading and paragraph",
+      input: "# Title\n\nSome text here.",
+      expected: [
+        { type: "heading", lines: [1, 1] },
+        { type: "paragraph", lines: [3, 3] },
+      ],
+    },
+    {
+      name: "parses code block as single block",
+      input: "```js\nconst x = 1\nconst y = 2\n```",
+      expected: [{ type: "code", lines: [1, 4] }],
+    },
+    {
+      name: "parses list as single block",
+      input: "- item 1\n- item 2\n- item 3",
+      expected: [{ type: "list", lines: [1, 3] }],
+    },
+    {
+      name: "parses blockquote",
+      input: "> quote line 1\n> quote line 2",
+      expected: [{ type: "blockquote", lines: [1, 2] }],
+    },
+    {
+      name: "parses mixed content",
+      input: "# Heading\n\nParagraph.\n\n- list item\n\n```\ncode\n```",
+      expected: [
+        { type: "heading", lines: [1, 1] },
+        { type: "paragraph", lines: [3, 3] },
+        { type: "list", lines: [5, 5] },
+        { type: "code", lines: [7, 9] },
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    const blocks = parseMarkdownBlocks(input)
+    expect(blocks.map((b) => ({ type: b.type, lines: [b.startLine, b.endLine] }))).toEqual(expected)
+  })
+})
+
+describe("splitByLines", () => {
+  const cases: { name: string; input: string; targetLines: number; expectedChunks: number }[] = [
+    {
+      name: "single block under target stays together",
+      input: "# Title\n\nShort paragraph.",
+      targetLines: 10,
+      expectedChunks: 1,
+    },
+    {
+      name: "splits at block boundaries",
+      input: "# Heading 1\n\nParagraph 1.\n\n# Heading 2\n\nParagraph 2.",
+      targetLines: 3,
+      expectedChunks: 2,
+    },
+    {
+      name: "keeps code block together even if exceeds target",
+      input: "```\nline 1\nline 2\nline 3\nline 4\nline 5\n```",
+      targetLines: 3,
+      expectedChunks: 1,
+    },
+    {
+      name: "keeps list together",
+      input: "Intro.\n\n- item 1\n- item 2\n- item 3\n- item 4\n\nOutro.",
+      targetLines: 4,
+      expectedChunks: 3,
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, targetLines, expectedChunks }) => {
+    const chunks = splitByLines(input, targetLines)
+    expect(chunks.length).toBe(expectedChunks)
+  })
+
+  it("preserves content across chunks", () => {
+    const input = "# Title\n\nParagraph.\n\n- item 1\n- item 2"
+    const chunks = splitByLines(input, 3)
+    const rejoined = chunks.join("\n\n")
+    expect(rejoined).toContain("# Title")
+    expect(rejoined).toContain("Paragraph.")
+    expect(rejoined).toContain("- item 1")
+    expect(rejoined).toContain("- item 2")
   })
 })

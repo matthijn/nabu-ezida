@@ -2,6 +2,7 @@ export {
   getFiles,
   getCurrentFile,
   getFileRaw,
+  getFileLineCount,
   getFileTags,
   getStoredAnnotations,
   getFileAnnotations,

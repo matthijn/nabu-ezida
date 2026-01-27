@@ -17,6 +17,7 @@ type SidebarDocument = {
   editedAt: string
   tags: { label: string; variant: "brand" | "neutral" }[]
   pinned: boolean
+  lineCount: number
 }
 
 const isHiddenFile = (filename: string): boolean =>
@@ -25,6 +26,7 @@ const isHiddenFile = (filename: string): boolean =>
 const filesToSidebarDocuments = (
   files: Record<string, unknown>,
   getFileTags: (filename: string) => string[],
+  getFileLineCount: (filename: string) => number,
   debugMode: boolean
 ): SidebarDocument[] =>
   Object.keys(files)
@@ -35,6 +37,7 @@ const filesToSidebarDocuments = (
     editedAt: "just now",
     tags: getFileTags(filename).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" as const : "neutral" as const })),
     pinned: false,
+    lineCount: getFileLineCount(filename),
   }))
 
 export type ProjectContextValue = {
@@ -73,10 +76,10 @@ export default function ProjectLayout() {
     return () => connection.close()
   }, [params.projectId])
 
-  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
+  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
   const fileImport = useFileImport(params.projectId)
 
-  const documents = filesToSidebarDocuments(files, getFileTags, debugMode)
+  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugMode)
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -107,6 +110,7 @@ export default function ProjectLayout() {
         searchValue={searchValue}
         sortBy={sortBy}
         collapsed={sidebarCollapsed}
+        debugMode={debugMode}
         onSearchChange={setSearchValue}
         onSortChange={setSortBy}
         onDocumentSelect={handleDocumentSelect}

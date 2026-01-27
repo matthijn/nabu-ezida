@@ -55,6 +55,9 @@ export const getCurrentFile = (): string | null => currentFile
 
 export const getFileRaw = (filename: string): string => files[filename]?.raw ?? ""
 
+export const getFileLineCount = (filename: string): number =>
+  (files[filename]?.raw ?? "").split("\n").length
+
 export const getFileTags = (filename: string): string[] =>
   files[filename]?.parsed.attributes?.tags ?? []
 
