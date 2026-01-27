@@ -9,6 +9,7 @@ export {
   getAllCodes,
   getCodebook,
   getCodeTitle,
+  getCodebookFiles,
   setFiles,
   setCurrentFile,
   updateFileRaw,

@@ -67,6 +67,12 @@ export const getFileCodes = (filename: string): CalloutBlock[] =>
 export const getAllCodes = (): CalloutBlock[] =>
   Object.values(files).flatMap((f) => f.parsed.callouts.filter((c) => c.type === "codebook"))
 
+const hasCodeDef = (entry: FileEntry): boolean =>
+  entry.parsed.callouts.some((c) => c.type === "codebook")
+
+export const getCodebookFiles = (f: Files): string[] =>
+  Object.entries(f).filter(([_, entry]) => hasCodeDef(entry)).map(([name]) => name)
+
 const findCodeById = (id: string): CalloutBlock | undefined =>
   getAllCodes().find((c) => c.id === id)
 

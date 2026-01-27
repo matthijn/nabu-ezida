@@ -1,11 +1,11 @@
 import type { Block, SystemBlock } from "../types"
 import { combine, type Nudger, type Files } from "./nudge"
+import { getCodebookFiles } from "~/lib/files"
 
 const WRITE_INTERVAL = 15
 const READ_MARKER = "## READ MEMORY"
-const WRITE_MARKER = "## REMINDER: Only if needed"
+const WRITE_MARKER = "## WRITE REMINDER: Only if needed"
 
-const isToolResult = (block: Block): boolean => block.type === "tool_result"
 const isSystem = (block: Block): block is SystemBlock => block.type === "system"
 
 const blocksSinceMarker = (history: Block[], marker: string): number => {
@@ -18,30 +18,51 @@ const blocksSinceMarker = (history: Block[], marker: string): number => {
   return -1
 }
 
-const readMemoryNudge: Nudger = (history, _files) => {
-  if (history.length === 0) return null
-  if (!isToolResult(history[history.length - 1])) return null
-  if (blocksSinceMarker(history, READ_MARKER) !== -1) return null
+const afterToolResult = (history: Block[]): boolean =>
+  history.length > 0 && history[history.length - 1].type === "tool_result"
 
-  return `
-    ${READ_MARKER}
-    - Read memory.hidden.md if it exists to understand user preferences and context
-    - Then continue with your current task
-  `
+const alreadyFired = (history: Block[], marker: string): boolean =>
+  blocksSinceMarker(history, marker) !== -1
+
+const firedWithin = (history: Block[], marker: string, n: number): boolean => {
+  const since = blocksSinceMarker(history, marker)
+  if (since === -1) return history.length <= n
+  return since <= n
 }
 
-const writeMemoryNudge: Nudger = (history, _files) => {
-  if (history.length === 0) return null
-  if (!isToolResult(history[history.length - 1])) return null
-  const since = blocksSinceMarker(history, WRITE_MARKER)
-  if (since === -1 && history.length <= WRITE_INTERVAL) return null
-  if (since !== -1 && since <= WRITE_INTERVAL) return null
+const MEMORY_FILE = "memory.hidden.md"
+
+const readMemoryNudge: Nudger = (history, files) => {
+  if (!afterToolResult(history)) return null
+  if (alreadyFired(history, READ_MARKER)) return null
+
+  const memory = files[MEMORY_FILE]
+  if (!memory) return null
 
   return `
-    ${WRITE_MARKER}
-    - do you need to update any user preferences in memory.hidden.md and/or do you need to update any codebook changes? if so: update then continue with your current task
-    - else continue with your current task
-  `
+${READ_MARKER}
+<memory>
+${memory.raw}
+</memory>
+
+Continue.
+`
+}
+
+const writeMemoryNudge: Nudger = (history, files) => {
+  if (!afterToolResult(history)) return null
+  if (firedWithin(history, WRITE_MARKER, WRITE_INTERVAL)) return null
+
+  const codeFiles = getCodebookFiles(files)
+  const codebookPart =
+    codeFiles.length > 0
+      ? ` and/or codebook(s) in: ${codeFiles.join(", ")}`
+      : ""
+
+  return `
+${WRITE_MARKER}
+Update memory.hidden.md${codebookPart} if needed, then continue.
+`
 }
 
 export const memoryNudge: Nudger = combine(readMemoryNudge, writeMemoryNudge)

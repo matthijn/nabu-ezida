@@ -17,6 +17,7 @@ const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
 const writeMemoryBlock = (): Block => ({ type: "system", content: "## REMINDER: Only if needed" })
+const memoryFile = { "memory.hidden.md": { raw: "user prefs", parsed: { meta: {}, blocks: [] } } }
 
 type NudgeExpectation =
   | { type: "none" }
@@ -27,6 +28,7 @@ type NudgeExpectation =
 type TestCase = {
   name: string
   history: Block[]
+  files?: Record<string, { raw: string; parsed: { meta: Record<string, unknown>; blocks: unknown[] } }>
   expect: NudgeExpectation
 }
 
@@ -143,6 +145,7 @@ describe("toNudge", () => {
     {
       name: "no exploration, no plan, first tool_result → read memory nudge",
       history: [toolResult()],
+      files: memoryFile,
       expect: { type: "contains", text: "READ MEMORY" },
     },
 
@@ -187,9 +190,9 @@ describe("toNudge", () => {
     },
   ]
 
-  cases.forEach(({ name, history, expect: expectation }) => {
+  cases.forEach(({ name, history, files = {}, expect: expectation }) => {
     it(name, () => {
-      const result = toNudge(history, {})
+      const result = toNudge(history, files)
       const nudge = joinNudges(result)
       switch (expectation.type) {
         case "none":
