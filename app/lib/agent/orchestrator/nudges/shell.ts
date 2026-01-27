@@ -1,5 +1,5 @@
-import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "./nudge"
-import { getCommandNames } from "../handlers/shell/shell"
+import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "../nudge-tools"
+import { getCommandNames } from "../../handlers/shell/shell"
 
 const REMINDER_INTERVAL = 20
 const INTRO_MARKER = "## SHELL AVAILABLE"

@@ -1,4 +1,4 @@
-import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger, type Files } from "./nudge"
+import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "../nudge-tools"
 import { getCodebookFiles } from "~/lib/files"
 
 const WRITE_INTERVAL = 15

@@ -1,4 +1,30 @@
-import type { DerivedPlan, DerivedExploration, Step, Finding, Section, SectionResult } from "./selectors"
+import type { Block } from "../../types"
+import type { Nudger } from "../nudge-tools"
+import type { DerivedPlan, Step, Section, SectionResult } from "../../selectors"
+import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../selectors"
+
+const STUCK_LIMIT = 10
+
+const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
+
+export const planNudge: Nudger = (history, files) => {
+  const d = derive(history, files)
+  const plan = lastPlan(d)
+  if (!plan) return null
+
+  if (hasActivePlan(d)) {
+    const actions = actionsSinceStepChange(history)
+    if (actions > STUCK_LIMIT) return null
+    if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)
+    return buildPlanNudge(plan, plan.currentStep!)
+  }
+
+  if (plan.currentStep === null && !plan.aborted && lastBlock(history)?.type === "tool_result") {
+    return buildPlanCompletedNudge(plan)
+  }
+
+  return null
+}
 
 const formatCompletedStep = (step: Step): string => {
   const internalPart = step.internal ? ` [context: ${step.internal}]` : ""
@@ -28,6 +54,14 @@ const formatSectionResult = (result: SectionResult): string => {
 
 const formatSectionProgress = (section: Section, sectionIndex: number, totalSections: number): string =>
   `Section ${sectionIndex + 1}/${totalSections} (${section.file} ${section.indexInFile}/${section.totalInFile})`
+
+const formatCompletedStepList = (steps: Step[]): string =>
+  steps.map((s) => formatCompletedStep(s)).join("\n")
+
+const formatCompletedPerSection = (plan: DerivedPlan): string => {
+  if (!plan.perSection || plan.perSection.completedSections.length === 0) return ""
+  return `\nCompleted sections:\n${plan.perSection.completedSections.map(formatSectionResult).join("\n")}\n`
+}
 
 const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
   const current = plan.steps[stepIndex]
@@ -60,8 +94,7 @@ INSTRUCTIONS:
 If blocked: call abort with reason`
 }
 
-export const buildPlanNudge = (plan: DerivedPlan, stepIndex: number): string => {
-  // Check if currently in per_section
+const buildPlanNudge = (plan: DerivedPlan, stepIndex: number): string => {
   if (plan.perSection) {
     const { firstInnerStepIndex, innerStepCount } = plan.perSection
     const inPerSection = stepIndex >= firstInnerStepIndex && stepIndex < firstInnerStepIndex + innerStepCount
@@ -85,50 +118,14 @@ INSTRUCTIONS:
 If blocked: call abort with reason`
 }
 
-const formatFinding = (finding: Finding, index: number): string => {
-  const internalPart = finding.internal ? ` [context: ${finding.internal}]` : ""
-  return `${index + 1}. [${finding.direction}] → "${finding.learned}"${internalPart}`
-}
-
-export const buildExplorationNudge = (exploration: DerivedExploration): string => {
-  const hasFindings = exploration.findings.length > 0
-  const direction = exploration.currentDirection
-    ? `\nCurrent direction: ${exploration.currentDirection}`
-    : ""
-
-  const findings = hasFindings
-    ? `\n\nFindings so far:\n${exploration.findings.map(formatFinding).join("\n")}`
-    : ""
-
-  return `EXPLORING: ${exploration.question}${direction}${findings}
-
-INSTRUCTIONS:
-1. Investigate the current direction using tools
-2. Call exploration_step with:
-   - learned: what you discovered (be specific)
-   - decision: "continue" | "answer" | "plan"
-   - next: (if continuing) your next direction
-
-Do NOT answer directly - use decision "answer" to exit exploration first.
-Each step must yield insight, not just activity.`
-}
-
-const formatCompletedStepList = (steps: Step[]): string =>
-  steps.map((s) => formatCompletedStep(s)).join("\n")
-
-const formatCompletedPerSection = (plan: DerivedPlan): string => {
-  if (!plan.perSection || plan.perSection.completedSections.length === 0) return ""
-  return `\nCompleted sections:\n${plan.perSection.completedSections.map(formatSectionResult).join("\n")}\n`
-}
-
-export const buildPlanCompletedNudge = (plan: DerivedPlan): string =>
+const buildPlanCompletedNudge = (plan: DerivedPlan): string =>
   `PLAN COMPLETED
 
 ${formatCompletedStepList(plan.steps)}
 ${formatCompletedPerSection(plan)}
 All steps done. Briefly summarize what was accomplished. Do NOT call any tools.`
 
-export const buildStuckNudge = (plan: DerivedPlan, stepIndex: number): string =>
+const buildStuckNudge = (plan: DerivedPlan, stepIndex: number): string =>
   `STUCK ON STEP ${plan.steps[stepIndex].id}: ${plan.steps[stepIndex].description}
 
 You have made too many attempts without completing this step.
@@ -138,22 +135,3 @@ You MUST now either:
 2. Call abort with a clear reason why you cannot complete this step
 
 No other actions are allowed. Choose one NOW.`
-
-export const buildExplorationStuckNudge = (exploration: DerivedExploration): string =>
-  `STUCK EXPLORING: ${exploration.question}
-
-You have made too many attempts without progress.
-
-You MUST now call exploration_step with decision "answer" or "plan" to exit.
-If you cannot answer, call abort.
-
-No other actions are allowed. Choose one NOW.`
-
-export const buildModeRequiredNudge = (toolNames: string[]): string =>
-  `You called ${toolNames.join(", ")} but you're not in a mode.
-
-Before using tools, you must enter explore or plan mode:
-- Know the steps? → create_plan (task, steps, success criteria)
-- Need to investigate? → start_exploration (question, first direction)
-
-Tool calls in chat mode are not allowed.`

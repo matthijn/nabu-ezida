@@ -54,13 +54,13 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "Found A" },
     },
     {
-      name: "exploring, exactly 10 actions → stuck nudge",
-      history: [startExplorationCall("Question"), ...manyActions(10)],
+      name: "exploring, exactly 30 actions → stuck nudge",
+      history: [startExplorationCall("Question"), ...manyActions(30)],
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "exploring, >10 actions → exploration stops, write memory fires",
-      history: [readMemoryBlock(), writeMemoryBlock(), startExplorationCall("Question"), ...manyActions(11)],
+      name: "exploring, >30 actions → exploration stops, write memory fires",
+      history: [readMemoryBlock(), writeMemoryBlock(), startExplorationCall("Question"), ...manyActions(31)],
       expect: { type: "contains", text: "REMINDER" },
     },
     {
@@ -132,7 +132,7 @@ describe("toNudge", () => {
 
     // Plan aborted
     {
-      name: "plan aborted → null (stops)",
+      name: "plan aborted → empty nudge (triggers response)",
       history: [
         readMemoryBlock(),
         shellBlock(),
@@ -141,7 +141,7 @@ describe("toNudge", () => {
         abortCall("Cannot continue"),
         toolResult(),
       ],
-      expect: { type: "none" },
+      expect: { type: "emptyNudge" },
     },
 
     // No exploration, no plan (chat mode)
