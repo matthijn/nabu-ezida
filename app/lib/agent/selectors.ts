@@ -4,12 +4,14 @@ export type Step = {
   id: string
   description: string
   done: boolean
+  internal: string | null
   summary: string | null
 }
 
 export type Finding = {
   id: string
   direction: string
+  internal: string | null
   learned: string
 }
 
@@ -51,14 +53,15 @@ const findCurrentStep = (steps: Step[]): number | null => {
   return index === -1 ? null : index
 }
 
-const markStepDone = (steps: Step[], index: number, summary: string): Step[] =>
-  steps.map((s, i) => (i === index ? { ...s, done: true, summary } : s))
+const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string): Step[] =>
+  steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
 
 const createPlanFromCall = (call: ToolCall): DerivedPlan => {
   const steps = (call.args.steps as string[]).map((desc, i) => ({
     id: String(i + 1),
     description: desc,
     done: false,
+    internal: null,
     summary: null,
   }))
   return {
@@ -76,9 +79,9 @@ const createExplorationFromCall = (call: ToolCall): DerivedExploration => ({
   completed: false,
 })
 
-const addFinding = (exploration: DerivedExploration, direction: string, learned: string): DerivedExploration => ({
+const addFinding = (exploration: DerivedExploration, direction: string, internal: string | null, learned: string): DerivedExploration => ({
   ...exploration,
-  findings: [...exploration.findings, { id: String(exploration.findings.length + 1), direction, learned }],
+  findings: [...exploration.findings, { id: String(exploration.findings.length + 1), direction, internal, learned }],
 })
 
 const updateLastPlan = (plans: DerivedPlan[], fn: (p: DerivedPlan) => DerivedPlan): DerivedPlan[] => {
@@ -102,8 +105,9 @@ const processToolCall = (derived: Derived, call: ToolCall): Derived => {
   if (isCompleteStep(call)) {
     const lastPlan = derived.plans.at(-1)
     if (!lastPlan || lastPlan.currentStep === null) return derived
+    const internal = (call.args.internal as string) || null
     const summary = (call.args.summary as string) || ""
-    const newSteps = markStepDone(lastPlan.steps, lastPlan.currentStep, summary)
+    const newSteps = markStepDone(lastPlan.steps, lastPlan.currentStep, internal, summary)
     return {
       ...derived,
       plans: updateLastPlan(derived.plans, () => ({ ...lastPlan, steps: newSteps, currentStep: findCurrentStep(newSteps) })),
@@ -116,10 +120,11 @@ const processToolCall = (derived: Derived, call: ToolCall): Derived => {
 
   if (isExplorationStep(call) && derived.exploration && !derived.exploration.completed) {
     const direction = derived.exploration.currentDirection || ""
+    const internal = (call.args.internal as string) || null
     const learned = call.args.learned as string
     const decision = call.args.decision as string
     const next = call.args.next as string | undefined
-    const withFinding = addFinding(derived.exploration, direction, learned)
+    const withFinding = addFinding(derived.exploration, direction, internal, learned)
 
     if (decision === "answer" || decision === "plan") {
       return { ...derived, exploration: { ...withFinding, currentDirection: null, completed: true } }

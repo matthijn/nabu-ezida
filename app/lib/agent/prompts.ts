@@ -1,7 +1,9 @@
 import type { DerivedPlan, DerivedExploration, Step, Finding } from "./selectors"
 
-const formatCompletedStep = (step: Step, index: number): string =>
-  `${index + 1}. [done] ${step.description} → "${step.summary}"`
+const formatCompletedStep = (step: Step, index: number): string => {
+  const internalPart = step.internal ? ` [context: ${step.internal}]` : ""
+  return `${index + 1}. [done] ${step.description} → "${step.summary}"${internalPart}`
+}
 
 const formatPendingStep = (step: Step, index: number): string =>
   `${index + 1}. [pending] ${step.description}`
@@ -25,8 +27,10 @@ INSTRUCTIONS:
 If blocked: call abort with reason`
 }
 
-const formatFinding = (finding: Finding, index: number): string =>
-  `${index + 1}. [${finding.direction}] → "${finding.learned}"`
+const formatFinding = (finding: Finding, index: number): string => {
+  const internalPart = finding.internal ? ` [context: ${finding.internal}]` : ""
+  return `${index + 1}. [${finding.direction}] → "${finding.learned}"${internalPart}`
+}
 
 export const buildExplorationNudge = (exploration: DerivedExploration): string => {
   const hasFindings = exploration.findings.length > 0

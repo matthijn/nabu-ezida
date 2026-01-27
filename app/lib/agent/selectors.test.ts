@@ -46,6 +46,16 @@ describe("selectors", () => {
         },
       },
       {
+        name: "complete_step stores internal context",
+        history: [createPlanCall("Task", ["Step 1"]), completeStepCall("Done", "id:123, count:5")],
+        check: (history: Block[]) => {
+          const d = derive(history)
+          const plan = lastPlan(d)
+          expect(plan?.steps[0].internal).toBe("id:123, count:5")
+          expect(plan?.steps[0].summary).toBe("Done")
+        },
+      },
+      {
         name: "all steps complete returns null currentStep",
         history: [
           createPlanCall("Task", ["Step 1", "Step 2"]),
@@ -109,6 +119,18 @@ describe("selectors", () => {
           expect(d.exploration?.findings[0].learned).toBe("Found A details")
           expect(d.exploration?.currentDirection).toBe("Now look at B")
           expect(hasActiveExploration(d)).toBe(true)
+        },
+      },
+      {
+        name: "exploration_step stores internal context",
+        history: [
+          startExplorationCall("Question", "Look at A"),
+          explorationStepCall("Found it", "continue", "Next", "fileId:abc"),
+        ],
+        check: (history: Block[]) => {
+          const d = derive(history)
+          expect(d.exploration?.findings[0].internal).toBe("fileId:abc")
+          expect(d.exploration?.findings[0].learned).toBe("Found it")
         },
       },
       {

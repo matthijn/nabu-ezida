@@ -5,9 +5,9 @@ export const createPlanCall = (task: string, steps: string[]): Block => ({
   calls: [{ id: "1", name: "create_plan", args: { task, steps } }],
 })
 
-export const completeStepCall = (summary = "Done"): Block => ({
+export const completeStepCall = (summary = "Done", internal?: string): Block => ({
   type: "tool_call",
-  calls: [{ id: "1", name: "complete_step", args: { summary } }],
+  calls: [{ id: "1", name: "complete_step", args: { summary, internal } }],
 })
 
 export const abortCall = (message = "Stopping"): Block => ({
@@ -20,9 +20,9 @@ export const startExplorationCall = (question: string, direction?: string): Bloc
   calls: [{ id: "1", name: "start_exploration", args: { question, direction } }],
 })
 
-export const explorationStepCall = (learned: string, decision: string, next?: string): Block => ({
+export const explorationStepCall = (learned: string, decision: string, next?: string, internal?: string): Block => ({
   type: "tool_call",
-  calls: [{ id: "1", name: "exploration_step", args: { learned, decision, next } }],
+  calls: [{ id: "1", name: "exploration_step", args: { learned, decision, next, internal } }],
 })
 
 export const toolResult = (callId = "1", result: unknown = { ok: true }): Block => ({
