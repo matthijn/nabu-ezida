@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { toNudge } from "./index"
+import { toNudge, type Files } from "./index"
 import type { Block } from "../types"
 import {
   createPlanCall,
@@ -18,7 +18,7 @@ const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
 const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
 const shellBlock = (): Block => ({ type: "system", content: "## SHELL AVAILABLE" })
-const memoryFile = { "memory.hidden.md": { raw: "user prefs", parsed: { meta: {}, blocks: [] } } }
+const memoryFile = { "memory.hidden.md": { raw: "user prefs", parsed: { attributes: null, callouts: [] } } }
 
 type NudgeExpectation =
   | { type: "none" }
@@ -29,7 +29,7 @@ type NudgeExpectation =
 type TestCase = {
   name: string
   history: Block[]
-  files?: Record<string, { raw: string; parsed: { meta: Record<string, unknown>; blocks: unknown[] } }>
+  files?: Files
   expect: NudgeExpectation
 }
 

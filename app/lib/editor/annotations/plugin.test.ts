@@ -18,7 +18,7 @@ const createDoc = (paragraphs: string[]) => {
   return schema.nodes.doc.create(null, children)
 }
 
-const createDocWithBreaks = (content: Array<string | "br">[]) => {
+const createDocWithBreaks = (content: (string | "br")[]) => {
   const children: ReturnType<typeof schema.nodes.paragraph.create>[] = []
   let currentPara: Array<ReturnType<typeof schema.text> | ReturnType<typeof schema.nodes.hard_break.create>> = []
 
