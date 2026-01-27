@@ -1,16 +1,23 @@
+import { z } from "zod"
 import type { Handler } from "../../types"
 import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile } from "~/lib/files"
 import { createShell, type Files, type Operation } from "./shell"
 
-type ShellArgs = {
-  commands: string[]
-}
+const ShellArgs = z.object({
+  commands: z.array(z.string()).min(1, "commands required - what shell commands to run?"),
+})
 
 type ShellCommandOutput = {
   stdout: string
   stderr: string
   outcome: { type: "exit"; exit_code: number }
 }
+
+const formatError = (error: z.ZodError): ShellCommandOutput[] => [{
+  stdout: "",
+  stderr: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+  outcome: { type: "exit", exit_code: 1 },
+}]
 
 const filesToMap = (files: Record<string, { raw: string }>): Files =>
   new Map(Object.entries(files).map(([k, v]) => [k, v.raw]))
@@ -46,12 +53,10 @@ const applyOperations = (operations: Operation[]): string[] => {
 }
 
 export const shellTool: Handler = async (_, args) => {
-  const { commands } = args as ShellArgs
+  const parsed = ShellArgs.safeParse(args)
+  if (!parsed.success) return formatError(parsed.error)
 
-  if (!commands || !Array.isArray(commands)) {
-    return [{ stdout: "", stderr: "commands array is required", outcome: { type: "exit", exit_code: 1 } }]
-  }
-
+  const { commands } = parsed.data
   const files = filesToMap(getFiles() as Record<string, { raw: string }>)
   const shell = createShell(files)
 

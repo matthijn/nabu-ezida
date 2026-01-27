@@ -1,15 +1,33 @@
+import { z } from "zod"
 import type { Handler, ToolDeps } from "../types"
 import { getFileRaw, updateFileRaw, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
 import { sendCommand, type Command, type Action } from "~/lib/sync"
 import type { FieldRejection } from "~/domain/attributes"
 
-type OperationType = "create_file" | "update_file" | "delete_file"
+const CreateFileOp = z.object({
+  type: z.literal("create_file"),
+  path: z.string().min(1, "path required - which file to create?"),
+  diff: z.string().min(1, "diff required - what content to write?"),
+})
 
-type Operation = {
-  type: OperationType
-  path: string
-  diff?: string
-}
+const UpdateFileOp = z.object({
+  type: z.literal("update_file"),
+  path: z.string().min(1, "path required - which file to update?"),
+  diff: z.string().min(1, "diff required - what changes to apply?"),
+})
+
+const DeleteFileOp = z.object({
+  type: z.literal("delete_file"),
+  path: z.string().min(1, "path required - which file to delete?"),
+})
+
+const OperationSchema = z.discriminatedUnion("type", [CreateFileOp, UpdateFileOp, DeleteFileOp])
+
+const ApplyPatchArgs = z.object({
+  operation: OperationSchema,
+})
+
+type Operation = z.infer<typeof OperationSchema>
 
 type ApplyPatchResult =
   | { status: "completed"; output: string }
@@ -57,7 +75,7 @@ const handleDeleteFile = (path: string): ApplyPatchResult => {
   return { status: "completed", output: `Deleted ${path}` }
 }
 
-const operationTypeToAction: Record<OperationType, Action> = {
+const operationTypeToAction: Record<Operation["type"], Action> = {
   create_file: "CreateFile",
   update_file: "UpdateFile",
   delete_file: "DeleteFile",
@@ -67,7 +85,7 @@ const persistToServer = (projectId: string, operation: Operation): void => {
   const command: Command = {
     action: operationTypeToAction[operation.type],
     path: operation.path,
-    diff: operation.diff,
+    diff: "diff" in operation ? operation.diff : undefined,
   }
   sendCommand(projectId, command).catch(() => {
     // Server sync failed - local state is ahead of server
@@ -75,39 +93,26 @@ const persistToServer = (projectId: string, operation: Operation): void => {
   })
 }
 
+const formatError = (error: z.ZodError): { status: "failed"; output: string } => ({
+  status: "failed",
+  output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+})
+
 export const applyPatchTool: Handler = async (deps: ToolDeps, args) => {
-  const operation = args.operation as Operation | undefined
-
-  if (!operation) {
-    return { status: "failed", output: "operation is required" }
+  if (!args.operation) {
+    return { status: "failed", output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file', path, diff}" }
   }
 
-  const { type, path, diff } = operation
+  const parsed = ApplyPatchArgs.safeParse(args)
+  if (!parsed.success) return formatError(parsed.error)
 
-  if (!path) {
-    return { status: "failed", output: "operation.path is required" }
-  }
+  const operation = parsed.data.operation
+  const { type, path } = operation
 
-  let result: ApplyPatchResult
-
-  switch (type) {
-    case "create_file":
-      if (!diff) return { status: "failed", output: "diff is required for create_file" }
-      result = handleCreateFile(path, diff)
-      break
-
-    case "update_file":
-      if (!diff) return { status: "failed", output: "diff is required for update_file" }
-      result = handleUpdateFile(path, diff)
-      break
-
-    case "delete_file":
-      result = handleDeleteFile(path)
-      break
-
-    default:
-      return { status: "failed", output: `Unknown operation type: ${type}` }
-  }
+  const result: ApplyPatchResult =
+    type === "create_file" ? handleCreateFile(path, operation.diff) :
+    type === "update_file" ? handleUpdateFile(path, operation.diff) :
+    handleDeleteFile(path)
 
   if (result.status === "completed" && deps.project?.id) {
     persistToServer(deps.project.id, operation)
