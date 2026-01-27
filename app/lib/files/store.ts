@@ -44,7 +44,7 @@ const parseFileBlocks = (raw: string): ParsedBlocks => {
   return { attributes, callouts }
 }
 
-const createFileEntry = (raw: string): FileEntry => ({
+export const createFileEntry = (raw: string): FileEntry => ({
   raw,
   parsed: parseFileBlocks(raw),
 })

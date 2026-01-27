@@ -19,6 +19,7 @@ export {
   subscribe,
   persistFiles,
   restoreFiles,
+  createFileEntry,
   type FileEntry,
 } from "./store"
 
