@@ -1,26 +1,26 @@
 import { z } from "zod"
-import type { Handler, ToolDeps } from "../types"
+import type { Handler, ToolDeps, ToolResult } from "../types"
 import { getFileRaw, updateFileRaw, deleteFile, applyFilePatch, type FileResult } from "~/lib/files"
 import { sendCommand, type Command, type Action } from "~/lib/sync"
 import type { FieldRejection } from "~/domain/attributes"
 
-export const applyPatchTool: Handler = async (deps: ToolDeps, args) => {
+export const applyPatchTool: Handler<string> = async (deps: ToolDeps, args) => {
   if (!args.operation) {
-    return { status: "failed", output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file', path, diff}" }
+    return { status: "error", output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file', path, diff}" }
   }
 
   const parsed = ApplyPatchArgs.safeParse(args)
-  if (!parsed.success) return formatError(parsed.error)
+  if (!parsed.success) return formatZodError(parsed.error)
 
   const operation = parsed.data.operation
   const { type, path } = operation
 
-  const result: ApplyPatchResult =
+  const result: ToolResult<string> =
     type === "create_file" ? handleCreateFile(path, operation.diff) :
     type === "update_file" ? handleUpdateFile(path, operation.diff) :
     handleDeleteFile(path)
 
-  if (result.status === "completed" && deps.project?.id) {
+  if (result.status === "ok" && deps.project?.id) {
     persistToServer(deps.project.id, operation)
   }
 
@@ -52,36 +52,32 @@ const ApplyPatchArgs = z.object({
 
 type Operation = z.infer<typeof OperationSchema>
 
-type ApplyPatchResult =
-  | { status: "completed"; output: string }
-  | { status: "failed"; output: string }
-
-const formatError = (error: z.ZodError): { status: "failed"; output: string } => ({
-  status: "failed",
+const formatZodError = (error: z.ZodError): ToolResult<string> => ({
+  status: "error",
   output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
 })
 
-const handleCreateFile = (path: string, diff: string): ApplyPatchResult =>
-  toApplyPatchResult(applyFilePatch(path, "", diff), "Created")
+const handleCreateFile = (path: string, diff: string): ToolResult<string> =>
+  toToolResult(applyFilePatch(path, "", diff), "Created")
 
-const handleUpdateFile = (path: string, diff: string): ApplyPatchResult =>
-  toApplyPatchResult(applyFilePatch(path, getFileRaw(path), diff), "Updated")
+const handleUpdateFile = (path: string, diff: string): ToolResult<string> =>
+  toToolResult(applyFilePatch(path, getFileRaw(path), diff), "Updated")
 
-const handleDeleteFile = (path: string): ApplyPatchResult => {
+const handleDeleteFile = (path: string): ToolResult<string> => {
   deleteFile(path)
-  return { status: "completed", output: `Deleted ${path}` }
+  return { status: "ok", output: `Deleted ${path}` }
 }
 
-const toApplyPatchResult = (result: FileResult, verb: string): ApplyPatchResult => {
+const toToolResult = (result: FileResult, verb: string): ToolResult<string> => {
   switch (result.status) {
     case "ok":
       storeResult(result)
-      return { status: "completed", output: `${verb} ${result.path}` }
+      return { status: "ok", output: `${verb} ${result.path}` }
     case "partial":
       storeResult(result)
-      return { status: "completed", output: formatPartialResult(result.path, verb, result.rejected) }
+      return { status: "partial", output: formatPartialResult(result.path, verb, result.rejected) }
     case "error":
-      return { status: "failed", output: result.error }
+      return { status: "error", output: result.error }
   }
 }
 

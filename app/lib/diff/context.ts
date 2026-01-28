@@ -1,4 +1,4 @@
-import { Match } from "./search"
+import type { Match } from "./search"
 
 export const expandMatch = (match: Match, n: number, totalLines: number): Match => ({
   ...match,

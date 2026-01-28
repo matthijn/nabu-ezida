@@ -1,4 +1,4 @@
-import { findMatches, getMatchedText, Match } from "./search"
+import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
 
 type Hunk = {

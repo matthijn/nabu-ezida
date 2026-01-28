@@ -1,4 +1,4 @@
-import type { ToolCall, ToolDeps, Handler } from "../types"
+import type { ToolCall, ToolDeps, Handler, ToolResult } from "../types"
 import { applyPatchTool as applyLocalPatch } from "./patch"
 import { createPlan, completeStep, abort, startExploration, explorationStep } from "./orchestration"
 import { shellTool as runLocalShell } from "./shell"
@@ -15,11 +15,8 @@ const handlers: Record<string, Handler> = {
   run_local_shell: runLocalShell,
 }
 
-export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Promise<unknown> => {
-  console.log("[Tool]", call)
-
+export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Promise<ToolResult<unknown>> => {
   const handler = handlers[call.name]
   if (handler) return handler(deps, call.args)
-
-  return { error: `Unknown tool: ${call.name}` }
+  return { status: "error", output: `Unknown tool: ${call.name}` }
 }

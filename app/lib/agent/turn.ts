@@ -1,9 +1,9 @@
-import type { Block, ToolCall, ToolResultBlock } from "./types"
+import type { Block, ToolCall, ToolResultBlock, ToolResult } from "./types"
 import type { InputItem, ParseCallbacks } from "./stream"
 import { parse } from "./stream"
 import { isToolCallBlock } from "./derived"
 
-export type ToolExecutor = (call: ToolCall) => Promise<unknown>
+export type ToolExecutor = (call: ToolCall) => Promise<ToolResult<unknown>>
 
 export const appendBlock = (history: Block[], block: Block): Block[] => [...history, block]
 
@@ -16,62 +16,24 @@ export type TurnDeps = {
   signal?: AbortSignal
 }
 
-const sanitizeForJson = (value: unknown): unknown => {
-  if (typeof value === "bigint") return Number(value)
-  if (Array.isArray(value)) return value.map(sanitizeForJson)
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, sanitizeForJson(v)])
-    )
-  }
-  return value
+const logToolResult = (call: ToolCall, res: ToolResult<unknown>): void => {
+  const log = res.status === "ok" ? console.debug : console.warn
+  log(`[TOOL ${call.name}]`, { call, ...res })
 }
 
-const formatError = (e: unknown): unknown => {
-  if (e instanceof Error) return { error: e.message }
-  if (typeof e === "object" && e !== null) return e
-  return { error: String(e) }
-}
+const toErrorResult = (e: unknown): ToolResult<unknown> => ({
+  status: "error",
+  output: e instanceof Error ? e.message : String(e),
+})
 
 export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promise<ToolResultBlock> => {
-  try {
-    const result = await execute(call)
-    const block = { type: "tool_result" as const, callId: call.id, toolName: call.name, result: sanitizeForJson(result) }
-    console.log(`[Tool] result: ${call.name}`, block.result)
-    return block
-  } catch (e) {
-    const block = { type: "tool_result" as const, callId: call.id, toolName: call.name, result: formatError(e) }
-    console.log(`[Tool] error: ${call.name}`, block.result)
-    return block
-  }
+  const res = await execute(call).catch(toErrorResult)
+  logToolResult(call, res)
+  return { type: "tool_result", callId: call.id, toolName: call.name, result: res }
 }
 
-const countHunks = (diff: string): number => (diff.match(/@@/g) ?? []).length
-
-const logPatchSummary = (calls: ToolCall[]): void => {
-  const patches = calls.filter((c) => c.name === "apply_local_patch")
-  if (patches.length === 0) return
-
-  const byFile = patches.reduce<Record<string, { patches: number; hunks: number }>>((acc, call) => {
-    const op = call.args.operation as { path?: string; diff?: string } | undefined
-    const path = op?.path ?? "unknown"
-    const hunks = countHunks(op?.diff ?? "")
-    if (!acc[path]) acc[path] = { patches: 0, hunks: 0 }
-    acc[path].patches += 1
-    acc[path].hunks += hunks
-    return acc
-  }, {})
-
-  const summary = Object.entries(byFile)
-    .map(([file, { patches, hunks }]) => `${file}: ${patches} patch(es), ${hunks} hunk(s)`)
-    .join(", ")
-  console.log(`[Patches] ${patches.length} total — ${summary}`)
-}
-
-export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> => {
-  logPatchSummary(calls)
-  return Promise.all(calls.map((call) => executeTool(call, execute)))
-}
+export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
+  Promise.all(calls.map((call) => executeTool(call, execute)))
 
 export const runPrompt = async (
   endpoint: string,
@@ -93,7 +55,6 @@ export const turn = async (history: Block[], messages: InputItem[], deps: TurnDe
   const pendingResults = new Map<string, Promise<ToolResultBlock>>()
 
   const onToolCall = (call: ToolCall): void => {
-    console.log(`[Tool] executing immediately: ${call.name}`)
     pendingResults.set(call.id, executeTool(call, execute))
   }
 

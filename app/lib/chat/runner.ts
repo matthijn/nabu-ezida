@@ -38,12 +38,6 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
 
   const messages = blocksToMessages(current.history)
-  const counts = messages.reduce<Record<string, number>>((acc, m) => {
-    acc[m.type] = (acc[m.type] ?? 0) + 1
-    return acc
-  }, {})
-  const summary = Object.entries(counts).map(([t, n]) => `${n} ${t}`).join(", ")
-  console.log(`[Runner] Sending ${messages.length} messages: ${summary}`)
 
   try {
     const history = await turn(current.history, messages, {
@@ -56,7 +50,6 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
           if (c) updateChat({ streaming: c.streaming + chunk })
         },
         onToolName: (name) => {
-          console.log(`[Tool] streaming: ${name}`)
           updateChat({ streamingToolName: name })
         },
       },
@@ -70,7 +63,6 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
       updateChat({ streaming: "", streamingToolName: null, loading: false })
       return
     }
-    console.error("[Runner] Error:", e)
     updateChat({ error: "Something went wrong", streaming: "", streamingToolName: null, loading: false })
   }
 }

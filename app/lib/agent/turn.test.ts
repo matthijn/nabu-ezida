@@ -1,9 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { turn } from "./turn"
-import type { Block, ToolCall } from "./types"
+import type { Block, ToolCall, ToolResult } from "./types"
 import * as stream from "./stream"
 
-const mockExecutor = vi.fn(async (call: ToolCall) => ({ executed: call.name }))
+const mockExecutor = vi.fn(async (call: ToolCall): Promise<ToolResult<string>> => ({
+  status: "ok",
+  output: `executed ${call.name}`,
+}))
 
 const mockParse = (blocks: Block[]) => {
   vi.spyOn(stream, "parse").mockResolvedValueOnce(blocks)
@@ -91,7 +94,7 @@ describe("turn", () => {
 
   describe("error handling", () => {
     it("catches tool errors and returns them as results", async () => {
-      const failingExecutor = vi.fn(async () => {
+      const failingExecutor = vi.fn(async (): Promise<ToolResult<unknown>> => {
         throw new Error("Database connection failed")
       })
       const toolCallBlock: Block = {
@@ -107,29 +110,7 @@ describe("turn", () => {
         type: "tool_result",
         callId: "1",
         toolName: "execute_sql",
-        result: { error: "Database connection failed" },
-      })
-    })
-
-    it("sanitizes BigInt values in tool results", async () => {
-      const bigIntExecutor = vi.fn(async () => ({
-        count: BigInt(42),
-        nested: { value: BigInt(100) },
-        array: [BigInt(1), BigInt(2)],
-      }))
-      const toolCallBlock: Block = {
-        type: "tool_call",
-        calls: [{ id: "1", name: "execute_sql", args: {} }],
-      }
-      mockParse([toolCallBlock])
-
-      const result = await turn([], [], { ...deps, execute: bigIntExecutor })
-
-      expect(result[1]).toEqual({
-        type: "tool_result",
-        callId: "1",
-        toolName: "execute_sql",
-        result: { count: 42, nested: { value: 100 }, array: [1, 2] },
+        result: { status: "error", output: "Database connection failed" },
       })
     })
   })

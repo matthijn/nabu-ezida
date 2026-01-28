@@ -1,7 +1,8 @@
 import type { Block } from "../../types"
 import type { Nudger } from "../nudge-tools"
-import type { DerivedPlan, Step, Section, SectionResult } from "../../derived"
+import type { DerivedPlan, Step, Section, SectionResult, Files } from "../../derived"
 import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
+import { findSingletonBlock } from "~/domain/blocks"
 
 const STUCK_LIMIT = 10
 
@@ -16,7 +17,7 @@ export const planNudge: Nudger = (history, files, _emptyNudge) => {
     const actions = actionsSinceStepChange(history)
     if (actions > STUCK_LIMIT) return null
     if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)
-    return buildPlanNudge(plan, plan.currentStep!)
+    return buildPlanNudge(plan, plan.currentStep!, files)
   }
 
   if (plan.currentStep === null && !plan.aborted && lastBlock(history)?.type === "tool_result") {
@@ -126,13 +127,32 @@ const formatPlanResults = (plan: DerivedPlan): string => {
   return `<plan-results task="${plan.task}">\n${lines}\n</plan-results>`
 }
 
-const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
+const getFileAttributes = (files: Files, filename: string): string | null => {
+  const raw = files[filename]?.raw
+  if (!raw) return null
+  const block = findSingletonBlock(raw, "json-attributes")
+  return block?.content ?? null
+}
+
+const formatFileSwitch = (files: Files, filename: string): string => {
+  const attrs = getFileAttributes(files, filename)
+  const attrsBlock = attrs
+    ? `\n<attributes ${filename}>\n${attrs}\n</attributes>`
+    : ""
+  return `Switched to file: ${filename}${attrsBlock}\n`
+}
+
+const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number, files: Files): string => {
   const current = plan.steps[stepIndex]
   const ps = plan.perSection!
   const section = ps.sections[ps.currentSection]
   const totalSections = ps.sections.length
 
   const sectionProgress = formatSectionProgress(section, ps.currentSection, totalSections)
+
+  const fileSwitch = section.indexInFile === 1
+    ? formatFileSwitch(files, section.file)
+    : ""
 
   const previousSections = ps.completedSections.length > 0
     ? `\nPrevious section results:\n${ps.completedSections.map(formatSectionResult).join("\n")}\n`
@@ -142,7 +162,7 @@ const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number): string => {
 
   return `EXECUTING STEP ${current.id}: ${current.description}
 ${sectionProgress}
-
+${fileSwitch}
 <section ${section.file} ${section.indexInFile}/${section.totalInFile}>
 ${section.content}
 </section ${section.file} ${section.indexInFile}/${section.totalInFile}>
@@ -157,12 +177,12 @@ INSTRUCTIONS:
 If blocked: call abort with reason`
 }
 
-const buildPlanNudge = (plan: DerivedPlan, stepIndex: number): string => {
+const buildPlanNudge = (plan: DerivedPlan, stepIndex: number, files: Files): string => {
   if (plan.perSection) {
     const { firstInnerStepIndex, innerStepCount } = plan.perSection
     const inPerSection = stepIndex >= firstInnerStepIndex && stepIndex < firstInnerStepIndex + innerStepCount
     if (inPerSection) {
-      return buildPerSectionNudge(plan, stepIndex)
+      return buildPerSectionNudge(plan, stepIndex, files)
     }
   }
 

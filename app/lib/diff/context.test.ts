@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { expandMatch, countLines } from "./context"
-import { Match, getMatchedText } from "./search"
+import { type Match, getMatchedText } from "./search"
 
 describe("expandMatch", () => {
   const cases: { name: string; match: Match; n: number; totalLines: number; expected: Match }[] = [

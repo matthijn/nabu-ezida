@@ -38,4 +38,9 @@ export type ToolDeps = {
   navigate?: (url: string) => void
 }
 
-export type Handler = (deps: ToolDeps, args: Record<string, unknown>) => Promise<unknown>
+export type ToolResult<T> =
+  | { status: "ok"; output: T }
+  | { status: "partial"; output: T }
+  | { status: "error"; output: string }
+
+export type Handler<T = unknown> = (deps: ToolDeps, args: Record<string, unknown>) => Promise<ToolResult<T>>

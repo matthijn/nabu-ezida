@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { readdirSync, readFileSync } from "fs"
 import { join } from "path"
-import { findMatches, getMatchedText, Match } from "./search"
+import { findMatches, getMatchedText, type Match } from "./search"
 
 type ExpectedMatch = Match & { content?: string }
 

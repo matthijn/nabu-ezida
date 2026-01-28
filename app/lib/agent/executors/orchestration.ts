@@ -2,7 +2,7 @@
 // They return synthetic ok - actual logic lives in the reducer
 
 import { z } from "zod"
-import type { Handler } from "../types"
+import type { Handler, ToolResult } from "../types"
 
 // Step schemas - used with smart dispatch, not union
 const StepObject = z.object({
@@ -72,19 +72,21 @@ const ExplorationStepArgs = z.object({
   next: z.string().optional(),
 })
 
-const formatError = (error: z.ZodError): { error: string } => ({
-  error: formatZodError(error),
+const ok: ToolResult<null> = { status: "ok", output: null }
+
+const toError = (error: z.ZodError): ToolResult<null> => ({
+  status: "error",
+  output: formatZodError(error),
 })
 
-const validated = <T>(schema: z.ZodSchema<T>): Handler => async (_deps, args) => {
+const validated = <T>(schema: z.ZodSchema<T>): Handler<null> => async (_deps, args) => {
   const result = schema.safeParse(args)
-  if (!result.success) return formatError(result.error)
-  return {}
+  return result.success ? ok : toError(result.error)
 }
 
-export const createPlan: Handler = async (_deps, args) => {
-  const error = validateCreatePlan(args)
-  return error ?? {}
+export const createPlan: Handler<null> = async (_deps, args) => {
+  const validationError = validateCreatePlan(args)
+  return validationError ? { status: "error", output: validationError.error } : ok
 }
 export const completeStep = validated(CompleteStepArgs)
 export const abort = validated(AbortArgs)

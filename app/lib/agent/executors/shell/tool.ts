@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { Handler } from "../../types"
+import type { Handler, ToolResult } from "../../types"
 import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile } from "~/lib/files"
 import { createShell, type Files, type Operation } from "./shell"
 
@@ -7,17 +7,16 @@ const ShellArgs = z.object({
   commands: z.array(z.string()).min(1, "commands required - what shell commands to run?"),
 })
 
-type ShellCommandOutput = {
+export type ShellCommandOutput = {
   stdout: string
   stderr: string
   outcome: { type: "exit"; exit_code: number }
 }
 
-const formatError = (error: z.ZodError): ShellCommandOutput[] => [{
-  stdout: "",
-  stderr: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
-  outcome: { type: "exit", exit_code: 1 },
-}]
+const formatZodError = (error: z.ZodError): ToolResult<ShellCommandOutput[]> => ({
+  status: "error",
+  output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+})
 
 const filesToMap = (files: Record<string, { raw: string }>): Files =>
   new Map(Object.entries(files).map(([k, v]) => [k, v.raw]))
@@ -52,9 +51,9 @@ const applyOperations = (operations: Operation[]): string[] => {
   return results
 }
 
-export const shellTool: Handler = async (_, args) => {
+export const shellTool: Handler<ShellCommandOutput[]> = async (_, args) => {
   const parsed = ShellArgs.safeParse(args)
-  if (!parsed.success) return formatError(parsed.error)
+  if (!parsed.success) return formatZodError(parsed.error)
 
   const { commands } = parsed.data
   const files = filesToMap(getFiles() as Record<string, { raw: string }>)
@@ -79,5 +78,6 @@ export const shellTool: Handler = async (_, args) => {
     }
   })
 
-  return results
+  const hasError = results.some((r) => r.outcome.exit_code !== 0)
+  return { status: hasError ? "partial" : "ok", output: results }
 }
