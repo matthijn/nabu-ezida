@@ -1,4 +1,10 @@
 [
-  { "type": "user", "content": "hi" },
-  { "type": "system", "content": "EMPTY_NUDGE" }
+  {
+    "type": "user",
+    "content": "hi"
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  }
 ]

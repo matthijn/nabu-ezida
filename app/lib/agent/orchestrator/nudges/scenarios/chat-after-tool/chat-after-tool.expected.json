@@ -1,8 +1,33 @@
 [
-  { "type": "user", "content": "List files" },
-  { "type": "system", "content": "EMPTY_NUDGE" },
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "list_files", "args": {} }]},
-  { "type": "tool_result", "callId": "1", "result": {} },
-  { "type": "system", "content": "EMPTY_NUDGE" },
-  { "type": "system", "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n" }
+  {
+    "type": "user",
+    "content": "List files"
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "1",
+        "name": "list_files",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "1",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n"
+  }
 ]

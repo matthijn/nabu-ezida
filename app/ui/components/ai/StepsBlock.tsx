@@ -102,4 +102,5 @@ export const StepsBlock = ({ steps, aborted, projectId, navigate }: StepsBlockPr
   )
 }
 
+export { StepRow }
 export type { StepItem, StepType }

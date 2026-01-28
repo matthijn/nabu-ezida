@@ -34,10 +34,8 @@ const formatCompletedStep = (step: Step): string => {
 const formatPendingStep = (step: Step): string =>
   `${step.id}. [pending] ${step.description}`
 
-const formatCurrentStep = (step: Step): string => {
-  const expectedPart = step.expected ? `\n   expected: "${step.expected}"` : ""
-  return `${step.id}. [current] ${step.description}  ← current${expectedPart}`
-}
+const formatCurrentStep = (step: Step): string =>
+  `${step.id}. [current] ${step.description}  ← current\n   expected: "${step.expected}"`
 
 const formatStep = (step: Step, currentIndex: number, index: number): string => {
   if (index === currentIndex) return formatCurrentStep(step)
@@ -60,7 +58,7 @@ const formatSectionProgress = (section: Section, sectionIndex: number, totalSect
 type ResultEntry = {
   stepId: string
   description: string
-  expected: string | null
+  expected: string
   section: string | null  // e.g., "doc.md 1/2" or null for regular steps
   summary: string | null
   internal: string | null
@@ -90,7 +88,7 @@ const collectResults = (plan: DerivedPlan): ResultEntry[] => {
               results.push({
                 stepId: inner.stepId,
                 description: innerStep?.description ?? "",
-                expected: innerStep?.expected ?? null,
+                expected: innerStep?.expected ?? "",
                 section: `${section.file} ${section.indexInFile}/${totalSections}`,
                 summary: inner.summary,
                 internal: inner.internal,
@@ -119,10 +117,7 @@ const collectResults = (plan: DerivedPlan): ResultEntry[] => {
 const formatResultEntry = (entry: ResultEntry): string => {
   const sectionPart = entry.section ? ` (${entry.section})` : ""
   const internalPart = entry.internal ? ` [context: ${entry.internal}]` : ""
-  if (entry.expected) {
-    return `${entry.stepId}. ${entry.description}${sectionPart}:\n   expected: "${entry.expected}"\n   result: "${entry.summary ?? ""}"${internalPart}`
-  }
-  return `${entry.stepId}. ${entry.description}${sectionPart}: "${entry.summary ?? ""}"${internalPart}`
+  return `${entry.stepId}. ${entry.description}${sectionPart}:\n   expected: "${entry.expected}"\n   result: "${entry.summary ?? ""}"${internalPart}`
 }
 
 const formatPlanResults = (plan: DerivedPlan): string => {

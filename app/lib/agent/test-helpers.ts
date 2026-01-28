@@ -1,9 +1,26 @@
 import type { Block } from "./types"
-import type { StepDef } from "./selectors"
+import type { StepDef, StepDefObject } from "./selectors"
 
-export const createPlanCall = (task: string, steps: StepDef[], files?: string[]): Block => ({
+// Helper to convert string steps to object steps for backward compatibility in tests
+type StepInput = string | StepDefObject | { per_section: (string | StepDefObject)[] }
+
+const toStepDef = (input: StepInput): StepDef => {
+  if (typeof input === "string") {
+    return { title: input, expected: `${input} done` }
+  }
+  if ("per_section" in input) {
+    return {
+      per_section: input.per_section.map((s) =>
+        typeof s === "string" ? { title: s, expected: `${s} done` } : s
+      ),
+    }
+  }
+  return input
+}
+
+export const createPlanCall = (task: string, steps: StepInput[], files?: string[]): Block => ({
   type: "tool_call",
-  calls: [{ id: "1", name: "create_plan", args: { task, steps, files } }],
+  calls: [{ id: "1", name: "create_plan", args: { task, steps: steps.map(toStepDef), files } }],
 })
 
 export const completeStepCall = (summary = "Done", internal?: string): Block => ({
@@ -21,9 +38,9 @@ export const startExplorationCall = (question: string, direction?: string): Bloc
   calls: [{ id: "1", name: "start_exploration", args: { question, direction } }],
 })
 
-export const explorationStepCall = (learned: string, decision: string, next?: string, internal?: string): Block => ({
+export const explorationStepCall = (internal: string, learned: string, decision: string, next?: string): Block => ({
   type: "tool_call",
-  calls: [{ id: "1", name: "exploration_step", args: { learned, decision, next, internal } }],
+  calls: [{ id: "1", name: "exploration_step", args: { internal, learned, decision, next } }],
 })
 
 export const toolResult = (callId = "1", result: unknown = { ok: true }): Block => ({

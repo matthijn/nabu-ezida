@@ -14,6 +14,7 @@ export {
   type Finding,
   type DerivedPlan,
   type DerivedExploration,
+  type PerSectionConfig,
   type Derived,
   type Mode,
 } from "./selectors"

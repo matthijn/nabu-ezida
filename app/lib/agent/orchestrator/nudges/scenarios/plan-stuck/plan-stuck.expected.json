@@ -1,38 +1,231 @@
 [
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "create_plan", "args": { "task": "Do task", "steps": ["Step one"] }}]},
-  { "type": "tool_result", "callId": "1", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "system", "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n" },
-  { "type": "tool_call", "calls": [{ "id": "2", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "2", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "3", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "3", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "4", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "4", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "5", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "5", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "6", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "6", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "system", "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n" },
-  { "type": "tool_call", "calls": [{ "id": "7", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "7", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "system", "content": "\n## SHELL REMINDER\nShell: cat, cp, find, grep, head, ls, mv, rm, tail, wc\n" },
-  { "type": "tool_call", "calls": [{ "id": "8", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "8", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "9", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "9", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "10", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "10", "result": {} },
-  { "type": "system", "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason" },
-  { "type": "tool_call", "calls": [{ "id": "11", "name": "read_file", "args": {} }]},
-  { "type": "tool_result", "callId": "11", "result": {} },
-  { "type": "system", "content": "STUCK ON STEP 1: Step one\n\nYou have made too many attempts without completing this step.\n\nYou MUST now either:\n1. Call complete_step if the step is actually done\n2. Call abort with a clear reason why you cannot complete this step\n\nNo other actions are allowed. Choose one NOW." }
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "1",
+        "name": "create_plan",
+        "args": {
+          "task": "Do task",
+          "steps": [
+            {
+              "title": "Step one",
+              "expected": "Task completed"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "1",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "system",
+    "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "2",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "2",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "3",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "3",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "4",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "4",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "5",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "5",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "6",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "6",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "system",
+    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "7",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "7",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "system",
+    "content": "\n## SHELL REMINDER\nShell: cat, cp, find, grep, head, ls, mv, rm, tail, wc\n"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "8",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "8",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "9",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "9",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "10",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "10",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "11",
+        "name": "read_file",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "11",
+    "result": {}
+  },
+  {
+    "type": "system",
+    "content": "STUCK ON STEP 1: Step one\n\nYou have made too many attempts without completing this step.\n\nYou MUST now either:\n1. Call complete_step if the step is actually done\n2. Call abort with a clear reason why you cannot complete this step\n\nNo other actions are allowed. Choose one NOW."
+  }
 ]

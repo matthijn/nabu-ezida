@@ -169,6 +169,7 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
         <PlanProgressCard
           steps={message.plan.steps}
           currentStep={message.currentStep}
+          perSection={message.plan.perSection}
           aborted={message.aborted}
           projectId={projectId}
           navigate={navigate}

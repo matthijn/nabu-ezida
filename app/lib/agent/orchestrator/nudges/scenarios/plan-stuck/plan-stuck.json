@@ -1,5 +1,5 @@
 [
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "create_plan", "args": { "task": "Do task", "steps": ["Step one"] }}]},
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "create_plan", "args": { "task": "Do task", "steps": [{ "title": "Step one", "expected": "Task completed" }] }}]},
   { "type": "tool_result", "callId": "1", "result": {} },
   { "type": "tool_call", "calls": [{ "id": "2", "name": "read_file", "args": {} }]},
   { "type": "tool_result", "callId": "2", "result": {} },

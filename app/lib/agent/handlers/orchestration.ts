@@ -5,13 +5,7 @@ import { z } from "zod"
 import type { Handler } from "../types"
 
 // Step schemas - used with smart dispatch, not union
-const StepString = z.string().min(1, "step title required")
 const StepObject = z.object({
-  title: z.string().min(1, "title required"),
-  expected: z.string().min(1, "expected required - what should this step produce?"),
-})
-const PerSectionItemString = z.string().min(1, "step title required")
-const PerSectionItemObject = z.object({
   title: z.string().min(1, "title required"),
   expected: z.string().min(1, "expected required - what should this step produce?"),
 })
@@ -21,22 +15,13 @@ const formatZodError = (error: z.ZodError): string =>
 
 const validatePerSectionItem = (item: unknown, stepIdx: number, itemIdx: number): string | null => {
   const path = `steps.${stepIdx}.per_section.${itemIdx}`
-  if (typeof item === "string") {
-    const r = PerSectionItemString.safeParse(item)
-    return r.success ? null : `${path}: step title required`
-  }
-  const r = PerSectionItemObject.safeParse(item)
+  const r = StepObject.safeParse(item)
   return r.success ? null : `${path}: ${formatZodError(r.error)}`
 }
 
 const validateStep = (step: unknown, index: number): string[] => {
-  if (typeof step === "string") {
-    const r = StepString.safeParse(step)
-    return r.success ? [] : [`steps.${index}: step title required`]
-  }
-
   if (typeof step !== "object" || step === null) {
-    return [`steps.${index}: step must be string, {title, expected}, or {per_section: [...]}`]
+    return [`steps.${index}: step must be {title, expected} or {per_section: [...]}`]
   }
 
   if ("per_section" in step) {
@@ -81,6 +66,7 @@ const StartExplorationArgs = z.object({
 })
 
 const ExplorationStepArgs = z.object({
+  internal: z.string().min(1, "internal required - capture IDs, query results, technical details for next steps"),
   learned: z.string().min(1, "learned required - what did you discover?"),
   decision: z.enum(["continue", "answer", "plan"]),
   next: z.string().optional(),

@@ -48,7 +48,7 @@ describe("toNudge", () => {
       history: [
         startExplorationCall("Question", "Check A"),
         toolResult(),
-        explorationStepCall("Found A", "continue", "Check B"),
+        explorationStepCall("ctx:a", "Found A", "continue", "Check B"),
         toolResult(),
       ],
       expect: { type: "contains", text: "Found A" },
@@ -70,7 +70,7 @@ describe("toNudge", () => {
         shellBlock(),
         startExplorationCall("Question"),
         toolResult(),
-        explorationStepCall("Found it", "answer"),
+        explorationStepCall("ctx:done", "Found it", "answer"),
         toolResult(),
       ],
       expect: { type: "emptyNudge" },
@@ -184,7 +184,7 @@ describe("toNudge", () => {
       history: [
         startExplorationCall("Question"),
         toolResult(),
-        explorationStepCall("Found it", "plan"),
+        explorationStepCall("ctx:ready", "Found it", "plan"),
         toolResult(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),

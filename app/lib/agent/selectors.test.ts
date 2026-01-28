@@ -29,7 +29,7 @@ describe("selectors", () => {
       },
       {
         name: "create_plan creates plan",
-        history: [createPlanCall("Test task", ["Step 1", "Step 2"])],
+        history: [createPlanCall("Test task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }])],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d)
@@ -41,7 +41,7 @@ describe("selectors", () => {
       },
       {
         name: "complete_step marks step done and advances",
-        history: [createPlanCall("Task", ["Step 1", "Step 2"]), completeStepCall("Done")],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]), completeStepCall("Done")],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d)
@@ -52,7 +52,7 @@ describe("selectors", () => {
       },
       {
         name: "complete_step stores internal context",
-        history: [createPlanCall("Task", ["Step 1"]), completeStepCall("Done", "id:123, count:5")],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), completeStepCall("Done", "id:123, count:5")],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d)
@@ -63,7 +63,7 @@ describe("selectors", () => {
       {
         name: "all steps complete returns null currentStep",
         history: [
-          createPlanCall("Task", ["Step 1", "Step 2"]),
+          createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]),
           completeStepCall("Done 1"),
           completeStepCall("Done 2"),
         ],
@@ -75,7 +75,7 @@ describe("selectors", () => {
       },
       {
         name: "abort marks plan as aborted",
-        history: [createPlanCall("Task", ["Step 1"]), abortCall()],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), abortCall()],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(lastPlan(d)?.aborted).toBe(true)
@@ -115,7 +115,7 @@ describe("selectors", () => {
         name: "exploration_step with continue adds finding",
         history: [
           startExplorationCall("Question", "Look at A"),
-          explorationStepCall("Found A details", "continue", "Now look at B"),
+          explorationStepCall("ctx:abc", "Found A details", "continue", "Now look at B"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -130,7 +130,7 @@ describe("selectors", () => {
         name: "exploration_step stores internal context",
         history: [
           startExplorationCall("Question", "Look at A"),
-          explorationStepCall("Found it", "continue", "Next", "fileId:abc"),
+          explorationStepCall("fileId:abc", "Found it", "continue", "Next"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -142,7 +142,7 @@ describe("selectors", () => {
         name: "exploration_step with answer marks completed",
         history: [
           startExplorationCall("Question"),
-          explorationStepCall("Answer found", "answer"),
+          explorationStepCall("ctx:done", "Answer found", "answer"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -154,7 +154,7 @@ describe("selectors", () => {
         name: "exploration_step with plan marks completed",
         history: [
           startExplorationCall("Question"),
-          explorationStepCall("Ready to plan", "plan"),
+          explorationStepCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -171,7 +171,7 @@ describe("selectors", () => {
       },
       {
         name: "create_plan clears exploration",
-        history: [startExplorationCall("Question"), createPlanCall("Task", ["Step 1"])],
+        history: [startExplorationCall("Question"), createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration).toBe(null)
@@ -194,12 +194,12 @@ describe("selectors", () => {
       },
       {
         name: "active plan returns plan",
-        history: [createPlanCall("Task", ["Step 1"])],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
         expected: "plan",
       },
       {
         name: "completed plan returns chat",
-        history: [createPlanCall("Task", ["Step 1"]), completeStepCall()],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), completeStepCall()],
         expected: "chat",
       },
       {
@@ -209,7 +209,7 @@ describe("selectors", () => {
       },
       {
         name: "exploration takes priority over plan",
-        history: [createPlanCall("Task", ["Step 1"]), startExplorationCall("Question")],
+        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), startExplorationCall("Question")],
         expected: "exploration",
       },
     ]
@@ -226,7 +226,11 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Analyze docs",
-          ["Research", { per_section: ["Analyze", "Code"] }, "Summary"],
+          [
+            { title: "Research", expected: "Research done" },
+            { per_section: [{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }] },
+            { title: "Summary", expected: "Summarized" },
+          ],
           ["doc1.md", "doc2.md"]
         ),
       ]
@@ -245,7 +249,11 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Task",
-          ["Pre", { per_section: ["Inner 1", "Inner 2"] }, "Post"],
+          [
+            { title: "Pre", expected: "Pre done" },
+            { per_section: [{ title: "Inner 1", expected: "Inner 1 done" }, { title: "Inner 2", expected: "Inner 2 done" }] },
+            { title: "Post", expected: "Post done" },
+          ],
           ["doc1.md"]
         ),
         completeStepCall("Pre done"),
@@ -262,7 +270,7 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Task",
-          [{ per_section: ["Analyze", "Code"] }],
+          [{ per_section: [{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }] }],
           ["doc1.md", "doc2.md"]
         ),
         completeStepCall("Analyze 1"),
@@ -287,7 +295,7 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Task",
-          [{ per_section: ["Process"] }],
+          [{ per_section: [{ title: "Process", expected: "Processed" }] }],
           ["a.md", "b.md"]
         ),
         completeStepCall("Section 1 done"),
@@ -306,7 +314,7 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Task",
-          [{ per_section: ["Step A", "Step B"] }],
+          [{ per_section: [{ title: "Step A", expected: "A done" }, { title: "Step B", expected: "B done" }] }],
           ["doc.md"]
         ),
         completeStepCall("A done", "internal:123"),
@@ -327,7 +335,10 @@ describe("selectors", () => {
       const history = [
         createPlanCall(
           "Task",
-          [{ per_section: ["Process"] }, "Final step"],
+          [
+            { per_section: [{ title: "Process", expected: "Processed" }] },
+            { title: "Final step", expected: "Final done" },
+          ],
           ["doc.md"]
         ),
         completeStepCall("Processed"),
@@ -354,7 +365,7 @@ Actual content here.`,
         },
       }
       const history = [
-        createPlanCall("Task", [{ per_section: ["Process"] }], ["doc.md"]),
+        createPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }] }], ["doc.md"]),
       ]
       const d = derive(history, filesWithAttributes)
       const plan = lastPlan(d)

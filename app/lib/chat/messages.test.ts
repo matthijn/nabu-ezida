@@ -178,8 +178,8 @@ describe("toRenderMessages", () => {
         name: "exploration_step adds findings",
         history: [
           startExplorationCall("Question", "Look at A"),
-          explorationStepCall("Found info about A", "continue", "Look at B"),
-          explorationStepCall("Found info about B", "continue", "Look at C"),
+          explorationStepCall("ctx:a", "Found info about A", "continue", "Look at B"),
+          explorationStepCall("ctx:b", "Found info about B", "continue", "Look at C"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -195,7 +195,7 @@ describe("toRenderMessages", () => {
         name: "exploration with answer decision renders as completed",
         history: [
           startExplorationCall("Question"),
-          explorationStepCall("Found the answer", "answer"),
+          explorationStepCall("ctx:done", "Found the answer", "answer"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -209,7 +209,7 @@ describe("toRenderMessages", () => {
         name: "exploration with plan decision renders as completed",
         history: [
           startExplorationCall("Question"),
-          explorationStepCall("Ready to plan", "plan"),
+          explorationStepCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -252,7 +252,7 @@ describe("toRenderMessages", () => {
         name: "exploration followed by plan",
         history: [
           startExplorationCall("What should we do?"),
-          explorationStepCall("Found approach", "plan"),
+          explorationStepCall("ctx:approach", "Found approach", "plan"),
           createPlanCall("Execute approach", ["Do it"]),
         ],
         check: (messages: RenderMessage[]) => {
