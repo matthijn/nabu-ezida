@@ -2,7 +2,7 @@ import type { Block } from "../types"
 import type { MultiNudger } from "./nudge-tools"
 import { nudge } from "./nudges"
 
-export { type Nudger, type MultiNudger, type Files, combine, collect } from "./nudge-tools"
+export { type Nudger, type MultiNudger, combine, collect } from "./nudge-tools"
 
 const lastBlockType = (history: Block[]): string =>
   history[history.length - 1]?.type ?? "empty"

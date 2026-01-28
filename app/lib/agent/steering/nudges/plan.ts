@@ -1,7 +1,7 @@
 import type { Block } from "../../types"
 import type { Nudger } from "../nudge-tools"
-import type { DerivedPlan, Step, Section, SectionResult } from "../../selectors"
-import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../selectors"
+import type { DerivedPlan, Step, Section, SectionResult } from "../../derived"
+import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
 
 const STUCK_LIMIT = 10
 
@@ -9,10 +9,10 @@ const lastBlock = (history: Block[]): Block | undefined => history[history.lengt
 
 export const planNudge: Nudger = (history, files, _emptyNudge) => {
   const d = derive(history, files)
-  const plan = lastPlan(d)
+  const plan = lastPlan(d.plans)
   if (!plan) return null
 
-  if (hasActivePlan(d)) {
+  if (hasActivePlan(d.plans)) {
     const actions = actionsSinceStepChange(history)
     if (actions > STUCK_LIMIT) return null
     if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)

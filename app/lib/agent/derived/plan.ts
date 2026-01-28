@@ -1,5 +1,8 @@
-import type { Block, ToolCall } from "./types"
+import type { ToolCall } from "../types"
+import type { FileEntry } from "~/lib/files"
 import { splitByLines } from "~/lib/text"
+
+export type Files = Record<string, FileEntry>
 
 // Input type from create_plan args
 export type StepDefObject = { title: string; expected: string }
@@ -14,13 +17,6 @@ export type Step = {
   done: boolean
   internal: string | null
   summary: string | null
-}
-
-export type Finding = {
-  id: string
-  direction: string
-  internal: string | null
-  learned: string
 }
 
 export type Section = {
@@ -55,33 +51,10 @@ export type DerivedPlan = {
   aborted: boolean
 }
 
-export type DerivedExploration = {
-  question: string
-  findings: Finding[]
-  currentDirection: string | null
-  completed: boolean
-}
+const SECTION_TARGET_LINES = 100
 
-export type Derived = {
-  plans: DerivedPlan[]
-  exploration: DerivedExploration | null
-}
-
-export type Files = Record<string, { raw: string }>
-
-export const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
-  block.type === "tool_call"
-
-export const findCall = (block: Block, name: string): ToolCall | undefined =>
-  isToolCallBlock(block) ? block.calls.find((c) => c.name === name) : undefined
-
-export const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
-
-const isCreatePlan = (call: ToolCall): boolean => call.name === "create_plan"
-const isCompleteStep = (call: ToolCall): boolean => call.name === "complete_step"
-const isAbort = (call: ToolCall): boolean => call.name === "abort"
-const isStartExploration = (call: ToolCall): boolean => call.name === "start_exploration"
-const isExplorationStep = (call: ToolCall): boolean => call.name === "exploration_step"
+const isPerSection = (step: StepDef): step is StepDefPerSection =>
+  "per_section" in step
 
 const findCurrentStep = (steps: Step[]): number | null => {
   const index = steps.findIndex((s) => !s.done)
@@ -90,11 +63,6 @@ const findCurrentStep = (steps: Step[]): number | null => {
 
 const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string): Step[] =>
   steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
-
-const isPerSection = (step: StepDef): step is StepDefPerSection =>
-  "per_section" in step
-
-const SECTION_TARGET_LINES = 100
 
 const computeSections = (fileNames: string[], files: Files): Section[] => {
   const sections: Section[] = []
@@ -148,7 +116,7 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
   return { steps, perSectionInfo }
 }
 
-const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
+export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
   const fileNames = (call.args.files as string[] | undefined) ?? null
   const { steps, perSectionInfo } = flattenSteps(stepDefs)
@@ -176,23 +144,6 @@ const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
   }
 }
 
-const createExplorationFromCall = (call: ToolCall): DerivedExploration => ({
-  question: call.args.question as string,
-  findings: [],
-  currentDirection: (call.args.direction as string) || null,
-  completed: false,
-})
-
-const addFinding = (exploration: DerivedExploration, direction: string, internal: string | null, learned: string): DerivedExploration => ({
-  ...exploration,
-  findings: [...exploration.findings, { id: String(exploration.findings.length + 1), direction, internal, learned }],
-})
-
-const updateLastPlan = (plans: DerivedPlan[], fn: (p: DerivedPlan) => DerivedPlan): DerivedPlan[] => {
-  if (plans.length === 0) return plans
-  return [...plans.slice(0, -1), fn(plans[plans.length - 1])]
-}
-
 const isInPerSection = (plan: DerivedPlan, stepIndex: number): boolean => {
   if (!plan.perSection) return false
   const { firstInnerStepIndex, innerStepCount } = plan.perSection
@@ -217,7 +168,7 @@ const resetInnerSteps = (steps: Step[], firstIndex: number, count: number): Step
       : s
   )
 
-const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary: string): DerivedPlan => {
+export const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary: string): DerivedPlan => {
   if (plan.currentStep === null) return plan
 
   const stepIndex = plan.currentStep
@@ -287,98 +238,14 @@ const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary
   }
 }
 
-const processToolCall = (derived: Derived, call: ToolCall, files: Files): Derived => {
-  if (isAbort(call)) {
-    return {
-      plans: updateLastPlan(derived.plans, (p) => ({ ...p, aborted: true })),
-      exploration: null,
-    }
-  }
+export const lastPlan = (plans: DerivedPlan[]): DerivedPlan | null => plans.at(-1) ?? null
 
-  if (isCreatePlan(call)) {
-    const clearExploration = derived.exploration?.completed ? derived.exploration : null
-    return { plans: [...derived.plans, createPlanFromCall(call, files)], exploration: clearExploration }
-  }
-
-  if (isCompleteStep(call)) {
-    const lastPlan = derived.plans.at(-1)
-    if (!lastPlan || lastPlan.currentStep === null) return derived
-    const internal = (call.args.internal as string) || null
-    const summary = (call.args.summary as string) || ""
-    return {
-      ...derived,
-      plans: updateLastPlan(derived.plans, (p) => processCompleteStep(p, internal, summary)),
-    }
-  }
-
-  if (isStartExploration(call)) {
-    return { ...derived, exploration: createExplorationFromCall(call) }
-  }
-
-  if (isExplorationStep(call) && derived.exploration && !derived.exploration.completed) {
-    const direction = derived.exploration.currentDirection || ""
-    const internal = (call.args.internal as string) || null
-    const learned = call.args.learned as string
-    const decision = call.args.decision as string
-    const next = call.args.next as string | undefined
-    const withFinding = addFinding(derived.exploration, direction, internal, learned)
-
-    if (decision === "answer" || decision === "plan") {
-      return { ...derived, exploration: { ...withFinding, currentDirection: null, completed: true } }
-    }
-    return { ...derived, exploration: { ...withFinding, currentDirection: next || null } }
-  }
-
-  return derived
-}
-
-const processBlock = (files: Files) => (derived: Derived, block: Block): Derived => {
-  if (!isToolCallBlock(block)) return derived
-  return block.calls.reduce((d, call) => processToolCall(d, call, files), derived)
-}
-
-export const derive = (history: Block[], files: Files = {}): Derived =>
-  history.reduce(processBlock(files), { plans: [], exploration: null })
-
-export const lastPlan = (d: Derived): DerivedPlan | null => d.plans.at(-1) ?? null
-
-export const hasActivePlan = (d: Derived): boolean => {
-  const plan = lastPlan(d)
+export const hasActivePlan = (plans: DerivedPlan[]): boolean => {
+  const plan = lastPlan(plans)
   return plan !== null && plan.currentStep !== null && !plan.aborted
 }
 
-export const hasActiveExploration = (d: Derived): boolean =>
-  d.exploration !== null && !d.exploration.completed
-
-export type Mode = "chat" | "plan" | "exploration"
-
-export const getMode = (d: Derived): Mode => {
-  if (hasActiveExploration(d)) return "exploration"
-  if (hasActivePlan(d)) return "plan"
-  return "chat"
+export const updateLastPlan = (plans: DerivedPlan[], fn: (p: DerivedPlan) => DerivedPlan): DerivedPlan[] => {
+  if (plans.length === 0) return plans
+  return [...plans.slice(0, -1), fn(plans[plans.length - 1])]
 }
-
-const isStepBoundary = (block: Block): boolean =>
-  hasCall(block, "create_plan") || hasCall(block, "complete_step")
-
-const isExplorationBoundary = (block: Block): boolean =>
-  hasCall(block, "start_exploration") || hasCall(block, "exploration_step")
-
-const isAgentAction = (block: Block): boolean =>
-  block.type === "text" || block.type === "tool_call"
-
-const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => boolean): number => {
-  let count = 0
-  for (let i = history.length - 1; i >= 0; i--) {
-    const block = history[i]
-    if (isBoundary(block)) break
-    if (isAgentAction(block)) count++
-  }
-  return count
-}
-
-export const actionsSinceStepChange = (history: Block[]): number =>
-  countActionsSinceBoundary(history, isStepBoundary)
-
-export const actionsSinceExplorationChange = (history: Block[]): number =>
-  countActionsSinceBoundary(history, isExplorationBoundary)

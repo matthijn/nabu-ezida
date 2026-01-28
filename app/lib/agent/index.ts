@@ -11,18 +11,20 @@ export {
   actionsSinceStepChange,
   actionsSinceExplorationChange,
   type Step,
+  type StepDef,
+  type StepDefObject,
+  type StepDefPerSection,
   type Finding,
   type DerivedPlan,
   type DerivedExploration,
   type PerSectionConfig,
   type Derived,
   type Mode,
-} from "./selectors"
-export { appendBlock, appendBlocks } from "./reducer"
-export { toNudge, combine, collect, type Nudger, type MultiNudger, type Files } from "./orchestrator"
-export { parse, processLine, initialParseState, blocksToMessages } from "./parser"
-export type { InputItem, ParseCallbacks, ParseOptions } from "./parser"
-export { createToolExecutor } from "./tools"
-export type { ToolDeps } from "./tools"
-export { turn, executeTools, executeTool, runPrompt } from "./turn"
+  type Files,
+} from "./derived"
+export { toNudge, combine, collect, type Nudger, type MultiNudger } from "./steering"
+export { parse, processLine, initialParseState, blocksToMessages } from "./stream"
+export type { InputItem, ParseCallbacks, ParseOptions } from "./stream"
+export { createToolExecutor, type ToolDeps } from "./executors"
+export { turn, executeTools, executeTool, runPrompt, appendBlock, appendBlocks } from "./turn"
 export type { TurnDeps, ToolExecutor } from "./turn"

@@ -1,7 +1,5 @@
 import type { Block, SystemBlock } from "../types"
-import type { FileEntry } from "~/lib/files"
-
-export type Files = Record<string, FileEntry>
+import type { Files } from "../derived"
 
 export type Nudger = (history: Block[], files: Files, emptyNudge: string) => string | null
 

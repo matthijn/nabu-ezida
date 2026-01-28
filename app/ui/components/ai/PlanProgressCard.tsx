@@ -57,13 +57,15 @@ const PerSectionBox = ({ perSection, steps, currentStep, aborted, context }: Per
 
   return (
     <div className="w-full rounded-md border border-solid border-neutral-200 bg-neutral-100 px-3 py-2">
-      <SectionLabel
-        file={section.file}
-        indexInFile={section.indexInFile}
-        totalInFile={section.totalInFile}
-        sectionIndex={currentSection}
-        totalSections={sections.length}
-      />
+      {section && (
+        <SectionLabel
+          file={section.file}
+          indexInFile={section.indexInFile}
+          totalInFile={section.totalInFile}
+          sectionIndex={currentSection}
+          totalSections={sections.length}
+        />
+      )}
       <div className="flex flex-col gap-2">
         {stepItems.map((step, i) => (
           <StepRow key={i} step={step} context={context} />

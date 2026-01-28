@@ -1,12 +1,12 @@
 import type { Nudger } from "../nudge-tools"
-import type { DerivedExploration, Finding } from "../../selectors"
-import { derive, hasActiveExploration, actionsSinceExplorationChange } from "../../selectors"
+import type { DerivedExploration, Finding } from "../../derived"
+import { derive, hasActiveExploration, actionsSinceExplorationChange } from "../../derived"
 
 const STUCK_LIMIT = 30
 
 export const explorationNudge: Nudger = (history, files, _emptyNudge) => {
   const d = derive(history, files)
-  if (!hasActiveExploration(d)) return null
+  if (!hasActiveExploration(d.exploration)) return null
 
   const actions = actionsSinceExplorationChange(history)
   if (actions > STUCK_LIMIT) return null

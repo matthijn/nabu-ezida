@@ -1,10 +1,13 @@
 import type { Block, ToolCall, ToolResultBlock } from "./types"
-import type { InputItem, ParseCallbacks } from "./parser"
-import { parse } from "./parser"
-import { appendBlock } from "./reducer"
-import { isToolCallBlock } from "./selectors"
+import type { InputItem, ParseCallbacks } from "./stream"
+import { parse } from "./stream"
+import { isToolCallBlock } from "./derived"
 
 export type ToolExecutor = (call: ToolCall) => Promise<unknown>
+
+export const appendBlock = (history: Block[], block: Block): Block[] => [...history, block]
+
+export const appendBlocks = (history: Block[], blocks: Block[]): Block[] => [...history, ...blocks]
 
 export type TurnDeps = {
   endpoint: string

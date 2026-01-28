@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { turn } from "./turn"
 import type { Block, ToolCall } from "./types"
-import * as parser from "./parser"
+import * as stream from "./stream"
 
 const mockExecutor = vi.fn(async (call: ToolCall) => ({ executed: call.name }))
 
 const mockParse = (blocks: Block[]) => {
-  vi.spyOn(parser, "parse").mockResolvedValueOnce(blocks)
+  vi.spyOn(stream, "parse").mockResolvedValueOnce(blocks)
 }
 
 const deps = {

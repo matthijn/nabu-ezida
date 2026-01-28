@@ -1,4 +1,4 @@
-import type { Block } from "~/lib/agent"
+import type { Block, Files } from "~/lib/agent"
 import { derive, findCall, type DerivedPlan, type DerivedExploration } from "~/lib/agent"
 
 export type TextMessage = {
@@ -72,8 +72,8 @@ const explorationMessagesIndexed = (
 
 const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
 
-export const toRenderMessages = (history: Block[]): RenderMessage[] => {
-  const d = derive(history)
+export const toRenderMessages = (history: Block[], files: Files = {}): RenderMessage[] => {
+  const d = derive(history, files)
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),
     ...planMessagesIndexed(history, d.plans),

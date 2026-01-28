@@ -12,6 +12,7 @@ import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat, toRenderMessages, getSpinnerLabel, type RenderMessage } from "~/lib/chat"
 import type { Block } from "~/lib/agent"
+import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
@@ -241,7 +242,8 @@ export const NabuChatSidebar = () => {
     return { project, navigate }
   }, [navigate, params.projectId])
   const { chat, send, run, cancel, loading, streaming, streamingToolName, history, error } = useChat()
-  const messages = useMemo(() => toRenderMessages(history), [history])
+  const { files } = useFiles()
+  const messages = useMemo(() => toRenderMessages(history, files), [history, files])
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })

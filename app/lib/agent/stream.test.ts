@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { processLine, initialParseState, blocksToMessages } from "./parser"
+import { processLine, initialParseState, blocksToMessages } from "./stream"
 import type { Block } from "./types"
 
 type ParseCallbacks = {

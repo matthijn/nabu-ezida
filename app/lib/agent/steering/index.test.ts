@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { toNudge, type Files } from "./index"
+import { toNudge } from "./index"
+import type { Files } from "../derived"
 import type { Block } from "../types"
 import {
   createPlanCall,

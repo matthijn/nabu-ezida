@@ -1,5 +1,5 @@
 import type { Block } from "./types"
-import type { StepDef, StepDefObject } from "./selectors"
+import type { StepDef, StepDefObject } from "./derived"
 
 // Helper to convert string steps to object steps for backward compatibility in tests
 type StepInput = string | StepDefObject | { per_section: (string | StepDefObject)[] }

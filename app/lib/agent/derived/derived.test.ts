@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
-import type { Block } from "./types"
-import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, type Files } from "./selectors"
+import type { Block } from "../types"
+import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, type Files } from "."
+import { createFileEntry } from "~/lib/files"
 import {
   createPlanCall,
   completeStepCall,
@@ -8,14 +9,14 @@ import {
   startExplorationCall,
   explorationStepCall,
   userBlock,
-} from "./test-helpers"
+} from "../test-helpers"
 
 const mockFiles: Files = {
-  "doc1.md": { raw: "# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2." },
-  "doc2.md": { raw: "# Doc 2\n\nShort content." },
+  "doc1.md": createFileEntry("# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2."),
+  "doc2.md": createFileEntry("# Doc 2\n\nShort content."),
 }
 
-describe("selectors", () => {
+describe("derived", () => {
   describe("plan", () => {
     const cases = [
       {
@@ -23,8 +24,8 @@ describe("selectors", () => {
         history: [] as Block[],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(lastPlan(d)).toBe(null)
-          expect(hasActivePlan(d)).toBe(false)
+          expect(lastPlan(d.plans)).toBe(null)
+          expect(hasActivePlan(d.plans)).toBe(false)
         },
       },
       {
@@ -32,11 +33,11 @@ describe("selectors", () => {
         history: [createPlanCall("Test task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }])],
         check: (history: Block[]) => {
           const d = derive(history)
-          const plan = lastPlan(d)
+          const plan = lastPlan(d.plans)
           expect(plan?.task).toBe("Test task")
           expect(plan?.steps).toHaveLength(2)
           expect(plan?.currentStep).toBe(0)
-          expect(hasActivePlan(d)).toBe(true)
+          expect(hasActivePlan(d.plans)).toBe(true)
         },
       },
       {
@@ -44,7 +45,7 @@ describe("selectors", () => {
         history: [createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]), completeStepCall("Done")],
         check: (history: Block[]) => {
           const d = derive(history)
-          const plan = lastPlan(d)
+          const plan = lastPlan(d.plans)
           expect(plan?.steps[0].done).toBe(true)
           expect(plan?.steps[1].done).toBe(false)
           expect(plan?.currentStep).toBe(1)
@@ -55,7 +56,7 @@ describe("selectors", () => {
         history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), completeStepCall("Done", "id:123, count:5")],
         check: (history: Block[]) => {
           const d = derive(history)
-          const plan = lastPlan(d)
+          const plan = lastPlan(d.plans)
           expect(plan?.steps[0].internal).toBe("id:123, count:5")
           expect(plan?.steps[0].summary).toBe("Done")
         },
@@ -69,8 +70,8 @@ describe("selectors", () => {
         ],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(lastPlan(d)?.currentStep).toBe(null)
-          expect(hasActivePlan(d)).toBe(false)
+          expect(lastPlan(d.plans)?.currentStep).toBe(null)
+          expect(hasActivePlan(d.plans)).toBe(false)
         },
       },
       {
@@ -78,8 +79,8 @@ describe("selectors", () => {
         history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), abortCall()],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(lastPlan(d)?.aborted).toBe(true)
-          expect(hasActivePlan(d)).toBe(false)
+          expect(lastPlan(d.plans)?.aborted).toBe(true)
+          expect(hasActivePlan(d.plans)).toBe(false)
         },
       },
     ]
@@ -97,7 +98,7 @@ describe("selectors", () => {
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration).toBe(null)
-          expect(hasActiveExploration(d)).toBe(false)
+          expect(hasActiveExploration(d.exploration)).toBe(false)
         },
       },
       {
@@ -108,7 +109,7 @@ describe("selectors", () => {
           expect(d.exploration?.question).toBe("How does X work?")
           expect(d.exploration?.findings).toHaveLength(0)
           expect(d.exploration?.currentDirection).toBe("Check the docs")
-          expect(hasActiveExploration(d)).toBe(true)
+          expect(hasActiveExploration(d.exploration)).toBe(true)
         },
       },
       {
@@ -123,7 +124,7 @@ describe("selectors", () => {
           expect(d.exploration?.findings[0].direction).toBe("Look at A")
           expect(d.exploration?.findings[0].learned).toBe("Found A details")
           expect(d.exploration?.currentDirection).toBe("Now look at B")
-          expect(hasActiveExploration(d)).toBe(true)
+          expect(hasActiveExploration(d.exploration)).toBe(true)
         },
       },
       {
@@ -147,7 +148,7 @@ describe("selectors", () => {
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration?.completed).toBe(true)
-          expect(hasActiveExploration(d)).toBe(false)
+          expect(hasActiveExploration(d.exploration)).toBe(false)
         },
       },
       {
@@ -175,7 +176,7 @@ describe("selectors", () => {
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration).toBe(null)
-          expect(lastPlan(d)?.task).toBe("Task")
+          expect(lastPlan(d.plans)?.task).toBe("Task")
         },
       },
     ]
@@ -235,7 +236,7 @@ describe("selectors", () => {
         ),
       ]
       const d = derive(history, mockFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       expect(plan?.files).toEqual(["doc1.md", "doc2.md"])
       expect(plan?.steps).toHaveLength(4) // Research + 2 inner + Summary
@@ -260,7 +261,7 @@ describe("selectors", () => {
         completeStepCall("Inner 1 done"),
       ]
       const d = derive(history, mockFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       expect(plan?.currentStep).toBe(2) // Inner 2 (index 2)
       expect(plan?.perSection?.currentSection).toBe(0) // Still on section 0
@@ -277,7 +278,7 @@ describe("selectors", () => {
         completeStepCall("Code 1"), // Completes section 0, should loop
       ]
       const d = derive(history, mockFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       // Should be back at first inner step, section advanced
       expect(plan?.currentStep).toBe(0) // Back to Analyze
@@ -289,8 +290,8 @@ describe("selectors", () => {
     it("completes plan when all sections processed", () => {
       // Small files that produce 1 section each
       const smallFiles: Files = {
-        "a.md": { raw: "Content A" },
-        "b.md": { raw: "Content B" },
+        "a.md": createFileEntry("Content A"),
+        "b.md": createFileEntry("Content B"),
       }
       const history = [
         createPlanCall(
@@ -302,15 +303,15 @@ describe("selectors", () => {
         completeStepCall("Section 2 done"),
       ]
       const d = derive(history, smallFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       expect(plan?.currentStep).toBe(null) // Plan complete
       expect(plan?.perSection?.completedSections).toHaveLength(2)
-      expect(hasActivePlan(d)).toBe(false)
+      expect(hasActivePlan(d.plans)).toBe(false)
     })
 
     it("tracks section results with internal context", () => {
-      const smallFiles: Files = { "doc.md": { raw: "Short" } }
+      const smallFiles: Files = { "doc.md": createFileEntry("Short") }
       const history = [
         createPlanCall(
           "Task",
@@ -321,7 +322,7 @@ describe("selectors", () => {
         completeStepCall("B done", "internal:456"),
       ]
       const d = derive(history, smallFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       const results = plan?.perSection?.completedSections[0].innerResults
       expect(results).toHaveLength(2)
@@ -331,7 +332,7 @@ describe("selectors", () => {
     })
 
     it("steps after per_section execute normally", () => {
-      const smallFiles: Files = { "doc.md": { raw: "Content" } }
+      const smallFiles: Files = { "doc.md": createFileEntry("Content") }
       const history = [
         createPlanCall(
           "Task",
@@ -345,7 +346,7 @@ describe("selectors", () => {
         completeStepCall("Final done"),
       ]
       const d = derive(history, smallFiles)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       expect(plan?.currentStep).toBe(null)
       expect(plan?.steps[1].done).toBe(true)
@@ -354,21 +355,19 @@ describe("selectors", () => {
 
     it("strips attributes block from section content", () => {
       const filesWithAttributes: Files = {
-        "doc.md": {
-          raw: `# Title
+        "doc.md": createFileEntry(`# Title
 
 \`\`\`json-attributes
 {"tags": ["interview"], "annotations": []}
 \`\`\`
 
-Actual content here.`,
-        },
+Actual content here.`),
       }
       const history = [
         createPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }] }], ["doc.md"]),
       ]
       const d = derive(history, filesWithAttributes)
-      const plan = lastPlan(d)
+      const plan = lastPlan(d.plans)
 
       const sectionContent = plan?.perSection?.sections[0].content ?? ""
       expect(sectionContent).toContain("# Title")
