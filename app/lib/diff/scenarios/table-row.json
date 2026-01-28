@@ -1,0 +1,12 @@
+{
+  "name": "exact match - table row",
+  "needle": "| Arabica   | Ethiopia | Sweet, fruity |",
+  "expected": {
+    "matches": [{
+      "start": 10,
+      "end": 10,
+      "fuzzy": false,
+      "content": "| Arabica   | Ethiopia | Sweet, fruity |"
+    }]
+  }
+}

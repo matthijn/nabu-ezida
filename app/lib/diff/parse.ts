@@ -1,3 +1,6 @@
+import { findMatches, getMatchedText, Match } from "./search"
+import { expandMatch, countLines } from "./context"
+
 type Hunk = {
   oldText: string
   newText: string
@@ -88,23 +91,6 @@ const parseV4ADiff = (patch: string): Hunk[] => {
   return hunks
 }
 
-const trimLines = (text: string): string =>
-  text.split("\n").map(line => line.trim()).join("\n")
-
-const findWithTrimmedMatch = (content: string, oldText: string): string | null => {
-  const trimmedOld = trimLines(oldText)
-  const contentLines = content.split("\n")
-  const oldLines = trimmedOld.split("\n")
-
-  for (let i = 0; i <= contentLines.length - oldLines.length; i++) {
-    const slice = contentLines.slice(i, i + oldLines.length)
-    if (slice.map(l => l.trim()).join("\n") === trimmedOld) {
-      return slice.join("\n")
-    }
-  }
-  return null
-}
-
 const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const oldText = hunk.oldText.replace(/\n$/, "")
   const newText = hunk.newText.replace(/\n$/, "")
@@ -114,16 +100,18 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
     return { ok: true, content: content + (needsSeparator ? "\n" : "") + newText }
   }
 
-  if (content.includes(oldText)) {
-    return { ok: true, content: content.replace(oldText, newText) }
+  const matches = findMatches(content, oldText)
+
+  if (matches.length === 0) {
+    return { ok: false, error: `patch context not found: "${oldText.slice(0, 50)}..."` }
   }
 
-  const actualMatch = findWithTrimmedMatch(content, oldText)
-  if (actualMatch) {
-    return { ok: true, content: content.replace(actualMatch, trimLines(newText)) }
+  if (matches.length > 1) {
+    return { ok: false, error: formatAmbiguousError(content, matches) }
   }
 
-  return { ok: false, error: `patch context not found: "${oldText.slice(0, 50)}..."` }
+  const matchedText = getMatchedText(content, matches[0])
+  return { ok: true, content: content.replace(matchedText, newText) }
 }
 
 export const applyDiff = (content: string, patch: string): DiffResult => {
@@ -139,4 +127,23 @@ export const applyDiff = (content: string, patch: string): DiffResult => {
   }
 
   return { ok: true, content: result }
+}
+
+const CONTEXT_LINES = 3
+
+const formatAmbiguousError = (content: string, matches: Match[]): string => {
+  const total = countLines(content)
+  const expanded = matches.map((m, i) => {
+    const exp = expandMatch(m, CONTEXT_LINES, total)
+    const text = getMatchedText(content, exp)
+    return `Match ${i + 1}:\n───\n${text}\n───`
+  })
+
+  return [
+    `patch ambiguous: ${matches.length} matches found`,
+    "",
+    ...expanded,
+    "",
+    "Include more surrounding lines to disambiguate. If none look right, verify you're targeting the correct location.",
+  ].join("\n")
 }

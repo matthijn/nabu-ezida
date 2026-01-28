@@ -16,7 +16,7 @@ const readFile = (path: string): string => readFileSync(path, "utf-8")
 
 const readJson = <T>(path: string): T => JSON.parse(readFile(path)) as T
 
-const runScenario = (name: string): { actual: string[]; expected: string[] } => {
+const runScenario = (name: string): { input: string; actual: string[]; expected: string[] } => {
   const dir = join(__dirname, name)
   const input = readFile(join(dir, "input.md"))
   const config = readJson<ScenarioConfig>(join(dir, "config.json"))
@@ -24,7 +24,7 @@ const runScenario = (name: string): { actual: string[]; expected: string[] } => 
 
   const actual = splitByLines(input, config.targetLines)
 
-  return { actual, expected }
+  return { input, actual, expected }
 }
 
 const getScenarioNames = (): string[] => {
@@ -39,9 +39,15 @@ describe("splitByLines scenarios", () => {
   const scenarios = getScenarioNames()
 
   scenarios.forEach((name) => {
-    it(name, () => {
+    it(`${name}: splits correctly`, () => {
       const { actual, expected } = runScenario(name)
       expect(actual).toEqual(expected)
+    })
+
+    it(`${name}: roundtrip preserves content`, () => {
+      const { input, actual } = runScenario(name)
+      const rejoined = actual.join("\n\n")
+      expect(rejoined).toBe(input.trim())
     })
   })
 })

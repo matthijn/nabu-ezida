@@ -1,0 +1,4 @@
+[
+  "# Header One\n\nParagraph after heading.\n\n```json\n{\n    \"indented\": true,\n    \"spacing\":   \"weird\"\n}\n```\n\n## Section Two\n\nTrailing spaces preserved inside content.\n\n```javascript\nfunction messy(  ) {\n  return   \"extra spaces\"\n}\n```\n\n- List item one\n- List item two",
+  "Paragraph after list.\n\n### Nested Section\n\nFinal content here."
+]

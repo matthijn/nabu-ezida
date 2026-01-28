@@ -150,12 +150,42 @@ appended`,
  # Coffee Bean Research Codebook
 +
 +This is a paragraph.`,
-      expected: { ok: true, content: "# Coffee Bean Research Codebook\n\nThis is a paragraph." },
+      expected: { ok: true, content: " # Coffee Bean Research Codebook\n\nThis is a paragraph." },
     },
   ]
 
   it.each(cases)("$name", ({ content, patch, expected }) => {
     const result = applyDiff(content, patch)
     expect(result).toEqual(expected)
+  })
+
+  it("shows expanded context for ambiguous matches", () => {
+    const content = `line 0
+line 1
+function foo() {
+  return 1
+}
+line 5
+line 6
+function foo() {
+  return 2
+}
+line 10`
+
+    const patch = `@@
+-function foo() {
++function bar() {`
+
+    const result = applyDiff(content, patch)
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("patch ambiguous: 2 matches found")
+      expect(result.error).toContain("Match 1:")
+      expect(result.error).toContain("Match 2:")
+      expect(result.error).toContain("return 1")
+      expect(result.error).toContain("return 2")
+      expect(result.error).toContain("Include more surrounding lines to disambiguate")
+    }
   })
 })
