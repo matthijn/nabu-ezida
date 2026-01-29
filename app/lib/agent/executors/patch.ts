@@ -30,7 +30,7 @@ export const applyOperation = (operation: Operation): ToolResult<string> => {
     case "delete_file":
       return handleDeleteFile(operation.path)
     case "rename_file":
-      return handleRenameFile(operation.oldPath, operation.newPath)
+      return handleRenameFile(operation.path, operation.newPath)
   }
 }
 
@@ -53,7 +53,7 @@ const DeleteFileOp = z.object({
 
 const RenameFileOp = z.object({
   type: z.literal("rename_file"),
-  oldPath: z.string().min(1, "oldPath required - which file to rename?"),
+  path: z.string().min(1, "path required - which file to rename?"),
   newPath: z.string().min(1, "newPath required - what to rename it to?"),
 })
 
@@ -122,7 +122,7 @@ const operationTypeToAction: Record<Operation["type"], Action> = {
 const persistToServer = (projectId: string, operation: Operation): void => {
   const command: Command =
     operation.type === "rename_file"
-      ? { action: "RenameFile", path: operation.oldPath, newPath: operation.newPath }
+      ? { action: "RenameFile", path: operation.path, newPath: operation.newPath }
       : { action: operationTypeToAction[operation.type], path: operation.path, diff: "diff" in operation ? operation.diff : undefined }
   sendCommand(projectId, command).catch(() => {})
 }

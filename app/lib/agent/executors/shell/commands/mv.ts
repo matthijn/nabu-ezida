@@ -25,7 +25,7 @@ export const mv = command({
       return err(`mv: ${dest}: already exists`)
     }
 
-    const operation: Operation = { type: "rename", oldPath: src, newPath: dest }
+    const operation: Operation = { type: "rename", path: src, newPath: dest }
     return ok(`mv ${src} ${dest}`, [operation])
   },
 })

@@ -4,7 +4,7 @@ import type { Files } from "../types"
 export type Operation =
   | { type: "create"; path: string; content: string }
   | { type: "delete"; path: string }
-  | { type: "rename"; oldPath: string; newPath: string }
+  | { type: "rename"; path: string; newPath: string }
 
 export type Result = { output: string; error?: string; operations?: Operation[] }
 

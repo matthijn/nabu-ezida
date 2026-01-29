@@ -32,7 +32,7 @@ const toPatchOperation = (op: ShellOperation): PatchOperation => {
     case "delete":
       return { type: "delete_file", path: op.path }
     case "rename":
-      return { type: "rename_file", oldPath: op.oldPath, newPath: op.newPath }
+      return { type: "rename_file", path: op.path, newPath: op.newPath }
   }
 }
 

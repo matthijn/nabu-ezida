@@ -442,7 +442,7 @@ describe("shell", () => {
       const shell = createShell(makeFiles({ "old.txt": "content" }))
       const result = shell.exec("mv old.txt new.txt")
       expect(result.output).toBe("mv old.txt new.txt")
-      expect(result.operations).toEqual([{ type: "rename", oldPath: "old.txt", newPath: "new.txt" }])
+      expect(result.operations).toEqual([{ type: "rename", path: "old.txt", newPath: "new.txt" }])
     })
 
     it("reports error for missing source", () => {
