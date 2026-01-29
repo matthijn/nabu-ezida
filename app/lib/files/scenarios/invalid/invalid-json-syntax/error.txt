@@ -1,0 +1,8 @@
+json-attributes: Invalid JSON: Unexpected token '}', ..."["draft",
+}" is not valid JSON
+Current block:
+```json-attributes
+{
+  "tags": ["draft"]
+}
+```

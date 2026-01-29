@@ -1,0 +1,12 @@
+*** Update File: docs/document.md
+@@
+-```json-attributes
+-{
+-  "tags": ["draft"]
+-}
+-```
++```json-attributes
++{
++  "tags": ["draft",
++}
++```

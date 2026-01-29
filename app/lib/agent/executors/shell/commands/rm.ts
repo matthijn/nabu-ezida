@@ -1,11 +1,4 @@
-import { minimatch } from "minimatch"
-import { command, ok, err, type Operation } from "./command"
-
-const isGlob = (pattern: string): boolean =>
-  pattern.includes("*") || pattern.includes("?")
-
-const expandGlob = (files: Map<string, string>, pattern: string): string[] =>
-  Array.from(files.keys()).filter((f) => minimatch(f, pattern))
+import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } from "./command"
 
 export const rm = command({
   description: "Remove files",
@@ -19,7 +12,12 @@ export const rm = command({
     const operations: Operation[] = []
     const outputs: string[] = []
 
-    for (const pattern of paths) {
+    for (const rawPattern of paths) {
+      const pattern = normalizePath(rawPattern)
+      if (!pattern) {
+        outputs.push(`rm: invalid path`)
+        continue
+      }
       if (isGlob(pattern)) {
         const matches = expandGlob(files, pattern)
         if (matches.length === 0) {

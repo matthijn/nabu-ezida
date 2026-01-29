@@ -1,4 +1,4 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 export const cat = command({
   description: "Print file contents",
@@ -12,7 +12,7 @@ export const cat = command({
     const offset = parseInt(flagValues["-o"] ?? "1", 10) || 1
     const limit = flagValues["-l"] ? parseInt(flagValues["-l"], 10) : null
 
-    const filename = paths[0]
+    const filename = normalizePath(paths[0])
     if (filename && !files.has(filename)) {
       return err(`cat: ${filename}: No such file`)
     }

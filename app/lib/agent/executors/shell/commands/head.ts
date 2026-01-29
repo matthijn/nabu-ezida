@@ -1,4 +1,4 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 export const head = command({
   description: "Output first lines of file",
@@ -9,7 +9,7 @@ export const head = command({
   handler: (files) => (paths, _, stdin, flagValues) => {
     const count = parseInt(flagValues["-n"] ?? "10", 10) || 10
 
-    const filename = paths[0]
+    const filename = normalizePath(paths[0])
     if (filename && !files.has(filename)) {
       return err(`head: ${filename}: No such file`)
     }

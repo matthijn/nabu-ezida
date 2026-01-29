@@ -1,4 +1,4 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 export const ls = command({
   description: "List files",
@@ -7,8 +7,9 @@ export const ls = command({
     "-l": { description: "long format with sizes" },
   },
   handler: (files) => (paths, flags, _stdin, _flagValues) => {
-    if (paths.length > 0 && paths[0] !== "/") {
-      return err(`ls: only root listing allowed, use 'ls' or 'ls /'`)
+    const path = normalizePath(paths[0])
+    if (path !== undefined) {
+      return err(`ls: only root listing allowed, use 'ls'`)
     }
 
     const names = [...files.keys()].sort()

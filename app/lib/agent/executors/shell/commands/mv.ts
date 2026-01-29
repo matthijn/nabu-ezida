@@ -1,4 +1,4 @@
-import { command, ok, err, type Operation } from "./command"
+import { command, ok, err, normalizePath, type Operation } from "./command"
 
 export const mv = command({
   description: "Rename file",
@@ -12,7 +12,11 @@ export const mv = command({
       return err("mv: too many arguments")
     }
 
-    const [src, dest] = paths
+    const src = normalizePath(paths[0])
+    const dest = normalizePath(paths[1])
+    if (!src || !dest) {
+      return err("mv: invalid path")
+    }
 
     if (!files.has(src)) {
       return err(`mv: ${src}: No such file`)

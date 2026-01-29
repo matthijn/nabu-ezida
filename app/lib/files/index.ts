@@ -29,5 +29,4 @@ export {
   applyFilePatches,
   computeJsonDiff,
   type FileResult,
-  type PatchOptions,
 } from "./patch"

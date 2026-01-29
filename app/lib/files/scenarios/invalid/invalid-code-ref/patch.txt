@@ -1,0 +1,19 @@
+*** Update File: docs/interview.md
+@@
+-```json-attributes
+-{
+-  "tags": ["interview"]
+-}
+-```
++```json-attributes
++{
++  "tags": ["interview"],
++  "annotations": [
++    {
++      "text": "coffee",
++      "reason": "preference mentioned",
++      "code": "nonexistent-code-id"
++    }
++  ]
++}
++```

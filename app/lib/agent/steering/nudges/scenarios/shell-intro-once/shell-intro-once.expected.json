@@ -20,7 +20,7 @@
   },
   {
     "type": "system",
-    "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, find, grep, head, ls, mv, rm, tail, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n"
+    "content": "\n## SHELL AVAILABLE\nShell tool available (flat file structure, no directories).\nCommands: cat, cp, cut, echo, find, grep, head, ls, mv, rm, sed, sort, tail, touch, tr, true, false, uniq, wc\nPipes (|) and chaining (&&, ||, ;) supported. Use help for details.\n\nContinue.\n"
   },
   {
     "type": "tool_call",

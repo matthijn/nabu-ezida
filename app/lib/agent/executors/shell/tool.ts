@@ -1,7 +1,8 @@
 import { z } from "zod"
 import type { Handler, ToolResult } from "../../types"
-import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile } from "~/lib/files"
-import { createShell, type Files, type Operation } from "./shell"
+import { getFiles } from "~/lib/files"
+import { applyOperation, type Operation as PatchOperation } from "../patch"
+import { createShell, type Files, type Operation as ShellOperation } from "./shell"
 
 const ShellArgs = z.object({
   commands: z.array(z.string()).min(1, "commands required - what shell commands to run?"),
@@ -21,34 +22,29 @@ const formatZodError = (error: z.ZodError): ToolResult<ShellCommandOutput[]> => 
 const filesToMap = (files: Record<string, { raw: string }>): Files =>
   new Map(Object.entries(files).map(([k, v]) => [k, v.raw]))
 
-const applyOperation = (op: Operation): { ok: boolean; error?: string } => {
+const formatCreateDiff = (path: string, content: string): string =>
+  content === "" ? `*** Add File: ${path}` : `*** Add File: ${path}\n${content}`
+
+const toPatchOperation = (op: ShellOperation): PatchOperation => {
   switch (op.type) {
     case "create":
-      if (getFileRaw(op.path)) return { ok: false, error: "already exists" }
-      updateFileRaw(op.path, op.content)
-      return { ok: true }
+      return { type: "create_file", path: op.path, diff: formatCreateDiff(op.path, op.content) }
     case "delete":
-      if (!getFileRaw(op.path)) return { ok: false, error: "No such file" }
-      deleteFile(op.path)
-      return { ok: true }
+      return { type: "delete_file", path: op.path }
     case "rename":
-      if (!getFileRaw(op.oldPath)) return { ok: false, error: "No such file" }
-      if (getFileRaw(op.newPath)) return { ok: false, error: "already exists" }
-      renameFile(op.oldPath, op.newPath)
-      return { ok: true }
+      return { type: "rename_file", oldPath: op.oldPath, newPath: op.newPath }
   }
 }
 
-const applyOperations = (operations: Operation[]): string[] => {
-  const results: string[] = []
+const applyOperations = (operations: ShellOperation[]): string[] => {
+  const errors: string[] = []
   for (const op of operations) {
-    const result = applyOperation(op)
-    if (!result.ok) {
-      const path = op.type === "rename" ? op.oldPath : op.path
-      results.push(`error: ${path}: ${result.error}`)
+    const result = applyOperation(toPatchOperation(op))
+    if (result.status === "error") {
+      errors.push(result.output)
     }
   }
-  return results
+  return errors
 }
 
 export const shellTool: Handler<ShellCommandOutput[]> = async (_, args) => {

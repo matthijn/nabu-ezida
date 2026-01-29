@@ -1,4 +1,4 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath, isGlob, expandGlob } from "./command"
 
 export const grep = command({
   description: "Search for patterns in files",
@@ -6,9 +6,12 @@ export const grep = command({
   flags: {
     "-n": { description: "prefix with line numbers" },
     "-i": { description: "case insensitive matching" },
+    "-R": { description: "recursive (ignored, always recursive)" },
+    "-r": { description: "recursive (ignored, always recursive)" },
   },
   handler: (files) => (args, flags, stdin, _flagValues) => {
-    const [pattern, filename] = args
+    const [pattern, rawFilename] = args
+    const filename = normalizePath(rawFilename)
     if (!pattern) return err("grep: missing pattern")
 
     const re = new RegExp(pattern, flags.has("-i") ? "i" : "")
@@ -36,11 +39,18 @@ export const grep = command({
     }
 
     if (filename) {
-      const content = files.get(filename)
-      if (content) {
-        searchFile(filename, content)
+      if (isGlob(filename)) {
+        const matches = expandGlob(files, filename)
+        for (const filePath of matches) {
+          searchFile(filePath, files.get(filePath)!)
+        }
       } else {
-        return err(`grep: ${filename}: No such file`)
+        const content = files.get(filename)
+        if (content) {
+          searchFile(filename, content)
+        } else {
+          return err(`grep: ${filename}: No such file`)
+        }
       }
     } else {
       for (const [filePath, content] of files) {

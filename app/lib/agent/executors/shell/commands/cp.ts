@@ -1,4 +1,4 @@
-import { command, ok, err, type Operation } from "./command"
+import { command, ok, err, normalizePath, type Operation } from "./command"
 
 export const cp = command({
   description: "Copy file",
@@ -12,7 +12,11 @@ export const cp = command({
       return err("cp: too many arguments")
     }
 
-    const [src, dest] = paths
+    const src = normalizePath(paths[0])
+    const dest = normalizePath(paths[1])
+    if (!src || !dest) {
+      return err("cp: invalid path")
+    }
 
     if (!files.has(src)) {
       return err(`cp: ${src}: No such file`)

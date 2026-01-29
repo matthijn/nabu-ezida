@@ -3,6 +3,7 @@ export type Action = "CreateFile" | "UpdateFile" | "DeleteFile" | "RenameFile" |
 export type Command = {
   action: Action
   path?: string
+  newPath?: string
   diff?: string
 }
 

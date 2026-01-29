@@ -33,7 +33,7 @@ export const applyCommand = (command: Command): void => {
 
 const applyCreateFile = (path: string, diff: string): void => {
   const result = applyFilePatch(path, "", diff)
-  if (result.status === "ok" || result.status === "partial") {
+  if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   }
 }
@@ -41,7 +41,7 @@ const applyCreateFile = (path: string, diff: string): void => {
 const applyUpdateFile = (path: string, diff: string): void => {
   const current = getFileRaw(path)
   const result = applyFilePatch(path, current, diff)
-  if (result.status === "ok" || result.status === "partial") {
+  if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   }
 }

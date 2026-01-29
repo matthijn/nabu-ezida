@@ -1,12 +1,6 @@
 import { applyDiff, generateDiff } from "~/lib/diff"
-import { parseJson, repairJsonNewlines } from "~/lib/json"
+import { repairJsonNewlines } from "~/lib/json"
 import { parseCodeBlocks } from "~/domain/blocks"
-import {
-  validateFieldChanges,
-  validateFieldChangesInternal,
-  type FieldRejection,
-  type DocumentMetaType,
-} from "~/domain/attributes"
 import {
   replaceUuidPlaceholders,
   validateMarkdownBlocks,
@@ -18,19 +12,13 @@ import {
 import { getAllCodes } from "./store"
 
 export type FileResult =
-  | { path: string; status: "ok"; content: string; parsed?: DocumentMetaType; generatedIds?: UuidMapping }
-  | { path: string; status: "partial"; content: string; parsed: DocumentMetaType; rejected: FieldRejection[] }
+  | { path: string; status: "ok"; content: string; generatedIds?: UuidMapping }
   | { path: string; status: "error"; error: string; blockErrors?: ValidationError[] }
 
 export type MultiPatchResult = {
   results: FileResult[]
 }
 
-export type PatchOptions = {
-  internal?: boolean
-}
-
-const isJsonFile = (path: string): boolean => path.endsWith(".json")
 const isMdFile = (path: string): boolean => path.endsWith(".md")
 const isJsonBlock = (language: string): boolean => language.startsWith("json")
 
@@ -57,41 +45,6 @@ const repairJsonBlocks = (markdown: string): string => {
   return result
 }
 
-const applyJsonPatch = (
-  path: string,
-  content: string,
-  patch: string,
-  options: PatchOptions
-): FileResult => {
-  const diffResult = applyDiff(content, patch)
-  if (!diffResult.ok) {
-    return { path, status: "error", error: diffResult.error }
-  }
-
-  const parseResult = parseJson(diffResult.content)
-  if (!parseResult.ok) {
-    return { path, status: "error", error: parseResult.error }
-  }
-
-  const originalParsed = content ? parseJson(content) : { ok: true as const, data: {} }
-  if (!originalParsed.ok) {
-    return { path, status: "error", error: `Failed to parse original: ${originalParsed.error}` }
-  }
-
-  const original = originalParsed.data as Record<string, unknown>
-  const patched = parseResult.data as Record<string, unknown>
-
-  const validate = options.internal ? validateFieldChangesInternal : validateFieldChanges
-  const { accepted, rejected } = validate(original, patched)
-  const prettyContent = JSON.stringify(accepted, null, 2)
-
-  if (rejected.length > 0) {
-    return { path, status: "partial", content: prettyContent, parsed: accepted, rejected }
-  }
-
-  return { path, status: "ok", content: prettyContent, parsed: accepted }
-}
-
 const buildValidationContext = (markdown: string): ValidationContext => ({
   documentProse: extractProse(markdown),
   availableCodes: getAllCodes().map((c) => ({ id: c.id, name: c.title })),
@@ -106,6 +59,11 @@ const formatBlockErrors = (errors: ValidationError[]): string =>
   }).join("\n")
 
 const applyMdPatch = (path: string, content: string, patch: string): FileResult => {
+  // Empty file creation (touch) - no validation needed
+  if (content === "" && patch === "") {
+    return { path, status: "ok", content: "" }
+  }
+
   const { result: patchWithIds, generated } = replaceUuidPlaceholders(patch)
 
   const diffResult = applyDiff(content, patchWithIds)
@@ -136,15 +94,10 @@ const applyMdPatch = (path: string, content: string, patch: string): FileResult 
   }
 }
 
-export const applyFilePatch = (
-  path: string,
-  content: string,
-  patch: string,
-  options: PatchOptions = {}
-): FileResult =>
-  isJsonFile(path)
-    ? applyJsonPatch(path, content, patch, options)
-    : applyMdPatch(path, content, patch)
+export const applyFilePatch = (path: string, content: string, patch: string): FileResult =>
+  isMdFile(path)
+    ? applyMdPatch(path, content, patch)
+    : { path, status: "error", error: `only .md files allowed: ${path}` }
 
 export type FilePatch = {
   path: string
@@ -152,11 +105,8 @@ export type FilePatch = {
   patch: string
 }
 
-export const applyFilePatches = (
-  patches: FilePatch[],
-  options: PatchOptions = {}
-): MultiPatchResult => ({
-  results: patches.map(({ path, content, patch }) => applyFilePatch(path, content, patch, options)),
+export const applyFilePatches = (patches: FilePatch[]): MultiPatchResult => ({
+  results: patches.map(({ path, content, patch }) => applyFilePatch(path, content, patch)),
 })
 
 // Re-export for convenience
