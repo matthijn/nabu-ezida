@@ -1,36 +1,29 @@
 import { z } from "zod"
-import type { Handler, ToolDeps, ToolResult } from "../types"
-import { getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, type FileResult } from "~/lib/files"
-import { sendCommand, type Command, type Action } from "~/lib/sync"
+import type { Handler, HandlerResult, RawFiles, Operation } from "../types"
 
-export const applyPatchTool: Handler<string> = async (deps: ToolDeps, args) => {
+export const patchHandler: Handler<string> = async (files, args) => {
   if (!args.operation) {
-    return { status: "error", output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file'|'rename_file', path, diff}" }
+    return {
+      status: "error",
+      output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file'|'rename_file', path, diff}",
+      mutations: [],
+    }
   }
 
   const parsed = ApplyPatchArgs.safeParse(args)
   if (!parsed.success) return formatZodError(parsed.error)
 
   const operation = parsed.data.operation
-  const result = applyOperation(operation)
+  const error = validateOperation(files, operation)
 
-  if (result.status === "ok" && deps.project?.id) {
-    persistToServer(deps.project.id, operation)
+  if (error) {
+    return { status: "error", output: error, mutations: [] }
   }
 
-  return result
-}
-
-export const applyOperation = (operation: Operation): ToolResult<string> => {
-  switch (operation.type) {
-    case "create_file":
-      return handleCreateFile(operation.path, operation.diff)
-    case "update_file":
-      return handleUpdateFile(operation.path, operation.diff)
-    case "delete_file":
-      return handleDeleteFile(operation.path)
-    case "rename_file":
-      return handleRenameFile(operation.path, operation.newPath)
+  return {
+    status: "ok",
+    output: formatSuccess(operation),
+    mutations: [operation],
   }
 }
 
@@ -63,66 +56,35 @@ const ApplyPatchArgs = z.object({
   operation: OperationSchema,
 })
 
-export type Operation = z.infer<typeof OperationSchema>
-
-const formatZodError = (error: z.ZodError): ToolResult<string> => ({
+const formatZodError = (error: z.ZodError): HandlerResult<string> => ({
   status: "error",
   output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+  mutations: [],
 })
 
-const handleCreateFile = (path: string, diff: string): ToolResult<string> => {
-  if (getFileRaw(path)) {
-    return { status: "error", output: `${path}: already exists` }
+const validateOperation = (files: RawFiles, op: Operation): string | null => {
+  switch (op.type) {
+    case "create_file":
+      return files.has(op.path) ? `${op.path}: already exists` : null
+    case "update_file":
+      return files.has(op.path) ? null : `${op.path}: No such file`
+    case "delete_file":
+      return files.has(op.path) ? null : `${op.path}: No such file`
+    case "rename_file":
+      if (!files.has(op.path)) return `${op.path}: No such file`
+      if (files.has(op.newPath)) return `${op.newPath}: already exists`
+      return null
   }
-  return toToolResult(applyFilePatch(path, "", diff), "Created")
 }
 
-const handleUpdateFile = (path: string, diff: string): ToolResult<string> => {
-  const content = getFileRaw(path)
-  if (!content) {
-    return { status: "error", output: `${path}: No such file` }
-  }
-  return toToolResult(applyFilePatch(path, content, diff), "Updated")
+const operationVerb: Record<Operation["type"], string> = {
+  create_file: "Created",
+  update_file: "Updated",
+  delete_file: "Deleted",
+  rename_file: "Renamed",
 }
 
-const handleDeleteFile = (path: string): ToolResult<string> => {
-  if (!getFileRaw(path)) {
-    return { status: "error", output: `${path}: No such file` }
-  }
-  deleteFile(path)
-  return { status: "ok", output: `Deleted ${path}` }
-}
-
-const handleRenameFile = (oldPath: string, newPath: string): ToolResult<string> => {
-  if (!getFileRaw(oldPath)) {
-    return { status: "error", output: `${oldPath}: No such file` }
-  }
-  if (getFileRaw(newPath)) {
-    return { status: "error", output: `${newPath}: already exists` }
-  }
-  renameFile(oldPath, newPath)
-  return { status: "ok", output: `Renamed ${oldPath} → ${newPath}` }
-}
-
-const toToolResult = (result: FileResult, verb: string): ToolResult<string> => {
-  if (result.status === "error") {
-    return { status: "error", output: result.error }
-  }
-  updateFileRaw(result.path, result.content)
-  return { status: "ok", output: `${verb} ${result.path}` }
-}
-
-const operationTypeToAction: Record<Operation["type"], Action> = {
-  create_file: "CreateFile",
-  update_file: "UpdateFile",
-  delete_file: "DeleteFile",
-  rename_file: "RenameFile",
-}
-
-const persistToServer = (projectId: string, operation: Operation): void => {
-  const command: Command =
-    operation.type === "rename_file"
-      ? { action: "RenameFile", path: operation.path, newPath: operation.newPath }
-      : { action: operationTypeToAction[operation.type], path: operation.path, diff: "diff" in operation ? operation.diff : undefined }
-  sendCommand(projectId, command).catch(() => {})
-}
+const formatSuccess = (op: Operation): string =>
+  op.type === "rename_file"
+    ? `Renamed ${op.path} → ${op.newPath}`
+    : `${operationVerb[op.type]} ${op.path}`

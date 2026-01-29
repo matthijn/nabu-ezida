@@ -8,8 +8,13 @@ export type Operation =
 
 export type Result = { output: string; error?: string; operations?: Operation[] }
 
+export type Command = CommandDef & {
+  createHandler: (files: Files) => (args: string[], stdin: string) => Result
+}
+
 export const ok = (output: string, operations?: Operation[]): Result =>
   operations ? { output, operations } : { output }
+
 export const err = (error: string): Result => ({ output: "", error })
 
 export const normalizePath = (path: string | undefined): string | undefined => {
@@ -25,19 +30,6 @@ export const isGlob = (pattern: string): boolean =>
 export const expandGlob = (files: Map<string, string>, pattern: string): string[] =>
   Array.from(files.keys()).filter((f) => minimatch(f, pattern))
 
-type FlagDef = { alias?: string; description: string; value?: boolean }
-type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result
-type CommandDef = {
-  description: string
-  usage: string
-  flags: Record<string, FlagDef>
-  handler: (files: Files) => Handler
-}
-
-export type Command = CommandDef & {
-  createHandler: (files: Files) => (args: string[], stdin: string) => Result
-}
-
 export const command = (def: CommandDef): Command => {
   const supported = new Set([
     ...Object.keys(def.flags),
@@ -52,16 +44,6 @@ export const command = (def: CommandDef): Command => {
       .flatMap(([k, f]) => [k, f.alias].filter(Boolean) as string[])
   )
 
-  const expandCombinedFlags = (arg: string): string[] => {
-    if (!arg.startsWith("-") || arg.startsWith("--") || arg.length <= 2) {
-      return [arg]
-    }
-    if (supported.has(arg)) {
-      return [arg]
-    }
-    return [...arg.slice(1)].map((c) => `-${c}`)
-  }
-
   const createHandler = (files: Files) => {
     const innerHandler = def.handler(files)
 
@@ -70,7 +52,7 @@ export const command = (def: CommandDef): Command => {
       const flagValues: Record<string, string> = {}
       const positional: string[] = []
 
-      const expanded = args.flatMap(expandCombinedFlags)
+      const expanded = args.flatMap((arg) => expandCombinedFlags(supported, arg))
 
       for (let i = 0; i < expanded.length; i++) {
         const arg = expanded[i]
@@ -107,4 +89,23 @@ export const command = (def: CommandDef): Command => {
   }
 
   return Object.assign({ createHandler }, def)
+}
+
+type FlagDef = { alias?: string; description: string; value?: boolean }
+type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result
+type CommandDef = {
+  description: string
+  usage: string
+  flags: Record<string, FlagDef>
+  handler: (files: Files) => Handler
+}
+
+const expandCombinedFlags = (supported: Set<string>, arg: string): string[] => {
+  if (!arg.startsWith("-") || arg.startsWith("--") || arg.length <= 2) {
+    return [arg]
+  }
+  if (supported.has(arg)) {
+    return [arg]
+  }
+  return [...arg.slice(1)].map((c) => `-${c}`)
 }

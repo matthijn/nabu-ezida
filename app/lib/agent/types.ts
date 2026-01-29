@@ -43,4 +43,17 @@ export type ToolResult<T> =
   | { status: "partial"; output: T }
   | { status: "error"; output: string }
 
-export type Handler<T = unknown> = (deps: ToolDeps, args: Record<string, unknown>) => Promise<ToolResult<T>>
+export type RawFiles = Map<string, string>
+
+export type Operation =
+  | { type: "create_file"; path: string; diff: string }
+  | { type: "update_file"; path: string; diff: string }
+  | { type: "delete_file"; path: string }
+  | { type: "rename_file"; path: string; newPath: string }
+
+export type HandlerResult<T> = ToolResult<T> & { mutations: Operation[] }
+
+export type Handler<T = unknown> = (
+  files: RawFiles,
+  args: Record<string, unknown>
+) => Promise<HandlerResult<T>>
