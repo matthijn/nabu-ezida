@@ -4,7 +4,7 @@ import * as commands from "./commands"
 
 export type { Files, Operation }
 
-export type ExecResult = { output: string; operations: Operation[] }
+export type ExecResult = { output: string; operations: Operation[]; isError: boolean }
 
 export const createShell = (files: Files) => {
   const handlers = Object.fromEntries(
@@ -49,18 +49,19 @@ const parseSegments = (input: string): Segment[] => {
 const exec = (handlers: Record<string, (args: string[], stdin: string) => Result>) => (input: string): ExecResult => {
   const trimmed = input.trim().replace(/\s*2>\/dev\/null\s*/g, " ")
 
-  if (!trimmed) return { output: "", operations: [] }
-  if (trimmed === "help") return { output: helpText(), operations: [] }
+  if (!trimmed) return { output: "", operations: [], isError: false }
+  if (trimmed === "help") return { output: helpText(), operations: [], isError: false }
 
   const unsupported = trimmed.match(/>>|>|<|`|\$\(/)
   if (unsupported) {
-    return { output: `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`, operations: [] }
+    return { output: `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`, operations: [], isError: true }
   }
 
   const segments = parseSegments(trimmed)
   const outputs: string[] = []
   const operations: Operation[] = []
   let lastSuccess = true
+  let hasError = false
 
   for (let i = 0; i < segments.length; i++) {
     const { cmd, nextOp } = segments[i]
@@ -77,10 +78,11 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
     const result = runPipeline(handlers, cmd, "")
     if (result.operations) operations.push(...result.operations)
     lastSuccess = !result.error
+    if (result.error) hasError = true
     outputs.push(result.error ?? result.output)
   }
 
-  return { output: outputs.join("\n"), operations }
+  return { output: outputs.join("\n"), operations, isError: hasError }
 }
 
 const runPipeline = (handlers: Record<string, (args: string[], stdin: string) => Result>, stmt: string, stdin: string): Result => {

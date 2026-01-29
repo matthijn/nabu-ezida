@@ -1,0 +1,13 @@
+{
+  "files": { "old.md": "content" },
+  "args": { "commands": ["mv old.md new.md"] },
+  "expected": {
+    "status": "ok",
+    "output": [
+      { "stdout": "mv old.md new.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": [
+      { "type": "rename_file", "path": "old.md", "newPath": "new.md" }
+    ]
+  }
+}

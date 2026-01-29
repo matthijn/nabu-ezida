@@ -128,7 +128,7 @@ const formatPlanResults = (plan: DerivedPlan): string => {
 }
 
 const getFileAttributes = (files: Files, filename: string): string | null => {
-  const raw = files[filename]?.raw
+  const raw = files[filename]
   if (!raw) return null
   const block = findSingletonBlock(raw, "json-attributes")
   return block?.content ?? null

@@ -3,20 +3,24 @@ import {
   getFiles,
   getCurrentFile,
   getFileRaw,
-  getFileTags,
   getFileLineCount,
-  getFileAnnotations,
-  getCodebook,
   setCurrentFile,
   subscribe,
+  getTags,
+  getAnnotations,
+  getCodebook,
 } from "~/lib/files"
 
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const currentFile = useSyncExternalStore(subscribe, getCurrentFile)
-  const codebook = useSyncExternalStore(subscribe, getCodebook)
+  const codebook = useSyncExternalStore(subscribe, () => getCodebook(getFiles()))
 
-  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations }
+  const getFileTags = (filename: string): string[] => getTags(files[filename] ?? "")
+  const getFileLineCountFn = (filename: string): number => getFileLineCount(filename)
+  const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
+
+  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount: getFileLineCountFn, getFileAnnotations }
 }
 
 export const useCurrentFileContent = () => {

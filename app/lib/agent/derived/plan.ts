@@ -1,8 +1,7 @@
 import type { ToolCall } from "../types"
-import type { FileEntry } from "~/lib/files"
 import { splitByLines } from "~/lib/text"
 
-export type Files = Record<string, FileEntry>
+export type Files = Record<string, string>
 
 // Input type from create_plan args
 export type StepDefObject = { title: string; expected: string }
@@ -67,7 +66,7 @@ const markStepDone = (steps: Step[], index: number, internal: string | null, sum
 const computeSections = (fileNames: string[], files: Files): Section[] => {
   const sections: Section[] = []
   for (const file of fileNames) {
-    const content = files[file]?.raw ?? ""
+    const content = files[file] ?? ""
     const parts = splitByLines(content, SECTION_TARGET_LINES, { stripAttributes: true })
     parts.forEach((part, i) => {
       sections.push({

@@ -1,5 +1,5 @@
 import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "../nudge-tools"
-import { getCodebookFiles } from "~/lib/files"
+import { getCodebookFiles } from "~/lib/files/selectors"
 
 const WRITE_INTERVAL = 15
 const READ_MARKER = "## READ MEMORY"
@@ -17,7 +17,7 @@ const readMemoryNudge: Nudger = (history, files, _emptyNudge) => {
   return `
 ${READ_MARKER}
 <file ${MEMORY_FILE}>
-${memory.raw}
+${memory}
 </file ${MEMORY_FILE}>
 
 Continue.

@@ -9,7 +9,8 @@ import {
   type ValidationContext,
   type ValidationError,
 } from "~/domain/blocks"
-import { getAllCodes } from "./store"
+import { getFiles } from "./store"
+import { getAllCodes } from "./selectors"
 
 export type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: UuidMapping }
@@ -47,7 +48,7 @@ const repairJsonBlocks = (markdown: string): string => {
 
 const buildValidationContext = (markdown: string): ValidationContext => ({
   documentProse: extractProse(markdown),
-  availableCodes: getAllCodes().map((c) => ({ id: c.id, name: c.title })),
+  availableCodes: getAllCodes(getFiles()).map((c) => ({ id: c.id, name: c.title })),
 })
 
 const formatBlockErrors = (errors: ValidationError[]): string =>

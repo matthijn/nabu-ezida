@@ -17,8 +17,7 @@ export const shellHandler: Handler<ShellCommandOutput[]> = async (files, args) =
   const mutations: Operation[] = []
 
   const results: ShellCommandOutput[] = commands.map((cmd) => {
-    const { output, operations } = shell.exec(cmd)
-    const isError = isErrorOutput(output)
+    const { output, operations, isError } = shell.exec(cmd)
 
     if (!isError) {
       mutations.push(...operations.map(toPatchOperation))
@@ -49,11 +48,6 @@ const formatZodError = (error: z.ZodError): HandlerResult<ShellCommandOutput[]> 
   output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
   mutations: [],
 })
-
-const isErrorOutput = (output: string): boolean =>
-  output.includes(": No such file") ||
-  output.startsWith("Unknown command:") ||
-  output.startsWith("Unsupported ")
 
 const formatCreateDiff = (path: string, content: string): string =>
   content === "" ? `*** Add File: ${path}` : `*** Add File: ${path}\n${content}`

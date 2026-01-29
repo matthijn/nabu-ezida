@@ -4,23 +4,18 @@ import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import type { Block } from "../../../types"
 import { nudge } from "../index"
-import { createFileEntry, type FileEntry } from "~/lib/files"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const EMPTY_NUDGE = "EMPTY_NUDGE"
 
-type RawFiles = Record<string, string>
-type Files = Record<string, FileEntry>
+type Files = Record<string, string>
 
 const readJson = <T>(path: string): T =>
   JSON.parse(readFileSync(path, "utf-8")) as T
 
 const readFilesJson = (path: string): Files => {
   if (!existsSync(path)) return {}
-  const raw = readJson<RawFiles>(path)
-  return Object.fromEntries(
-    Object.entries(raw).map(([name, content]) => [name, createFileEntry(content)])
-  )
+  return readJson<Files>(path)
 }
 
 const shouldNudge = (block: Block): boolean =>

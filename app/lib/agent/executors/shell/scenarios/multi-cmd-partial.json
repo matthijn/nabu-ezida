@@ -1,0 +1,15 @@
+{
+  "files": { "exists.md": "content" },
+  "args": { "commands": ["touch new.md", "rm ghost.md", "ls"] },
+  "expected": {
+    "status": "partial",
+    "output": [
+      { "stdout": "touch new.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } },
+      { "stdout": "", "stderr": "rm: ghost.md: No such file", "outcome": { "type": "exit", "exit_code": 1 } },
+      { "stdout": "exists.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": [
+      { "type": "create_file", "path": "new.md", "diff": "*** Add File: new.md" }
+    ]
+  }
+}

@@ -1,16 +1,9 @@
 export {
   getFiles,
-  getCurrentFile,
+  getFile,
   getFileRaw,
+  getCurrentFile,
   getFileLineCount,
-  getFileTags,
-  getStoredAnnotations,
-  getFileAnnotations,
-  getFileCodes,
-  getAllCodes,
-  getCodebook,
-  getCodeTitle,
-  getCodebookFiles,
   setFiles,
   setCurrentFile,
   updateFileRaw,
@@ -19,9 +12,22 @@ export {
   subscribe,
   persistFiles,
   restoreFiles,
-  createFileEntry,
-  type FileEntry,
 } from "./store"
+
+export {
+  getBlock,
+  getBlocks,
+  getAttributes,
+  getTags,
+  getStoredAnnotations,
+  getCallouts,
+  getCodes,
+  getAllCodes,
+  getCodebookFiles,
+  getCodeTitle,
+  getCodebook,
+  getAnnotations,
+} from "./selectors"
 
 export {
   applyPatch,

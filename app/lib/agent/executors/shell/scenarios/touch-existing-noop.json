@@ -1,0 +1,11 @@
+{
+  "files": { "exists.md": "content" },
+  "args": { "commands": ["touch exists.md"] },
+  "expected": {
+    "status": "ok",
+    "output": [
+      { "stdout": "touch: exists.md (already exists)", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": []
+  }
+}

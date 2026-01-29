@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import type { Annotation } from "~/domain/document/annotations"
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/lib/colors/radix"
-import { getCodeTitle } from "~/lib/files"
+import { getCodeTitle, getFiles } from "~/lib/files"
 
 type HoverState = {
   text: string
@@ -25,10 +25,10 @@ const isDecoration = (el: HTMLElement): boolean =>
 const findMatchingAnnotations = (annotations: Annotation[], text: string): Annotation[] =>
   annotations.filter((a) => a.text.includes(text))
 
-const annotationToEntry = (annotation: Annotation, index: number): HighlightEntry => ({
+const annotationToEntry = (files: Record<string, string>) => (annotation: Annotation, index: number): HighlightEntry => ({
   id: String(index),
   color: elementBorder(annotation.color),
-  title: annotation.code ? getCodeTitle(annotation.code) : undefined,
+  title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
   description: annotation.reason,
 })
 
@@ -78,7 +78,8 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
   }, [handleMouseEnter, handleMouseLeave])
 
   const matchingAnnotations = hover ? findMatchingAnnotations(annotations, hover.text) : []
-  const entries = matchingAnnotations.map(annotationToEntry)
+  const files = getFiles()
+  const entries = matchingAnnotations.map(annotationToEntry(files))
 
   return (
     <div ref={containerRef} className="relative">

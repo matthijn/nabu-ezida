@@ -19,7 +19,7 @@ const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
 const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
 const shellBlock = (): Block => ({ type: "system", content: "## SHELL AVAILABLE" })
-const memoryFile = { "memory.hidden.md": { raw: "user prefs", parsed: { attributes: null, callouts: [] } } }
+const memoryFile = { "memory.hidden.md": "user prefs" }
 
 type NudgeExpectation =
   | { type: "none" }

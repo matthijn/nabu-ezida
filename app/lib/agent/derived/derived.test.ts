@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "../types"
 import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, type Files } from "."
-import { createFileEntry } from "~/lib/files"
 import {
   createPlanCall,
   completeStepCall,
@@ -12,8 +11,8 @@ import {
 } from "../test-helpers"
 
 const mockFiles: Files = {
-  "doc1.md": createFileEntry("# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2."),
-  "doc2.md": createFileEntry("# Doc 2\n\nShort content."),
+  "doc1.md": "# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2.",
+  "doc2.md": "# Doc 2\n\nShort content.",
 }
 
 describe("derived", () => {
@@ -290,8 +289,8 @@ describe("derived", () => {
     it("completes plan when all sections processed", () => {
       // Small files that produce 1 section each
       const smallFiles: Files = {
-        "a.md": createFileEntry("Content A"),
-        "b.md": createFileEntry("Content B"),
+        "a.md": "Content A",
+        "b.md": "Content B",
       }
       const history = [
         createPlanCall(
@@ -311,7 +310,7 @@ describe("derived", () => {
     })
 
     it("tracks section results with internal context", () => {
-      const smallFiles: Files = { "doc.md": createFileEntry("Short") }
+      const smallFiles: Files = { "doc.md": "Short" }
       const history = [
         createPlanCall(
           "Task",
@@ -332,7 +331,7 @@ describe("derived", () => {
     })
 
     it("steps after per_section execute normally", () => {
-      const smallFiles: Files = { "doc.md": createFileEntry("Content") }
+      const smallFiles: Files = { "doc.md": "Content" }
       const history = [
         createPlanCall(
           "Task",
@@ -355,13 +354,13 @@ describe("derived", () => {
 
     it("strips attributes block from section content", () => {
       const filesWithAttributes: Files = {
-        "doc.md": createFileEntry(`# Title
+        "doc.md": `# Title
 
 \`\`\`json-attributes
 {"tags": ["interview"], "annotations": []}
 \`\`\`
 
-Actual content here.`),
+Actual content here.`,
       }
       const history = [
         createPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }] }], ["doc.md"]),

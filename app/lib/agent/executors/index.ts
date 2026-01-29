@@ -26,7 +26,7 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
     }
   }
 
-  return { status, output }
+  return { status, output } as ToolResult<unknown>
 }
 
 const handlers: Record<string, Handler> = {
@@ -40,7 +40,7 @@ const handlers: Record<string, Handler> = {
 }
 
 const extractFiles = (): Map<string, string> =>
-  new Map(Object.entries(getFiles()).map(([k, v]) => [k, (v as { raw: string }).raw]))
+  new Map(Object.entries(getFiles()))
 
 const applyMutation = (op: Operation): ToolResult<string> => {
   switch (op.type) {
