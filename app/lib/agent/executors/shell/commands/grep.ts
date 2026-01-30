@@ -54,6 +54,7 @@ export const grep = command({
     "-E": { alias: "--extended-regexp", description: "ignored (always extended)" },
     "-R": { alias: "--recursive", description: "ignored (flat filesystem)" },
     "-r": { description: "ignored (flat filesystem)" },
+    "-I": { alias: "--binary-files=without-match", description: "ignored (text-only filesystem)" },
     "-m": { alias: "--max-count", description: "max matches per file", value: true },
     "-S": { alias: "--smart-case", description: "case-insensitive if pattern is all lowercase" },
     // rg alias compatibility

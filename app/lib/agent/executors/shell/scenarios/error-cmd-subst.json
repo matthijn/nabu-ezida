@@ -3,7 +3,7 @@
   "args": { "commands": ["echo $(cat file.txt)"] },
   "expected": {
     "status": "partial",
-    "output": [{ "stdout": "", "stderr": "Unsupported operator: '$('\nSupported: | && || ;", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "output": [{ "stdout": "", "stderr": "This is not bash. '$(' is not supported.\nUse only: cat, head, tail, ls, grep, find, wc, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch", "outcome": { "type": "exit", "exit_code": 1 } }],
     "mutations": []
   }
 }

@@ -37,9 +37,20 @@ export const getShellDocs = (): string => {
     return `### ${name} Commands\n\n${docs}`
   })
 
+  const commandList = categories.flatMap((c) => c.commands).join(", ")
+
   return `## Shell Tool
 
-Simplified virtual shell. Only the commands listed below are available — unlisted commands will fail.
+**THIS IS NOT BASH.** This is a minimal virtual shell with a fixed command set.
+
+**YOU MUST** use only the commands listed below. **YOU MUST NOT** use:
+- Control flow: \`if\`, \`then\`, \`else\`, \`fi\`, \`for\`, \`while\`, \`do\`, \`done\`, \`case\`, \`esac\`
+- Shell builtins: \`set\`, \`command\`, \`test\`, \`[\`, \`[[\`, \`exit\`, \`return\`, \`export\`
+- Subshells: \`$(...)\`, backticks
+- Redirects: \`>\`, \`>>\`, \`<\`, \`2>&1\`
+- Variables: \`$VAR\`, \`\${VAR}\`
+
+Available commands: ${commandList}
 
 ${sections.join("\n\n")}
 
@@ -53,9 +64,7 @@ ${sections.join("\n\n")}
 ### Limitations
 
 - **Flat filesystem**: No subdirectories. Paths \`/\`, \`.\`, \`./\` all refer to root.
-- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use \`apply_local_patch\`
-- **No redirects**: \`>\`, \`>>\`, \`<\` not supported
-- **No variables**: \`$VAR\`, \`$(cmd)\` not supported`
+- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use \`apply_local_patch\``
 }
 
 type Segment = { cmd: string; nextOp: "&&" | "||" | ";" | null }
@@ -126,15 +135,26 @@ const parseSegments = (input: string): Segment[] => {
   }))
 }
 
+const bashCommands = new Set(["if", "then", "else", "fi", "for", "while", "do", "done", "case", "esac", "set", "command", "test", "exit", "return", "export"])
+
 const exec = (handlers: Record<string, (args: string[], stdin: string) => Result>) => (input: string): ExecResult => {
-  const trimmed = input.trim().replace(/\s*2>\/dev\/null\s*/g, " ")
+  const trimmed = input.trim().replace(/\s*(2>|>)\/dev\/null\s*/g, " ")
 
   if (!trimmed) return { output: "", operations: [], isError: false }
   if (trimmed === "help") return { output: helpText(), operations: [], isError: false }
 
-  const unsupported = trimmed.match(/>>|>|<|\$\(/)
+  const bashSyntax = trimmed.match(/\[\[?|\$\{|\$\(/)
+  if (bashSyntax) {
+    return {
+      output: `This is not bash. '${bashSyntax[0]}' is not supported.\nUse only: ${getCommandNames().join(", ")}`,
+      operations: [],
+      isError: true,
+    }
+  }
+
+  const unsupported = trimmed.match(/>>|>|</)
   if (unsupported) {
-    return { output: `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`, operations: [], isError: true }
+    return { output: `Redirects not supported: '${unsupported[0]}'`, operations: [], isError: true }
   }
 
   const segments = parseSegments(trimmed)
@@ -175,6 +195,13 @@ const runPipeline = (handlers: Record<string, (args: string[], stdin: string) =>
     const [name, ...args] = tokens.map((t) => t.replace(/^["']|["']$/g, ""))
 
     if (!name) continue
+
+    if (bashCommands.has(name)) {
+      return {
+        output: "",
+        error: `This is not bash. '${name}' is not supported.\nUse only: ${getCommandNames().join(", ")}`,
+      }
+    }
 
     const handler = handlers[name]
     if (!handler) {

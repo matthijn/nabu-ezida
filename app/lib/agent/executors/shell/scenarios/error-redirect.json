@@ -3,7 +3,7 @@
   "args": { "commands": ["echo foo > file.txt"] },
   "expected": {
     "status": "partial",
-    "output": [{ "stdout": "", "stderr": "Unsupported operator: '>'\nSupported: | && || ;", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "output": [{ "stdout": "", "stderr": "Redirects not supported: '>'", "outcome": { "type": "exit", "exit_code": 1 } }],
     "mutations": []
   }
 }
