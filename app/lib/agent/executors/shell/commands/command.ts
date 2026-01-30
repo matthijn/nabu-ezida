@@ -101,16 +101,14 @@ const formatHelp = (flagDefs: Record<string, FlagDef>): string =>
     .join("\n") || "  (none)"
 
 export const command = (def: CommandDef): Command => {
-  const { options: mriOptions, knownFlags, multiCharFlags, stringFlags } = buildMriConfig(def.flags)
-
   const createHandler = (files: Files) => {
     const innerHandler = def.handler(files)
 
     return (args: string[], stdin: string = ""): Result => {
+      // Build fresh config each call - mri mutates the options object
+      const { options: mriOptions, knownFlags, multiCharFlags, stringFlags } = buildMriConfig(def.flags)
       const normalized = normalizeArgs(args, multiCharFlags, stringFlags)
-      // Clone options - mri mutates boolean/string arrays by pushing aliases
-      const opts = { ...mriOptions, boolean: [...mriOptions.boolean], string: [...mriOptions.string] }
-      const parsed = mri(normalized, opts)
+      const parsed = mri(normalized, mriOptions)
       const flags = new Set<string>()
       const flagValues: Record<string, string> = {}
 
