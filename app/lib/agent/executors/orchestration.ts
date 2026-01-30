@@ -1,102 +1,126 @@
 import { z } from "zod"
-import type { Handler, HandlerResult } from "../types"
+import { tool, registerTool, ok, err } from "./tool"
 
-export const createPlan: Handler<null> = async (_files, args) => {
-  const validationError = validateCreatePlan(args)
-  return validationError ? { status: "error", output: validationError.error, mutations: [] } : ok
-}
-
-export const completeStep: Handler<null> = async (_files, args) => {
-  const result = CompleteStepArgs.safeParse(args)
-  return result.success ? ok : toError(result.error)
-}
-
-export const abort: Handler<null> = async (_files, args) => {
-  const result = AbortArgs.safeParse(args)
-  return result.success ? ok : toError(result.error)
-}
-
-export const startExploration: Handler<null> = async (_files, args) => {
-  const result = StartExplorationArgs.safeParse(args)
-  return result.success ? ok : toError(result.error)
-}
-
-export const explorationStep: Handler<null> = async (_files, args) => {
-  const result = ExplorationStepArgs.safeParse(args)
-  return result.success ? ok : toError(result.error)
-}
-
-const ok: HandlerResult<null> = { status: "ok", output: null, mutations: [] }
-
-const StepObject = z.object({
-  title: z.string().min(1, "title required"),
-  expected: z.string().min(1, "expected required - what should this step produce?"),
+const StepSchema = z.object({
+  title: z.string().min(1).describe("Brief title for this step"),
+  expected: z.string().min(1).describe("What this step should produce or accomplish"),
 })
 
-const CreatePlanBase = z.object({
-  task: z.string().min(1, "task description required - what are we trying to accomplish?"),
-  steps: z.array(z.unknown()).min(1, "steps array required - break the task into steps"),
-  files: z.array(z.string()).optional(),
+const PerSectionStep = z.object({
+  per_section: z
+    .array(StepSchema)
+    .min(1)
+    .describe("Steps to repeat for each section of a large file"),
 })
+
+const StepOrPerSection = z.union([StepSchema, PerSectionStep])
+
+const CreatePlanArgs = z.object({
+  task: z.string().min(1).describe("High-level description of what we're trying to accomplish"),
+  steps: z.array(StepOrPerSection).min(1).describe("Ordered list of steps to complete the task"),
+  files: z.array(z.string()).optional().describe("Files relevant to this task (for context)"),
+})
+
+export const createPlan = registerTool(
+  tool({
+    name: "create_plan",
+    description: `Create an execution plan for a multi-step task.
+
+Break complex tasks into discrete, verifiable steps. Each step should have:
+- A clear title describing the action
+- An expected outcome to verify completion
+
+Use per_section for repetitive operations across file sections.`,
+    schema: CreatePlanArgs,
+    handler: async (_files, args) => {
+      const stepErrors = validateSteps(args.steps)
+      if (stepErrors.length > 0) return err(stepErrors.join(", "))
+      return ok(null)
+    },
+  })
+)
 
 const CompleteStepArgs = z.object({
-  summary: z.string().min(1, "summary required - what did you accomplish in this step?"),
-  internal: z.string().min(1, "internal required - capture context, findings, or notes for later"),
+  summary: z.string().min(1).describe("What was accomplished in this step"),
+  internal: z.string().min(1).describe("Context, findings, or notes to carry forward to later steps"),
 })
+
+export const completeStep = registerTool(
+  tool({
+    name: "complete_step",
+    description: `Mark the current plan step as complete.
+
+Provide a summary of what was done and any internal notes that will help with subsequent steps.`,
+    schema: CompleteStepArgs,
+    handler: async () => ok(null),
+  })
+)
 
 const AbortArgs = z.object({
-  reason: z.string().min(1, "reason required - why can't this step be completed?"),
+  reason: z.string().min(1).describe("Why the current step or plan cannot be completed"),
 })
+
+export const abort = registerTool(
+  tool({
+    name: "abort",
+    description: `Abort the current plan or step.
+
+Use when you encounter a blocking issue that prevents completion.`,
+    schema: AbortArgs,
+    handler: async () => ok(null),
+  })
+)
 
 const StartExplorationArgs = z.object({
-  question: z.string().min(1, "question required - what are we trying to answer?"),
-  direction: z.string().min(1, "direction required - what will you investigate first?"),
+  question: z.string().min(1).describe("The question we're trying to answer through exploration"),
+  direction: z.string().min(1).describe("Initial direction or area to investigate"),
 })
+
+export const startExploration = registerTool(
+  tool({
+    name: "start_exploration",
+    description: `Begin an exploratory investigation.
+
+Use when you need to understand the codebase before creating a plan. State your question and initial investigation direction.`,
+    schema: StartExplorationArgs,
+    handler: async () => ok(null),
+  })
+)
 
 const ExplorationStepArgs = z.object({
-  internal: z.string().min(1, "internal required - capture IDs, query results, technical details for next steps"),
-  learned: z.string().min(1, "learned required - what did you discover?"),
-  decision: z.enum(["continue", "answer", "plan"]),
-  next: z.string().optional(),
+  internal: z
+    .string()
+    .min(1)
+    .describe("Technical details, IDs, query results to remember for next steps"),
+  learned: z.string().min(1).describe("Key discoveries from this exploration step"),
+  decision: z.enum(["continue", "answer", "plan"]).describe("continue exploring, answer the question, or create a plan"),
+  next: z.string().optional().describe("What to investigate next (if continuing)"),
 })
 
-const formatZodError = (error: z.ZodError): string =>
-  error.issues.map((i) => i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message).join(", ")
+export const explorationStep = registerTool(
+  tool({
+    name: "exploration_step",
+    description: `Record findings from an exploration step and decide next action.
 
-const toError = (error: z.ZodError): HandlerResult<null> => ({
-  status: "error",
-  output: formatZodError(error),
-  mutations: [],
-})
+- **continue**: Keep exploring, specify what to investigate next
+- **answer**: You have enough information to answer the original question
+- **plan**: You have enough information to create an execution plan`,
+    schema: ExplorationStepArgs,
+    handler: async () => ok(null),
+  })
+)
 
-const validateCreatePlan = (args: unknown): { error: string } | null => {
-  const base = CreatePlanBase.safeParse(args)
-  if (!base.success) return { error: formatZodError(base.error) }
+const validateSteps = (steps: z.infer<typeof StepOrPerSection>[]): string[] =>
+  steps.flatMap((step, i) => {
+    if ("per_section" in step) {
+      return step.per_section.flatMap((item, j) => validateStep(item, `steps.${i}.per_section.${j}`))
+    }
+    return validateStep(step, `steps.${i}`)
+  })
 
-  const stepErrors = base.data.steps.flatMap((step, i) => validateStep(step, i))
-  if (stepErrors.length > 0) return { error: stepErrors.join(", ") }
-
-  return null
-}
-
-const validateStep = (step: unknown, index: number): string[] => {
-  if (typeof step !== "object" || step === null) {
-    return [`steps.${index}: step must be {title, expected} or {per_section: [...]}`]
-  }
-
-  if ("per_section" in step) {
-    const ps = (step as { per_section: unknown }).per_section
-    if (!Array.isArray(ps)) return [`steps.${index}.per_section: must be array`]
-    if (ps.length === 0) return [`steps.${index}.per_section: needs at least one step`]
-    return ps.map((item, i) => validatePerSectionItem(item, index, i)).filter((e): e is string => e !== null)
-  }
-
-  const r = StepObject.safeParse(step)
-  return r.success ? [] : [`steps.${index}: ${formatZodError(r.error)}`]
-}
-
-const validatePerSectionItem = (item: unknown, stepIdx: number, itemIdx: number): string | null => {
-  const path = `steps.${stepIdx}.per_section.${itemIdx}`
-  const r = StepObject.safeParse(item)
-  return r.success ? null : `${path}: ${formatZodError(r.error)}`
+const validateStep = (step: z.infer<typeof StepSchema>, path: string): string[] => {
+  const errors: string[] = []
+  if (!step.title) errors.push(`${path}.title: required`)
+  if (!step.expected) errors.push(`${path}.expected: required`)
+  return errors
 }

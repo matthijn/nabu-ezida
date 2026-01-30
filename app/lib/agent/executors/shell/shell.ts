@@ -1,4 +1,4 @@
-import { parse, type ParseEntry } from "shell-quote"
+import { parse, type ParseEntry, type ControlOperator } from "shell-quote"
 import type { Files } from "./types"
 import type { Result, Operation } from "./commands/command"
 import * as commands from "./commands"
@@ -92,7 +92,7 @@ const isVarMarker = (x: unknown): x is VarMarker =>
 const isGlob = (entry: ParseEntry | VarMarker): entry is { op: "glob"; pattern: string } =>
   typeof entry === "object" && entry !== null && "op" in entry && entry.op === "glob"
 
-const isOp = (entry: ParseEntry | VarMarker): entry is { op: string } =>
+const isOp = (entry: ParseEntry | VarMarker): entry is { op: ControlOperator } =>
   typeof entry === "object" && entry !== null && "op" in entry && !isVarMarker(entry) && !isGlob(entry)
 
 // Token selectors

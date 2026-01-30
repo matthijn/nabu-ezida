@@ -6,6 +6,7 @@ import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
+import { getToolDefinitions } from "~/lib/agent/executors"
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
@@ -33,6 +34,9 @@ const formatResult = (result: unknown): string => {
   if (typeof result === "string") return result
   return JSON.stringify(result, null, 2)
 }
+
+const formatToolDefinitions = (): string =>
+  JSON.stringify(getToolDefinitions(), null, 2)
 
 const isErrorResult = (result: unknown): boolean =>
   typeof result === "object" && result !== null && "status" in result && (result.status === "error" || result.status === "partial")
@@ -263,6 +267,14 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
       </div>
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+        <CollapsibleBlock
+          label="tools"
+          content={formatToolDefinitions()}
+          borderColor="border-cyan-400"
+          labelColor="text-cyan-600"
+          defaultExpanded={false}
+          mono
+        />
         {history.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <span className="text-sm text-neutral-400">No messages yet</span>

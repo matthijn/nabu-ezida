@@ -1,68 +1,61 @@
 import { z } from "zod"
-import type { Handler, HandlerResult, RawFiles, Operation } from "../types"
-
-export const patchHandler: Handler<string> = async (files, args) => {
-  if (!args.operation) {
-    return {
-      status: "error",
-      output: "operation required - provide {type: 'create_file'|'update_file'|'delete_file'|'rename_file', path, diff}",
-      mutations: [],
-    }
-  }
-
-  const parsed = ApplyPatchArgs.safeParse(args)
-  if (!parsed.success) return formatZodError(parsed.error)
-
-  const operation = parsed.data.operation
-  const error = validateOperation(files, operation)
-
-  if (error) {
-    return { status: "error", output: error, mutations: [] }
-  }
-
-  return {
-    status: "ok",
-    output: formatSuccess(operation),
-    mutations: [operation],
-  }
-}
+import type { Operation } from "../types"
+import { tool, registerTool, ok, err } from "./tool"
 
 const CreateFileOp = z.object({
-  type: z.literal("create_file"),
-  path: z.string().min(1, "path required - which file to create?"),
-  diff: z.string().min(1, "diff required - what content to write?"),
+  type: z.literal("create_file").describe("Create a new file"),
+  path: z.string().min(1).describe("Path of the file to create"),
+  diff: z.string().min(1).describe("Content to write (unified diff format or raw content prefixed with '*** Add File:')"),
 })
 
 const UpdateFileOp = z.object({
-  type: z.literal("update_file"),
-  path: z.string().min(1, "path required - which file to update?"),
-  diff: z.string().min(1, "diff required - what changes to apply?"),
+  type: z.literal("update_file").describe("Update an existing file"),
+  path: z.string().min(1).describe("Path of the file to update"),
+  diff: z.string().min(1).describe("Changes to apply in unified diff format"),
 })
 
 const DeleteFileOp = z.object({
-  type: z.literal("delete_file"),
-  path: z.string().min(1, "path required - which file to delete?"),
+  type: z.literal("delete_file").describe("Delete a file"),
+  path: z.string().min(1).describe("Path of the file to delete"),
 })
 
 const RenameFileOp = z.object({
-  type: z.literal("rename_file"),
-  path: z.string().min(1, "path required - which file to rename?"),
-  newPath: z.string().min(1, "newPath required - what to rename it to?"),
+  type: z.literal("rename_file").describe("Rename/move a file"),
+  path: z.string().min(1).describe("Current path of the file"),
+  newPath: z.string().min(1).describe("New path for the file"),
 })
 
 const OperationSchema = z.discriminatedUnion("type", [CreateFileOp, UpdateFileOp, DeleteFileOp, RenameFileOp])
 
-const ApplyPatchArgs = z.object({
-  operation: OperationSchema,
+const PatchArgs = z.object({
+  operation: OperationSchema.describe("The file operation to perform"),
 })
 
-const formatZodError = (error: z.ZodError): HandlerResult<string> => ({
-  status: "error",
-  output: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
-  mutations: [],
-})
+export const applyLocalPatch = registerTool(
+  tool({
+    name: "apply_local_patch",
+    description: `Apply file operations to the local filesystem.
 
-const validateOperation = (files: RawFiles, op: Operation): string | null => {
+Supports four operation types:
+- **create_file**: Create a new file with content
+- **update_file**: Apply a unified diff to an existing file
+- **delete_file**: Remove a file
+- **rename_file**: Move/rename a file
+
+For create_file and update_file, the diff should be in unified diff format or prefixed with '*** Add File:' for new files.`,
+    schema: PatchArgs,
+    handler: async (files, { operation }) => {
+      const validationError = validateOperation(files, operation)
+      if (validationError) return err(validationError)
+
+      return ok(formatSuccess(operation), [operation])
+    },
+  })
+)
+
+export const patchHandler = applyLocalPatch.handle
+
+const validateOperation = (files: Map<string, string>, op: Operation): string | null => {
   switch (op.type) {
     case "create_file":
       return files.has(op.path) ? `${op.path}: already exists` : null
@@ -85,6 +78,4 @@ const operationVerb: Record<Operation["type"], string> = {
 }
 
 const formatSuccess = (op: Operation): string =>
-  op.type === "rename_file"
-    ? `Renamed ${op.path} → ${op.newPath}`
-    : `${operationVerb[op.type]} ${op.path}`
+  op.type === "rename_file" ? `Renamed ${op.path} → ${op.newPath}` : `${operationVerb[op.type]} ${op.path}`

@@ -1,13 +1,18 @@
-import type { ToolCall, ToolDeps, Handler, ToolResult, Operation } from "../types"
+import type { ToolCall, ToolDeps, ToolResult, Operation } from "../types"
 import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
 import { sendCommand, type Command, type Action } from "~/lib/sync"
-import { patchHandler } from "./patch"
-import { createPlan, completeStep, abort, startExploration, explorationStep } from "./orchestration"
-import { shellHandler } from "./shell"
+import { getToolHandlers, getToolDefinitions } from "./tool"
+
+// Import tools to register them
+import "./patch"
+import "./orchestration"
+import "./shell"
 
 export type { ToolDeps }
+export { getToolDefinitions }
 
 export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Promise<ToolResult<unknown>> => {
+  const handlers = getToolHandlers()
   const handler = handlers[call.name]
   if (!handler) {
     return { status: "error", output: `Unknown tool: ${call.name}` }
@@ -27,16 +32,6 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
   }
 
   return { status, output } as ToolResult<unknown>
-}
-
-const handlers: Record<string, Handler> = {
-  apply_local_patch: patchHandler,
-  create_plan: createPlan,
-  complete_step: completeStep,
-  abort,
-  start_exploration: startExploration,
-  exploration_step: explorationStep,
-  run_local_shell: shellHandler,
 }
 
 const extractFiles = (): Map<string, string> =>

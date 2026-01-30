@@ -18,7 +18,7 @@ const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
 const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
-const shellBlock = (): Block => ({ type: "system", content: "## Shell Tool" })
+const shellErrorResult = (): Block => ({ type: "tool_result", callId: "1", toolName: "run_local_shell", result: { status: "error", output: "unknown command" } })
 const memoryFile = { "memory.hidden.md": "user prefs" }
 
 type NudgeExpectation =
@@ -68,7 +68,6 @@ describe("toNudge", () => {
       name: "exploration completed with answer → empty nudge",
       history: [
         readMemoryBlock(),
-        shellBlock(),
         startExplorationCall("Question"),
         toolResult(),
         explorationStepCall("ctx:done", "Found it", "answer"),
@@ -136,7 +135,6 @@ describe("toNudge", () => {
       name: "plan aborted → empty nudge (triggers response)",
       history: [
         readMemoryBlock(),
-        shellBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         abortCall("Cannot continue"),
@@ -153,15 +151,15 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "READ MEMORY" },
     },
 
-    // After user message
+    // Shell error nudge
     {
-      name: "user message → shell docs (boot)",
-      history: [userMessage("Hello")],
-      expect: { type: "contains", text: "## Shell Tool" },
+      name: "shell error → reminder nudge",
+      history: [toolCallBlock(), shellErrorResult()],
+      expect: { type: "contains", text: "Shell error" },
     },
     {
-      name: "user message, shell docs already shown → empty nudge",
-      history: [shellBlock(), userMessage("Hello")],
+      name: "user message → no shell nudge (tool defs in request)",
+      history: [userMessage("Hello")],
       expect: { type: "emptyNudge" },
     },
 

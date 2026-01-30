@@ -1,6 +1,7 @@
 import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
+import { getToolDefinitions } from "./executors"
 
 type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
@@ -169,7 +170,7 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
 
   const response = await fetchWithRetry({
     url,
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, tools: getToolDefinitions() }),
     signal,
   })
 
