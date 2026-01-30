@@ -50,7 +50,7 @@ export type DerivedPlan = {
   aborted: boolean
 }
 
-const SECTION_TARGET_LINES = 100
+const SECTION_TARGET_LINES = 50
 
 const isPerSection = (step: StepDef): step is StepDefPerSection =>
   "per_section" in step

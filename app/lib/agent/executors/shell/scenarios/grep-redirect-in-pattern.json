@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "a>b\nc>d\ne"
+  },
+  "args": {
+    "commands": [
+      "grep \"a>b\" f.txt"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "f.txt:a>b",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

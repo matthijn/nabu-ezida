@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "${HOME}\n$PATH\nfoo"
+  },
+  "args": {
+    "commands": [
+      "grep '\\$' f.txt"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "f.txt:${HOME}\nf.txt:$PATH",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

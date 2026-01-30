@@ -189,8 +189,8 @@ const StreamingIndicator = ({ streaming, streamingToolArgs, streamingReasoning, 
             <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
             thinking
           </div>
-          <div className="text-sm font-mono whitespace-pre-wrap bg-yellow-50 p-2 rounded max-h-40 overflow-y-auto">
-            {streamingReasoning.slice(-1000)}
+          <div className="text-sm font-mono whitespace-pre-wrap bg-yellow-50 p-2 rounded">
+            {streamingReasoning}
           </div>
         </div>
       )}
@@ -201,8 +201,8 @@ const StreamingIndicator = ({ streaming, streamingToolArgs, streamingReasoning, 
             tool_call: {streamingToolName}
           </div>
           {streamingToolArgs && (
-            <div className="text-sm font-mono whitespace-pre-wrap bg-orange-50 p-2 rounded max-h-40 overflow-y-auto">
-              {streamingToolArgs.slice(-1000)}
+            <div className="text-sm font-mono whitespace-pre-wrap bg-orange-50 p-2 rounded">
+              {streamingToolArgs}
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ const StreamingIndicator = ({ streaming, streamingToolArgs, streamingReasoning, 
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             assistant
           </div>
-          <div className="text-sm whitespace-pre-wrap">{streaming.slice(-500)}</div>
+          <div className="text-sm whitespace-pre-wrap">{streaming}</div>
         </div>
       )}
     </>
