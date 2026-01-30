@@ -12,7 +12,7 @@ type BlockTypeMap = {
 type BlockLanguage = keyof BlockTypeMap
 
 type Code = { id: string; name: string; color: string; detail: string }
-type Codebook = { categories: { name: string; codes: Code[] }[] }
+export type Codebook = { categories: { name: string; codes: Code[] }[] }
 
 const cache = new Map<string, unknown>()
 

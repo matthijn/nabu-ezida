@@ -4,6 +4,7 @@ export {
   getFileRaw,
   getCurrentFile,
   getFileLineCount,
+  getCodebook,
   setFiles,
   setCurrentFile,
   updateFileRaw,
@@ -25,7 +26,6 @@ export {
   getAllCodes,
   getCodebookFiles,
   getCodeTitle,
-  getCodebook,
   getAnnotations,
 } from "./selectors"
 

@@ -1,3 +1,5 @@
+import { getCodebook as computeCodebook, type Codebook } from "./selectors"
+
 type Files = Record<string, string>
 type Listener = () => void
 
@@ -7,9 +9,21 @@ let files: Files = {}
 let currentFile: string | null = null
 const listeners = new Set<Listener>()
 
+// Memoized selectors - cache invalidated on files change
+let cachedFiles: Files | null = null
+let cachedCodebook: Codebook | undefined
+
 const notify = (): void => listeners.forEach((l) => l())
 
 export const getFiles = (): Files => files
+
+export const getCodebook = (): Codebook | undefined => {
+  if (cachedFiles !== files) {
+    cachedFiles = files
+    cachedCodebook = computeCodebook(files)
+  }
+  return cachedCodebook
+}
 
 export const getFile = (filename: string): string | undefined => files[filename]
 
