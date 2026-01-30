@@ -14,7 +14,49 @@ export const createShell = (files: Files) => {
   return { exec: exec(handlers), commands: handlers, helpText: helpText }
 }
 
-export const getCommandNames = (): string[] => Object.keys(commands)
+type CommandCategory = { name: string; commands: string[] }
+
+const categories: CommandCategory[] = [
+  { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
+  { name: "Text Processing", commands: ["cut", "sort", "uniq", "tr", "sed", "echo"] },
+  { name: "File Operations", commands: ["cp", "mv", "rm", "touch"] },
+]
+
+export const getCommandNames = (): string[] =>
+  categories.flatMap((c) => c.commands)
+
+const formatCommandDoc = (name: string): string => {
+  const cmd = commands[name as keyof typeof commands]
+  if (!cmd) return ""
+  return `**${name}** — ${cmd.description}\n\`\`\`\n${cmd.usage}\n\`\`\``
+}
+
+export const getShellDocs = (): string => {
+  const sections = categories.map(({ name, commands: cmds }) => {
+    const docs = cmds.map(formatCommandDoc).filter(Boolean).join("\n\n")
+    return `### ${name} Commands\n\n${docs}`
+  })
+
+  return `## Shell Tool
+
+Simplified virtual shell. Only the commands listed below are available — unlisted commands will fail.
+
+${sections.join("\n\n")}
+
+### Operators
+
+- \`|\` — Pipe output
+- \`&&\` — Run if previous succeeded
+- \`||\` — Run if previous failed
+- \`;\` — Run regardless
+
+### Limitations
+
+- **Flat filesystem**: No subdirectories. Paths \`/\`, \`.\`, \`./\` all refer to root.
+- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use \`apply_local_patch\`
+- **No redirects**: \`>\`, \`>>\`, \`<\` not supported
+- **No variables**: \`$VAR\`, \`$(cmd)\` not supported`
+}
 
 type Segment = { cmd: string; nextOp: "&&" | "||" | ";" | null }
 
@@ -52,7 +94,7 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
   if (!trimmed) return { output: "", operations: [], isError: false }
   if (trimmed === "help") return { output: helpText(), operations: [], isError: false }
 
-  const unsupported = trimmed.match(/>>|>|<|`|\$\(/)
+  const unsupported = trimmed.match(/>>|>|<|\$\(/)
   if (unsupported) {
     return { output: `Unsupported operator: '${unsupported[0]}'\nSupported: | && || ;`, operations: [], isError: true }
   }
@@ -91,8 +133,8 @@ const runPipeline = (handlers: Record<string, (args: string[], stdin: string) =>
   const operations: Operation[] = []
 
   for (const cmd of pipeline) {
-    const tokens = cmd.match(/(?:[^\s"]+|"[^"]*")+/g) || []
-    const [name, ...args] = tokens.map((t) => t.replace(/^"|"$/g, ""))
+    const tokens = cmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || []
+    const [name, ...args] = tokens.map((t) => t.replace(/^["']|["']$/g, ""))
 
     if (!name) continue
 

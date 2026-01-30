@@ -1,21 +1,18 @@
 import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "../nudge-tools"
-import { getCommandNames } from "../../executors/shell/shell"
+import { getCommandNames, getShellDocs } from "../../executors/shell/shell"
 
 const REMINDER_INTERVAL = 20
-const INTRO_MARKER = "## SHELL AVAILABLE"
+const INTRO_MARKER = "## Shell Tool"
 const REMINDER_MARKER = "## SHELL REMINDER"
-
-const commandList = (): string => getCommandNames().join(", ")
 
 const shellIntroNudge: Nudger = (history, _files, _emptyNudge) => {
   if (!afterToolResult(history)) return null
   if (alreadyFired(history, INTRO_MARKER)) return null
 
   return `
-${INTRO_MARKER}
-Shell tool available (flat file structure, no directories).
-Commands: ${commandList()}
-Pipes (|) and chaining (&&, ||, ;) supported. Use help for details.
+<shell>
+${getShellDocs()}
+</shell>
 
 Continue.
 `
@@ -27,7 +24,7 @@ const shellReminderNudge: Nudger = (history, _files, _emptyNudge) => {
 
   return `
 ${REMINDER_MARKER}
-Shell: ${commandList()}
+Shell: ${getCommandNames().join(", ")}
 `
 }
 

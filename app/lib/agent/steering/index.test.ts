@@ -18,7 +18,7 @@ const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
 const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
-const shellBlock = (): Block => ({ type: "system", content: "## SHELL AVAILABLE" })
+const shellBlock = (): Block => ({ type: "system", content: "## Shell Tool" })
 const memoryFile = { "memory.hidden.md": "user prefs" }
 
 type NudgeExpectation =

@@ -159,11 +159,17 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
   const decoder = new TextDecoder()
   let buffer = ""
   let state = initialParseState()
+  let firstBytesLogged = false
 
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
+
+      if (!firstBytesLogged) {
+        console.log("[LLM] First bytes received", performance.now().toFixed(0) + "ms")
+        firstBytesLogged = true
+      }
 
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split("\n")
@@ -179,6 +185,7 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
       state = processLine(buffer, state, callbacks)
     }
   } finally {
+    await reader.cancel()
     reader.releaseLock()
   }
 
@@ -186,6 +193,9 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
   for (const block of blocks) {
     callbacks.onBlock?.(block)
   }
+
+  console.debug("[STREAM END]", { toolCalls: state.toolCalls.length })
+
   return blocks
 }
 
