@@ -26,17 +26,36 @@ type SectionLabelProps = {
   file: string
   indexInFile: number
   totalInFile: number
-  sectionIndex: number
-  totalSections: number
 }
 
-const SectionLabel = ({ file, indexInFile, totalInFile, sectionIndex, totalSections }: SectionLabelProps) => (
+const SectionLabel = ({ file, indexInFile, totalInFile }: SectionLabelProps) => (
   <div className="text-caption font-caption text-subtext-color mb-1">
     Processing <span className="font-medium text-default-font">{file}</span>
-    {totalInFile > 1 && <span> (section {indexInFile}/{totalInFile})</span>}
-    <span className="text-neutral-400"> · {sectionIndex + 1} of {totalSections}</span>
+    {totalInFile > 1 && <span className="text-neutral-400"> · {indexInFile} of {totalInFile}</span>}
   </div>
 )
+
+type ProgressBarProps = {
+  completed: number
+  total: number
+}
+
+const ProgressBar = ({ completed, total }: ProgressBarProps) => {
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <div className="h-1.5 flex-1 rounded-full bg-neutral-200 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-brand-600 transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <span className="text-caption font-caption text-subtext-color whitespace-nowrap">
+        {completed}/{total}
+      </span>
+    </div>
+  )
+}
 
 type PerSectionBoxProps = {
   perSection: PerSectionConfig
@@ -47,7 +66,7 @@ type PerSectionBoxProps = {
 }
 
 const PerSectionBox = ({ perSection, steps, currentStep, aborted, context }: PerSectionBoxProps) => {
-  const { firstInnerStepIndex, innerStepCount, sections, currentSection } = perSection
+  const { firstInnerStepIndex, innerStepCount, sections, currentSection, completedSections } = perSection
   const innerSteps = steps.slice(firstInnerStepIndex, firstInnerStepIndex + innerStepCount)
   const section = sections[currentSection]
 
@@ -62,8 +81,6 @@ const PerSectionBox = ({ perSection, steps, currentStep, aborted, context }: Per
           file={section.file}
           indexInFile={section.indexInFile}
           totalInFile={section.totalInFile}
-          sectionIndex={currentSection}
-          totalSections={sections.length}
         />
       )}
       <div className="flex flex-col gap-2">
@@ -71,6 +88,7 @@ const PerSectionBox = ({ perSection, steps, currentStep, aborted, context }: Per
           <StepRow key={i} step={step} context={context} />
         ))}
       </div>
+      <ProgressBar completed={completedSections.length} total={sections.length} />
     </div>
   )
 }
