@@ -1,5 +1,5 @@
 import type { ToolCall, ToolDeps, Handler, ToolResult, Operation } from "../types"
-import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch } from "~/lib/files"
+import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
 import { sendCommand, type Command, type Action } from "~/lib/sync"
 import { patchHandler } from "./patch"
 import { createPlan, completeStep, abort, startExploration, explorationStep } from "./orchestration"
@@ -71,7 +71,11 @@ const applyPatchAndStore = (path: string, content: string, diff: string, verb: s
   const result = applyFilePatch(path, content, diff)
   if (result.status === "error") return { status: "error", output: result.error }
   updateFileRaw(result.path, result.content)
-  return { status: "ok", output: `${verb} ${result.path}` }
+
+  const idsSummary = result.generatedIds ? formatGeneratedIds(result.generatedIds) : ""
+  const output = idsSummary ? `${verb} ${result.path}\n${idsSummary}` : `${verb} ${result.path}`
+
+  return { status: "ok", output }
 }
 
 const operationToAction: Record<Operation["type"], Action> = {

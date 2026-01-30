@@ -36,3 +36,5 @@ export {
   computeJsonDiff,
   type FileResult,
 } from "./patch"
+
+export { formatGeneratedIds, type GeneratedId } from "~/domain/blocks"

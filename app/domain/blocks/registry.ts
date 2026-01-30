@@ -14,6 +14,7 @@ type BlockTypeConfig<T> = {
   immutable: string[]
   renderer: "hidden" | "callout"
   singleton: boolean
+  labelKey?: string
   validate?: (parsed: T, context: ValidationContext) => ValidationError[]
 }
 
@@ -73,6 +74,7 @@ const jsonCallout = defineBlock({
   immutable: ["id"],
   renderer: "callout",
   singleton: false,
+  labelKey: "title",
 })
 
 type AnyBlockConfig = BlockTypeConfig<unknown>
@@ -90,3 +92,6 @@ export const isKnownBlockType = (language: string): boolean =>
 
 export const isSingleton = (language: string): boolean =>
   blockTypes[language]?.singleton ?? false
+
+export const getLabelKey = (language: string): string | undefined =>
+  blockTypes[language]?.labelKey
