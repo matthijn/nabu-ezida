@@ -24,7 +24,7 @@ const isHiddenFile = (filename: string): boolean =>
   filename.includes(".hidden.")
 
 const filesToSidebarDocuments = (
-  files: Record<string, unknown>,
+  files: Record<string, string>,
   getFileTags: (filename: string) => string[],
   getFileLineCount: (filename: string) => number,
   debugMode: boolean
@@ -40,11 +40,19 @@ const filesToSidebarDocuments = (
     lineCount: getFileLineCount(filename),
   }))
 
+export type DebugOptions = {
+  expanded: boolean
+  persistToServer: boolean
+  renderAsJson: boolean
+}
+
 export type ProjectContextValue = {
-  files: Record<string, unknown>
+  files: Record<string, string>
   currentFile: string | null
-  debugMode: boolean
-  toggleDebugMode: () => void
+  debugOptions: DebugOptions
+  toggleDebugExpanded: () => void
+  togglePersistToServer: () => void
+  toggleRenderAsJson: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -58,9 +66,14 @@ export default function ProjectLayout() {
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [debugMode, setDebugMode] = useState(false)
+  const [debugExpanded, setDebugExpanded] = useState(false)
+  const [persistToServer, setPersistToServer] = useState(true)
+  const [renderAsJson, setRenderAsJson] = useState(false)
 
-  const toggleDebugMode = useCallback(() => setDebugMode((prev) => !prev), [])
+  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson }
+  const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
+  const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
+  const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -79,7 +92,7 @@ export default function ProjectLayout() {
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
   const fileImport = useFileImport(params.projectId)
 
-  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugMode)
+  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugExpanded)
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -110,7 +123,7 @@ export default function ProjectLayout() {
         searchValue={searchValue}
         sortBy={sortBy}
         collapsed={sidebarCollapsed}
-        debugMode={debugMode}
+        debugMode={debugExpanded}
         onSearchChange={setSearchValue}
         onSortChange={setSortBy}
         onDocumentSelect={handleDocumentSelect}
@@ -132,7 +145,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugMode, toggleDebugMode, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />

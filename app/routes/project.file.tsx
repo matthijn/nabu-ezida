@@ -23,12 +23,8 @@ import {
   FeatherUnderline,
 } from "@subframe/core"
 
-type FileEntry = { raw: string }
-
-const getFileRaw = (files: Record<string, unknown>, filename: string): string | undefined => {
-  const entry = files[filename] as FileEntry | undefined
-  return entry?.raw
-}
+const getFileRaw = (files: Record<string, string>, filename: string): string | undefined =>
+  files[filename]
 
 const isJsonFile = (filename: string): boolean => filename.endsWith(".json")
 
@@ -39,7 +35,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugMode, toggleDebugMode, getFileTags, getFileAnnotations } = useProject()
+  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, getFileTags, getFileAnnotations } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
@@ -72,10 +68,12 @@ export default function ProjectFile() {
         title={currentFile}
         tags={tags}
         pinned={false}
-        debugMode={debugMode}
+        debugOptions={debugOptions}
         onPin={() => {}}
         onShare={() => {}}
-        onDebug={toggleDebugMode}
+        onToggleDebug={toggleDebugExpanded}
+        onTogglePersist={togglePersistToServer}
+        onToggleRenderJson={toggleRenderAsJson}
         onCopyRaw={copyRawMarkdown}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
@@ -109,7 +107,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={`${currentFile}-${debugMode}`} content={formatContent(content, currentFile)} annotations={annotations} debugMode={debugMode} />
+            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} annotations={annotations} debugMode={debugOptions.renderAsJson} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />
