@@ -1,0 +1,9 @@
+{
+  "files": { "log.txt": "INFO start\nDEBUG foo\nINFO end\nDEBUG bar" },
+  "args": { "commands": ["grep -v DEBUG log.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "log.txt:\tINFO start\nlog.txt:\tINFO end", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

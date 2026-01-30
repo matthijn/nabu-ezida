@@ -1,0 +1,9 @@
+{
+  "files": { "a.md": "a" },
+  "args": { "commands": ["rm *.txt"] },
+  "expected": {
+    "status": "partial",
+    "output": [{ "stdout": "", "stderr": "rm: *.txt: no matches", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "mutations": []
+  }
+}

@@ -2,13 +2,18 @@ import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } f
 
 export const rm = command({
   description: "Remove files",
-  usage: "rm <file>...",
-  flags: {},
-  handler: (files) => (paths) => {
+  usage: "rm [-f] <file>...",
+  flags: {
+    "-f": { alias: "--force", description: "ignore missing files" },
+    "-r": { alias: "--recursive", description: "ignored (no directories)" },
+    "-R": { description: "ignored (no directories)" },
+  },
+  handler: (files) => (paths, flags) => {
     if (paths.length === 0) {
       return err("rm: missing operand")
     }
 
+    const force = flags.has("-f")
     const operations: Operation[] = []
     const outputs: string[] = []
     const errors: string[] = []
@@ -16,13 +21,13 @@ export const rm = command({
     for (const rawPattern of paths) {
       const pattern = normalizePath(rawPattern)
       if (!pattern) {
-        errors.push(`rm: invalid path`)
+        if (!force) errors.push(`rm: invalid path`)
         continue
       }
       if (isGlob(pattern)) {
         const matches = expandGlob(files, pattern)
         if (matches.length === 0) {
-          errors.push(`rm: ${pattern}: no matches`)
+          if (!force) errors.push(`rm: ${pattern}: no matches`)
         } else {
           for (const path of matches) {
             operations.push({ type: "delete", path })
@@ -31,7 +36,7 @@ export const rm = command({
         }
       } else {
         if (!files.has(pattern)) {
-          errors.push(`rm: ${pattern}: No such file`)
+          if (!force) errors.push(`rm: ${pattern}: No such file`)
         } else {
           operations.push({ type: "delete", path: pattern })
           outputs.push(`rm ${pattern}`)

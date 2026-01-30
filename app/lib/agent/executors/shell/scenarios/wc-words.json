@@ -1,0 +1,9 @@
+{
+  "files": { "f.txt": "one two three" },
+  "args": { "commands": ["wc -w f.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "3 f.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

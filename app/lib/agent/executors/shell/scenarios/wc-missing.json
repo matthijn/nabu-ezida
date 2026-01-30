@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "args": { "commands": ["wc missing.txt"] },
+  "expected": {
+    "status": "partial",
+    "output": [{ "stdout": "", "stderr": "wc: missing.txt: No such file", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "mutations": []
+  }
+}

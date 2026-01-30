@@ -1,0 +1,9 @@
+{
+  "files": { "a.md": "hello" },
+  "args": { "commands": ["ls -l"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "       5  a.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

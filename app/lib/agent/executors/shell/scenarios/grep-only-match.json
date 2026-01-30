@@ -1,0 +1,9 @@
+{
+  "files": { "log.txt": "error: foo\nwarning: bar\nerror: baz" },
+  "args": { "commands": ["grep -o error log.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "error\nerror", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

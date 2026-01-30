@@ -1,0 +1,9 @@
+{
+  "files": { "foo.txt": "line1\nline2\nline3" },
+  "args": { "commands": ["cat -n foo.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "     1\tline1\n     2\tline2\n     3\tline3", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

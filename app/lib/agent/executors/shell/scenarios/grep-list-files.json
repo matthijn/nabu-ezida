@@ -1,0 +1,13 @@
+{
+  "files": {
+    "notes.md": "hello world\nfoo bar",
+    "other.md": "no match here",
+    "match.md": "hello again"
+  },
+  "args": { "commands": ["grep -l hello *.md"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "notes.md\nmatch.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "files": {},
+  "args": { "commands": ["echo \"hello && world || test\""] },
+  "expected": {
+    "status": "ok",
+    "output": [
+      { "stdout": "hello && world || test", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": []
+  }
+}

@@ -2,9 +2,11 @@ import { command, ok, err, normalizePath, type Operation } from "./command"
 
 export const cp = command({
   description: "Copy file",
-  usage: "cp <source> <dest>",
-  flags: {},
-  handler: (files) => (paths) => {
+  usage: "cp [-f] <source> <dest>",
+  flags: {
+    "-f": { alias: "--force", description: "force overwrite if dest exists" },
+  },
+  handler: (files) => (paths, flags) => {
     if (paths.length < 2) {
       return err("cp: missing destination")
     }
@@ -21,7 +23,7 @@ export const cp = command({
     if (!files.has(src)) {
       return err(`cp: ${src}: No such file`)
     }
-    if (files.has(dest)) {
+    if (files.has(dest) && !flags.has("-f")) {
       return err(`cp: ${dest}: already exists`)
     }
 

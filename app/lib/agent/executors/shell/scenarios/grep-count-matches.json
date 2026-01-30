@@ -1,0 +1,12 @@
+{
+  "files": { "doc.txt": "hello hello world\nhello there\ngoodbye" },
+  "args": { "commands": ["grep -c hello doc.txt", "grep --count-matches hello doc.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [
+      { "stdout": "doc.txt:2", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } },
+      { "stdout": "doc.txt:3", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": []
+  }
+}

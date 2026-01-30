@@ -1,0 +1,9 @@
+{
+  "files": { "foo.txt": "content" },
+  "args": { "commands": ["ls /"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "foo.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

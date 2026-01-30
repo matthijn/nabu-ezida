@@ -1,0 +1,9 @@
+{
+  "files": { "f.txt": "a\nb\nc\nd\ne" },
+  "args": { "commands": ["cat -o 2 -l 2 f.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "b\nc", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

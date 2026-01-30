@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "args": { "commands": ["echo 'bob:30\nalice:25\ncharlie:35' | sort -t: -k2 -n"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "alice:25\nbob:30\ncharlie:35", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

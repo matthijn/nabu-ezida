@@ -1,0 +1,9 @@
+{
+  "files": { "exists.txt": "content" },
+  "args": { "commands": ["rm -f missing.txt exists.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "rm exists.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": [{ "type": "delete_file", "path": "exists.txt" }]
+  }
+}

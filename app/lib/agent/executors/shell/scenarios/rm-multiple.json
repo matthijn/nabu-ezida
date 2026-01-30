@@ -1,0 +1,12 @@
+{
+  "files": { "a.txt": "a", "b.txt": "b" },
+  "args": { "commands": ["rm a.txt b.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "rm a.txt\nrm b.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": [
+      { "type": "delete_file", "path": "a.txt" },
+      { "type": "delete_file", "path": "b.txt" }
+    ]
+  }
+}

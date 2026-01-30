@@ -1,0 +1,9 @@
+{
+  "files": { "log.txt": "line1\nline2\nerror here\nline4\nline5" },
+  "args": { "commands": ["grep -B 1 error log.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "log.txt-2-\tline2\nlog.txt:3:\terror here", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

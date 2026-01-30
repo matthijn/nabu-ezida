@@ -25,6 +25,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   if (!controller) {
     controller = new AbortController()
   }
+  console.log("[LLM] Request started", performance.now().toFixed(0) + "ms")
   updateChat({ loading: true, error: null, streamingToolName: null })
 
   const nonEmpty = nudges.filter((n) => n !== "")

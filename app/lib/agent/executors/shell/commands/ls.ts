@@ -2,14 +2,16 @@ import { command, ok, err, normalizePath } from "./command"
 
 export const ls = command({
   description: "List files",
-  usage: "ls [-l]",
+  usage: "ls [-l] [-1]",
   flags: {
-    "-l": { description: "long format with sizes" },
+    "-l": { alias: "--long", description: "long format with sizes" },
+    "-1": { description: "one per line (default)" },
+    "-a": { alias: "--all", description: "ignored (no hidden files)" },
   },
   handler: (files) => (paths, flags, _stdin, _flagValues) => {
     const path = normalizePath(paths[0])
     if (path !== undefined) {
-      return err(`ls: only root listing allowed, use 'ls'`)
+      return err(`ls: no subdirectories exist (use 'ls' or 'ls /')`)
     }
 
     const names = [...files.keys()].sort()

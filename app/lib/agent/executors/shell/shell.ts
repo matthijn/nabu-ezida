@@ -70,22 +70,60 @@ const helpText = (): string =>
     })
     .join("\n\n")
 
-const parseSegments = (input: string): Segment[] => {
-  const segments: Segment[] = []
-  const re = /\s*(&&|\|\||;)\s*/g
-  let lastIndex = 0
-  let match
+type SplitResult = { parts: string[]; separators: string[] }
 
-  while ((match = re.exec(input)) !== null) {
-    const cmd = input.slice(lastIndex, match.index).trim()
-    if (cmd) segments.push({ cmd, nextOp: match[1] as "&&" | "||" | ";" })
-    lastIndex = re.lastIndex
+const splitOutsideQuotes = (input: string, pattern: RegExp): SplitResult => {
+  const parts: string[] = []
+  const separators: string[] = []
+  let current = ""
+  let i = 0
+  let inQuote: string | null = null
+
+  while (i < input.length) {
+    const char = input[i]
+
+    if (!inQuote && (char === '"' || char === "'")) {
+      inQuote = char
+      current += char
+      i++
+      continue
+    }
+    if (char === inQuote) {
+      inQuote = null
+      current += char
+      i++
+      continue
+    }
+    if (inQuote) {
+      current += char
+      i++
+      continue
+    }
+
+    const remaining = input.slice(i)
+    const match = remaining.match(pattern)
+    if (match && match.index === 0) {
+      parts.push(current.trim())
+      separators.push(match[1] ?? match[0].trim())
+      current = ""
+      i += match[0].length
+      continue
+    }
+
+    current += char
+    i++
   }
 
-  const remaining = input.slice(lastIndex).trim()
-  if (remaining) segments.push({ cmd: remaining, nextOp: null })
+  if (current.trim()) parts.push(current.trim())
+  return { parts, separators }
+}
 
-  return segments
+const parseSegments = (input: string): Segment[] => {
+  const { parts, separators } = splitOutsideQuotes(input, /^(\s*(&&|\|\||;)\s*)/)
+  return parts.map((cmd, i) => ({
+    cmd,
+    nextOp: (separators[i]?.trim() as "&&" | "||" | ";" | undefined) ?? null,
+  }))
 }
 
 const exec = (handlers: Record<string, (args: string[], stdin: string) => Result>) => (input: string): ExecResult => {
@@ -128,7 +166,7 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
 }
 
 const runPipeline = (handlers: Record<string, (args: string[], stdin: string) => Result>, stmt: string, stdin: string): Result => {
-  const pipeline = stmt.split(/\s*\|\s*/).map((s) => s.trim()).filter(Boolean)
+  const { parts: pipeline } = splitOutsideQuotes(stmt, /^(\s*\|(?!\|)\s*)/)
   let output = stdin
   const operations: Operation[] = []
 

@@ -1,0 +1,9 @@
+{
+  "files": { "foo.txt": "content" },
+  "args": { "commands": ["ls /docs"] },
+  "expected": {
+    "status": "partial",
+    "output": [{ "stdout": "", "stderr": "ls: no subdirectories exist (use 'ls' or 'ls /')", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "mutations": []
+  }
+}

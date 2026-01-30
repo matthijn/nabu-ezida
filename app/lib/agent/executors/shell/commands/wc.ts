@@ -1,15 +1,15 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 export const wc = command({
   description: "Word, line, character count",
   usage: "wc [-l] [-w] [-c] <file>",
   flags: {
-    "-l": { description: "line count only" },
-    "-w": { description: "word count only" },
-    "-c": { description: "character count only" },
+    "-l": { alias: "--lines", description: "line count only" },
+    "-w": { alias: "--words", description: "word count only" },
+    "-c": { alias: "--bytes", description: "character count only" },
   },
   handler: (files) => (paths, flags, stdin, _flagValues) => {
-    const filename = paths[0]
+    const filename = normalizePath(paths[0])
     const content = filename ? files.get(filename) ?? null : stdin
 
     if (content === null) return err(`wc: ${filename}: No such file`)

@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "args": { "commands": ["echo 'a\na\nb\nc\nc\nc' | uniq -d"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "a\nc", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

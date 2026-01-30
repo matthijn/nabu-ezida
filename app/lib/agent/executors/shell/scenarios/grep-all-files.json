@@ -1,0 +1,9 @@
+{
+  "files": { "a.txt": "error here", "b.txt": "no match" },
+  "args": { "commands": ["grep error"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "a.txt:\terror here", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

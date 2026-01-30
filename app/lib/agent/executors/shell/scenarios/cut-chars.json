@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "args": { "commands": ["echo 'hello world' | cut -c1-5"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "hello", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

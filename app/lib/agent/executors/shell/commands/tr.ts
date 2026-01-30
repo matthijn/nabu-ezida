@@ -21,8 +21,8 @@ export const tr = command({
   description: "Translate or delete characters",
   usage: "tr [-d] [-s] <set1> [set2]",
   flags: {
-    "-d": { description: "delete characters in set1" },
-    "-s": { description: "squeeze repeated characters" },
+    "-d": { alias: "--delete", description: "delete characters in set1" },
+    "-s": { alias: "--squeeze-repeats", description: "squeeze repeated characters" },
   },
   handler: () => (args, flags, stdin) => {
     const set1 = args[0]

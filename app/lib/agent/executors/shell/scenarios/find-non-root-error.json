@@ -1,0 +1,9 @@
+{
+  "files": { "a.md": "" },
+  "args": { "commands": ["find /docs -name *.md"] },
+  "expected": {
+    "status": "partial",
+    "output": [{ "stdout": "", "stderr": "find: no subdirectories exist (use 'find -name' or 'find / -name')", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "mutations": []
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "files": { "doc.txt": "RUTTE: hello\nSomeone said RUTTE\nRUTTE: goodbye" },
+  "args": { "commands": ["grep -c \"^RUTTE\" doc.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "doc.txt:2", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}

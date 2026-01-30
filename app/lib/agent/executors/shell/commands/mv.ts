@@ -2,9 +2,11 @@ import { command, ok, err, normalizePath, type Operation } from "./command"
 
 export const mv = command({
   description: "Rename file",
-  usage: "mv <source> <dest>",
-  flags: {},
-  handler: (files) => (paths) => {
+  usage: "mv [-f] <source> <dest>",
+  flags: {
+    "-f": { alias: "--force", description: "force overwrite if dest exists" },
+  },
+  handler: (files) => (paths, flags) => {
     if (paths.length < 2) {
       return err("mv: missing destination")
     }
@@ -21,11 +23,16 @@ export const mv = command({
     if (!files.has(src)) {
       return err(`mv: ${src}: No such file`)
     }
-    if (files.has(dest)) {
+    if (files.has(dest) && !flags.has("-f")) {
       return err(`mv: ${dest}: already exists`)
     }
 
-    const operation: Operation = { type: "rename", path: src, newPath: dest }
-    return ok(`mv ${src} ${dest}`, [operation])
+    const operations: Operation[] = []
+    if (files.has(dest)) {
+      operations.push({ type: "delete", path: dest })
+    }
+    operations.push({ type: "rename", path: src, newPath: dest })
+
+    return ok(`mv ${src} ${dest}`, operations)
   },
 })

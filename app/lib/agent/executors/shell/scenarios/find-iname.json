@@ -1,0 +1,9 @@
+{
+  "files": { "README.md": "", "readme.txt": "", "other.md": "" },
+  "args": { "commands": ["find -iname readme*"] },
+  "expected": {
+    "status": "ok",
+    "output": [{ "stdout": "README.md\nreadme.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "mutations": []
+  }
+}
