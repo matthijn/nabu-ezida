@@ -1,0 +1,20 @@
+{
+  "type": "upsert",
+  "files": {
+    "doc.md": "# Research Notes\n\nCoffee beans are interesting."
+  },
+  "args": {
+    "path": "doc.md",
+    "annotations": [
+      {
+        "text": "This text does not exist anywhere in the document",
+        "reason": "Should fail",
+        "color": "red"
+      }
+    ]
+  },
+  "expected": {
+    "status": "error",
+    "output": "No annotations applied"
+  }
+}

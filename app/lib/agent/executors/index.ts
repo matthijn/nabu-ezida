@@ -7,6 +7,7 @@ import { getToolHandlers, getToolDefinitions } from "./tool"
 import "./patch"
 import "./orchestration"
 import "./shell"
+import "./annotations/tool"
 
 export type { ToolDeps }
 export { getToolDefinitions }

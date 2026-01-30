@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest"
+import { readdirSync, readFileSync } from "fs"
+import { join } from "path"
 import { applyDiff } from "./parse"
+
+type ApplyScenario = {
+  name: string
+  content: string
+  patch: string
+  expected: { ok: true; content: string } | { ok: false; error: string }
+}
+
+const loadApplyScenarios = (): ApplyScenario[] => {
+  const dir = join(__dirname, "scenarios/apply")
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => JSON.parse(readFileSync(join(dir, f), "utf-8")))
+}
 
 describe("applyDiff", () => {
   const cases = [
@@ -187,5 +203,14 @@ line 10`
       expect(result.error).toContain("return 2")
       expect(result.error).toContain("Include more surrounding lines to disambiguate")
     }
+  })
+
+  describe("scenarios", () => {
+    const scenarios = loadApplyScenarios()
+
+    it.each(scenarios)("$name", ({ content, patch, expected }) => {
+      const result = applyDiff(content, patch)
+      expect(result).toEqual(expected)
+    })
   })
 })

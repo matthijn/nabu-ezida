@@ -234,7 +234,10 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const [copiedAll, setCopiedAll] = useState(false)
 
   const handleCopyAll = () => {
-    navigator.clipboard.writeText(formatAllBlocks(history))
+    const tools = `[tools]\n${formatToolDefinitions()}`
+    const blocks = formatAllBlocks(history)
+    const content = blocks ? `${tools}\n\n---\n\n${blocks}` : tools
+    navigator.clipboard.writeText(content)
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 1500)
   }

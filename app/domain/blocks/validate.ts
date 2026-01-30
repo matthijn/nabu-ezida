@@ -143,6 +143,8 @@ const findOriginalBlock = (
     : { found: false, error: { block: block.language, message: `No original block found with id "${id}"` } }
 }
 
+const DEFAULT_IMMUTABLE_MESSAGE = (field: string) => `Field "${field}" is immutable and cannot be changed`
+
 const validateImmutableFields = (
   language: string,
   newBlock: CodeBlock,
@@ -155,9 +157,11 @@ const validateImmutableFields = (
 
   const errors: ValidationError[] = []
   const configImmutable = getImmutableFields(language)
-  const immutableFields = originalParsed.id ? ["id", ...configImmutable] : configImmutable
+  const immutableFields: Record<string, string> = originalParsed.id
+    ? { id: DEFAULT_IMMUTABLE_MESSAGE("id"), ...configImmutable }
+    : configImmutable
 
-  for (const field of immutableFields) {
+  for (const [field, message] of Object.entries(immutableFields)) {
     const originalValue = originalParsed[field]
     const newValue = newParsed[field]
 
@@ -165,7 +169,7 @@ const validateImmutableFields = (
       errors.push({
         block: language,
         field,
-        message: `Field "${field}" is immutable and cannot be changed`,
+        message,
       })
     }
   }
@@ -205,6 +209,7 @@ const detectOrphanedIds = (
 export type ValidateOptions = {
   context?: ValidationContext
   original?: string
+  skipImmutableCheck?: boolean
 }
 
 export const validateMarkdownBlocks = (
@@ -236,8 +241,10 @@ export const validateMarkdownBlocks = (
       const findResult = findOriginalBlock(block, originalBlocksByLanguage)
 
       if (findResult.found) {
-        const immutableErrors = validateImmutableFields(block.language, block, findResult.block)
-        errors.push(...immutableErrors)
+        if (!options.skipImmutableCheck) {
+          const immutableErrors = validateImmutableFields(block.language, block, findResult.block)
+          errors.push(...immutableErrors)
+        }
 
         if (blockErrors.length > 0) {
           const currentBlock = formatBlock(block.language, findResult.block.content)
@@ -254,7 +261,7 @@ export const validateMarkdownBlocks = (
     errors.push(...blockErrors)
   }
 
-  if (options.original) {
+  if (options.original && !options.skipImmutableCheck) {
     errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
   }
 

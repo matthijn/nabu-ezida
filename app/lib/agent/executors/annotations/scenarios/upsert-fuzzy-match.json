@@ -1,0 +1,20 @@
+{
+  "type": "upsert",
+  "files": {
+    "doc.md": "# Research Notes\n\nCoffee beans are interesting. They come from Ethiopia originally."
+  },
+  "args": {
+    "path": "doc.md",
+    "annotations": [
+      {
+        "text": "Coffee bean are interesting",
+        "reason": "Key finding - note typo in text gets normalized",
+        "color": "amber"
+      }
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": "Applied 1 annotation(s)"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "type": "upsert",
+  "files": {
+    "doc.md": "# Research Notes\n\nCoffee beans are interesting. They come from Ethiopia."
+  },
+  "args": {
+    "path": "doc.md",
+    "annotations": [
+      {
+        "text": "Coffee beans are interesting",
+        "reason": "This one exists",
+        "color": "amber"
+      },
+      {
+        "text": "This does not exist",
+        "reason": "This one does not",
+        "color": "red"
+      }
+    ]
+  },
+  "expected": {
+    "status": "partial",
+    "output": "Applied 1 annotation(s)",
+    "message": "1 annotation(s) not found"
+  }
+}

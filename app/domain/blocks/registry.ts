@@ -11,7 +11,7 @@ export type ValidationContext = {
 type BlockTypeConfig<T> = {
   schema: z.ZodType<T>
   readonly: string[]
-  immutable: string[]
+  immutable: Record<string, string>
   renderer: "hidden" | "callout"
   singleton: boolean
   labelKey?: string
@@ -62,7 +62,9 @@ const validateAnnotations = (
 const jsonAttributes = defineBlock({
   schema: DocumentMeta,
   readonly: [],
-  immutable: [],
+  immutable: {
+    annotations: "Use upsert_annotations or remove_annotations tools to modify annotations",
+  },
   renderer: "hidden",
   singleton: true,
   validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
@@ -71,7 +73,9 @@ const jsonAttributes = defineBlock({
 const jsonCallout = defineBlock({
   schema: CalloutSchema,
   readonly: [],
-  immutable: ["id"],
+  immutable: {
+    id: "Field \"id\" is immutable and cannot be changed",
+  },
   renderer: "callout",
   singleton: false,
   labelKey: "title",
@@ -96,5 +100,5 @@ export const isSingleton = (language: string): boolean =>
 export const getLabelKey = (language: string): string | undefined =>
   blockTypes[language]?.labelKey
 
-export const getImmutableFields = (language: string): string[] =>
-  blockTypes[language]?.immutable ?? []
+export const getImmutableFields = (language: string): Record<string, string> =>
+  blockTypes[language]?.immutable ?? {}

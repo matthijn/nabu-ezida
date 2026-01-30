@@ -1,0 +1,18 @@
+{
+  "type": "upsert",
+  "files": {},
+  "args": {
+    "path": "nonexistent.md",
+    "annotations": [
+      {
+        "text": "some text",
+        "reason": "reason",
+        "color": "amber"
+      }
+    ]
+  },
+  "expected": {
+    "status": "error",
+    "output": "No such file"
+  }
+}
