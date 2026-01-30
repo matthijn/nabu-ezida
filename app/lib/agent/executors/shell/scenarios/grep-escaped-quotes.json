@@ -1,11 +1,25 @@
 {
-  "files": { "doc.md": "# Heading\n```json-attributes\n{\"key\": \"value\"}\n```\ntext" },
-  "args": { "commands": ["grep -n \"```json-attributes\" doc.md"] },
+  "files": {
+    "doc.md": "# Heading\n```json-attributes\n{\"key\": \"value\"}\n```\ntext"
+  },
+  "args": {
+    "commands": [
+      "grep -n \"```json-attributes\" doc.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "doc.md:2:\t```json-attributes", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "doc.md:2:```json-attributes",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

@@ -1,0 +1,7 @@
+[
+  { "type": "user", "content": "hi" },
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "run_local_shell", "args": {} }]},
+  { "type": "tool_result", "callId": "1", "toolName": "run_local_shell", "result": { "status": "ok" } },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "run_local_shell", "args": {} }]},
+  { "type": "tool_result", "callId": "2", "toolName": "run_local_shell", "result": { "status": "error" } }
+]

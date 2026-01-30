@@ -1,9 +1,25 @@
 {
-  "files": { "f.txt": "a\nb\nc" },
-  "args": { "commands": ["wc -l f.txt"] },
+  "files": {
+    "f.txt": "a\nb\nc"
+  },
+  "args": {
+    "commands": [
+      "wc -l f.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "3 f.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "3 f.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

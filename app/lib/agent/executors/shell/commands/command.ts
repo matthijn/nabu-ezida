@@ -16,7 +16,7 @@ export type Command = CommandDef & {
 export const ok = (output: string, operations?: Operation[]): Result =>
   operations ? { output, operations } : { output }
 
-export const noMatch = (): Result => ({ output: "", exitCode: 1 })
+export const noMatch = (): Result => ({ output: "[no matches]", exitCode: 1 })
 
 export const err = (error: string): Result => ({ output: "", error })
 

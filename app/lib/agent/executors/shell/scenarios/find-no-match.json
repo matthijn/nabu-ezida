@@ -1,9 +1,25 @@
 {
-  "files": { "other.txt": "" },
-  "args": { "commands": ["find -name *.md"] },
+  "files": {
+    "other.txt": ""
+  },
+  "args": {
+    "commands": [
+      "find -name *.md"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

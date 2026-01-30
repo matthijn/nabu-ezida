@@ -50,21 +50,29 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
           const c = getChat()
           if (c) updateChat({ streaming: c.streaming + chunk })
         },
+        onToolArgsChunk: (chunk) => {
+          const c = getChat()
+          if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
+        },
+        onReasoningChunk: (chunk) => {
+          const c = getChat()
+          if (c) updateChat({ streamingReasoning: c.streamingReasoning + chunk })
+        },
         onToolName: (name) => {
-          updateChat({ streamingToolName: name })
+          updateChat({ streamingToolArgs: "", streamingToolName: name })
         },
       },
     })
 
-    updateChat({ history, streaming: "", streamingToolName: null, loading: false })
+    updateChat({ history, streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
     run(deps)
   } catch (e) {
     controller = null
     if (isAbortError(e)) {
-      updateChat({ streaming: "", streamingToolName: null, loading: false })
+      updateChat({ streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
       return
     }
-    updateChat({ error: "Something went wrong", streaming: "", streamingToolName: null, loading: false })
+    updateChat({ error: "Something went wrong", streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
   }
 }
 

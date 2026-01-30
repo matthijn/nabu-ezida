@@ -187,14 +187,62 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
   return { output: outputs.join("\n"), operations, isError: hasError, exitCode: lastExitCode }
 }
 
+const tokenize = (cmd: string): string[] => {
+  const tokens: string[] = []
+  let current = ""
+  let i = 0
+  let inQuote: string | null = null
+
+  while (i < cmd.length) {
+    const char = cmd[i]
+
+    if (!inQuote && (char === '"' || char === "'")) {
+      inQuote = char
+      i++
+      continue
+    }
+    if (char === inQuote) {
+      inQuote = null
+      i++
+      continue
+    }
+    if (inQuote) {
+      current += char
+      i++
+      continue
+    }
+
+    if (char === "\\" && i + 1 < cmd.length) {
+      current += cmd[i + 1]
+      i += 2
+      continue
+    }
+
+    if (/\s/.test(char)) {
+      if (current) {
+        tokens.push(current)
+        current = ""
+      }
+      i++
+      continue
+    }
+
+    current += char
+    i++
+  }
+
+  if (current) tokens.push(current)
+  return tokens
+}
+
 const runPipeline = (handlers: Record<string, (args: string[], stdin: string) => Result>, stmt: string, stdin: string): Result => {
   const { parts: pipeline } = splitOutsideQuotes(stmt, /^(\s*\|(?!\|)\s*)/)
   let output = stdin
   const operations: Operation[] = []
 
   for (const cmd of pipeline) {
-    const tokens = cmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || []
-    const [name, ...args] = tokens.map((t) => t.replace(/^["']|["']$/g, ""))
+    const tokens = tokenize(cmd)
+    const [name, ...args] = tokens
 
     if (!name) continue
 

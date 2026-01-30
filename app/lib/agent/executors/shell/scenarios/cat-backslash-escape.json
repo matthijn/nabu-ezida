@@ -1,0 +1,25 @@
+{
+  "files": {
+    "file with spaces.md": "content here"
+  },
+  "args": {
+    "commands": [
+      "cat file\\ with\\ spaces.md"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "content here",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

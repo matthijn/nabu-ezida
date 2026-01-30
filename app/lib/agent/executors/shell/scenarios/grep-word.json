@@ -1,9 +1,25 @@
 {
-  "files": { "text.txt": "the cat\ncaterpillar\nthe cat sat" },
-  "args": { "commands": ["grep -w cat text.txt"] },
+  "files": {
+    "text.txt": "the cat\ncaterpillar\nthe cat sat"
+  },
+  "args": {
+    "commands": [
+      "grep -w cat text.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "text.txt:\tthe cat\ntext.txt:\tthe cat sat", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "text.txt:the cat\ntext.txt:the cat sat",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

@@ -1,9 +1,25 @@
 {
-  "files": { "a.md": "hello" },
-  "args": { "commands": ["ls -l"] },
+  "files": {
+    "a.md": "hello"
+  },
+  "args": {
+    "commands": [
+      "ls -l"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "       5  a.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "       5  a.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

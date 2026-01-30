@@ -23,6 +23,20 @@ const blocksSinceMarker = (history: Block[], marker: string): number => {
 export const afterToolResult = (history: Block[]): boolean =>
   history.length > 0 && history[history.length - 1].type === "tool_result"
 
+type ToolResultStatus = "ok" | "partial" | "error" | null
+
+export const lastToolResultStatus = (history: Block[]): ToolResultStatus => {
+  if (history.length === 0) return null
+  const last = history[history.length - 1]
+  if (last.type !== "tool_result") return null
+  const result = last.result as { status?: string } | undefined
+  if (!result || typeof result.status !== "string") return null
+  if (result.status === "ok" || result.status === "partial" || result.status === "error") {
+    return result.status
+  }
+  return null
+}
+
 export const alreadyFired = (history: Block[], marker: string): boolean =>
   blocksSinceMarker(history, marker) !== -1
 

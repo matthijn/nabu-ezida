@@ -1,9 +1,25 @@
 {
-  "files": { "log.txt": "error: bad\ninfo: ok\nerror: worse" },
-  "args": { "commands": ["cat log.txt | grep error"] },
+  "files": {
+    "log.txt": "error: bad\ninfo: ok\nerror: worse"
+  },
+  "args": {
+    "commands": [
+      "cat log.txt | grep error"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "error: bad\nerror: worse", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "error: bad\nerror: worse",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

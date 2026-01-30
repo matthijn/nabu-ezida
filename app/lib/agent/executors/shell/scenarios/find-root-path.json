@@ -1,9 +1,26 @@
 {
-  "files": { "a.md": "", "b.md": "" },
-  "args": { "commands": ["find / -name *.md"] },
+  "files": {
+    "a.md": "",
+    "b.md": ""
+  },
+  "args": {
+    "commands": [
+      "find / -name *.md"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "a.md\nb.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "a.md\nb.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

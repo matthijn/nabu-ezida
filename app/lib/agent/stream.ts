@@ -9,6 +9,8 @@ type InputItem =
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
+  onToolArgsChunk?: (text: string) => void
+  onReasoningChunk?: (text: string) => void
   onBlock?: (block: Block) => void
   onToolName?: (name: string) => void
   onToolCall?: (call: ToolCall) => void
@@ -25,6 +27,7 @@ const parseToolArgs = (args: string): Record<string, unknown> => {
 type ParseState = {
   currentEvent: string
   textContent: string
+  reasoningContent: string
   toolCalls: ToolCall[]
   streamingToolName: string | null
 }
@@ -32,6 +35,7 @@ type ParseState = {
 export const initialParseState = (): ParseState => ({
   currentEvent: "",
   textContent: "",
+  reasoningContent: "",
   toolCalls: [],
   streamingToolName: null,
 })
@@ -69,6 +73,21 @@ export const processLine = (
       }
     }
 
+    if (state.currentEvent === "response.function_call_arguments.delta") {
+      if (parsed.delta) {
+        callbacks.onToolArgsChunk?.(parsed.delta)
+      }
+      return state
+    }
+
+    if (state.currentEvent === "response.reasoning_summary_text.delta") {
+      if (parsed.delta) {
+        callbacks.onReasoningChunk?.(parsed.delta)
+        return { ...state, reasoningContent: state.reasoningContent + parsed.delta }
+      }
+      return state
+    }
+
     if (state.currentEvent === "response.output_item.done" && parsed.item) {
       const item = parsed.item
       if (item.type === "function_call") {
@@ -90,6 +109,9 @@ export const processLine = (
 
 const stateToBlocks = (state: ParseState): Block[] => {
   const blocks: Block[] = []
+  if (state.reasoningContent) {
+    blocks.push({ type: "reasoning", content: state.reasoningContent })
+  }
   if (state.textContent) {
     blocks.push({ type: "text", content: state.textContent })
   }

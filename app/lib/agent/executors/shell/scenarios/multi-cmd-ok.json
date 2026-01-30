@@ -1,15 +1,43 @@
 {
   "files": {},
-  "args": { "commands": ["touch a.md", "touch b.md"] },
+  "args": {
+    "commands": [
+      "touch a.md",
+      "touch b.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "touch a.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } },
-      { "stdout": "touch b.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "touch a.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "touch b.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": [
-      { "type": "create_file", "path": "a.md", "diff": "*** Add File: a.md" },
-      { "type": "create_file", "path": "b.md", "diff": "*** Add File: b.md" }
+      {
+        "type": "create_file",
+        "path": "a.md",
+        "diff": "*** Add File: a.md"
+      },
+      {
+        "type": "create_file",
+        "path": "b.md",
+        "diff": "*** Add File: b.md"
+      }
     ]
   }
 }

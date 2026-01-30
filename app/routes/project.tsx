@@ -7,6 +7,7 @@ import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar
 import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
 import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
+import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
 import { createWebSocket, applyCommand } from "~/lib/sync"
@@ -44,6 +45,33 @@ export type DebugOptions = {
   expanded: boolean
   persistToServer: boolean
   renderAsJson: boolean
+  showStreamPanel: boolean
+}
+
+const DEBUG_STORAGE_KEY = "nabu-debug-options"
+
+const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
+  expanded: false,
+  persistToServer: true,
+  renderAsJson: false,
+  showStreamPanel: false,
+}
+
+const loadDebugOptions = (): DebugOptions => {
+  if (typeof window === "undefined") return DEFAULT_DEBUG_OPTIONS
+  try {
+    const stored = localStorage.getItem(DEBUG_STORAGE_KEY)
+    return stored ? { ...DEFAULT_DEBUG_OPTIONS, ...JSON.parse(stored) } : DEFAULT_DEBUG_OPTIONS
+  } catch {
+    return DEFAULT_DEBUG_OPTIONS
+  }
+}
+
+const saveDebugOptions = (options: DebugOptions): void => {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(DEBUG_STORAGE_KEY, JSON.stringify(options))
+  } catch {}
 }
 
 export type ProjectContextValue = {
@@ -53,6 +81,7 @@ export type ProjectContextValue = {
   toggleDebugExpanded: () => void
   togglePersistToServer: () => void
   toggleRenderAsJson: () => void
+  toggleStreamPanel: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -66,14 +95,21 @@ export default function ProjectLayout() {
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [debugExpanded, setDebugExpanded] = useState(false)
-  const [persistToServer, setPersistToServer] = useState(true)
-  const [renderAsJson, setRenderAsJson] = useState(false)
+  const [debugExpanded, setDebugExpanded] = useState(() => loadDebugOptions().expanded)
+  const [persistToServer, setPersistToServer] = useState(() => loadDebugOptions().persistToServer)
+  const [renderAsJson, setRenderAsJson] = useState(() => loadDebugOptions().renderAsJson)
+  const [showStreamPanel, setShowStreamPanel] = useState(() => loadDebugOptions().showStreamPanel)
 
-  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson }
+  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel }
+
+  useEffect(() => {
+    saveDebugOptions(debugOptions)
+  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel])
+
   const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
   const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
   const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
+  const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -91,6 +127,16 @@ export default function ProjectLayout() {
 
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
   const fileImport = useFileImport(params.projectId)
+
+  const fileNames = Object.keys(files).filter((f) => debugExpanded || !isHiddenFile(f))
+
+  useEffect(() => {
+    if (!currentFile && fileNames.length > 0 && params.projectId) {
+      const first = fileNames[0]
+      setCurrentFile(first)
+      navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`)
+    }
+  }, [currentFile, fileNames.length, params.projectId])
 
   const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugExpanded)
 
@@ -145,10 +191,11 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />
+          {showStreamPanel && <DebugStreamPanel onClose={toggleStreamPanel} />}
         </DefaultPageLayout>
         <FileDropOverlay
           isVisible={fileImport.isVisible}

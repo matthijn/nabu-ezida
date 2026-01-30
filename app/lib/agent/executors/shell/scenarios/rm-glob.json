@@ -1,12 +1,36 @@
 {
-  "files": { "a.txt": "a", "b.txt": "b", "c.md": "c" },
-  "args": { "commands": ["rm *.txt"] },
+  "files": {
+    "a.txt": "a",
+    "b.txt": "b",
+    "c.md": "c"
+  },
+  "args": {
+    "commands": [
+      "rm *.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "rm a.txt\nrm b.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "rm a.txt\nrm b.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": [
-      { "type": "delete_file", "path": "a.txt" },
-      { "type": "delete_file", "path": "b.txt" }
+      {
+        "type": "delete_file",
+        "path": "a.txt"
+      },
+      {
+        "type": "delete_file",
+        "path": "b.txt"
+      }
     ]
   }
 }

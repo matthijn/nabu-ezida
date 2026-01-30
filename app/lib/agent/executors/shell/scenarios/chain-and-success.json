@@ -1,9 +1,26 @@
 {
-  "files": { "a.txt": "aaa", "b.txt": "bbb" },
-  "args": { "commands": ["cat a.txt && cat b.txt"] },
+  "files": {
+    "a.txt": "aaa",
+    "b.txt": "bbb"
+  },
+  "args": {
+    "commands": [
+      "cat a.txt && cat b.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "aaa\nbbb", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "aaa\nbbb",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

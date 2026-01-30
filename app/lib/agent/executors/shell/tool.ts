@@ -16,11 +16,14 @@ export const shellHandler: Handler<ShellCommandOutput[]> = async (files, args) =
   const shell = createShell(files)
   const mutations: Operation[] = []
 
+  let hasRealError = false
   const results: ShellCommandOutput[] = commands.map((cmd) => {
     const { output, operations, isError, exitCode } = shell.exec(cmd)
 
     if (!isError) {
       mutations.push(...operations.map(toPatchOperation))
+    } else {
+      hasRealError = true
     }
 
     const exit_code = exitCode ?? (isError ? 1 : 0)
@@ -31,11 +34,15 @@ export const shellHandler: Handler<ShellCommandOutput[]> = async (files, args) =
     }
   })
 
-  const hasError = results.some((r) => r.outcome.exit_code !== 0)
+  const successCount = results.filter((r) => r.stderr === "").length
+  const message = hasRealError
+    ? `${successCount}/${results.length} commands succeeded. Don't retry if you have the information you need.`
+    : "All commands completed successfully."
 
   return {
-    status: hasError ? "partial" : "ok",
+    status: hasRealError ? "partial" : "ok",
     output: results,
+    message,
     mutations,
   }
 }

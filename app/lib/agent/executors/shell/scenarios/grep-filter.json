@@ -1,11 +1,25 @@
 {
-  "files": { "doc.md": "line one\nfoo bar\nline three" },
-  "args": { "commands": ["grep foo doc.md"] },
+  "files": {
+    "doc.md": "line one\nfoo bar\nline three"
+  },
+  "args": {
+    "commands": [
+      "grep foo doc.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "doc.md:\tfoo bar", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "doc.md:foo bar",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

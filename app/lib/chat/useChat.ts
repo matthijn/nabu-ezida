@@ -12,6 +12,8 @@ type UseChatResult = {
   cancel: () => void
   loading: boolean
   streaming: string
+  streamingToolArgs: string
+  streamingReasoning: string
   streamingToolName: string | null
   history: Block[]
   error: string | null
@@ -22,6 +24,8 @@ export const useChat = (): UseChatResult => {
 
   const loading = chat?.loading ?? false
   const streaming = chat?.streaming ?? ""
+  const streamingToolArgs = chat?.streamingToolArgs ?? ""
+  const streamingReasoning = chat?.streamingReasoning ?? ""
   const streamingToolName = chat?.streamingToolName ?? null
   const history = chat?.history ?? []
   const error = chat?.error ?? null
@@ -62,5 +66,5 @@ export const useChat = (): UseChatResult => {
     cancelRunner()
   }, [])
 
-  return { chat, send, run: runChat, cancel, loading, streaming, streamingToolName, history, error }
+  return { chat, send, run: runChat, cancel, loading, streaming, streamingToolArgs, streamingReasoning, streamingToolName, history, error }
 }

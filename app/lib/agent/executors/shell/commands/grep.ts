@@ -31,9 +31,9 @@ const formatMatch = (
   showLineNumbers: boolean
 ): string => {
   const sep = m.isMatch ? ":" : "-"
-  if (filePath && showLineNumbers) return `${filePath}${sep}${m.lineNum}${sep}\t${m.line}`
-  if (filePath) return `${filePath}${sep}\t${m.line}`
-  if (showLineNumbers) return `${m.lineNum}${sep}\t${m.line}`
+  if (filePath && showLineNumbers) return `${filePath}${sep}${m.lineNum}${sep}${m.line}`
+  if (filePath) return `${filePath}${sep}${m.line}`
+  if (showLineNumbers) return `${m.lineNum}${sep}${m.line}`
   return m.line
 }
 
@@ -114,7 +114,8 @@ export const grep = command({
             if (!listOnly && !countOnly && !countMatches) {
               if (onlyMatching && !invert) {
                 const allMatches = line.match(re) || []
-                allMatches.forEach((m) => results.push(m))
+                const prefix = filePath ? `${filePath}:` : ""
+                allMatches.forEach((m) => results.push(prefix + m))
               } else {
                 results.push(formatMatch(filePath, { lineNum: i + 1, line, isMatch: true }, showLineNumbers))
               }

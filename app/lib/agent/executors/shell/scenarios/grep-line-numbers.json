@@ -1,9 +1,25 @@
 {
-  "files": { "log.txt": "ok\nerror here\nok" },
-  "args": { "commands": ["grep -n error log.txt"] },
+  "files": {
+    "log.txt": "ok\nerror here\nok"
+  },
+  "args": {
+    "commands": [
+      "grep -n error log.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "log.txt:2:\terror here", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "log.txt:2:error here",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

@@ -1,9 +1,25 @@
 {
-  "files": { "data.txt": "a:b:c\nx:y:z" },
-  "args": { "commands": ["cat data.txt | cut -d: -f1"] },
+  "files": {
+    "data.txt": "a:b:c\nx:y:z"
+  },
+  "args": {
+    "commands": [
+      "cat data.txt | cut -d: -f1"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "a\nx", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "a\nx",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

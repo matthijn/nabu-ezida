@@ -1,9 +1,23 @@
 {
   "files": {},
-  "args": { "commands": ["echo 'a\na\nb\nc\nc\nc' | uniq -u"] },
+  "args": {
+    "commands": [
+      "echo 'a\na\nb\nc\nc\nc' | uniq -u"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "b", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "b",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

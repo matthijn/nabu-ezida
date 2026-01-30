@@ -1,15 +1,49 @@
 {
-  "files": { "exists.md": "content" },
-  "args": { "commands": ["touch new.md", "rm ghost.md", "ls"] },
+  "files": {
+    "exists.md": "content"
+  },
+  "args": {
+    "commands": [
+      "touch new.md",
+      "rm ghost.md",
+      "ls"
+    ]
+  },
   "expected": {
     "status": "partial",
     "output": [
-      { "stdout": "touch new.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } },
-      { "stdout": "", "stderr": "rm: ghost.md: No such file", "outcome": { "type": "exit", "exit_code": 1 } },
-      { "stdout": "exists.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "touch new.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "",
+        "stderr": "rm: ghost.md: No such file",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      },
+      {
+        "stdout": "exists.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "2/3 commands succeeded. Don't retry if you have the information you need.",
     "mutations": [
-      { "type": "create_file", "path": "new.md", "diff": "*** Add File: new.md" }
+      {
+        "type": "create_file",
+        "path": "new.md",
+        "diff": "*** Add File: new.md"
+      }
     ]
   }
 }

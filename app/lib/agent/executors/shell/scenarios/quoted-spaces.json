@@ -1,9 +1,25 @@
 {
-  "files": { "my file.txt": "content" },
-  "args": { "commands": ["cat \"my file.txt\""] },
+  "files": {
+    "my file.txt": "content"
+  },
+  "args": {
+    "commands": [
+      "cat \"my file.txt\""
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "content", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "content",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

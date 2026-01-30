@@ -1,9 +1,27 @@
 {
-  "files": { "a.md": "", "b.txt": "", "other.txt": "" },
-  "args": { "commands": ["find"] },
+  "files": {
+    "a.md": "",
+    "b.txt": "",
+    "other.txt": ""
+  },
+  "args": {
+    "commands": [
+      "find"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "a.md\nb.txt\nother.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "a.md\nb.txt\nother.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

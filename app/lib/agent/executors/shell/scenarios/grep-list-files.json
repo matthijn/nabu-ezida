@@ -4,10 +4,24 @@
     "other.md": "no match here",
     "match.md": "hello again"
   },
-  "args": { "commands": ["grep -l hello *.md"] },
+  "args": {
+    "commands": [
+      "grep -l hello *.md"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "notes.md\nmatch.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "notes.md\nmatch.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

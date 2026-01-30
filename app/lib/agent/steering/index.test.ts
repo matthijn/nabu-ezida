@@ -155,8 +155,13 @@ describe("toNudge", () => {
 
     // After user message
     {
-      name: "user message → empty nudge",
+      name: "user message → shell docs (boot)",
       history: [userMessage("Hello")],
+      expect: { type: "contains", text: "## Shell Tool" },
+    },
+    {
+      name: "user message, shell docs already shown → empty nudge",
+      history: [shellBlock(), userMessage("Hello")],
       expect: { type: "emptyNudge" },
     },
 

@@ -1,11 +1,27 @@
 {
-  "files": { "a.md": "a", "b.md": "b", "dir/c.md": "c" },
-  "args": { "commands": ["ls"] },
+  "files": {
+    "a.md": "a",
+    "b.md": "b",
+    "dir/c.md": "c"
+  },
+  "args": {
+    "commands": [
+      "ls"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "a.md\nb.md\ndir/c.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "a.md\nb.md\ndir/c.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

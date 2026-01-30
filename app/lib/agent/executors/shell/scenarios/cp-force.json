@@ -1,9 +1,32 @@
 {
-  "files": { "src.txt": "new content", "dest.txt": "old content" },
-  "args": { "commands": ["cp -f src.txt dest.txt"] },
+  "files": {
+    "src.txt": "new content",
+    "dest.txt": "old content"
+  },
+  "args": {
+    "commands": [
+      "cp -f src.txt dest.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "cp src.txt dest.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
-    "mutations": [{ "type": "create_file", "path": "dest.txt", "diff": "*** Add File: dest.txt\nnew content" }]
+    "output": [
+      {
+        "stdout": "cp src.txt dest.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": [
+      {
+        "type": "create_file",
+        "path": "dest.txt",
+        "diff": "*** Add File: dest.txt\nnew content"
+      }
+    ]
   }
 }

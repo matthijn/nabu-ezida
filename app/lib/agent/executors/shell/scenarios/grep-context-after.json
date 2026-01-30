@@ -1,9 +1,25 @@
 {
-  "files": { "log.txt": "line1\nline2\nerror here\nline4\nline5" },
-  "args": { "commands": ["grep -A 1 error log.txt"] },
+  "files": {
+    "log.txt": "line1\nline2\nerror here\nline4\nline5"
+  },
+  "args": {
+    "commands": [
+      "grep -A 1 error log.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "log.txt:3:\terror here\nlog.txt-4-\tline4", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "log.txt:3:error here\nlog.txt-4-line4",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

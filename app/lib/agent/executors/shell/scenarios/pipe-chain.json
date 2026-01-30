@@ -1,11 +1,25 @@
 {
-  "files": { "doc.md": "apple\nbanana\napple\ncherry\napple" },
-  "args": { "commands": ["cat doc.md | grep apple | wc -l"] },
+  "files": {
+    "doc.md": "apple\nbanana\napple\ncherry\napple"
+  },
+  "args": {
+    "commands": [
+      "cat doc.md | grep apple | wc -l"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "3", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "3",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

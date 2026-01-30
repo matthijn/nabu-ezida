@@ -1,9 +1,25 @@
 {
-  "files": { "b.txt": "bbb" },
-  "args": { "commands": ["cat missing.txt && cat b.txt"] },
+  "files": {
+    "b.txt": "bbb"
+  },
+  "args": {
+    "commands": [
+      "cat missing.txt && cat b.txt"
+    ]
+  },
   "expected": {
     "status": "partial",
-    "output": [{ "stdout": "", "stderr": "cat: missing.txt: No such file", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "output": [
+      {
+        "stdout": "",
+        "stderr": "cat: missing.txt: No such file",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
+    ],
+    "message": "0/1 commands succeeded. Don't retry if you have the information you need.",
     "mutations": []
   }
 }

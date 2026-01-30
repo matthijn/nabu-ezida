@@ -1,9 +1,25 @@
 {
-  "files": { "doc.txt": "hello world" },
-  "args": { "commands": ["grep xyz doc.txt"] },
+  "files": {
+    "doc.txt": "hello world"
+  },
+  "args": {
+    "commands": [
+      "grep xyz doc.txt"
+    ]
+  },
   "expected": {
-    "status": "partial",
-    "output": [{ "stdout": "", "stderr": "", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "[no matches]",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

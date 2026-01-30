@@ -1,9 +1,25 @@
 {
-  "files": { "f.txt": "a\nb\nc\nd\ne" },
-  "args": { "commands": ["cat -l 3 f.txt"] },
+  "files": {
+    "f.txt": "a\nb\nc\nd\ne"
+  },
+  "args": {
+    "commands": [
+      "cat -l 3 f.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "a\nb\nc", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "a\nb\nc",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

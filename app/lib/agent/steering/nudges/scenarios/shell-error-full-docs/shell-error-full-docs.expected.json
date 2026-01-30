@@ -1,0 +1,62 @@
+[
+  {
+    "type": "user",
+    "content": "hi"
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "\n<shell>\n## Shell Tool\n\n**THIS IS NOT BASH.** This is a minimal virtual shell with a fixed command set.\n\n**YOU MUST** use only the commands listed below. **YOU MUST NOT** use:\n- Control flow: `if`, `then`, `else`, `fi`, `for`, `while`, `do`, `done`, `case`, `esac`\n- Shell builtins: `set`, `command`, `test`, `[`, `[[`, `exit`, `return`, `export`\n- Subshells: `$(...)`, backticks\n- Redirects: `>`, `>>`, `<`, `2>&1`\n- Variables: `$VAR`, `${VAR}`\n\nAvailable commands: cat, head, tail, ls, grep, find, wc, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch\n\n### Read Commands\n\n**cat** — Print file contents\n```\ncat [-n] [-o offset] [-l limit] <file>\n```\n\n**head** — Output first lines of file\n```\nhead [-n count] [file]\n```\n\n**tail** — Output last lines of file\n```\ntail [-n count] [file]\n```\n\n**ls** — List files\n```\nls [-l] [-1]\n```\n\n**grep** — Search for patterns in files\n```\ngrep [-n] [-i] [-o] [-w] [-l] [-c] [-v] [-B N] [-A N] [-C N] <pattern> [file]\n```\n\n**find** — Find files by name pattern\n```\nfind [path] [-name pattern] [-iname pattern]\n```\n\n**wc** — Word, line, character count\n```\nwc [-l] [-w] [-c] <file>\n```\n\n### Text Processing Commands\n\n**cut** — Extract fields or characters from lines\n```\ncut -d<delim> -f<fields> | cut -c<chars>\n```\n\n**sort** — Sort lines\n```\nsort [-u] [-r] [-n] [-k field] [-t delim]\n```\n\n**uniq** — Remove adjacent duplicate lines\n```\nuniq [-c] [-d] [-u]\n```\n\n**tr** — Translate or delete characters\n```\ntr [-d] [-s] <set1> [set2]\n```\n\n**sed** — Stream editor (substitution only)\n```\nsed 's/pattern/replacement/[g]'\n```\n\n**echo** — Print text\n```\necho [text...]\n```\n\n### File Operations Commands\n\n**cp** — Copy file\n```\ncp [-f] <source> <dest>\n```\n\n**mv** — Rename file\n```\nmv [-f] <source> <dest>\n```\n\n**rm** — Remove files\n```\nrm [-f] <file>...\n```\n\n**touch** — Create empty file\n```\ntouch <file>\n```\n\n### Operators\n\n- `|` — Pipe output\n- `&&` — Run if previous succeeded\n- `||` — Run if previous failed\n- `;` — Run regardless\n\n### Limitations\n\n- **Flat filesystem**: No subdirectories. Paths `/`, `.`, `./` all refer to root.\n- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use `apply_local_patch`\n</shell>\n\nContinue.\n"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "1",
+        "name": "run_local_shell",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "1",
+    "toolName": "run_local_shell",
+    "result": {
+      "status": "ok"
+    }
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "tool_call",
+    "calls": [
+      {
+        "id": "2",
+        "name": "run_local_shell",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "type": "tool_result",
+    "callId": "2",
+    "toolName": "run_local_shell",
+    "result": {
+      "status": "error"
+    }
+  },
+  {
+    "type": "system",
+    "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "\n<shell>\n## Shell Tool\n\n**THIS IS NOT BASH.** This is a minimal virtual shell with a fixed command set.\n\n**YOU MUST** use only the commands listed below. **YOU MUST NOT** use:\n- Control flow: `if`, `then`, `else`, `fi`, `for`, `while`, `do`, `done`, `case`, `esac`\n- Shell builtins: `set`, `command`, `test`, `[`, `[[`, `exit`, `return`, `export`\n- Subshells: `$(...)`, backticks\n- Redirects: `>`, `>>`, `<`, `2>&1`\n- Variables: `$VAR`, `${VAR}`\n\nAvailable commands: cat, head, tail, ls, grep, find, wc, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch\n\n### Read Commands\n\n**cat** — Print file contents\n```\ncat [-n] [-o offset] [-l limit] <file>\n```\n\n**head** — Output first lines of file\n```\nhead [-n count] [file]\n```\n\n**tail** — Output last lines of file\n```\ntail [-n count] [file]\n```\n\n**ls** — List files\n```\nls [-l] [-1]\n```\n\n**grep** — Search for patterns in files\n```\ngrep [-n] [-i] [-o] [-w] [-l] [-c] [-v] [-B N] [-A N] [-C N] <pattern> [file]\n```\n\n**find** — Find files by name pattern\n```\nfind [path] [-name pattern] [-iname pattern]\n```\n\n**wc** — Word, line, character count\n```\nwc [-l] [-w] [-c] <file>\n```\n\n### Text Processing Commands\n\n**cut** — Extract fields or characters from lines\n```\ncut -d<delim> -f<fields> | cut -c<chars>\n```\n\n**sort** — Sort lines\n```\nsort [-u] [-r] [-n] [-k field] [-t delim]\n```\n\n**uniq** — Remove adjacent duplicate lines\n```\nuniq [-c] [-d] [-u]\n```\n\n**tr** — Translate or delete characters\n```\ntr [-d] [-s] <set1> [set2]\n```\n\n**sed** — Stream editor (substitution only)\n```\nsed 's/pattern/replacement/[g]'\n```\n\n**echo** — Print text\n```\necho [text...]\n```\n\n### File Operations Commands\n\n**cp** — Copy file\n```\ncp [-f] <source> <dest>\n```\n\n**mv** — Rename file\n```\nmv [-f] <source> <dest>\n```\n\n**rm** — Remove files\n```\nrm [-f] <file>...\n```\n\n**touch** — Create empty file\n```\ntouch <file>\n```\n\n### Operators\n\n- `|` — Pipe output\n- `&&` — Run if previous succeeded\n- `||` — Run if previous failed\n- `;` — Run regardless\n\n### Limitations\n\n- **Flat filesystem**: No subdirectories. Paths `/`, `.`, `./` all refer to root.\n- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use `apply_local_patch`\n</shell>\n\nContinue.\n"
+  }
+]

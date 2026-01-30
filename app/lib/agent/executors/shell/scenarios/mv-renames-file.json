@@ -1,13 +1,31 @@
 {
-  "files": { "old.md": "content" },
-  "args": { "commands": ["mv old.md new.md"] },
+  "files": {
+    "old.md": "content"
+  },
+  "args": {
+    "commands": [
+      "mv old.md new.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "mv old.md new.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "mv old.md new.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": [
-      { "type": "rename_file", "path": "old.md", "newPath": "new.md" }
+      {
+        "type": "rename_file",
+        "path": "old.md",
+        "newPath": "new.md"
+      }
     ]
   }
 }

@@ -1,9 +1,36 @@
 {
-  "files": { "src.txt": "content", "dest.txt": "old" },
-  "args": { "commands": ["mv -f src.txt dest.txt"] },
+  "files": {
+    "src.txt": "content",
+    "dest.txt": "old"
+  },
+  "args": {
+    "commands": [
+      "mv -f src.txt dest.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "mv src.txt dest.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
-    "mutations": [{ "type": "delete_file", "path": "dest.txt" }, { "type": "rename_file", "path": "src.txt", "newPath": "dest.txt" }]
+    "output": [
+      {
+        "stdout": "mv src.txt dest.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": [
+      {
+        "type": "delete_file",
+        "path": "dest.txt"
+      },
+      {
+        "type": "rename_file",
+        "path": "src.txt",
+        "newPath": "dest.txt"
+      }
+    ]
   }
 }

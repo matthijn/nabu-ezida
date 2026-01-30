@@ -3,10 +3,24 @@
     "notes.md": "hello world\nhello again\nfoo",
     "other.md": "hello once"
   },
-  "args": { "commands": ["grep -c hello"] },
+  "args": {
+    "commands": [
+      "grep -c hello"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "notes.md:2\nother.md:1", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "notes.md:2\nother.md:1",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

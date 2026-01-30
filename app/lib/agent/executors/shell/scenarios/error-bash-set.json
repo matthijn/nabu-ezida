@@ -1,9 +1,23 @@
 {
   "files": {},
-  "args": { "commands": ["set -euo pipefail"] },
+  "args": {
+    "commands": [
+      "set -euo pipefail"
+    ]
+  },
   "expected": {
     "status": "partial",
-    "output": [{ "stdout": "", "stderr": "This is not bash. 'set' is not supported.\nUse only: cat, head, tail, ls, grep, find, wc, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "output": [
+      {
+        "stdout": "",
+        "stderr": "This is not bash. 'set' is not supported.\nUse only: cat, head, tail, ls, grep, find, wc, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
+    ],
+    "message": "0/1 commands succeeded. Don't retry if you have the information you need.",
     "mutations": []
   }
 }

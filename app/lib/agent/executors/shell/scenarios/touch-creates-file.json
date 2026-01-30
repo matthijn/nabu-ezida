@@ -1,13 +1,29 @@
 {
   "files": {},
-  "args": { "commands": ["touch new.md"] },
+  "args": {
+    "commands": [
+      "touch new.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "touch new.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "touch new.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": [
-      { "type": "create_file", "path": "new.md", "diff": "*** Add File: new.md" }
+      {
+        "type": "create_file",
+        "path": "new.md",
+        "diff": "*** Add File: new.md"
+      }
     ]
   }
 }

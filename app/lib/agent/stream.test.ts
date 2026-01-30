@@ -4,17 +4,23 @@ import type { Block } from "./types"
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
+  onToolArgsChunk?: (text: string) => void
+  onReasoningChunk?: (text: string) => void
   onToolName?: (name: string) => void
 }
 
 type TestContext = {
   chunks: string[]
+  toolArgsChunks: string[]
+  reasoningChunks: string[]
   toolNames: string[]
 }
 
 const processWithCallbacks = (line: string, state: ReturnType<typeof initialParseState>, ctx: TestContext) => {
   const callbacks: ParseCallbacks = {
     onChunk: (text) => ctx.chunks.push(text),
+    onToolArgsChunk: (text) => ctx.toolArgsChunks.push(text),
+    onReasoningChunk: (text) => ctx.reasoningChunks.push(text),
     onToolName: (name) => ctx.toolNames.push(name),
   }
   return processLine(line, state, callbacks)
@@ -91,13 +97,13 @@ describe("parser", () => {
         expectedToolNames: ["execute_sql"],
       },
       {
-        name: "ignores function call arguments delta (no streaming)",
+        name: "streams function call arguments delta",
         lines: [
           "event: response.function_call_arguments.delta",
           'data: {"delta":"{\\"sql"}',
         ],
         expectedCalls: [],
-        expectedChunks: [],
+        expectedToolArgsChunks: ['{"sql'],
       },
       {
         name: "ignores apply_patch diff delta (no streaming)",
@@ -107,6 +113,15 @@ describe("parser", () => {
         ],
         expectedCalls: [],
         expectedChunks: [],
+      },
+      {
+        name: "streams reasoning summary delta",
+        lines: [
+          "event: response.reasoning_summary_text.delta",
+          'data: {"delta":"Let me think"}',
+        ],
+        expectedCalls: [],
+        expectedReasoningChunks: ["Let me think"],
       },
       {
         name: "parses multiple tool calls",
@@ -123,10 +138,10 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolNames }) => {
+    cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolArgsChunks, expectedReasoningChunks, expectedToolNames }) => {
       it(name, () => {
         let state = initialParseState()
-        const ctx: TestContext = { chunks: [], toolNames: [] }
+        const ctx: TestContext = { chunks: [], toolArgsChunks: [], reasoningChunks: [], toolNames: [] }
 
         for (const line of lines) {
           state = processWithCallbacks(line, state, ctx)
@@ -135,6 +150,12 @@ describe("parser", () => {
         expect(state.toolCalls).toEqual(expectedCalls)
         if (expectedChunks) {
           expect(ctx.chunks).toEqual(expectedChunks)
+        }
+        if (expectedToolArgsChunks) {
+          expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
+        }
+        if (expectedReasoningChunks) {
+          expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
         }
         if (expectedToolNames) {
           expect(ctx.toolNames).toEqual(expectedToolNames)

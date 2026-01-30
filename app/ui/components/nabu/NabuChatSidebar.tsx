@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type MouseEvent } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
 import { useNavigate, useParams } from "react-router"
 import Markdown, { type Components } from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherLoader2, FeatherX, FeatherRefreshCw } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherX, FeatherRefreshCw } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -16,6 +16,7 @@ import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
+import { useDraggable } from "~/hooks/useDraggable"
 import type { Participant } from "~/domain/participant"
 import { resolveFileLink } from "~/domain/spotlight"
 import { useNabu } from "./context"
@@ -42,7 +43,7 @@ const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Com
       <a
         href={finalHref}
         onClick={handleClick}
-        className="bg-brand-100 cursor-pointer hover:bg-brand-200"
+        className="bg-brand-100 cursor-pointer hover:bg-brand-200 no-underline font-normal"
       >
         {props.children}
       </a>
@@ -52,6 +53,9 @@ const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Com
 
 const allowFileProtocol = (url: string): string => url
 
+const fixMarkdownUrls = (content: string): string =>
+  content.replace(/\]\(([^)<>]+)\)/g, (_, url) => `](<${url}>)`)
+
 type MessageContentProps = {
   content: string
   projectId: string | null
@@ -60,7 +64,7 @@ type MessageContentProps = {
 
 const MessageContent = ({ content, projectId, navigate }: MessageContentProps) => (
   <Markdown components={createMarkdownComponents({ projectId, navigate })} urlTransform={allowFileProtocol}>
-    {content}
+    {fixMarkdownUrls(content)}
   </Markdown>
 )
 
@@ -105,44 +109,6 @@ const AssistantText = ({ children }: AssistantTextProps) => (
     </div>
   </div>
 )
-
-type Position = { x: number; y: number }
-
-const useDraggable = (initialPosition: Position) => {
-  const [position, setPosition] = useState(initialPosition)
-  const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
-
-  const handleMouseDown = useCallback((e: MouseEvent) => {
-    e.preventDefault()
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: position.x,
-      startPosY: position.y,
-    }
-
-    const handleMouseMove = (e: globalThis.MouseEvent) => {
-      if (!dragRef.current) return
-      const deltaX = e.clientX - dragRef.current.startX
-      const deltaY = e.clientY - dragRef.current.startY
-      setPosition({
-        x: dragRef.current.startPosX - deltaX,
-        y: dragRef.current.startPosY - deltaY,
-      })
-    }
-
-    const handleMouseUp = () => {
-      dragRef.current = null
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-    }
-
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
-  }, [position])
-
-  return { position, handleMouseDown }
-}
 
 type MessageRendererProps = {
   message: RenderMessage
@@ -207,15 +173,34 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
+const AnimatedDots = () => {
+  const [frame, setFrame] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setFrame((f) => (f + 1) % 3), 400)
+    return () => clearInterval(interval)
+  }, [])
+
+  return <>{".".repeat(frame + 1)}</>
+}
+
+const getFirstLine = (text: string): string | null => {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+  const firstLine = trimmed.split("\n")[0]
+  return firstLine.replace(/^\*\*|\*\*$/g, "").trim() || null
+}
+
 type LoadingIndicatorProps = {
   streaming: string
+  streamingReasoning: string
   streamingToolName: string | null
   history: Block[]
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const LoadingIndicator = ({ streaming, streamingToolName, history, projectId, navigate }: LoadingIndicatorProps) => {
+const LoadingIndicator = ({ streaming, streamingReasoning, streamingToolName, history, projectId, navigate }: LoadingIndicatorProps) => {
   const filtered = streaming ? filterCodeBlocks(streaming) : null
   if (filtered) {
     return (
@@ -224,10 +209,13 @@ const LoadingIndicator = ({ streaming, streamingToolName, history, projectId, na
       </AssistantText>
     )
   }
+
+  const reasoningLabel = getFirstLine(streamingReasoning)
+  const label = reasoningLabel ?? getSpinnerLabel(history, streamingToolName)
+
   return (
-    <div className="flex w-full items-center gap-2 rounded-lg bg-neutral-50 px-3 py-3">
-      <FeatherLoader2 className="w-4 h-4 text-brand-600 animate-spin flex-none" />
-      <span className="text-body font-body text-subtext-color">{getSpinnerLabel(history, streamingToolName)}</span>
+    <div className="flex w-full rounded-lg bg-neutral-50 px-3 py-3">
+      <span className="text-body font-body text-subtext-color">{label}<AnimatedDots /></span>
     </div>
   )
 }
@@ -241,7 +229,7 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chat, send, run, cancel, loading, streaming, streamingToolName, history, error } = useChat()
+  const { chat, send, run, cancel, loading, streaming, streamingReasoning, streamingToolName, history, error } = useChat()
   const { files } = useFiles()
   const messages = useMemo(() => toRenderMessages(history, files), [history, files])
   const [inputValue, setInputValue] = useState("")
@@ -323,6 +311,7 @@ export const NabuChatSidebar = () => {
         {loading && (
           <LoadingIndicator
             streaming={streaming}
+            streamingReasoning={streamingReasoning}
             streamingToolName={streamingToolName}
             history={history}
             projectId={null}

@@ -1,9 +1,25 @@
 {
-  "files": { "f.txt": "hello" },
-  "args": { "commands": ["cat f.txt 2>/dev/null"] },
+  "files": {
+    "f.txt": "hello"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt 2>/dev/null"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "hello", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "hello",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

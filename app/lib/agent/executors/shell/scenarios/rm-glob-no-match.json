@@ -1,9 +1,25 @@
 {
-  "files": { "a.md": "a" },
-  "args": { "commands": ["rm *.txt"] },
+  "files": {
+    "a.md": "a"
+  },
+  "args": {
+    "commands": [
+      "rm *.txt"
+    ]
+  },
   "expected": {
     "status": "partial",
-    "output": [{ "stdout": "", "stderr": "rm: *.txt: no matches", "outcome": { "type": "exit", "exit_code": 1 } }],
+    "output": [
+      {
+        "stdout": "",
+        "stderr": "rm: *.txt: no matches",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
+    ],
+    "message": "0/1 commands succeeded. Don't retry if you have the information you need.",
     "mutations": []
   }
 }

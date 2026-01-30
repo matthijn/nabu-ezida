@@ -1,11 +1,23 @@
 {
   "files": {},
-  "args": { "commands": ["echo \"hello && world || test\""] },
+  "args": {
+    "commands": [
+      "echo \"hello && world || test\""
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "hello && world || test", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "hello && world || test",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

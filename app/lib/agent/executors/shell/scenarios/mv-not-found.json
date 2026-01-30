@@ -1,11 +1,23 @@
 {
   "files": {},
-  "args": { "commands": ["mv ghost.md target.md"] },
+  "args": {
+    "commands": [
+      "mv ghost.md target.md"
+    ]
+  },
   "expected": {
     "status": "partial",
     "output": [
-      { "stdout": "", "stderr": "mv: ghost.md: No such file", "outcome": { "type": "exit", "exit_code": 1 } }
+      {
+        "stdout": "",
+        "stderr": "mv: ghost.md: No such file",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
     ],
+    "message": "0/1 commands succeeded. Don't retry if you have the information you need.",
     "mutations": []
   }
 }

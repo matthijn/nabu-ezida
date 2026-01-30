@@ -31,7 +31,12 @@ export type SystemBlock = {
   content: string
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock
+export type ReasoningBlock = {
+  type: "reasoning"
+  content: string
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock
 
 export type ToolDeps = {
   project?: { id: string }
@@ -39,9 +44,9 @@ export type ToolDeps = {
 }
 
 export type ToolResult<T> =
-  | { status: "ok"; output: T }
-  | { status: "partial"; output: T }
-  | { status: "error"; output: string }
+  | { status: "ok"; output: T; message?: string }
+  | { status: "partial"; output: T; message?: string }
+  | { status: "error"; output: string; message?: string }
 
 export type RawFiles = Map<string, string>
 

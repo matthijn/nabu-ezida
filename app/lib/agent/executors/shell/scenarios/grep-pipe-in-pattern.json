@@ -1,11 +1,25 @@
 {
-  "files": { "doc.txt": "de jonge\nde jongen\nde oude\n" },
-  "args": { "commands": ["grep \"jong(e|en)\" doc.txt"] },
+  "files": {
+    "doc.txt": "de jonge\nde jongen\nde oude\n"
+  },
+  "args": {
+    "commands": [
+      "grep \"jong(e|en)\" doc.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "doc.txt:\tde jonge\ndoc.txt:\tde jongen", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "doc.txt:de jonge\ndoc.txt:de jongen",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

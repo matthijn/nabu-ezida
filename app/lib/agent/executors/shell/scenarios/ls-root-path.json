@@ -1,9 +1,25 @@
 {
-  "files": { "foo.txt": "content" },
-  "args": { "commands": ["ls /"] },
+  "files": {
+    "foo.txt": "content"
+  },
+  "args": {
+    "commands": [
+      "ls /"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "foo.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "foo.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

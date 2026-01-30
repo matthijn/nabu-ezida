@@ -1,9 +1,27 @@
 {
-  "files": { "a.txt": "hello world", "b.txt": "goodbye world", "c.txt": "no match" },
-  "args": { "commands": ["grep -l world ."] },
+  "files": {
+    "a.txt": "hello world",
+    "b.txt": "goodbye world",
+    "c.txt": "no match"
+  },
+  "args": {
+    "commands": [
+      "grep -l world ."
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "a.txt\nb.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "a.txt\nb.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

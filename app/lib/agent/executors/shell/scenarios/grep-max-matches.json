@@ -1,9 +1,25 @@
 {
-  "files": { "doc.txt": "alpha\nbeta\nalpha\ngamma\nalpha" },
-  "args": { "commands": ["grep -m 2 alpha doc.txt"] },
+  "files": {
+    "doc.txt": "alpha\nbeta\nalpha\ngamma\nalpha"
+  },
+  "args": {
+    "commands": [
+      "grep -m 2 alpha doc.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "doc.txt:\talpha\ndoc.txt:\talpha", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "doc.txt:alpha\ndoc.txt:alpha",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

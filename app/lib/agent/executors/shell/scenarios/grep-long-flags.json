@@ -1,11 +1,25 @@
 {
-  "files": { "doc.txt": "Hello World\nhello there\nGOODBYE" },
-  "args": { "commands": ["grep --ignore-case --count hello doc.txt"] },
+  "files": {
+    "doc.txt": "Hello World\nhello there\nGOODBYE"
+  },
+  "args": {
+    "commands": [
+      "grep --ignore-case --count hello doc.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "doc.txt:2", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "doc.txt:2",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

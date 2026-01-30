@@ -1,13 +1,30 @@
 {
-  "files": { "victim.md": "goodbye" },
-  "args": { "commands": ["rm victim.md"] },
+  "files": {
+    "victim.md": "goodbye"
+  },
+  "args": {
+    "commands": [
+      "rm victim.md"
+    ]
+  },
   "expected": {
     "status": "ok",
     "output": [
-      { "stdout": "rm victim.md", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+      {
+        "stdout": "rm victim.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
     ],
+    "message": "All commands completed successfully.",
     "mutations": [
-      { "type": "delete_file", "path": "victim.md" }
+      {
+        "type": "delete_file",
+        "path": "victim.md"
+      }
     ]
   }
 }

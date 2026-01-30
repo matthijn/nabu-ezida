@@ -1,9 +1,25 @@
 {
-  "files": { "f.txt": "hello world\nfoo bar" },
-  "args": { "commands": ["wc f.txt"] },
+  "files": {
+    "f.txt": "hello world\nfoo bar"
+  },
+  "args": {
+    "commands": [
+      "wc f.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "2 4 19 f.txt", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "2 4 19 f.txt",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

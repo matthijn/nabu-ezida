@@ -1,9 +1,25 @@
 {
-  "files": { "log.txt": "error: foo\nwarning: bar\nerror: baz" },
-  "args": { "commands": ["grep -o error log.txt"] },
+  "files": {
+    "log.txt": "error: foo\nwarning: bar\nerror: baz"
+  },
+  "args": {
+    "commands": [
+      "grep -o error log.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "error\nerror", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "log.txt:error\nlog.txt:error",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }

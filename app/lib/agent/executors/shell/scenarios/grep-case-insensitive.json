@@ -1,9 +1,25 @@
 {
-  "files": { "log.txt": "ERROR: fail\nerror: also" },
-  "args": { "commands": ["grep -i error log.txt"] },
+  "files": {
+    "log.txt": "ERROR: fail\nerror: also"
+  },
+  "args": {
+    "commands": [
+      "grep -i error log.txt"
+    ]
+  },
   "expected": {
     "status": "ok",
-    "output": [{ "stdout": "log.txt:\tERROR: fail\nlog.txt:\terror: also", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }],
+    "output": [
+      {
+        "stdout": "log.txt:ERROR: fail\nlog.txt:error: also",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
     "mutations": []
   }
 }
