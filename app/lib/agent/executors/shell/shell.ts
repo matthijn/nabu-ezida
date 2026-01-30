@@ -4,7 +4,7 @@ import * as commands from "./commands"
 
 export type { Files, Operation }
 
-export type ExecResult = { output: string; operations: Operation[]; isError: boolean }
+export type ExecResult = { output: string; operations: Operation[]; isError: boolean; exitCode?: number }
 
 export const createShell = (files: Files) => {
   const handlers = Object.fromEntries(
@@ -162,6 +162,7 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
   const operations: Operation[] = []
   let lastSuccess = true
   let hasError = false
+  let lastExitCode: number | undefined
 
   for (let i = 0; i < segments.length; i++) {
     const { cmd, nextOp } = segments[i]
@@ -177,12 +178,13 @@ const exec = (handlers: Record<string, (args: string[], stdin: string) => Result
 
     const result = runPipeline(handlers, cmd, "")
     if (result.operations) operations.push(...result.operations)
-    lastSuccess = !result.error
+    lastSuccess = !result.error && result.exitCode !== 1
     if (result.error) hasError = true
+    if (result.exitCode !== undefined) lastExitCode = result.exitCode
     outputs.push(result.error ?? result.output)
   }
 
-  return { output: outputs.join("\n"), operations, isError: hasError }
+  return { output: outputs.join("\n"), operations, isError: hasError, exitCode: lastExitCode }
 }
 
 const runPipeline = (handlers: Record<string, (args: string[], stdin: string) => Result>, stmt: string, stdin: string): Result => {
@@ -212,6 +214,9 @@ const runPipeline = (handlers: Record<string, (args: string[], stdin: string) =>
     if (result.operations) operations.push(...result.operations)
     if (result.error) return { ...result, operations }
     output = result.output
+    if (result.exitCode !== undefined) {
+      return { output, exitCode: result.exitCode, operations: operations.length > 0 ? operations : undefined }
+    }
   }
 
   return { output, operations: operations.length > 0 ? operations : undefined }

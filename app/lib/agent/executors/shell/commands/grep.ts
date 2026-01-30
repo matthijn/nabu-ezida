@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob } from "./command"
+import { command, ok, noMatch, err, normalizePath, isGlob, expandGlob } from "./command"
 
 type ContextMatch = { lineNum: number; line: string; isMatch: boolean }
 
@@ -131,6 +131,7 @@ export const grep = command({
 
     if (!filename && stdin) {
       searchFile(null, stdin)
+      if (results.length === 0) return noMatch()
       if (countOnly || countMatches) return ok(String(fileCounts.get("stdin") ?? results.length))
       return ok(results.join("\n"))
     }
@@ -155,6 +156,7 @@ export const grep = command({
       }
     }
 
+    if (filesWithMatches.size === 0) return noMatch()
     if (listOnly) return ok([...filesWithMatches].join("\n"))
     if (countOnly || countMatches) return ok([...fileCounts].map(([f, c]) => `${f}:${c}`).join("\n"))
     return ok(results.join("\n"))

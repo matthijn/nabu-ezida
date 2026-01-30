@@ -17,16 +17,17 @@ export const shellHandler: Handler<ShellCommandOutput[]> = async (files, args) =
   const mutations: Operation[] = []
 
   const results: ShellCommandOutput[] = commands.map((cmd) => {
-    const { output, operations, isError } = shell.exec(cmd)
+    const { output, operations, isError, exitCode } = shell.exec(cmd)
 
     if (!isError) {
       mutations.push(...operations.map(toPatchOperation))
     }
 
+    const exit_code = exitCode ?? (isError ? 1 : 0)
     return {
       stdout: isError ? "" : output,
       stderr: isError ? output : "",
-      outcome: { type: "exit" as const, exit_code: isError ? 1 : 0 },
+      outcome: { type: "exit" as const, exit_code },
     }
   })
 

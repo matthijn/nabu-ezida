@@ -7,7 +7,7 @@ export type Operation =
   | { type: "delete"; path: string }
   | { type: "rename"; path: string; newPath: string }
 
-export type Result = { output: string; error?: string; operations?: Operation[] }
+export type Result = { output: string; error?: string; exitCode?: number; operations?: Operation[] }
 
 export type Command = CommandDef & {
   createHandler: (files: Files) => (args: string[], stdin: string) => Result
@@ -15,6 +15,8 @@ export type Command = CommandDef & {
 
 export const ok = (output: string, operations?: Operation[]): Result =>
   operations ? { output, operations } : { output }
+
+export const noMatch = (): Result => ({ output: "", exitCode: 1 })
 
 export const err = (error: string): Result => ({ output: "", error })
 
