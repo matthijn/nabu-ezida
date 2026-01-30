@@ -1,7 +1,9 @@
 "use client"
 
-import { createContext, useContext, useCallback, useState, type ReactNode } from "react"
+import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from "react"
 import { openChat, closeChat as closeChatStore } from "~/lib/chat/store"
+import { setEditorContext } from "~/lib/chat/context"
+import { getCurrentFile } from "~/lib/files"
 import { CURRENT_USER, NABU } from "~/domain/participant"
 
 type NabuContextValue = {
@@ -18,8 +20,19 @@ type NabuProviderProps = {
   children: ReactNode
 }
 
+const buildEditorContext = () => {
+  const file = getCurrentFile()
+  if (!file) return null
+  return { documentId: file, documentTitle: file, above: [], below: [] }
+}
+
 export const NabuProvider = ({ children }: NabuProviderProps) => {
   const [minimized, setMinimized] = useState(false)
+
+  useEffect(() => {
+    setEditorContext(buildEditorContext)
+    return () => setEditorContext(undefined)
+  }, [])
 
   const startChat = useCallback(() => {
     openChat(CURRENT_USER, NABU)
