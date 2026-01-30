@@ -251,4 +251,5 @@ CATS are great.
       expect(errorWithCurrentBlock?.currentBlock).not.toContain("AAA")
     })
   })
+
 })

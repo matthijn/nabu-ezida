@@ -1,0 +1,15 @@
+*** Update File: docs/document.md
+@@
+-More content.
+-
+-```json-callout
+-{
+-  "id": "second",
+-  "type": "codebook",
+-  "title": "Second Callout",
+-  "color": "blue",
+-  "content": "Another description",
+-  "collapsed": false
+-}
+-```
++More content.

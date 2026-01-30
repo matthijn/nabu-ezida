@@ -95,3 +95,6 @@ export const isSingleton = (language: string): boolean =>
 
 export const getLabelKey = (language: string): string | undefined =>
   blockTypes[language]?.labelKey
+
+export const getImmutableFields = (language: string): string[] =>
+  blockTypes[language]?.immutable ?? []

@@ -1,4 +1,4 @@
-import { getBlockConfig, isSingleton, type ValidationContext } from "./registry"
+import { getBlockConfig, isSingleton, getImmutableFields, type ValidationContext } from "./registry"
 import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
 
 export type ValidationError = {
@@ -143,6 +143,65 @@ const findOriginalBlock = (
     : { found: false, error: { block: block.language, message: `No original block found with id "${id}"` } }
 }
 
+const validateImmutableFields = (
+  language: string,
+  newBlock: CodeBlock,
+  originalBlock: CodeBlock
+): ValidationError[] => {
+  const newParsed = tryParseJson(newBlock.content)
+  const originalParsed = tryParseJson(originalBlock.content)
+
+  if (!newParsed || !originalParsed) return []
+
+  const errors: ValidationError[] = []
+  const configImmutable = getImmutableFields(language)
+  const immutableFields = originalParsed.id ? ["id", ...configImmutable] : configImmutable
+
+  for (const field of immutableFields) {
+    const originalValue = originalParsed[field]
+    const newValue = newParsed[field]
+
+    if (originalValue !== undefined && originalValue !== newValue) {
+      errors.push({
+        block: language,
+        field,
+        message: `Field "${field}" is immutable and cannot be changed`,
+      })
+    }
+  }
+
+  return errors
+}
+
+const detectOrphanedIds = (
+  newBlocks: CodeBlock[],
+  originalBlocksByLanguage: BlocksByLanguage
+): ValidationError[] => {
+  const errors: ValidationError[] = []
+  const newBlocksByLanguage = groupBlocksByLanguage(newBlocks)
+
+  for (const [language, originals] of Object.entries(originalBlocksByLanguage)) {
+    if (isSingleton(language)) continue
+
+    const news = newBlocksByLanguage[language] ?? []
+    const originalIds = originals.map(getBlockId).filter((id): id is string => id !== null)
+    const newIds = new Set(news.map(getBlockId).filter((id): id is string => id !== null))
+    const isLegitimateDelete = news.length < originals.length
+
+    for (const originalId of originalIds) {
+      if (!newIds.has(originalId) && !isLegitimateDelete) {
+        errors.push({
+          block: language,
+          field: "id",
+          message: `Block with id "${originalId}" was removed. To update, keep the same id. To delete, remove the entire block.`,
+        })
+      }
+    }
+  }
+
+  return errors
+}
+
 export type ValidateOptions = {
   context?: ValidationContext
   original?: string
@@ -173,21 +232,30 @@ export const validateMarkdownBlocks = (
     const semanticErrors = validateBlockSemantic(block.language, block.content, context)
     const blockErrors = [...schemaErrors, ...semanticErrors]
 
-    if (blockErrors.length > 0 && options.original) {
+    if (options.original) {
       const findResult = findOriginalBlock(block, originalBlocksByLanguage)
 
-      if (!findResult.found) {
+      if (findResult.found) {
+        const immutableErrors = validateImmutableFields(block.language, block, findResult.block)
+        errors.push(...immutableErrors)
+
+        if (blockErrors.length > 0) {
+          const currentBlock = formatBlock(block.language, findResult.block.content)
+          for (const error of blockErrors) {
+            error.currentBlock = currentBlock
+          }
+        }
+      } else if (blockErrors.length > 0) {
         errors.push(findResult.error)
         continue
-      }
-
-      const currentBlock = formatBlock(block.language, findResult.block.content)
-      for (const error of blockErrors) {
-        error.currentBlock = currentBlock
       }
     }
 
     errors.push(...blockErrors)
+  }
+
+  if (options.original) {
+    errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
   }
 
   return { valid: errors.length === 0, errors }

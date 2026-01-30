@@ -1,0 +1,22 @@
+*** Update File: docs/document.md
+@@
+-```json-callout
+-{
+-  "id": "abc123",
+-  "type": "codebook",
+-  "title": "Original Title",
+-  "color": "red",
+-  "content": "Description",
+-  "collapsed": false
+-}
+-```
++```json-callout
++{
++  "id": "different-id",
++  "type": "codebook",
++  "title": "Updated Title",
++  "color": "blue",
++  "content": "New Description",
++  "collapsed": true
++}
++```
