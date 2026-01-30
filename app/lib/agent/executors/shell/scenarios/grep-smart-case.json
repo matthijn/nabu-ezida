@@ -1,0 +1,11 @@
+{
+  "files": { "doc.txt": "Hello World\nhello there\nHELLO LOUD" },
+  "args": { "commands": ["grep -S hello doc.txt"] },
+  "expected": {
+    "status": "ok",
+    "output": [
+      { "stdout": "doc.txt:\tHello World\ndoc.txt:\thello there\ndoc.txt:\tHELLO LOUD", "stderr": "", "outcome": { "type": "exit", "exit_code": 0 } }
+    ],
+    "mutations": []
+  }
+}

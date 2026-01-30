@@ -108,7 +108,9 @@ export const command = (def: CommandDef): Command => {
 
     return (args: string[], stdin: string = ""): Result => {
       const normalized = normalizeArgs(args, multiCharFlags, stringFlags)
-      const parsed = mri(normalized, mriOptions)
+      // Clone options - mri mutates boolean/string arrays by pushing aliases
+      const opts = { ...mriOptions, boolean: [...mriOptions.boolean], string: [...mriOptions.string] }
+      const parsed = mri(normalized, opts)
       const flags = new Set<string>()
       const flagValues: Record<string, string> = {}
 
