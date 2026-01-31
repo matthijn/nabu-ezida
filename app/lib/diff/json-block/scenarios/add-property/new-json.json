@@ -1,0 +1,6 @@
+{
+  "tags": ["pulled-files"],
+  "annotations": [
+    {"text": "foo", "reason": "bar"}
+  ]
+}

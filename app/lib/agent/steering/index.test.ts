@@ -65,7 +65,7 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "REMINDER" },
     },
     {
-      name: "exploration completed with answer → empty nudge",
+      name: "exploration completed with answer → tone nudge only",
       history: [
         readMemoryBlock(),
         startExplorationCall("Question"),
@@ -73,7 +73,7 @@ describe("toNudge", () => {
         explorationStepCall("ctx:done", "Found it", "answer"),
         toolResult(),
       ],
-      expect: { type: "emptyNudge" },
+      expect: { type: "contains", text: "users see titles and names" },
     },
 
     // After tool_result during plan execution
@@ -132,7 +132,7 @@ describe("toNudge", () => {
 
     // Plan aborted
     {
-      name: "plan aborted → empty nudge (triggers response)",
+      name: "plan aborted → tone nudge only (triggers response)",
       history: [
         readMemoryBlock(),
         createPlanCall("Task", ["Step 1"]),
@@ -140,7 +140,7 @@ describe("toNudge", () => {
         abortCall("Cannot continue"),
         toolResult(),
       ],
-      expect: { type: "emptyNudge" },
+      expect: { type: "contains", text: "users see titles and names" },
     },
 
     // No exploration, no plan (chat mode)

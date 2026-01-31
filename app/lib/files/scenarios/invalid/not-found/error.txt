@@ -1,1 +1,5 @@
-patch context not found: "This text does not exist in the file..."
+patch context not found:
+  searching for: "This text does not exist in the file"
+  in content: "# Document
+
+This is the actual content."

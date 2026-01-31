@@ -23,6 +23,10 @@
     "content": "\n## READ MEMORY\n<file memory.hidden.md>\nThis is the content of memory.hidden.md\n</file memory.hidden.md>\n\nContinue.\n"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -40,5 +44,9 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

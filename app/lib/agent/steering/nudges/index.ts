@@ -4,7 +4,8 @@ import { planNudge } from "./plan"
 import { baselineNudge } from "./baseline"
 import { memoryNudge } from "./memory"
 import { shellNudge } from "./shell"
+import { toneNudge } from "./tone"
 
 const orchestrationNudge = combine(explorationNudge, planNudge, baselineNudge)
 
-export const nudge = collect(orchestrationNudge, memoryNudge, shellNudge)
+export const nudge = collect(orchestrationNudge, memoryNudge, shellNudge, toneNudge)

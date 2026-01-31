@@ -1,0 +1,15 @@
+@@
+```json-attributes
+{
+  "tags": [
+    "pulled-files"
+  ],
+  "annotations": [
+    {
+      "text": "foo",
+-      "reason": "old reason"
++      "reason": "new reason"
+    }
+  ]
+}
+```

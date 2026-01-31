@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath } from "./command"
+import { command, ok, err, normalizePath, isGlob } from "./command"
 
 export const cat = command({
   description: "Print file contents",
@@ -13,6 +13,9 @@ export const cat = command({
     const limit = flagValues["-l"] ? parseInt(flagValues["-l"], 10) : null
 
     const filename = normalizePath(paths[0])
+    if (filename && isGlob(filename)) {
+      return err(`cat: globs not supported, use a specific file path`)
+    }
     if (filename && !files.has(filename)) {
       return err(`cat: ${filename}: No such file`)
     }

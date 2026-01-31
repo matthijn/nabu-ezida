@@ -52,7 +52,7 @@ export type RawFiles = Map<string, string>
 
 export type Operation =
   | { type: "create_file"; path: string; diff: string }
-  | { type: "update_file"; path: string; diff: string }
+  | { type: "update_file"; path: string; diff: string; skipImmutableCheck?: boolean }
   | { type: "delete_file"; path: string }
   | { type: "rename_file"; path: string; newPath: string }
 

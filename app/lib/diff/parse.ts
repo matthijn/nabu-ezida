@@ -103,7 +103,10 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const matches = findMatches(content, oldText)
 
   if (matches.length === 0) {
-    return { ok: false, error: `patch context not found: "${oldText.slice(0, 50)}..."` }
+    return {
+      ok: false,
+      error: `patch context not found:\n  searching for: "${oldText}"\n  in content: "${content}"`,
+    }
   }
 
   if (matches.length > 1) {

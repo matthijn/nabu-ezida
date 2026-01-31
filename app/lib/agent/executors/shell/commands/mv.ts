@@ -1,8 +1,10 @@
-import { command, ok, err, normalizePath, type Operation } from "./command"
+import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } from "./command"
+
+const basename = (path: string): string => path.split("/").pop() ?? path
 
 export const mv = command({
-  description: "Rename file",
-  usage: "mv [-f] <source> <dest>",
+  description: "Move/rename file(s)",
+  usage: "mv [-f] <source...> <dest>",
   flags: {
     "-f": { alias: "--force", description: "force overwrite if dest exists" },
   },
@@ -10,29 +12,54 @@ export const mv = command({
     if (paths.length < 2) {
       return err("mv: missing destination")
     }
-    if (paths.length > 2) {
-      return err("mv: too many arguments")
+
+    const force = flags.has("-f")
+    const destRaw = paths[paths.length - 1]
+    const srcPatterns = paths.slice(0, -1)
+
+    const sources: string[] = []
+    for (const rawPattern of srcPatterns) {
+      const pattern = normalizePath(rawPattern)
+      if (!pattern) continue
+      if (isGlob(pattern)) {
+        const matches = expandGlob(files, pattern)
+        if (matches.length === 0) {
+          return err(`mv: ${pattern}: no matches`)
+        }
+        sources.push(...matches)
+      } else if (files.has(pattern)) {
+        sources.push(pattern)
+      } else {
+        return err(`mv: ${pattern}: No such file`)
+      }
     }
 
-    const src = normalizePath(paths[0])
-    const dest = normalizePath(paths[1])
-    if (!src || !dest) {
-      return err("mv: invalid path")
+    if (sources.length === 0) {
+      return err("mv: missing source")
     }
 
-    if (!files.has(src)) {
-      return err(`mv: ${src}: No such file`)
-    }
-    if (files.has(dest) && !flags.has("-f")) {
-      return err(`mv: ${dest}: already exists`)
+    const isDestDir = destRaw.endsWith("/")
+    const destBase = normalizePath(destRaw)
+
+    if (sources.length > 1 && !isDestDir) {
+      return err("mv: moving multiple files requires dest ending with /")
     }
 
     const operations: Operation[] = []
-    if (files.has(dest)) {
-      operations.push({ type: "delete", path: dest })
-    }
-    operations.push({ type: "rename", path: src, newPath: dest })
+    const outputs: string[] = []
 
-    return ok(`mv ${src} ${dest}`, operations)
+    for (const src of sources) {
+      const dest = isDestDir ? `${destBase}/${basename(src)}` : destBase!
+      if (files.has(dest) && !force) {
+        return err(`mv: ${dest}: already exists`)
+      }
+      if (files.has(dest)) {
+        operations.push({ type: "delete", path: dest })
+      }
+      operations.push({ type: "rename", path: src, newPath: dest })
+      outputs.push(`mv ${src} ${dest}`)
+    }
+
+    return ok(outputs.join("\n"), operations)
   },
 })

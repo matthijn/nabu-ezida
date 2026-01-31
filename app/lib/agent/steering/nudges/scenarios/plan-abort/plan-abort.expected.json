@@ -31,6 +31,10 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"First done\"\n2. [pending] Step two\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -50,5 +54,9 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

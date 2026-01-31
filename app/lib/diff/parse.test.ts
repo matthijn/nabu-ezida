@@ -69,7 +69,10 @@ line3`,
 @@
 -nonexistent
 +replacement`,
-      expected: { ok: false, error: 'patch context not found: "nonexistent..."' },
+      expected: {
+        ok: false,
+        error: `patch context not found:\n  searching for: "nonexistent"\n  in content: "hello"`,
+      },
     },
     {
       name: "handles function rename example from spec",

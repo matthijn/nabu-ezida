@@ -19,6 +19,10 @@
     "content": "EMPTY_NUDGE"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -36,6 +40,10 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -57,6 +65,10 @@
     "content": "EMPTY_NUDGE"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -76,6 +88,10 @@
     "content": "EMPTY_NUDGE"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -93,6 +109,14 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -115,7 +139,7 @@
   },
   {
     "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -137,6 +161,10 @@
     "content": "EMPTY_NUDGE"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -156,6 +184,10 @@
     "content": "EMPTY_NUDGE"
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -173,5 +205,9 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

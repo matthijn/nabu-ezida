@@ -42,12 +42,14 @@ const applyMutation = (op: Operation): ToolResult<string> => {
   switch (op.type) {
     case "create_file": {
       if (getFileRaw(op.path)) return { status: "error", output: `${op.path}: already exists` }
-      return applyPatchAndStore(op.path, "", op.diff, "Created")
+      return applyPatchAndStore(op.path, "", op.diff, "Created", {})
     }
     case "update_file": {
       const content = getFileRaw(op.path)
       if (!content) return { status: "error", output: `${op.path}: No such file` }
-      return applyPatchAndStore(op.path, content, op.diff, "Updated")
+      return applyPatchAndStore(op.path, content, op.diff, "Updated", {
+        skipImmutableCheck: op.skipImmutableCheck,
+      })
     }
     case "delete_file": {
       if (!getFileRaw(op.path)) return { status: "error", output: `${op.path}: No such file` }
@@ -63,8 +65,10 @@ const applyMutation = (op: Operation): ToolResult<string> => {
   }
 }
 
-const applyPatchAndStore = (path: string, content: string, diff: string, verb: string): ToolResult<string> => {
-  const result = applyFilePatch(path, content, diff)
+type PatchOptions = { skipImmutableCheck?: boolean }
+
+const applyPatchAndStore = (path: string, content: string, diff: string, verb: string, options: PatchOptions): ToolResult<string> => {
+  const result = applyFilePatch(path, content, diff, options)
   if (result.status === "error") return { status: "error", output: result.error }
   updateFileRaw(result.path, result.content)
 

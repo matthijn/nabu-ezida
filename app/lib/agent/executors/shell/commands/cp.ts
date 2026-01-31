@@ -1,8 +1,10 @@
-import { command, ok, err, normalizePath, type Operation } from "./command"
+import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } from "./command"
+
+const basename = (path: string): string => path.split("/").pop() ?? path
 
 export const cp = command({
-  description: "Copy file",
-  usage: "cp [-f] <source> <dest>",
+  description: "Copy file(s)",
+  usage: "cp [-f] <source...> <dest>",
   flags: {
     "-f": { alias: "--force", description: "force overwrite if dest exists" },
   },
@@ -10,25 +12,51 @@ export const cp = command({
     if (paths.length < 2) {
       return err("cp: missing destination")
     }
-    if (paths.length > 2) {
-      return err("cp: too many arguments")
+
+    const force = flags.has("-f")
+    const destRaw = paths[paths.length - 1]
+    const srcPatterns = paths.slice(0, -1)
+
+    const sources: string[] = []
+    for (const rawPattern of srcPatterns) {
+      const pattern = normalizePath(rawPattern)
+      if (!pattern) continue
+      if (isGlob(pattern)) {
+        const matches = expandGlob(files, pattern)
+        if (matches.length === 0) {
+          return err(`cp: ${pattern}: no matches`)
+        }
+        sources.push(...matches)
+      } else if (files.has(pattern)) {
+        sources.push(pattern)
+      } else {
+        return err(`cp: ${pattern}: No such file`)
+      }
     }
 
-    const src = normalizePath(paths[0])
-    const dest = normalizePath(paths[1])
-    if (!src || !dest) {
-      return err("cp: invalid path")
+    if (sources.length === 0) {
+      return err("cp: missing source")
     }
 
-    if (!files.has(src)) {
-      return err(`cp: ${src}: No such file`)
-    }
-    if (files.has(dest) && !flags.has("-f")) {
-      return err(`cp: ${dest}: already exists`)
+    const isDestDir = destRaw.endsWith("/")
+    const destBase = normalizePath(destRaw)
+
+    if (sources.length > 1 && !isDestDir) {
+      return err("cp: copying multiple files requires dest ending with /")
     }
 
-    const content = files.get(src)!
-    const operation: Operation = { type: "create", path: dest, content }
-    return ok(`cp ${src} ${dest}`, [operation])
+    const operations: Operation[] = []
+    const outputs: string[] = []
+
+    for (const src of sources) {
+      const dest = isDestDir ? `${destBase}/${basename(src)}` : destBase!
+      if (files.has(dest) && !force) {
+        return err(`cp: ${dest}: already exists`)
+      }
+      operations.push({ type: "create", path: dest, content: files.get(src)! })
+      outputs.push(`cp ${src} ${dest}`)
+    }
+
+    return ok(outputs.join("\n"), operations)
   },
 })

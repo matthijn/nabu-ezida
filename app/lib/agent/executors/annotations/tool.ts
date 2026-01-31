@@ -4,6 +4,9 @@ import {
   upsertAnnotations as upsertAnnotationsPure,
   removeAnnotations as removeAnnotationsPure,
 } from "~/domain/attributes/annotations"
+import { generateJsonBlockPatch } from "~/lib/diff/json-block/patch"
+import { findSingletonBlock, parseBlockJson } from "~/domain/blocks/parse"
+import type { DocumentMeta } from "~/domain/attributes/schema"
 
 const AnnotationInput = z.object({
   text: z.string().describe("Text from the document to annotate"),
@@ -21,6 +24,14 @@ const RemoveArgs = z.object({
   path: z.string().describe("Path to the document"),
   texts: z.array(z.string()).describe("Text values of annotations to remove"),
 })
+
+const ATTRIBUTES_LANG = "json-attributes"
+
+const extractMeta = (docContent: string): DocumentMeta => {
+  const block = findSingletonBlock(docContent, ATTRIBUTES_LANG)
+  if (!block) return {}
+  return parseBlockJson<DocumentMeta>(block) ?? {}
+}
 
 export const upsertAnnotations = registerTool(
   tool({
@@ -44,10 +55,18 @@ If an annotation with the same text already exists, it will be updated.`,
       const appliedCount = result.applied.length
       const notFoundCount = result.notFound.length
 
+      const newMeta = extractMeta(result.content)
+      const patchResult = generateJsonBlockPatch(content, ATTRIBUTES_LANG, newMeta)
+
+      if (!patchResult.ok) {
+        return err(patchResult.error)
+      }
+
       const mutation = {
         type: "update_file" as const,
         path,
-        diff: `@@\n-${content}\n+${result.content}`,
+        diff: patchResult.patch,
+        skipImmutableCheck: true,
       }
 
       if (notFoundCount > 0 && appliedCount > 0) {
@@ -90,10 +109,18 @@ export const removeAnnotations = registerTool(
       const removedCount = result.removed.length
       const notFoundCount = result.notFound.length
 
+      const newMeta = extractMeta(result.content)
+      const patchResult = generateJsonBlockPatch(content, ATTRIBUTES_LANG, newMeta)
+
+      if (!patchResult.ok) {
+        return err(patchResult.error)
+      }
+
       const mutation = {
         type: "update_file" as const,
         path,
-        diff: `@@\n-${content}\n+${result.content}`,
+        diff: patchResult.patch,
+        skipImmutableCheck: true,
       }
 
       if (notFoundCount > 0 && removedCount > 0) {

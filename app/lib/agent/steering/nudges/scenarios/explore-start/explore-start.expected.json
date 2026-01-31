@@ -20,5 +20,9 @@
   {
     "type": "system",
     "content": "EXPLORING: How does X work?\nCurrent direction: Check docs\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

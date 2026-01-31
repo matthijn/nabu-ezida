@@ -22,6 +22,10 @@
     "content": "EXPLORING: How does auth work?\nCurrent direction: Check login\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -45,6 +49,10 @@
     "content": "EXPLORING: How does auth work?\nCurrent direction: Check session\n\nFindings so far:\n1. [Check login] → \"Found login handler\"\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -66,5 +74,9 @@
   {
     "type": "system",
     "content": "EXPLORING: How does auth work?\nCurrent direction: Check token validation\n\nFindings so far:\n1. [Check login] → \"Found login handler\"\n2. [Check session] → \"Session uses JWT\"\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

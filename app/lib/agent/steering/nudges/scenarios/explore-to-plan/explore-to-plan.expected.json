@@ -22,6 +22,10 @@
     "content": "EXPLORING: How to add feature?\nCurrent direction: Check existing code\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -42,6 +46,10 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -73,5 +81,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Modify handler\n\n1. [current] Modify handler  ← current\n   expected: \"Handler updated\"\n2. [pending] Add tests\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "system",
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

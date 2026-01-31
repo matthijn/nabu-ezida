@@ -3,7 +3,8 @@ import { readdirSync, readFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import { upsertHandler, removeHandler } from "../tool"
-import type { Mutation } from "../../tool"
+import type { Operation } from "~/lib/agent/types"
+import { applyDiff } from "~/lib/diff/parse"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -54,15 +55,14 @@ const loadScenarios = (): { name: string; scenario: Scenario; inputDoc: string |
       }
     })
 
-const applyMutations = (files: Map<string, string>, mutations: Mutation[]): Map<string, string> => {
+const applyMutations = (files: Map<string, string>, mutations: Operation[]): Map<string, string> => {
   const result = new Map(files)
   for (const m of mutations) {
     if (m.type === "update_file") {
-      const lines = m.diff.split("\n")
-      const plusIdx = lines.findIndex((l) => l.startsWith("+"))
-      if (plusIdx !== -1) {
-        const newLines = [lines[plusIdx].slice(1), ...lines.slice(plusIdx + 1)]
-        result.set(m.path, newLines.join("\n"))
+      const content = result.get(m.path) ?? ""
+      const applied = applyDiff(content, m.diff)
+      if (applied.ok) {
+        result.set(m.path, applied.content)
       }
     }
   }
