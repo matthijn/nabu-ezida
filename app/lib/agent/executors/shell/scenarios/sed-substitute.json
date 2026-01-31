@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "hello world\nhello there"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed 's/hello/hi/g'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "hi world\nhi there",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

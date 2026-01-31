@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "line1\nline2\nline3"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed '2,3p'"
+    ]
+  },
+  "expected": {
+    "status": "partial",
+    "output": [
+      {
+        "stdout": "",
+        "stderr": "sed: print command requires -n flag",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 1
+        }
+      }
+    ],
+    "message": "Some commands failed.",
+    "mutations": []
+  }
+}

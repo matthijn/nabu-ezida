@@ -1,0 +1,18 @@
+{
+  "type": "upsert",
+  "args": {
+    "path": "doc.md",
+    "annotations": [
+      {
+        "text": "important information",
+        "reason": "Key point to remember",
+        "color": "",
+        "code": ""
+      }
+    ]
+  },
+  "expected": {
+    "status": "error",
+    "output": "Either color or code must be set, not both"
+  }
+}

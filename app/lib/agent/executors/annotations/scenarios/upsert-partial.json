@@ -1,8 +1,5 @@
 {
   "type": "upsert",
-  "files": {
-    "doc.md": "# Research Notes\n\nCoffee beans are interesting. They come from Ethiopia."
-  },
   "args": {
     "path": "doc.md",
     "annotations": [

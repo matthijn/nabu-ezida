@@ -4,11 +4,14 @@ import { BLOCK_COLORS } from "~/lib/colors/radix"
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
+const emptyToUndefined = <T>(schema: z.ZodType<T>) =>
+  z.preprocess((v) => (v === "" ? undefined : v), schema.optional())
+
 const AnnotationSchema = z.object({
   text: z.string(),
   reason: z.string(),
-  color: radixColor.optional(),
-  code: z.string().optional(),
+  color: emptyToUndefined(radixColor),
+  code: emptyToUndefined(z.string()),
 }).refine(
   (a) => (a.color !== undefined) !== (a.code !== undefined),
   { message: "Either color or code must be set, not both" }

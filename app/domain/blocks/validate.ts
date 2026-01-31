@@ -145,6 +145,12 @@ const findOriginalBlock = (
 
 const DEFAULT_IMMUTABLE_MESSAGE = (field: string) => `Field "${field}" is immutable and cannot be changed`
 
+const normalizeEmpty = (value: unknown): unknown =>
+  value === "" ? undefined : value
+
+const valuesEqual = (a: unknown, b: unknown): boolean =>
+  normalizeEmpty(a) === normalizeEmpty(b)
+
 const validateImmutableFields = (
   language: string,
   newBlock: CodeBlock,
@@ -165,7 +171,7 @@ const validateImmutableFields = (
     const originalValue = originalParsed[field]
     const newValue = newParsed[field]
 
-    if (originalValue !== undefined && originalValue !== newValue) {
+    if (normalizeEmpty(originalValue) !== undefined && !valuesEqual(originalValue, newValue)) {
       errors.push({
         block: language,
         field,
@@ -252,7 +258,7 @@ export const validateMarkdownBlocks = (
             error.currentBlock = currentBlock
           }
         }
-      } else if (blockErrors.length > 0) {
+      } else if (blockErrors.length > 0 && !options.skipImmutableCheck) {
         errors.push(findResult.error)
         continue
       }

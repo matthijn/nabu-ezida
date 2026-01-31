@@ -1,8 +1,5 @@
 {
   "type": "remove",
-  "files": {
-    "doc.md": "# Research Notes\n\nCoffee beans are interesting.\n\n```json-attributes\n{\n  \"annotations\": [\n    {\n      \"text\": \"Coffee beans are interesting\",\n      \"reason\": \"Key finding\",\n      \"color\": \"amber\"\n    }\n  ]\n}\n```"
-  },
   "args": {
     "path": "doc.md",
     "texts": ["Coffee beans are interesting"]

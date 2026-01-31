@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "line1\nline2\nline3\nline4\nline5"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed -n '3p'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "line3",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}
