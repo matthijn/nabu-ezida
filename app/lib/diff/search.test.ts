@@ -36,4 +36,14 @@ describe("findMatches", () => {
       }
     })
   })
+
+  it("matches when needle has trailing newline but content does not", () => {
+    const contentNoTrailing = "# Notes"
+    const needleWithTrailing = "# Notes\n"
+
+    const matches = findMatches(contentNoTrailing, needleWithTrailing)
+
+    expect(matches.length).toBe(1)
+    expect(matches[0]).toEqual({ start: 0, end: 0, fuzzy: false })
+  })
 })

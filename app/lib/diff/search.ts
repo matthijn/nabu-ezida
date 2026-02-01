@@ -24,7 +24,13 @@ const { levenshtein } = stringComparison
 
 const SIMILARITY_THRESHOLD = 0.9
 
-const toLines = (text: string): string[] => text.split("\n")
+const toLines = (text: string): string[] => {
+  const lines = text.split("\n")
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop()
+  }
+  return lines
+}
 
 const findExactMatches = (contentLines: string[], needleLines: string[]): Match[] => {
   const matches: Match[] = []
