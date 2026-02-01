@@ -35,7 +35,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, getFileTags, getFileAnnotations } = useProject()
+  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +43,6 @@ export default function ProjectFile() {
   const copyRawMarkdown = useCallback(() => {
     if (content) navigator.clipboard.writeText(content)
   }, [content])
-  const annotations = currentFile ? getFileAnnotations(currentFile) ?? [] : []
   const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
 
   const handleScrollTo = useCallback((percent: number) => {
@@ -108,7 +107,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} annotations={annotations} debugMode={debugOptions.renderAsJson} />
+            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} debugMode={debugOptions.renderAsJson} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />

@@ -7,6 +7,8 @@ import { createDecorationSet } from "./decorations"
 
 const pluginKey = new PluginKey("annotations")
 
+export const annotationsMeta = pluginKey
+
 type TextRange = { from: number; to: number }
 
 export const textOffsetToPos = (doc: Node, offset: number): number => {
@@ -71,15 +73,19 @@ const computeDecorations = (doc: Node, annotations: Annotation[]): DecorationSet
   return createDecorationSet(doc, segments)
 }
 
-export const createAnnotationsPlugin = (annotations: Annotation[]): Plugin =>
+export const createAnnotationsPlugin = (): Plugin =>
   new Plugin({
     key: pluginKey,
     state: {
-      init: (_, state) => ({
-        annotations,
-        decorations: computeDecorations(state.doc, annotations),
-      }),
+      init: (): PluginState => ({ annotations: [], decorations: DecorationSet.empty }),
       apply: (tr, pluginState, _oldState, newState) => {
+        const newAnnotations = tr.getMeta(pluginKey) as Annotation[] | undefined
+        if (newAnnotations !== undefined) {
+          return {
+            annotations: newAnnotations,
+            decorations: computeDecorations(newState.doc, newAnnotations),
+          }
+        }
         if (!tr.docChanged) return pluginState
         return {
           annotations: pluginState.annotations,

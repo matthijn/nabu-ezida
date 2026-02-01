@@ -1,3 +1,4 @@
+import equal from "fast-deep-equal"
 import { getBlockConfig, isSingleton, getImmutableFields, type ValidationContext } from "./registry"
 import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
 
@@ -148,8 +149,14 @@ const DEFAULT_IMMUTABLE_MESSAGE = (field: string) => `Field "${field}" is immuta
 const normalizeEmpty = (value: unknown): unknown =>
   value === "" ? undefined : value
 
-const valuesEqual = (a: unknown, b: unknown): boolean =>
-  normalizeEmpty(a) === normalizeEmpty(b)
+// Deep equality needed because JSON.parse creates new object instances each time.
+// Comparing original vs new parsed JSON with === always fails for arrays/objects
+// even when content is identical, since they're different references.
+const valuesEqual = (a: unknown, b: unknown): boolean => {
+  const aNorm = normalizeEmpty(a)
+  const bNorm = normalizeEmpty(b)
+  return equal(aNorm, bNorm)
+}
 
 const validateImmutableFields = (
   language: string,

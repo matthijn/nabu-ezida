@@ -1,2 +1,2 @@
-export { createAnnotationsPlugin } from "./plugin"
+export { createAnnotationsPlugin, annotationsMeta } from "./plugin"
 export { createDecorationSet } from "./decorations"
