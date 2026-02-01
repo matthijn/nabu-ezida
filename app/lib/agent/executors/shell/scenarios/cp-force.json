@@ -25,7 +25,7 @@
       {
         "type": "create_file",
         "path": "dest.txt",
-        "diff": "*** Add File: dest.txt\nnew content"
+        "diff": "*** Add File: dest.txt\n+new content"
       }
     ]
   }

@@ -4,7 +4,6 @@ Original content here.
 
 New paragraph added.
 
-
 ```json-attributes
 {
   "annotations": [

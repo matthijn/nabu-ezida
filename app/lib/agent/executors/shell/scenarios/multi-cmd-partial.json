@@ -29,7 +29,7 @@
         }
       },
       {
-        "stdout": "exists.md",
+        "stdout": "exists.md\nnew.md",
         "stderr": "",
         "outcome": {
           "type": "exit",

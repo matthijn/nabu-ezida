@@ -30,6 +30,7 @@ export const runLocalShell = registerTool(
         const { output, operations, isError, exitCode } = shell.exec(cmd)
 
         if (!isError) {
+          applyToFiles(files, operations)
           mutations.push(...operations.map(toPatchOperation))
         } else {
           hasRealError = true
@@ -55,8 +56,11 @@ export const runLocalShell = registerTool(
 
 export const shellHandler = runLocalShell.handle
 
-const formatCreateDiff = (path: string, content: string): string =>
-  content === "" ? `*** Add File: ${path}` : `*** Add File: ${path}\n${content}`
+const formatCreateDiff = (path: string, content: string): string => {
+  if (content === "") return `*** Add File: ${path}`
+  const prefixed = content.split("\n").map((line) => `+${line}`).join("\n")
+  return `*** Add File: ${path}\n${prefixed}`
+}
 
 const toPatchOperation = (op: ShellOperation): Operation => {
   switch (op.type) {
@@ -66,5 +70,25 @@ const toPatchOperation = (op: ShellOperation): Operation => {
       return { type: "delete_file", path: op.path }
     case "rename":
       return { type: "rename_file", path: op.path, newPath: op.newPath }
+  }
+}
+
+const applyToFiles = (files: Map<string, string>, ops: ShellOperation[]): void => {
+  for (const op of ops) {
+    switch (op.type) {
+      case "create":
+        files.set(op.path, op.content)
+        break
+      case "delete":
+        files.delete(op.path)
+        break
+      case "rename":
+        const content = files.get(op.path)
+        if (content !== undefined) {
+          files.delete(op.path)
+          files.set(op.newPath, content)
+        }
+        break
+    }
   }
 }

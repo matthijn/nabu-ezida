@@ -25,8 +25,11 @@ const stripAddPrefix = (line: string): string =>
 const isRemoveLine = (line: string): boolean =>
   line.startsWith("-")
 
+const stripTrailingSplitArtifact = (lines: string[]): string[] =>
+  lines.length > 0 && lines[lines.length - 1] === "" ? lines.slice(0, -1) : lines
+
 const parseV4ADiff = (patch: string): Hunk[] => {
-  const lines = patch.split("\n")
+  const lines = stripTrailingSplitArtifact(patch.split("\n"))
   const hunks: Hunk[] = []
   let currentOld = ""
   let currentNew = ""
