@@ -1,5 +1,6 @@
 export {
   getFiles,
+  getFilesStripped,
   getFile,
   getFileRaw,
   getCurrentFile,
@@ -26,6 +27,16 @@ export {
   getCodeTitle,
   getAnnotations,
 } from "./selectors"
+
+export {
+  stripPending,
+  findPending,
+  hasPending,
+  markPending,
+  resolvePending,
+  resolveAllPending,
+  getAllDefinitions,
+} from "./pending"
 
 export {
   applyPatch,

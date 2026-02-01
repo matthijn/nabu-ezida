@@ -1,0 +1,37 @@
+{
+  "name": "partial resolution leaves other markers",
+  "description": "When one definition arrives, only its markers resolve, others stay pending",
+  "steps": [
+    {
+      "action": "add",
+      "path": "doc.md",
+      "content": "{\"annotations\": [{\"text\": \"a\", \"code\": \"code_aaaaaaaa\"}, {\"text\": \"b\", \"code\": \"code_bbbbbbbb\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[code_aaaaaaaa]"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[code_bbbbbbbb]"
+    },
+    {
+      "action": "add",
+      "path": "codebook.md",
+      "content": "{\"id\": \"code_aaaaaaaa\", \"title\": \"A\"}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "notContains": "#[code_aaaaaaaa]",
+      "contains": "code_aaaaaaaa"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[code_bbbbbbbb]"
+    }
+  ]
+}

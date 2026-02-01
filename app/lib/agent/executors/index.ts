@@ -1,7 +1,8 @@
 import type { ToolCall, ToolDeps, ToolResult, Operation } from "../types"
-import { getFiles, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
+import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
 import { sendCommand, type Command, type Action } from "~/lib/sync"
 import { getToolHandlers, getToolDefinitions } from "./tool"
+import { replaceUuidPlaceholders } from "~/domain/blocks"
 
 // Import tools to register them
 import "./patch"
@@ -23,12 +24,13 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
   const { status, output, mutations } = await handler(files, call.args)
 
   for (const op of mutations) {
-    const result = applyMutation(op)
+    const { op: resolved, placeholderIds } = resolveOpPlaceholders(op)
+    const result = applyMutation(resolved, placeholderIds)
     if (result.status === "error") {
       return result
     }
     if (deps.project?.id) {
-      persistToServer(deps.project.id, op)
+      persistToServer(deps.project.id, resolved)
     }
   }
 
@@ -36,19 +38,28 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
 }
 
 const extractFiles = (): Map<string, string> =>
-  new Map(Object.entries(getFiles()))
+  new Map(Object.entries(getFilesStripped()))
 
-const applyMutation = (op: Operation): ToolResult<string> => {
+type ResolvedOp = { op: Operation; placeholderIds: Record<string, string> }
+
+const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
+  if (!("diff" in op)) return { op, placeholderIds: {} }
+  const { result, generated } = replaceUuidPlaceholders(op.diff)
+  return { op: { ...op, diff: result }, placeholderIds: generated }
+}
+
+const applyMutation = (op: Operation, placeholderIds: Record<string, string>): ToolResult<string> => {
   switch (op.type) {
     case "create_file": {
       if (getFileRaw(op.path)) return { status: "error", output: `${op.path}: already exists` }
-      return applyPatchAndStore(op.path, "", op.diff, "Created", {})
+      return applyPatchAndStore(op.path, "", op.diff, "Created", { placeholderIds })
     }
     case "update_file": {
       const content = getFileRaw(op.path)
       if (!content) return { status: "error", output: `${op.path}: No such file` }
       return applyPatchAndStore(op.path, content, op.diff, "Updated", {
         skipImmutableCheck: op.skipImmutableCheck,
+        placeholderIds,
       })
     }
     case "delete_file": {
@@ -65,7 +76,7 @@ const applyMutation = (op: Operation): ToolResult<string> => {
   }
 }
 
-type PatchOptions = { skipImmutableCheck?: boolean }
+type PatchOptions = { skipImmutableCheck?: boolean; placeholderIds?: Record<string, string> }
 
 const applyPatchAndStore = (path: string, content: string, diff: string, verb: string, options: PatchOptions): ToolResult<string> => {
   const result = applyFilePatch(path, content, diff, options)

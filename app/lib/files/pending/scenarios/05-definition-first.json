@@ -1,0 +1,22 @@
+{
+  "name": "definition first means no marker",
+  "description": "When definition arrives before the reference, no marker is added",
+  "steps": [
+    {
+      "action": "add",
+      "path": "codebook.md",
+      "content": "{\"id\": \"callout_exists12\", \"title\": \"Exists\"}"
+    },
+    {
+      "action": "add",
+      "path": "doc.md",
+      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_exists12\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "notContains": "#[",
+      "contains": "callout_exists12"
+    }
+  ]
+}

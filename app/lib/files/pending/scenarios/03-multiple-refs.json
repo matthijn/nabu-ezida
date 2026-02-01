@@ -1,0 +1,41 @@
+{
+  "name": "multiple refs to same code all resolve",
+  "description": "When multiple files reference the same code, all markers resolve when the definition arrives",
+  "steps": [
+    {
+      "action": "add",
+      "path": "doc1.md",
+      "content": "{\"annotations\": [{\"text\": \"test1\", \"code\": \"callout_shared12\"}]}"
+    },
+    {
+      "action": "add",
+      "path": "doc2.md",
+      "content": "{\"annotations\": [{\"text\": \"test2\", \"code\": \"callout_shared12\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc1.md",
+      "contains": "#[callout_shared12]"
+    },
+    {
+      "action": "check",
+      "path": "doc2.md",
+      "contains": "#[callout_shared12]"
+    },
+    {
+      "action": "add",
+      "path": "codebook.md",
+      "content": "{\"id\": \"callout_shared12\", \"title\": \"Shared\"}"
+    },
+    {
+      "action": "check",
+      "path": "doc1.md",
+      "notContains": "#["
+    },
+    {
+      "action": "check",
+      "path": "doc2.md",
+      "notContains": "#["
+    }
+  ]
+}

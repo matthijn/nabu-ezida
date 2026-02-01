@@ -1,4 +1,5 @@
 import { getCodebook as computeCodebook, type Codebook } from "./selectors"
+import { stripPending, markPending, resolvePending, getAllDefinitions, findPending, findDefinitionIds } from "./pending"
 
 type Files = Record<string, string>
 type Listener = () => void
@@ -14,6 +15,9 @@ let cachedCodebook: Codebook | undefined
 const notify = (): void => listeners.forEach((l) => l())
 
 export const getFiles = (): Files => files
+
+export const getFilesStripped = (): Files =>
+  Object.fromEntries(Object.entries(files).map(([k, v]) => [k, stripPending(v)]))
 
 export const getCodebook = (): Codebook | undefined => {
   if (cachedFiles !== files) {
@@ -46,7 +50,35 @@ export const setCurrentFile = (filename: string | null): void => {
 export const updateFileRaw = (filename: string, raw: string): void => {
   const isNew = !(filename in files)
   console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${raw.length} chars)`)
-  files = { ...files, [filename]: raw }
+
+  const definitions = getAllDefinitions(files)
+  const marked = markPending(raw, definitions)
+  const pendingInNew = findPending(marked)
+  if (pendingInNew.length > 0) {
+    console.debug(`[store] marked ${pendingInNew.length} pending refs in "${filename}"`)
+  }
+
+  const newDefinitions = findDefinitionIds(raw)
+  let updatedFiles: Files = { ...files, [filename]: marked }
+  let resolvedCount = 0
+
+  for (const defId of newDefinitions) {
+    for (const [path, content] of Object.entries(updatedFiles)) {
+      if (path === filename) continue
+      const pending = findPending(content)
+      if (pending.includes(defId)) {
+        const resolved = resolvePending(content, defId)
+        updatedFiles = { ...updatedFiles, [path]: resolved }
+        resolvedCount++
+      }
+    }
+  }
+
+  if (resolvedCount > 0) {
+    console.debug(`[store] resolved ${resolvedCount} pending refs`)
+  }
+
+  files = updatedFiles
   notify()
 }
 

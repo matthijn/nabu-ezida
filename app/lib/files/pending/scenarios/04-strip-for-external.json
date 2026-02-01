@@ -1,0 +1,22 @@
+{
+  "name": "getFilesStripped returns clean content",
+  "description": "External access via getFilesStripped removes all pending markers",
+  "steps": [
+    {
+      "action": "add",
+      "path": "doc.md",
+      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_pending1\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[callout_pending1]"
+    },
+    {
+      "action": "checkStripped",
+      "path": "doc.md",
+      "notContains": "#[",
+      "contains": "callout_pending1"
+    }
+  ]
+}

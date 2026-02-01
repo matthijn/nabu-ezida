@@ -1,0 +1,27 @@
+{
+  "name": "marker resolves when definition arrives",
+  "description": "When a file with a pending marker is followed by the definition, the marker is resolved",
+  "steps": [
+    {
+      "action": "add",
+      "path": "doc.md",
+      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_abc12345\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[callout_abc12345]"
+    },
+    {
+      "action": "add",
+      "path": "codebook.md",
+      "content": "{\"id\": \"callout_abc12345\", \"title\": \"Test Code\"}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "notContains": "#[",
+      "contains": "callout_abc12345"
+    }
+  ]
+}

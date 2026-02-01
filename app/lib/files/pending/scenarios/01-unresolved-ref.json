@@ -1,0 +1,16 @@
+{
+  "name": "unresolved ref gets marker",
+  "description": "When a file references a code that doesn't exist, the ref is marked as pending",
+  "steps": [
+    {
+      "action": "add",
+      "path": "doc.md",
+      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_notfound\"}]}"
+    },
+    {
+      "action": "check",
+      "path": "doc.md",
+      "contains": "#[callout_notfound]"
+    }
+  ]
+}
