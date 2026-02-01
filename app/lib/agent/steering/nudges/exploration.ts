@@ -1,4 +1,4 @@
-import type { Nudger } from "../nudge-tools"
+import { buildToolNudge, type Nudger } from "../nudge-tools"
 import type { DerivedExploration, Finding } from "../../derived"
 import { derive, hasActiveExploration, actionsSinceExplorationChange } from "../../derived"
 
@@ -52,3 +52,8 @@ You MUST now call exploration_step with decision "answer" or "plan" to exit.
 If you cannot answer, call abort.
 
 No other actions are allowed. Choose one NOW.`
+
+export const explorationStartNudge = buildToolNudge(
+  "start_exploration",
+  `Each step must yield insight, not just activity. See <explore-execute>.`
+)

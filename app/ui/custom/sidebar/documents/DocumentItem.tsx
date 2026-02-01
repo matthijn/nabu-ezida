@@ -6,6 +6,7 @@ export type DocumentItemProps = {
   editedAt: string;
   tags: Array<{ label: string; variant?: "brand" | "neutral" }>;
   lineCount?: number;
+  annotationCount?: number;
   selected?: boolean;
   onClick?: () => void;
 }
@@ -15,6 +16,7 @@ export function DocumentItem({
   editedAt,
   tags,
   lineCount,
+  annotationCount,
   selected = false,
   onClick,
 }: DocumentItemProps) {
@@ -42,6 +44,11 @@ export function DocumentItem({
               {tag.label}
             </Badge>
           ))}
+          {annotationCount ? (
+            <Badge variant="neutral" icon={null}>
+              {annotationCount}
+            </Badge>
+          ) : null}
         </div>
         {lineCount !== undefined && (
           <span className="text-caption font-caption text-subtext-color">

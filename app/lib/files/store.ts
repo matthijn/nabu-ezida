@@ -3,8 +3,6 @@ import { getCodebook as computeCodebook, type Codebook } from "./selectors"
 type Files = Record<string, string>
 type Listener = () => void
 
-const STORAGE_KEY = "nabu:files"
-
 let files: Files = {}
 let currentFile: string | null = null
 const listeners = new Set<Listener>()
@@ -35,6 +33,7 @@ export const getFileLineCount = (filename: string): number =>
   getFileRaw(filename).split("\n").length
 
 export const setFiles = (newFiles: Record<string, string>): void => {
+  console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))
   files = newFiles
   notify()
 }
@@ -45,11 +44,14 @@ export const setCurrentFile = (filename: string | null): void => {
 }
 
 export const updateFileRaw = (filename: string, raw: string): void => {
+  const isNew = !(filename in files)
+  console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${raw.length} chars)`)
   files = { ...files, [filename]: raw }
   notify()
 }
 
 export const deleteFile = (filename: string): void => {
+  console.debug(`[store] deleteFile: "${filename}"`)
   const { [filename]: _, ...rest } = files
   files = rest
   if (currentFile === filename) {
@@ -59,6 +61,7 @@ export const deleteFile = (filename: string): void => {
 }
 
 export const renameFile = (oldName: string, newName: string): void => {
+  console.debug(`[store] renameFile: "${oldName}" -> "${newName}"`)
   const content = files[oldName]
   if (content === undefined) return
 
@@ -74,32 +77,4 @@ export const renameFile = (oldName: string, newName: string): void => {
 export const subscribe = (listener: Listener): (() => void) => {
   listeners.add(listener)
   return () => listeners.delete(listener)
-}
-
-export const persistFiles = (): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(files))
-  } catch {
-    // localStorage full or unavailable
-  }
-}
-
-export const restoreFiles = (): void => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored) as Record<string, string> | Record<string, { raw: string }>
-      const first = Object.values(parsed)[0]
-      if (first && typeof first === "object" && "raw" in first) {
-        files = Object.fromEntries(
-          Object.entries(parsed as Record<string, { raw: string }>).map(([k, v]) => [k, v.raw])
-        )
-      } else {
-        files = parsed as Record<string, string>
-      }
-      notify()
-    }
-  } catch {
-    // parse error or localStorage unavailable
-  }
 }

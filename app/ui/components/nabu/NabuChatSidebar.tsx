@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { useNavigate, useParams } from "react-router"
 import Markdown, { type Components } from "react-markdown"
 import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherX, FeatherRefreshCw } from "@subframe/core"
@@ -215,7 +216,18 @@ const LoadingIndicator = ({ streaming, streamingReasoning, streamingToolName, hi
 
   return (
     <div className="flex w-full rounded-lg bg-neutral-50 px-3 py-3">
-      <span className="text-body font-body text-subtext-color">{label}<AnimatedDots /></span>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={label}
+          className="text-body font-body text-subtext-color"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          {label}<AnimatedDots />
+        </motion.span>
+      </AnimatePresence>
     </div>
   )
 }

@@ -32,7 +32,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -57,10 +57,6 @@
     "content": "EXECUTING STEP 2: Step two\n\n1. [done] Step one → \"Did step one\" [context: completed first task]\n2. [current] Step two  ← current\n   expected: \"Second part done\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -81,9 +77,5 @@
   {
     "type": "system",
     "content": "PLAN COMPLETED\n\n<plan-results task=\"Do the thing\">\n1. Step one:\n   expected: \"First part done\"\n   result: \"Did step one\" [context: completed first task]\n2. Step two:\n   expected: \"Second part done\"\n   result: \"Did step two\" [context: completed second task]\n</plan-results>\n\nSummarize what was accomplished. Do NOT call any tools."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

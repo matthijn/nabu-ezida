@@ -32,16 +32,20 @@ export const applyCommand = (command: Command): void => {
 }
 
 const applyCreateFile = (path: string, diff: string): void => {
-  const result = applyFilePatch(path, "", diff)
+  const result = applyFilePatch(path, "", diff, { skipCodeValidation: true })
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
+  } else {
+    console.error(`[apply] createFile failed: "${path}"`, result)
   }
 }
 
 const applyUpdateFile = (path: string, diff: string): void => {
   const current = getFileRaw(path)
-  const result = applyFilePatch(path, current, diff)
+  const result = applyFilePatch(path, current, diff, { skipCodeValidation: true })
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
+  } else {
+    console.error(`[apply] updateFile failed: "${path}"`, result)
   }
 }

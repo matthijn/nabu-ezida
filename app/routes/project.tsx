@@ -11,6 +11,7 @@ import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
 import { createWebSocket, applyCommand } from "~/lib/sync"
+import { getAnnotationCount } from "~/lib/files/selectors"
 
 type SidebarDocument = {
   id: string
@@ -19,6 +20,7 @@ type SidebarDocument = {
   tags: { label: string; variant: "brand" | "neutral" }[]
   pinned: boolean
   lineCount: number
+  annotationCount: number
 }
 
 const isHiddenFile = (filename: string): boolean =>
@@ -39,6 +41,7 @@ const filesToSidebarDocuments = (
     tags: getFileTags(filename).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" as const : "neutral" as const })),
     pinned: false,
     lineCount: getFileLineCount(filename),
+    annotationCount: getAnnotationCount(files[filename]),
   }))
 
 export type DebugOptions = {

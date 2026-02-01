@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import { toNudge } from "./index"
-import type { Files } from "../derived"
 import type { Block } from "../types"
 import {
   createPlanCall,
@@ -16,10 +15,7 @@ const manyActions = (count: number): Block[] =>
   Array.from({ length: count }, () => [toolCallBlock(), toolResult()]).flat()
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
-const readMemoryBlock = (): Block => ({ type: "system", content: "## READ MEMORY" })
-const writeMemoryBlock = (): Block => ({ type: "system", content: "## WRITE REMINDER: Only if needed" })
 const shellErrorResult = (): Block => ({ type: "tool_result", callId: "1", toolName: "run_local_shell", result: { status: "error", output: "unknown command" } })
-const memoryFile = { "memory.hidden.md": "user prefs" }
 
 type NudgeExpectation =
   | { type: "none" }
@@ -60,14 +56,13 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "exploring, >30 actions → exploration stops, write memory fires",
-      history: [readMemoryBlock(), writeMemoryBlock(), startExplorationCall("Question"), ...manyActions(31)],
-      expect: { type: "contains", text: "REMINDER" },
+      name: "exploring, >30 actions → exploration stops, tone nudge fires",
+      history: [startExplorationCall("Question"), ...manyActions(31)],
+      expect: { type: "contains", text: "users see titles and names" },
     },
     {
-      name: "exploration completed with answer → tone nudge only",
+      name: "exploration completed with answer → tone nudge fires",
       history: [
-        readMemoryBlock(),
         startExplorationCall("Question"),
         toolResult(),
         explorationStepCall("ctx:done", "Found it", "answer"),
@@ -88,9 +83,9 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "executing plan step, >10 actions → plan stops, write memory fires",
-      history: [readMemoryBlock(), writeMemoryBlock(), createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
-      expect: { type: "contains", text: "REMINDER" },
+      name: "executing plan step, >10 actions → plan stops, tone nudge fires",
+      history: [createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
+      expect: { type: "contains", text: "users see titles and names" },
     },
     {
       name: "plan step count resets after complete_step",
@@ -120,7 +115,6 @@ describe("toNudge", () => {
     {
       name: "plan completed, last block is text → null",
       history: [
-        readMemoryBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         completeStepCall(),
@@ -132,9 +126,8 @@ describe("toNudge", () => {
 
     // Plan aborted
     {
-      name: "plan aborted → tone nudge only (triggers response)",
+      name: "plan aborted → tone nudge fires",
       history: [
-        readMemoryBlock(),
         createPlanCall("Task", ["Step 1"]),
         toolResult(),
         abortCall("Cannot continue"),
@@ -145,10 +138,9 @@ describe("toNudge", () => {
 
     // No exploration, no plan (chat mode)
     {
-      name: "no exploration, no plan, first tool_result → read memory nudge",
+      name: "no exploration, no plan, first tool_result → tone nudge fires",
       history: [toolResult()],
-      files: memoryFile,
-      expect: { type: "contains", text: "READ MEMORY" },
+      expect: { type: "contains", text: "users see titles and names" },
     },
 
     // Shell error nudge

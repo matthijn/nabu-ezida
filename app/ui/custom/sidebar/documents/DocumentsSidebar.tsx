@@ -10,7 +10,7 @@ import { matchesAny } from "~/lib/filter";
 import { SectionHeader } from "./SectionHeader";
 import { DocumentItem, type DocumentItemProps } from "./DocumentItem";
 
-type ListItem = { id: string; pinned?: boolean; lineCount?: number } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
+type ListItem = { id: string; pinned?: boolean; lineCount?: number; annotationCount?: number } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
 
 interface DocumentsSidebarProps {
   documents: ListItem[];
@@ -129,6 +129,7 @@ export function DocumentsSidebar({
                     editedAt={doc.editedAt}
                     tags={doc.tags}
                     lineCount={debugMode ? doc.lineCount : undefined}
+                    annotationCount={doc.annotationCount}
                     selected={doc.id === selectedId}
                     onClick={() => onDocumentSelect?.(doc.id)}
                   />
@@ -149,6 +150,7 @@ export function DocumentsSidebar({
                     editedAt={doc.editedAt}
                     tags={doc.tags}
                     lineCount={debugMode ? doc.lineCount : undefined}
+                    annotationCount={doc.annotationCount}
                     selected={doc.id === selectedId}
                     onClick={() => onDocumentSelect?.(doc.id)}
                   />

@@ -2,7 +2,10 @@ import type { Block } from "../../types"
 import type { Nudger } from "../nudge-tools"
 import type { DerivedPlan, Step, Section, SectionResult, Files } from "../../derived"
 import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
-import { findSingletonBlock } from "~/domain/blocks"
+import { findSingletonBlock, parseBlockJson } from "~/domain/blocks"
+import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
+import { getCodeTitle } from "~/lib/files/selectors"
+import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 
 const STUCK_LIMIT = 10
 
@@ -142,6 +145,33 @@ const formatFileSwitch = (files: Files, filename: string): string => {
   return `Switched to file: ${filename}${attrsBlock}\n`
 }
 
+const getFileAnnotations = (files: Files, filename: string): StoredAnnotation[] => {
+  const raw = files[filename]
+  if (!raw) return []
+  const block = findSingletonBlock(raw, "json-attributes")
+  if (!block) return []
+  const meta = parseBlockJson<DocumentMeta>(block)
+  return meta?.annotations ?? []
+}
+
+const formatAnnotation = (files: Files, annotation: StoredAnnotation): string => {
+  const label = annotation.code
+    ? getCodeTitle(files, annotation.code) ?? annotation.code
+    : annotation.color ?? "highlight"
+  return `- "${annotation.text}" → ${label}`
+}
+
+const formatSectionAnnotations = (
+  files: Files,
+  filename: string,
+  sectionContent: string
+): string => {
+  const allAnnotations = getFileAnnotations(files, filename)
+  const matching = filterMatchingAnnotations(allAnnotations, sectionContent)
+  if (matching.length === 0) return ""
+  return `\n  <annotations>\n${matching.map((a) => "  " + formatAnnotation(files, a)).join("\n")}\n  </annotations>`
+}
+
 const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number, files: Files): string => {
   const current = plan.steps[stepIndex]
   const ps = plan.perSection!
@@ -160,12 +190,16 @@ const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number, files: Files
 
   const stepList = plan.steps.map((s, i) => formatStep(s, stepIndex, i)).join("\n")
 
+  const annotationsBlock = formatSectionAnnotations(files, section.file, section.content)
+
   return `EXECUTING STEP ${current.id}: ${current.description}
 ${sectionProgress}
 ${fileSwitch}
 <section ${section.file} ${section.indexInFile}/${section.totalInFile}>
+  <content>
 ${section.content}
-</section ${section.file} ${section.indexInFile}/${section.totalInFile}>
+  </content>${annotationsBlock}
+</section>
 ${previousSections}
 ${stepList}
 

@@ -31,7 +31,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -58,9 +58,5 @@
   {
     "type": "system",
     "content": "**Shell error** - Review the run_local_shell tool definition for supported commands and syntax."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

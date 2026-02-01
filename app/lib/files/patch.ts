@@ -63,6 +63,7 @@ const formatBlockErrors = (errors: ValidationError[]): string =>
 
 type ApplyMdPatchOptions = {
   skipImmutableCheck?: boolean
+  skipCodeValidation?: boolean
 }
 
 const applyMdPatch = (path: string, content: string, patch: string, options: ApplyMdPatchOptions = {}): FileResult => {
@@ -88,11 +89,15 @@ const applyMdPatch = (path: string, content: string, patch: string, options: App
   })
 
   if (!validation.valid) {
-    return {
-      path,
-      status: "error",
-      error: formatBlockErrors(validation.errors),
-      blockErrors: validation.errors,
+    if (options.skipCodeValidation) {
+      console.warn(`[patch] validation warnings for "${path}":`, formatBlockErrors(validation.errors))
+    } else {
+      return {
+        path,
+        status: "error",
+        error: formatBlockErrors(validation.errors),
+        blockErrors: validation.errors,
+      }
     }
   }
 
@@ -108,6 +113,7 @@ const applyMdPatch = (path: string, content: string, patch: string, options: App
 
 export type ApplyFilePatchOptions = {
   skipImmutableCheck?: boolean
+  skipCodeValidation?: boolean
 }
 
 export const applyFilePatch = (path: string, content: string, patch: string, options: ApplyFilePatchOptions = {}): FileResult =>

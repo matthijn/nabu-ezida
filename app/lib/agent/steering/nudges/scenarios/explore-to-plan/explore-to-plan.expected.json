@@ -23,7 +23,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -46,10 +46,6 @@
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -81,9 +77,5 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Modify handler\n\n1. [current] Modify handler  ← current\n   expected: \"Handler updated\"\n2. [pending] Add tests\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

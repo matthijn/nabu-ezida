@@ -11,8 +11,6 @@ export {
   deleteFile,
   renameFile,
   subscribe,
-  persistFiles,
-  restoreFiles,
 } from "./store"
 
 export {

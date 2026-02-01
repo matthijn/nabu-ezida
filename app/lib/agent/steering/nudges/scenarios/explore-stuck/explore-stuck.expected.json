@@ -23,7 +23,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -45,10 +45,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -68,10 +64,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -89,10 +81,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -115,11 +103,7 @@
   },
   {
     "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -141,10 +125,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -164,10 +144,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -185,10 +161,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -211,7 +183,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -233,14 +205,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -260,10 +224,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -281,10 +241,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -307,7 +263,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -329,10 +285,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -352,14 +304,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -377,10 +321,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -403,7 +343,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -425,10 +365,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -448,10 +384,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -469,14 +401,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -499,7 +423,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -521,10 +445,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -544,10 +464,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -565,10 +481,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -591,11 +503,7 @@
   },
   {
     "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -617,10 +525,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -640,10 +544,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -661,10 +561,6 @@
   {
     "type": "system",
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -687,7 +583,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
   },
   {
     "type": "tool_call",
@@ -709,14 +605,6 @@
     "content": "EXPLORING: What is X?\nCurrent direction: Look\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
   },
   {
-    "type": "system",
-    "content": "\n## WRITE REMINDER: Only if needed\nUpdate memory.hidden.md if needed, then continue.\n"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -734,9 +622,5 @@
   {
     "type": "system",
     "content": "STUCK EXPLORING: What is X?\n\nYou have made too many attempts without progress.\n\nYou MUST now call exploration_step with decision \"answer\" or \"plan\" to exit.\nIf you cannot answer, call abort.\n\nNo other actions are allowed. Choose one NOW."
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

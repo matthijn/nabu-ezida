@@ -1,6 +1,8 @@
-import { afterToolResult, type Nudger } from "../nudge-tools"
+import { afterToolResult, withCooldown, type Nudger } from "../nudge-tools"
 
-const toneReminder = `Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system.`
+const toneReminder = `Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>`
 
-export const toneNudge: Nudger = (history) =>
+const baseToneNudge: Nudger = (history) =>
   afterToolResult(history) ? toneReminder : null
+
+export const toneNudge = withCooldown(10, baseToneNudge)

@@ -35,6 +35,9 @@ export const contextToMessage = (ctx: EditorContext): string => {
   if (ctx.selection) {
     lines.push("", "Selected:", ctx.selection)
   }
+
+  lines.push("See <cursor-context> how to interpret")
+
   return lines.join("\n")
 }
 

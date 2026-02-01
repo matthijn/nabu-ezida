@@ -140,6 +140,11 @@ export const upsertAnnotations = (
   return { ok: true, content: result.content, applied, notFound }
 }
 
+export const filterMatchingAnnotations = <T extends { text: string }>(
+  annotations: T[],
+  prose: string
+): T[] => annotations.filter((a) => prose.includes(a.text))
+
 export const removeAnnotations = (
   docContent: string,
   texts: string[]

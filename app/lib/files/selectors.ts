@@ -64,6 +64,9 @@ export const getTags = (raw: string): string[] =>
 export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
   getAttributes(raw)?.annotations ?? []
 
+export const getAnnotationCount = (raw: string): number =>
+  getStoredAnnotations(raw).length
+
 export const getCallouts = (raw: string): CalloutBlock[] =>
   getBlocks(raw, "json-callout")
 

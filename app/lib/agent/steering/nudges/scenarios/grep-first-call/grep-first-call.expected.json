@@ -1,7 +1,7 @@
 [
   {
     "type": "user",
-    "content": "List files"
+    "content": "find something"
   },
   {
     "type": "system",
@@ -12,19 +12,30 @@
     "calls": [
       {
         "id": "1",
-        "name": "list_files",
-        "args": {}
+        "name": "run_local_shell",
+        "args": {
+          "commands": [
+            "grep pattern file.txt"
+          ]
+        }
       }
     ]
   },
   {
     "type": "tool_result",
     "callId": "1",
-    "result": {}
+    "toolName": "run_local_shell",
+    "result": {
+      "status": "ok"
+    }
   },
   {
     "type": "system",
     "content": "EMPTY_NUDGE"
+  },
+  {
+    "type": "system",
+    "content": "Reminder: Grep finds strings, not concepts. See <common-mistakes>."
   },
   {
     "type": "system",

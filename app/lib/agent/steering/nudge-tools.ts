@@ -42,7 +42,7 @@ export const alreadyFired = (history: Block[], marker: string): boolean =>
 
 export const firedWithin = (history: Block[], marker: string, n: number): boolean => {
   const since = blocksSinceMarker(history, marker)
-  if (since === -1) return history.length <= n
+  if (since === -1) return false
   return since <= n
 }
 
@@ -56,3 +56,33 @@ export const combine = (...nudgers: Nudger[]): Nudger => (history, files, emptyN
 
 export const collect = (...nudgers: Nudger[]): MultiNudger => (history, files, emptyNudge = "") =>
   filterNonNull(nudgers.map((n) => n(history, files, emptyNudge)))
+
+export const withCooldown =
+  (n: number, nudger: Nudger): Nudger =>
+  (history, files, emptyNudge) => {
+    const result = nudger(history, files, emptyNudge)
+    if (result === null) return null
+    if (firedWithin(history, result, n)) return null
+    return result
+  }
+
+export const buildToolNudge =
+  (toolName: string, prompt: string): Nudger =>
+  (history) => {
+    if (!afterToolResult(history)) return null
+    const last = history[history.length - 1]
+    if (last.type !== "tool_result") return null
+    if ((last as { toolName?: string }).toolName !== toolName) return null
+    return prompt
+  }
+
+export const findToolCallArgs = (history: Block[], callId: string): Record<string, unknown> | null => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (block.type === "tool_call") {
+      const call = block.calls.find((c) => c.id === callId)
+      if (call) return call.args
+    }
+  }
+  return null
+}

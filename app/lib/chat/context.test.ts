@@ -20,7 +20,8 @@ Second paragraph
 
 Below cursor:
 Fourth paragraph
-Fifth paragraph`,
+Fifth paragraph
+See <cursor-context> how to interpret`,
     },
     {
       name: "formats context with selection",
@@ -38,7 +39,8 @@ Above cursor:
 Some text
 
 Selected:
-selected words`,
+selected words
+See <cursor-context> how to interpret`,
     },
     {
       name: "formats context with no cursor (preview only)",
@@ -53,7 +55,8 @@ Document: My Document (doc-123)
 
 Above cursor:
 First block
-Second block`,
+Second block
+See <cursor-context> how to interpret`,
     },
     {
       name: "formats empty document",
@@ -64,7 +67,8 @@ Second block`,
         below: [],
       } as EditorContext,
       expected: `User is looking at:
-Document: Empty Doc (doc-123)`,
+Document: Empty Doc (doc-123)
+See <cursor-context> how to interpret`,
     },
   ]
 
