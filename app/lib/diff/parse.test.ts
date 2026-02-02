@@ -144,9 +144,9 @@ appended`,
       patch: `@@
 +
 +\`\`\`json-callout
-+{"id": "test", "type": "codebook"}
++{"id": "test", "type": "codebook-code"}
 +\`\`\``,
-      expected: { ok: true, content: "# Doc\n\nIntro text.\n\n```json-callout\n{\"id\": \"test\", \"type\": \"codebook\"}\n```" },
+      expected: { ok: true, content: "# Doc\n\nIntro text.\n\n```json-callout\n{\"id\": \"test\", \"type\": \"codebook-code\"}\n```" },
     },
     {
       name: "create file with @@ and + lines",

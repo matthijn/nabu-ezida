@@ -5,7 +5,7 @@ Some content here.
 ```json-callout
 {
   "id": "first",
-  "type": "codebook",
+  "type": "codebook-code",
   "title": "First Callout",
   "color": "red",
   "content": "Description",
@@ -18,7 +18,7 @@ More content.
 ```json-callout
 {
   "id": "second",
-  "type": "codebook",
+  "type": "codebook-code",
   "title": "Second Callout",
   "color": "blue",
   "content": "Another description",

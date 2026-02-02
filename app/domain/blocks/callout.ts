@@ -3,10 +3,10 @@ import { BLOCK_COLORS } from "~/lib/colors/radix"
 
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
-const calloutType = z.enum(["codebook", "code", "idea", "quote", "note"])
+const calloutType = z.enum(["codebook-code"])
 
 const normalizeNewlines = (text: string): string =>
-  text.replace(/\\n/g, "\n").replace(/\n{2,}/g, "\n")
+  text.replace(/\\n/g, "\n").replace(/\n{3,}/g, "\n\n")
 
 const normalizedString = z.string().transform(normalizeNewlines)
 

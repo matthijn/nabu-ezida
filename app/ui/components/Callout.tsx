@@ -4,10 +4,6 @@ import { forwardRef, type HTMLAttributes, type ReactNode } from "react"
 import * as SubframeCore from "@subframe/core"
 import {
   FeatherBook,
-  FeatherCode,
-  FeatherLightbulb,
-  FeatherQuote,
-  FeatherAlertCircle,
   FeatherChevronDown,
   FeatherChevronRight,
 } from "@subframe/core"
@@ -17,7 +13,7 @@ import { DropdownMenu } from "./DropdownMenu"
 import { IconButton } from "./IconButton"
 import { ColorPicker } from "./ColorPicker"
 
-export type CalloutType = "codebook" | "code" | "idea" | "quote" | "note"
+export type CalloutType = "codebook-code"
 
 type CalloutTypeConfig = {
   icon: ReactNode
@@ -25,11 +21,7 @@ type CalloutTypeConfig = {
 }
 
 const CALLOUT_TYPES: Record<CalloutType, CalloutTypeConfig> = {
-  codebook: { icon: <FeatherBook />, label: "Codebook" },
-  code: { icon: <FeatherCode />, label: "Code" },
-  idea: { icon: <FeatherLightbulb />, label: "Idea" },
-  quote: { icon: <FeatherQuote />, label: "Quote" },
-  note: { icon: <FeatherAlertCircle />, label: "Note" },
+  "codebook-code": { icon: <FeatherBook />, label: "Code" },
 }
 
 const getCalloutIcon = (type: CalloutType): ReactNode => CALLOUT_TYPES[type].icon

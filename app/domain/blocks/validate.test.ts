@@ -155,8 +155,8 @@ CATS are great.
     })
 
     it("matches blocks by id for non-singleton blocks", () => {
-      const validCallout1 = '{"id": "first", "type": "codebook", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
-      const validCallout2 = '{"id": "second", "type": "codebook", "title": "Second", "color": "blue", "content": "desc", "collapsed": false}'
+      const validCallout1 = '{"id": "first", "type": "codebook-code", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
+      const validCallout2 = '{"id": "second", "type": "codebook-code", "title": "Second", "color": "blue", "content": "desc", "collapsed": false}'
       const invalidCallout = '{"id": "second", "type": "INVALID"}'
 
       const original = [
@@ -196,7 +196,7 @@ CATS are great.
         "# Test",
         "",
         "```json-callout",
-        '{"id": "abc", "type": "codebook", "title": "Test", "color": "red", "content": "desc", "collapsed": false}',
+        '{"id": "abc", "type": "codebook-code", "title": "Test", "color": "red", "content": "desc", "collapsed": false}',
         "```",
       ].join("\n")
 
@@ -216,8 +216,8 @@ CATS are great.
     })
 
     it("matches by id even when block order changes", () => {
-      const calloutA = '{"id": "aaa", "type": "codebook", "title": "AAA", "color": "red", "content": "desc", "collapsed": false}'
-      const calloutB = '{"id": "bbb", "type": "codebook", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
+      const calloutA = '{"id": "aaa", "type": "codebook-code", "title": "AAA", "color": "red", "content": "desc", "collapsed": false}'
+      const calloutB = '{"id": "bbb", "type": "codebook-code", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
       const invalidB = '{"id": "bbb", "type": "INVALID"}'
 
       // Original order: A, B

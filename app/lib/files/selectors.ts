@@ -71,7 +71,7 @@ export const getCallouts = (raw: string): CalloutBlock[] =>
   getBlocks(raw, "json-callout")
 
 export const getCodes = (raw: string): CalloutBlock[] =>
-  getCallouts(raw).filter((c) => c.type === "codebook")
+  getCallouts(raw).filter((c) => c.type === "codebook-code")
 
 export const getAllCodes = (files: Record<string, string>): CalloutBlock[] =>
   Object.values(files).flatMap(getCodes)
