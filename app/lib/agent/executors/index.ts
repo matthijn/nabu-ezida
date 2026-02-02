@@ -3,6 +3,7 @@ import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, ap
 import { sendCommand, type Command, type Action } from "~/lib/sync"
 import { getToolHandlers, getToolDefinitions } from "./tool"
 import { replaceUuidPlaceholders } from "~/domain/blocks"
+import { toExtraPretty } from "~/lib/json"
 
 // Import tools to register them
 import "./patch"
@@ -41,7 +42,7 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
 }
 
 const extractFiles = (): Map<string, string> =>
-  new Map(Object.entries(getFilesStripped()))
+  new Map(Object.entries(getFilesStripped()).map(([k, v]) => [k, toExtraPretty(v)]))
 
 type ResolvedOp = { op: Operation; placeholderIds: Record<string, string> }
 

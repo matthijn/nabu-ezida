@@ -43,16 +43,13 @@ type ProgressBarProps = {
 const ProgressBar = ({ completed, total }: ProgressBarProps) => {
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0
   return (
-    <div className="mt-2 flex items-center gap-2">
-      <div className="h-1.5 flex-1 rounded-full bg-neutral-200 overflow-hidden">
+    <div className="mt-2">
+      <div className="h-1.5 rounded-full bg-neutral-200 overflow-hidden">
         <div
           className="h-full rounded-full bg-brand-600 transition-all duration-300"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="text-caption font-caption text-subtext-color whitespace-nowrap">
-        {completed}/{total}
-      </span>
     </div>
   )
 }
@@ -155,7 +152,7 @@ export const PlanProgressCard = ({
 
       {aborted && (
         <div className="flex w-full items-start gap-2 rounded-md border border-solid border-warning-300 bg-warning-50 px-3 py-2 mt-1">
-          <span className="text-body font-body text-warning-700">Cancelled by user</span>
+          <span className="text-body font-body text-warning-700">Pivoted plan</span>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { command, ok } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 type Group = { line: string; count: number }
 
@@ -22,14 +22,19 @@ const groupLines = (lines: string[]): Group[] => {
 
 export const uniq = command({
   description: "Remove adjacent duplicate lines",
-  usage: "uniq [-c] [-d] [-u]",
+  usage: "uniq [-c] [-d] [-u] [file]",
   flags: {
     "-c": { alias: "--count", description: "prefix lines with occurrence count" },
     "-d": { alias: "--repeated", description: "only print duplicates" },
     "-u": { alias: "--unique", description: "only print unique lines" },
   },
-  handler: () => (_args, flags, stdin) => {
-    const groups = groupLines(stdin.split("\n"))
+  handler: (files) => (args, flags, stdin) => {
+    const filename = normalizePath(args[0])
+    if (filename && !files.has(filename)) {
+      return err(`uniq: ${filename}: No such file`)
+    }
+    const content = filename ? files.get(filename)! : stdin
+    const groups = groupLines(content.split("\n"))
     const showCount = flags.has("-c")
     const dupsOnly = flags.has("-d")
     const uniqOnly = flags.has("-u")

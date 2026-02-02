@@ -1,4 +1,4 @@
-import { command, ok, err } from "./command"
+import { command, ok, err, normalizePath } from "./command"
 
 type Substitution = { type: "sub"; pattern: RegExp; replacement: string }
 type PrintRange = { type: "print"; start: number; end: number }
@@ -41,11 +41,11 @@ const parseExpr = (expr: string): SedExpr | null =>
 
 export const sed = command({
   description: "Stream editor (substitution and line printing)",
-  usage: "sed [-n] 's/pattern/replacement/[g]' | sed -n 'START[,END]p'",
+  usage: "sed [-n] 's/pattern/replacement/[g]' [file] | sed -n 'START[,END]p' [file]",
   flags: {
     "-n": { description: "suppress automatic printing" },
   },
-  handler: () => (args, flags, stdin) => {
+  handler: (files) => (args, flags, stdin) => {
     const expr = args[0]
     if (!expr) return err("sed: missing expression")
 
@@ -54,7 +54,12 @@ export const sed = command({
       return err(`sed: unsupported expression. Use 's/pat/repl/[g]' or 'N[,M]p'`)
     }
 
-    const lines = stdin.split("\n")
+    const filename = normalizePath(args[1])
+    if (filename && !files.has(filename)) {
+      return err(`sed: ${filename}: No such file`)
+    }
+    const content = filename ? files.get(filename)! : stdin
+    const lines = content.split("\n")
 
     if (parsed.type === "print") {
       if (!flags.has("-n")) {
