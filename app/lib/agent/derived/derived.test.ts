@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
 import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, type Files } from "."
 import {
@@ -8,7 +8,10 @@ import {
   startExplorationCall,
   explorationStepCall,
   userBlock,
+  resetCallIdCounter,
 } from "../test-helpers"
+
+beforeEach(() => resetCallIdCounter())
 
 const mockFiles: Files = {
   "doc1.md": "# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2.",
@@ -29,7 +32,7 @@ describe("derived", () => {
       },
       {
         name: "create_plan creates plan",
-        history: [createPlanCall("Test task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }])],
+        history: [...createPlanCall("Test task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }])],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -41,7 +44,7 @@ describe("derived", () => {
       },
       {
         name: "complete_step marks step done and advances",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]), completeStepCall("Done")],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]), ...completeStepCall("Done")],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -52,7 +55,7 @@ describe("derived", () => {
       },
       {
         name: "complete_step stores internal context",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), completeStepCall("Done", "id:123, count:5")],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...completeStepCall("Done", "id:123, count:5")],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -63,9 +66,9 @@ describe("derived", () => {
       {
         name: "all steps complete returns null currentStep",
         history: [
-          createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]),
-          completeStepCall("Done 1"),
-          completeStepCall("Done 2"),
+          ...createPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]),
+          ...completeStepCall("Done 1"),
+          ...completeStepCall("Done 2"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -75,7 +78,7 @@ describe("derived", () => {
       },
       {
         name: "abort marks plan as aborted",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), abortCall()],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...abortCall()],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(lastPlan(d.plans)?.aborted).toBe(true)
@@ -102,7 +105,7 @@ describe("derived", () => {
       },
       {
         name: "start_exploration creates exploration",
-        history: [startExplorationCall("How does X work?", "Check the docs")],
+        history: [...startExplorationCall("How does X work?", "Check the docs")],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration?.question).toBe("How does X work?")
@@ -114,8 +117,8 @@ describe("derived", () => {
       {
         name: "exploration_step with continue adds finding",
         history: [
-          startExplorationCall("Question", "Look at A"),
-          explorationStepCall("ctx:abc", "Found A details", "continue", "Now look at B"),
+          ...startExplorationCall("Question", "Look at A"),
+          ...explorationStepCall("ctx:abc", "Found A details", "continue", "Now look at B"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -129,8 +132,8 @@ describe("derived", () => {
       {
         name: "exploration_step stores internal context",
         history: [
-          startExplorationCall("Question", "Look at A"),
-          explorationStepCall("fileId:abc", "Found it", "continue", "Next"),
+          ...startExplorationCall("Question", "Look at A"),
+          ...explorationStepCall("fileId:abc", "Found it", "continue", "Next"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -141,8 +144,8 @@ describe("derived", () => {
       {
         name: "exploration_step with answer marks completed",
         history: [
-          startExplorationCall("Question"),
-          explorationStepCall("ctx:done", "Answer found", "answer"),
+          ...startExplorationCall("Question"),
+          ...explorationStepCall("ctx:done", "Answer found", "answer"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -153,8 +156,8 @@ describe("derived", () => {
       {
         name: "exploration_step with plan marks completed",
         history: [
-          startExplorationCall("Question"),
-          explorationStepCall("ctx:ready", "Ready to plan", "plan"),
+          ...startExplorationCall("Question"),
+          ...explorationStepCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -163,7 +166,7 @@ describe("derived", () => {
       },
       {
         name: "abort clears exploration",
-        history: [startExplorationCall("Question"), abortCall()],
+        history: [...startExplorationCall("Question"), ...abortCall()],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration).toBe(null)
@@ -171,7 +174,7 @@ describe("derived", () => {
       },
       {
         name: "create_plan clears exploration",
-        history: [startExplorationCall("Question"), createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
+        history: [...startExplorationCall("Question"), ...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(d.exploration).toBe(null)
@@ -194,22 +197,22 @@ describe("derived", () => {
       },
       {
         name: "active plan returns plan",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
         expected: "plan",
       },
       {
         name: "completed plan returns chat",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), completeStepCall()],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...completeStepCall()],
         expected: "chat",
       },
       {
         name: "active exploration returns exploration",
-        history: [startExplorationCall("Question")],
+        history: [...startExplorationCall("Question")],
         expected: "exploration",
       },
       {
         name: "exploration takes priority over plan",
-        history: [createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), startExplorationCall("Question")],
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...startExplorationCall("Question")],
         expected: "exploration",
       },
     ]
@@ -224,7 +227,7 @@ describe("derived", () => {
   describe("per_section", () => {
     it("creates plan with per_section and flattened steps", () => {
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Analyze docs",
           [
             { title: "Research", expected: "Research done" },
@@ -247,7 +250,7 @@ describe("derived", () => {
 
     it("advances through inner steps within same section", () => {
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Task",
           [
             { title: "Pre", expected: "Pre done" },
@@ -256,8 +259,8 @@ describe("derived", () => {
           ],
           ["doc1.md"]
         ),
-        completeStepCall("Pre done"),
-        completeStepCall("Inner 1 done"),
+        ...completeStepCall("Pre done"),
+        ...completeStepCall("Inner 1 done"),
       ]
       const d = derive(history, mockFiles)
       const plan = lastPlan(d.plans)
@@ -268,13 +271,13 @@ describe("derived", () => {
 
     it("loops back to first inner step on section boundary", () => {
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Task",
           [{ per_section: [{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }] }],
           ["doc1.md", "doc2.md"]
         ),
-        completeStepCall("Analyze 1"),
-        completeStepCall("Code 1"), // Completes section 0, should loop
+        ...completeStepCall("Analyze 1"),
+        ...completeStepCall("Code 1"), // Completes section 0, should loop
       ]
       const d = derive(history, mockFiles)
       const plan = lastPlan(d.plans)
@@ -293,13 +296,13 @@ describe("derived", () => {
         "b.md": "Content B",
       }
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Task",
           [{ per_section: [{ title: "Process", expected: "Processed" }] }],
           ["a.md", "b.md"]
         ),
-        completeStepCall("Section 1 done"),
-        completeStepCall("Section 2 done"),
+        ...completeStepCall("Section 1 done"),
+        ...completeStepCall("Section 2 done"),
       ]
       const d = derive(history, smallFiles)
       const plan = lastPlan(d.plans)
@@ -312,13 +315,13 @@ describe("derived", () => {
     it("tracks section results with internal context", () => {
       const smallFiles: Files = { "doc.md": "Short" }
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Task",
           [{ per_section: [{ title: "Step A", expected: "A done" }, { title: "Step B", expected: "B done" }] }],
           ["doc.md"]
         ),
-        completeStepCall("A done", "internal:123"),
-        completeStepCall("B done", "internal:456"),
+        ...completeStepCall("A done", "internal:123"),
+        ...completeStepCall("B done", "internal:456"),
       ]
       const d = derive(history, smallFiles)
       const plan = lastPlan(d.plans)
@@ -333,7 +336,7 @@ describe("derived", () => {
     it("steps after per_section execute normally", () => {
       const smallFiles: Files = { "doc.md": "Content" }
       const history = [
-        createPlanCall(
+        ...createPlanCall(
           "Task",
           [
             { per_section: [{ title: "Process", expected: "Processed" }] },
@@ -341,8 +344,8 @@ describe("derived", () => {
           ],
           ["doc.md"]
         ),
-        completeStepCall("Processed"),
-        completeStepCall("Final done"),
+        ...completeStepCall("Processed"),
+        ...completeStepCall("Final done"),
       ]
       const d = derive(history, smallFiles)
       const plan = lastPlan(d.plans)
@@ -363,7 +366,7 @@ describe("derived", () => {
 Actual content here.`,
       }
       const history = [
-        createPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }] }], ["doc.md"]),
+        ...createPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }] }], ["doc.md"]),
       ]
       const d = derive(history, filesWithAttributes)
       const plan = lastPlan(d.plans)

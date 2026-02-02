@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, beforeEach } from "vitest"
 import { toNudge } from "./index"
 import type { Block } from "../types"
 import {
@@ -8,11 +8,14 @@ import {
   startExplorationCall,
   explorationStepCall,
   toolResult,
+  resetCallIdCounter,
 } from "../test-helpers"
+
+beforeEach(() => resetCallIdCounter())
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
 const manyActions = (count: number): Block[] =>
-  Array.from({ length: count }, () => [toolCallBlock(), toolResult()]).flat()
+  Array.from({ length: count }, () => [toolCallBlock(), toolResult("1")]).flat()
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const shellErrorResult = (): Block => ({ type: "tool_result", callId: "1", toolName: "run_local_shell", result: { status: "error", output: "unknown command" } })
@@ -26,7 +29,7 @@ type NudgeExpectation =
 type TestCase = {
   name: string
   history: Block[]
-  files?: Files
+  files?: Record<string, string>
   expect: NudgeExpectation
 }
 
@@ -37,36 +40,32 @@ describe("toNudge", () => {
     // After tool_result during exploration
     {
       name: "exploring, <10 actions → exploration nudge",
-      history: [startExplorationCall("Question", "Check A"), toolResult()],
+      history: [...startExplorationCall("Question", "Check A")],
       expect: { type: "contains", text: "EXPLORING:" },
     },
     {
       name: "exploring with findings, <10 actions → exploration nudge with findings",
       history: [
-        startExplorationCall("Question", "Check A"),
-        toolResult(),
-        explorationStepCall("ctx:a", "Found A", "continue", "Check B"),
-        toolResult(),
+        ...startExplorationCall("Question", "Check A"),
+        ...explorationStepCall("ctx:a", "Found A", "continue", "Check B"),
       ],
       expect: { type: "contains", text: "Found A" },
     },
     {
       name: "exploring, exactly 30 actions → stuck nudge",
-      history: [startExplorationCall("Question"), ...manyActions(30)],
+      history: [...startExplorationCall("Question"), ...manyActions(30)],
       expect: { type: "contains", text: "STUCK" },
     },
     {
       name: "exploring, >30 actions → exploration stops, tone nudge fires",
-      history: [startExplorationCall("Question"), ...manyActions(31)],
+      history: [...startExplorationCall("Question"), ...manyActions(31)],
       expect: { type: "contains", text: "users see titles and names" },
     },
     {
       name: "exploration completed with answer → tone nudge fires",
       history: [
-        startExplorationCall("Question"),
-        toolResult(),
-        explorationStepCall("ctx:done", "Found it", "answer"),
-        toolResult(),
+        ...startExplorationCall("Question"),
+        ...explorationStepCall("ctx:done", "Found it", "answer"),
       ],
       expect: { type: "contains", text: "users see titles and names" },
     },
@@ -74,26 +73,25 @@ describe("toNudge", () => {
     // After tool_result during plan execution
     {
       name: "executing plan step, <10 actions → plan nudge",
-      history: [createPlanCall("Task", ["Step 1", "Step 2"]), toolResult()],
+      history: [...createPlanCall("Task", ["Step 1", "Step 2"])],
       expect: { type: "contains", text: "EXECUTING STEP" },
     },
     {
       name: "executing plan step, exactly 10 actions → stuck nudge",
-      history: [createPlanCall("Task", ["Step 1"]), ...manyActions(10)],
+      history: [...createPlanCall("Task", ["Step 1"]), ...manyActions(10)],
       expect: { type: "contains", text: "STUCK" },
     },
     {
       name: "executing plan step, >10 actions → plan stops, tone nudge fires",
-      history: [createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
+      history: [...createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
       expect: { type: "contains", text: "users see titles and names" },
     },
     {
       name: "plan step count resets after complete_step",
       history: [
-        createPlanCall("Task", ["Step 1", "Step 2"]),
+        ...createPlanCall("Task", ["Step 1", "Step 2"]),
         ...manyActions(9),
-        completeStepCall(),
-        toolResult(),
+        ...completeStepCall(),
         ...manyActions(9),
       ],
       expect: { type: "contains_not", text: "EXECUTING STEP", not: "STUCK" },
@@ -103,22 +101,17 @@ describe("toNudge", () => {
     {
       name: "plan just completed (all steps done) → completion nudge",
       history: [
-        createPlanCall("Task", ["Step 1", "Step 2"]),
-        toolResult(),
-        completeStepCall(),
-        toolResult(),
-        completeStepCall(),
-        toolResult(),
+        ...createPlanCall("Task", ["Step 1", "Step 2"]),
+        ...completeStepCall(),
+        ...completeStepCall(),
       ],
       expect: { type: "contains", text: "PLAN COMPLETED" },
     },
     {
       name: "plan completed, last block is text → null",
       history: [
-        createPlanCall("Task", ["Step 1"]),
-        toolResult(),
-        completeStepCall(),
-        toolResult(),
+        ...createPlanCall("Task", ["Step 1"]),
+        ...completeStepCall(),
         textBlock("Summary"),
       ],
       expect: { type: "none" },
@@ -128,10 +121,8 @@ describe("toNudge", () => {
     {
       name: "plan aborted → tone nudge fires",
       history: [
-        createPlanCall("Task", ["Step 1"]),
-        toolResult(),
-        abortCall("Cannot continue"),
-        toolResult(),
+        ...createPlanCall("Task", ["Step 1"]),
+        ...abortCall("Cannot continue"),
       ],
       expect: { type: "contains", text: "users see titles and names" },
     },
@@ -139,7 +130,7 @@ describe("toNudge", () => {
     // No exploration, no plan (chat mode)
     {
       name: "no exploration, no plan, first tool_result → tone nudge fires",
-      history: [toolResult()],
+      history: [toolResult("1")],
       expect: { type: "contains", text: "users see titles and names" },
     },
 
@@ -166,10 +157,8 @@ describe("toNudge", () => {
     {
       name: "exploration active during plan → exploration nudge",
       history: [
-        createPlanCall("Task", ["Step 1"]),
-        toolResult(),
-        startExplorationCall("Question"),
-        toolResult(),
+        ...createPlanCall("Task", ["Step 1"]),
+        ...startExplorationCall("Question"),
       ],
       expect: { type: "contains", text: "EXPLORING:" },
     },
@@ -178,12 +167,9 @@ describe("toNudge", () => {
     {
       name: "exploration completed with plan → plan nudge",
       history: [
-        startExplorationCall("Question"),
-        toolResult(),
-        explorationStepCall("ctx:ready", "Found it", "plan"),
-        toolResult(),
-        createPlanCall("Task", ["Step 1"]),
-        toolResult(),
+        ...startExplorationCall("Question"),
+        ...explorationStepCall("ctx:ready", "Found it", "plan"),
+        ...createPlanCall("Task", ["Step 1"]),
       ],
       expect: { type: "contains", text: "EXECUTING STEP" },
     },

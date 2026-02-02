@@ -23,18 +23,21 @@ export const createToolExecutor = (deps: ToolDeps) => async (call: ToolCall): Pr
   const files = extractFiles()
   const { status, output, mutations } = await handler(files, call.args)
 
+  const mutationOutputs: string[] = []
   for (const op of mutations) {
     const { op: resolved, placeholderIds } = resolveOpPlaceholders(op)
     const result = applyMutation(resolved, placeholderIds)
     if (result.status === "error") {
       return result
     }
+    mutationOutputs.push(result.output)
     if (deps.project?.id) {
       persistToServer(deps.project.id, resolved)
     }
   }
 
-  return { status, output } as ToolResult<unknown>
+  const finalOutput = mutationOutputs.length > 0 ? mutationOutputs.join("\n") : output
+  return { status, output: finalOutput } as ToolResult<unknown>
 }
 
 const extractFiles = (): Map<string, string> =>

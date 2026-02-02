@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { toRenderMessages, type RenderMessage } from "./messages"
 import {
@@ -7,7 +7,10 @@ import {
   abortCall,
   startExplorationCall,
   explorationStepCall,
+  resetCallIdCounter,
 } from "~/lib/agent/test-helpers"
+
+beforeEach(() => resetCallIdCounter())
 
 const userBlock = (content: string): Block => ({ type: "user", content })
 const textBlock = (content: string): Block => ({ type: "text", content })
@@ -56,7 +59,7 @@ describe("toRenderMessages", () => {
     const cases = [
       {
         name: "create_plan renders as plan message with all steps pending",
-        history: [createPlanCall("Build feature", ["Design", "Implement", "Test"])],
+        history: [...createPlanCall("Build feature", ["Design", "Implement", "Test"])],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -71,9 +74,9 @@ describe("toRenderMessages", () => {
       {
         name: "completed steps are marked done",
         history: [
-          createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
-          completeStepCall("Done first"),
-          completeStepCall("Done second"),
+          ...createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
+          ...completeStepCall("Done first"),
+          ...completeStepCall("Done second"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -90,9 +93,9 @@ describe("toRenderMessages", () => {
       {
         name: "all steps complete sets currentStep to null",
         history: [
-          createPlanCall("Task", ["Step 1", "Step 2"]),
-          completeStepCall(),
-          completeStepCall(),
+          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -105,9 +108,9 @@ describe("toRenderMessages", () => {
       {
         name: "aborted plan shows aborted state",
         history: [
-          createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
-          completeStepCall("Done"),
-          abortCall(),
+          ...createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
+          ...completeStepCall("Done"),
+          ...abortCall(),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -120,7 +123,7 @@ describe("toRenderMessages", () => {
       },
       {
         name: "complete_step does not render as separate message",
-        history: [createPlanCall("Task", ["Step 1"]), completeStepCall()],
+        history: [...createPlanCall("Task", ["Step 1"]), ...completeStepCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -128,7 +131,7 @@ describe("toRenderMessages", () => {
       },
       {
         name: "abort does not render as separate message",
-        history: [createPlanCall("Task", ["Step 1"]), abortCall()],
+        history: [...createPlanCall("Task", ["Step 1"]), ...abortCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -137,9 +140,9 @@ describe("toRenderMessages", () => {
       {
         name: "new plan after abort shows only new plan",
         history: [
-          createPlanCall("First task", ["Step A"]),
-          abortCall(),
-          createPlanCall("Second task", ["Step B"]),
+          ...createPlanCall("First task", ["Step A"]),
+          ...abortCall(),
+          ...createPlanCall("Second task", ["Step B"]),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(2)
@@ -162,7 +165,7 @@ describe("toRenderMessages", () => {
     const cases = [
       {
         name: "start_exploration renders as exploration message",
-        history: [startExplorationCall("How does X work?", "Check docs")],
+        history: [...startExplorationCall("How does X work?", "Check docs")],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("exploration")
@@ -177,9 +180,9 @@ describe("toRenderMessages", () => {
       {
         name: "exploration_step adds findings",
         history: [
-          startExplorationCall("Question", "Look at A"),
-          explorationStepCall("ctx:a", "Found info about A", "continue", "Look at B"),
-          explorationStepCall("ctx:b", "Found info about B", "continue", "Look at C"),
+          ...startExplorationCall("Question", "Look at A"),
+          ...explorationStepCall("ctx:a", "Found info about A", "continue", "Look at B"),
+          ...explorationStepCall("ctx:b", "Found info about B", "continue", "Look at C"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -194,8 +197,8 @@ describe("toRenderMessages", () => {
       {
         name: "exploration with answer decision renders as completed",
         history: [
-          startExplorationCall("Question"),
-          explorationStepCall("ctx:done", "Found the answer", "answer"),
+          ...startExplorationCall("Question"),
+          ...explorationStepCall("ctx:done", "Found the answer", "answer"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -208,8 +211,8 @@ describe("toRenderMessages", () => {
       {
         name: "exploration with plan decision renders as completed",
         history: [
-          startExplorationCall("Question"),
-          explorationStepCall("ctx:ready", "Ready to plan", "plan"),
+          ...startExplorationCall("Question"),
+          ...explorationStepCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
@@ -220,7 +223,7 @@ describe("toRenderMessages", () => {
       },
       {
         name: "aborted exploration does not render",
-        history: [startExplorationCall("Question"), abortCall()],
+        history: [...startExplorationCall("Question"), ...abortCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(0)
         },
@@ -238,7 +241,7 @@ describe("toRenderMessages", () => {
         name: "user message then plan then text response",
         history: [
           userBlock("Help me build a feature"),
-          createPlanCall("Build feature", ["Step 1", "Step 2"]),
+          ...createPlanCall("Build feature", ["Step 1", "Step 2"]),
           textBlock("I'll help you with that"),
         ],
         check: (messages: RenderMessage[]) => {
@@ -251,9 +254,9 @@ describe("toRenderMessages", () => {
       {
         name: "exploration followed by plan",
         history: [
-          startExplorationCall("What should we do?"),
-          explorationStepCall("ctx:approach", "Found approach", "plan"),
-          createPlanCall("Execute approach", ["Do it"]),
+          ...startExplorationCall("What should we do?"),
+          ...explorationStepCall("ctx:approach", "Found approach", "plan"),
+          ...createPlanCall("Execute approach", ["Do it"]),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(2)

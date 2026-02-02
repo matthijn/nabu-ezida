@@ -163,13 +163,28 @@ appended`,
       expected: { ok: true, content: "# Coffee Bean Research Codebook" },
     },
     {
-      name: "forgiving: LLM adds leading space to context lines",
-      content: "# Coffee Bean Research Codebook",
+      name: "context preserves file content not patch content",
+      content: "function test() {\n    return 42\n}",
       patch: `@@
- # Coffee Bean Research Codebook
-+
-+This is a paragraph.`,
-      expected: { ok: true, content: " # Coffee Bean Research Codebook\n\nThis is a paragraph." },
+-function test() {
++function renamed() {
+    return 42
+}`,
+      expected: { ok: true, content: "function renamed() {\n    return 42\n}" },
+    },
+    {
+      name: "interleaved context and removes: all preserved correctly",
+      content: "line1\nkeep1\nline2\nkeep2\nline3",
+      patch: `@@
+-line1
++replaced1
+keep1
+-line2
++replaced2
+keep2
+-line3
++replaced3`,
+      expected: { ok: true, content: "replaced1\nkeep1\nreplaced2\nkeep2\nreplaced3" },
     },
   ]
 

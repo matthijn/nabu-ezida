@@ -1,9 +1,13 @@
 import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
 
+type HunkPart =
+  | { type: "context"; content: string }
+  | { type: "remove"; content: string }
+  | { type: "add"; content: string }
+
 type Hunk = {
-  oldText: string
-  newText: string
+  parts: HunkPart[]
 }
 
 export type DiffResult =
@@ -25,23 +29,22 @@ const stripAddPrefix = (line: string): string =>
 const isRemoveLine = (line: string): boolean =>
   line.startsWith("-")
 
+
 const stripTrailingSplitArtifact = (lines: string[]): string[] =>
   lines.length > 0 && lines[lines.length - 1] === "" ? lines.slice(0, -1) : lines
 
 const parseV4ADiff = (patch: string): Hunk[] => {
   const lines = stripTrailingSplitArtifact(patch.split("\n"))
   const hunks: Hunk[] = []
-  let currentOld = ""
-  let currentNew = ""
+  let currentParts: HunkPart[] = []
   let inHunk = false
   let isAddFile = false
 
   const flushHunk = () => {
-    if (inHunk && (currentOld || currentNew)) {
-      hunks.push({ oldText: currentOld, newText: currentNew })
+    if (inHunk && currentParts.length > 0) {
+      hunks.push({ parts: currentParts })
     }
-    currentOld = ""
-    currentNew = ""
+    currentParts = []
   }
 
   for (const line of lines) {
@@ -79,14 +82,14 @@ const parseV4ADiff = (patch: string): Hunk[] => {
     }
 
     if (isRemoveLine(line)) {
-      currentOld += line.slice(1) + "\n"
+      currentParts.push({ type: "remove", content: line.slice(1) + "\n" })
     } else if (isAddLine(line)) {
-      currentNew += stripAddPrefix(line) + "\n"
+      currentParts.push({ type: "add", content: stripAddPrefix(line) + "\n" })
     } else if (!isAddFile) {
-      currentOld += line + "\n"
-      currentNew += line + "\n"
+      // Context line - no prefix in v4a format, use verbatim
+      currentParts.push({ type: "context", content: line + "\n" })
     } else {
-      currentNew += line + "\n"
+      currentParts.push({ type: "add", content: line + "\n" })
     }
   }
 
@@ -94,21 +97,57 @@ const parseV4ADiff = (patch: string): Hunk[] => {
   return hunks
 }
 
-const applyHunk = (content: string, hunk: Hunk): DiffResult => {
-  const oldText = hunk.oldText.replace(/\n$/, "")
-  const newText = hunk.newText.replace(/\n$/, "")
+const buildMatchText = (parts: HunkPart[]): string =>
+  parts
+    .filter((p) => p.type === "context" || p.type === "remove")
+    .map((p) => p.content)
+    .join("")
+    .replace(/\n$/, "")
 
-  if (oldText === "") {
-    const needsSeparator = content.length > 0 && !content.endsWith("\n")
-    return { ok: true, content: content + (needsSeparator ? "\n" : "") + newText }
+const buildAddText = (parts: HunkPart[]): string =>
+  parts
+    .filter((p) => p.type === "add")
+    .map((p) => p.content)
+    .join("")
+    .replace(/\n$/, "")
+
+const buildReplacement = (parts: HunkPart[], matchedText: string): string => {
+  let offset = 0
+  const result: string[] = []
+
+  for (const part of parts) {
+    if (part.type === "context" || part.type === "remove") {
+      const len = part.content.length
+      if (part.type === "context") {
+        // Output from matchedText to preserve original (handles whitespace differences)
+        result.push(matchedText.slice(offset, offset + len))
+      }
+      // For remove, skip output but advance offset
+      offset += len
+    } else if (part.type === "add") {
+      result.push(part.content)
+    }
   }
 
-  const matches = findMatches(content, oldText)
+  return result.join("").replace(/\n$/, "")
+}
+
+const applyHunk = (content: string, hunk: Hunk): DiffResult => {
+  const matchText = buildMatchText(hunk.parts)
+
+  // Pure addition (no context, no remove) - append to content
+  if (matchText === "") {
+    const addText = buildAddText(hunk.parts)
+    const needsSeparator = content.length > 0 && !content.endsWith("\n")
+    return { ok: true, content: content + (needsSeparator ? "\n" : "") + addText }
+  }
+
+  const matches = findMatches(content, matchText)
 
   if (matches.length === 0) {
     return {
       ok: false,
-      error: `patch context not found:\n  searching for: "${oldText}"\n  in content: "${content}"`,
+      error: `patch context not found:\n  searching for: "${matchText}"\n  in content: "${content}"`,
     }
   }
 
@@ -117,6 +156,7 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   }
 
   const matchedText = getMatchedText(content, matches[0])
+  const newText = buildReplacement(hunk.parts, matchedText)
   return { ok: true, content: content.replace(matchedText, newText) }
 }
 
