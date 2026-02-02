@@ -1,6 +1,6 @@
 import type { ToolCall, ToolDeps, ToolResult, Operation } from "../types"
 import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
-import { sendCommand, type Command, type Action } from "~/lib/sync"
+import { sendCommand, type Command } from "~/lib/sync"
 import { getToolHandlers, getToolDefinitions } from "./tool"
 import { replaceUuidPlaceholders } from "~/domain/blocks"
 import { toExtraPretty } from "~/lib/json"
@@ -93,17 +93,17 @@ const applyPatchAndStore = (path: string, content: string, diff: string, verb: s
   return { status: "ok", output }
 }
 
-const operationToAction: Record<Operation["type"], Action> = {
-  create_file: "CreateFile",
-  update_file: "UpdateFile",
-  delete_file: "DeleteFile",
-  rename_file: "RenameFile",
+const toCommand = (op: Operation): Command => {
+  switch (op.type) {
+    case "create_file":
+    case "update_file":
+      return { action: "WriteFile", path: op.path, content: getFileRaw(op.path) }
+    case "delete_file":
+      return { action: "DeleteFile", path: op.path }
+    case "rename_file":
+      return { action: "RenameFile", path: op.path, newPath: op.newPath }
+  }
 }
-
-const toCommand = (op: Operation): Command =>
-  op.type === "rename_file"
-    ? { action: "RenameFile", path: op.path, newPath: op.newPath }
-    : { action: operationToAction[op.type], path: op.path, diff: "diff" in op ? op.diff : undefined }
 
 const persistToServer = (projectId: string, op: Operation): void => {
   sendCommand(projectId, toCommand(op)).catch(() => {})

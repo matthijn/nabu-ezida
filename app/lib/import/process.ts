@@ -38,8 +38,8 @@ const injectTags = (content: string, tags: string[]): string => {
 
 const getExistingNames = (): Set<string> => new Set(Object.keys(getFiles()))
 
-const createFileOnServer = (projectId: string, path: string, diff: string): void => {
-  const command: Command = { action: "CreateFile", path, diff }
+const writeFileOnServer = (projectId: string, path: string, content: string): void => {
+  const command: Command = { action: "WriteFile", path, content }
   sendCommand(projectId, command).catch(() => {})
 }
 
@@ -63,7 +63,7 @@ const processMarkdownFile = (
   updateFileRaw(result.path, result.content)
 
   if (projectId) {
-    createFileOnServer(projectId, finalPath, diff)
+    writeFileOnServer(projectId, finalPath, result.content)
   }
 
   return { status: "completed", finalPath }

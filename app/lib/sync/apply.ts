@@ -1,20 +1,32 @@
-import { applyFilePatch, updateFileRaw, deleteFile, renameFile, getFileRaw } from "~/lib/files"
+import { updateFileRaw, deleteFile, renameFile, getFileRaw, applyFilePatch } from "~/lib/files"
 import type { Command } from "./types"
 
 export const applyCommand = (command: Command): void => {
-  const { action, path, diff } = command
+  const { action, path, content, diff, newPath } = command
 
   if (!path) return
 
   switch (action) {
     case "CreateFile":
-      if (!diff) return
-      applyCreateFile(path, diff)
+      if (diff) {
+        applyCreateFile(path, diff)
+      } else if (content !== undefined) {
+        updateFileRaw(path, content)
+      }
       break
 
     case "UpdateFile":
-      if (!diff) return
-      applyUpdateFile(path, diff)
+      if (diff) {
+        applyUpdateFile(path, diff)
+      } else if (content !== undefined) {
+        updateFileRaw(path, content)
+      }
+      break
+
+    case "WriteFile":
+      if (content !== undefined) {
+        updateFileRaw(path, content)
+      }
       break
 
     case "DeleteFile":
@@ -22,8 +34,8 @@ export const applyCommand = (command: Command): void => {
       break
 
     case "RenameFile":
-      if (!diff) return
-      renameFile(path, diff)
+      if (!newPath) return
+      renameFile(path, newPath)
       break
 
     case "Commit":
@@ -36,7 +48,7 @@ const applyCreateFile = (path: string, diff: string): void => {
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   } else {
-    console.error(`[apply] createFile failed: "${path}"`, result)
+    console.error(`[apply] createFile failed: "${path}"`, result.error)
   }
 }
 
@@ -46,6 +58,6 @@ const applyUpdateFile = (path: string, diff: string): void => {
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   } else {
-    console.error(`[apply] updateFile failed: "${path}"`, result)
+    console.error(`[apply] updateFile failed: "${path}"`, result.error)
   }
 }

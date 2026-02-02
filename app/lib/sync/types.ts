@@ -1,10 +1,11 @@
-export type Action = "CreateFile" | "UpdateFile" | "DeleteFile" | "RenameFile" | "Commit"
+export type Action = "CreateFile" | "UpdateFile" | "WriteFile" | "DeleteFile" | "RenameFile" | "Commit"
 
 export type Command = {
   action: Action
   path?: string
   newPath?: string
-  diff?: string
+  content?: string
+  diff?: string // incoming from websocket only
 }
 
 export type CommandResult =
