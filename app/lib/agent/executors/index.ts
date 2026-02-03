@@ -10,6 +10,7 @@ import "./patch"
 import "./orchestration"
 import "./shell"
 import "./annotations/tool"
+import "./interpret"
 
 export type { ToolDeps }
 export { getToolDefinitions }

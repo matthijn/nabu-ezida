@@ -1,3 +1,4 @@
+import { z } from "zod"
 import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
@@ -164,16 +165,7 @@ const fetchWithRetry = async ({ url, body, signal }: FetchOptions): Promise<Resp
   throw new Error("LLM request failed: max retries exceeded")
 }
 
-export const parse = async (options: ParseOptions): Promise<Block[]> => {
-  const { endpoint, messages, callbacks = {}, signal } = options
-  const url = `${getLlmHost()}${endpoint}`
-
-  const response = await fetchWithRetry({
-    url,
-    body: JSON.stringify({ messages, tools: getToolDefinitions() }),
-    signal,
-  })
-
+const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Promise<Block[]> => {
   if (!response.body) {
     throw new Error("No response body")
   }
@@ -220,6 +212,70 @@ export const parse = async (options: ParseOptions): Promise<Block[]> => {
   console.debug("[STREAM END]", { toolCalls: state.toolCalls.length })
 
   return blocks
+}
+
+export const parse = async (options: ParseOptions): Promise<Block[]> => {
+  const { endpoint, messages, callbacks = {}, signal } = options
+  const response = await fetchWithRetry({
+    url: `${getLlmHost()}${endpoint}`,
+    body: JSON.stringify({ messages, tools: getToolDefinitions() }),
+    signal,
+  })
+  return streamToBlocks(response, callbacks)
+}
+
+type PromptOptionsBase = {
+  endpoint: string
+  messages?: Block[]
+  callbacks?: ParseCallbacks
+  signal?: AbortSignal
+}
+
+export type PromptOptions = PromptOptionsBase & { schema?: undefined }
+export type PromptOptionsWithSchema<T extends z.ZodType> = PromptOptionsBase & { schema: T }
+
+const toResponseFormat = <T extends z.ZodType>(schema: T) => ({
+  type: "json_schema" as const,
+  json_schema: {
+    name: "response",
+    schema: schema.toJSONSchema(),
+    strict: true,
+  },
+})
+
+const extractText = (blocks: Block[]): string => {
+  const textBlock = blocks.find((b) => b.type === "text")
+  return textBlock?.type === "text" ? textBlock.content : ""
+}
+
+export function prompt(options: PromptOptions): Promise<Block[]>
+export function prompt<T extends z.ZodType>(options: PromptOptionsWithSchema<T>): Promise<z.infer<T>>
+export async function prompt<T extends z.ZodType>(
+  options: PromptOptions | PromptOptionsWithSchema<T>
+): Promise<Block[] | z.infer<T>> {
+  const { endpoint, messages = [], callbacks = {}, signal, schema } = options as PromptOptionsWithSchema<T>
+
+  const body = schema
+    ? { messages: blocksToMessages(messages), response_format: toResponseFormat(schema) }
+    : { messages: blocksToMessages(messages) }
+
+  const response = await fetchWithRetry({
+    url: `${getLlmHost()}${endpoint}`,
+    body: JSON.stringify(body),
+    signal,
+  })
+
+  const blocks = await streamToBlocks(response, callbacks)
+
+  if (!schema) return blocks
+
+  const text = extractText(blocks)
+  const parsed = JSON.parse(text)
+  const result = schema.safeParse(parsed)
+  if (!result.success) {
+    throw new Error(`Schema validation failed: ${result.error.message}`)
+  }
+  return result.data
 }
 
 const blockToInputItem = (block: Block): InputItem | InputItem[] => {

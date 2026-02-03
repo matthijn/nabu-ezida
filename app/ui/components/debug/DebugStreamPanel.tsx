@@ -7,7 +7,10 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
+import { useInterpretHistory } from "~/lib/agent/executors/useInterpretHistory"
 import type { Block, ToolCall } from "~/lib/agent"
+
+type TabId = "converse" | "interpret"
 
 type BlockRendererProps = {
   block: Block
@@ -228,10 +231,37 @@ type DebugStreamPanelProps = {
   onClose: () => void
 }
 
+type TabButtonProps = {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+  count?: number
+}
+
+const TabButton = ({ active, onClick, children, count }: TabButtonProps) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-1 text-xs font-medium rounded-t transition-colors ${
+      active
+        ? "bg-white text-neutral-700 border-t border-l border-r border-neutral-300"
+        : "bg-neutral-200 text-neutral-500 hover:text-neutral-700"
+    }`}
+  >
+    {children}
+    {count !== undefined && (
+      <span className="ml-1 px-1 bg-neutral-300 text-neutral-600 rounded text-[10px]">
+        {count}
+      </span>
+    )}
+  </button>
+)
+
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 350, y: 16 })
   const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
+  const interpretEntries = useInterpretHistory()
   const [copiedAll, setCopiedAll] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabId>("converse")
 
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
@@ -269,25 +299,67 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-        <CollapsibleBlock
-          label="tools"
-          content={formatToolDefinitions()}
-          borderColor="border-cyan-400"
-          labelColor="text-cyan-600"
-          defaultExpanded={false}
-          mono
-        />
-        {history.length === 0 && (
-          <div className="flex h-full items-center justify-center">
-            <span className="text-sm text-neutral-400">No messages yet</span>
-          </div>
-        )}
-        {history.map((block, i) => (
-          <BlockRenderer key={i} block={block} />
-        ))}
-        <StreamingIndicator streaming={streaming} streamingToolArgs={streamingToolArgs} streamingReasoning={streamingReasoning} streamingToolName={streamingToolName} />
-      </AutoScroll>
+      <div className="flex gap-1 px-3 pt-2 bg-neutral-100 border-b border-neutral-300">
+        <TabButton active={activeTab === "converse"} onClick={() => setActiveTab("converse")} count={history.length}>
+          Converse
+        </TabButton>
+        <TabButton active={activeTab === "interpret"} onClick={() => setActiveTab("interpret")} count={interpretEntries.length}>
+          Interpret
+        </TabButton>
+      </div>
+
+      {activeTab === "converse" && (
+        <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+          <CollapsibleBlock
+            label="tools"
+            content={formatToolDefinitions()}
+            borderColor="border-cyan-400"
+            labelColor="text-cyan-600"
+            defaultExpanded={false}
+            mono
+          />
+          {history.length === 0 && (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-sm text-neutral-400">No messages yet</span>
+            </div>
+          )}
+          {history.map((block, i) => (
+            <BlockRenderer key={i} block={block} />
+          ))}
+          <StreamingIndicator streaming={streaming} streamingToolArgs={streamingToolArgs} streamingReasoning={streamingReasoning} streamingToolName={streamingToolName} />
+        </AutoScroll>
+      )}
+
+      {activeTab === "interpret" && (
+        <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+          {interpretEntries.length === 0 && (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-sm text-neutral-400">No interpret calls yet</span>
+            </div>
+          )}
+          {interpretEntries.map((entry) => (
+            <div key={entry.id} className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
+              <div className="text-xs text-neutral-400">
+                #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
+              </div>
+              {entry.messages.map((block, i) => (
+                <BlockRenderer key={`msg-${i}`} block={block} />
+              ))}
+              <div className="border-t border-neutral-200 pt-2">
+                {entry.response.map((block, i) => (
+                  <BlockRenderer key={`res-${i}`} block={block} />
+                ))}
+                <StreamingIndicator
+                  streaming={entry.streaming ?? ""}
+                  streamingToolArgs=""
+                  streamingReasoning={entry.streamingReasoning ?? ""}
+                  streamingToolName={null}
+                />
+              </div>
+            </div>
+          ))}
+        </AutoScroll>
+      )}
     </div>
   )
 }

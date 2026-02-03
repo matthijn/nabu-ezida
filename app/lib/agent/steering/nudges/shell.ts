@@ -41,6 +41,6 @@ export const shellNudge: Nudger = (history) => {
   return status === "error" || status === "partial" ? shellReminder : null
 }
 
-const grepReminder = `Reminder: Grep finds strings, not concepts. See <common-mistakes>.`
+const grepReminder = `Reminder: Grep finds strings, not concepts.`
 
 export const grepNudge = withCooldown(5, buildShellNudge("grep", grepReminder))

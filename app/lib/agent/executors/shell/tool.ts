@@ -56,7 +56,7 @@ export const runLocalShell = registerTool(
 
 export const shellHandler = runLocalShell.handle
 
-const formatCreateDiff = (path: string, content: string): string => {
+export const formatCreateDiff = (path: string, content: string): string => {
   if (content === "") return `*** Add File: ${path}`
   const prefixed = content.split("\n").map((line) => `+${line}`).join("\n")
   return `*** Add File: ${path}\n${prefixed}`
