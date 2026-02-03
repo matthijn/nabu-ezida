@@ -26,11 +26,25 @@ const withResult = (callId: string, call: Block): Block[] => [
   { type: "tool_result", callId, result: { status: "ok" } },
 ]
 
-export const createPlanCall = (task: string, steps: StepInput[], files?: string[]): Block[] => {
+type CreatePlanOptions = {
+  files?: string[]
+  thinkHard?: { lens: string; mode: string }
+}
+
+export const createPlanCall = (task: string, steps: StepInput[], filesOrOptions?: string[] | CreatePlanOptions): Block[] => {
   const id = nextCallId()
+  const args: Record<string, unknown> = { task, steps: steps.map(toStepDef) }
+
+  if (Array.isArray(filesOrOptions)) {
+    args.files = filesOrOptions
+  } else if (filesOrOptions) {
+    if (filesOrOptions.files) args.files = filesOrOptions.files
+    if (filesOrOptions.thinkHard) args.think_hard = filesOrOptions.thinkHard
+  }
+
   return withResult(id, {
     type: "tool_call",
-    calls: [{ id, name: "create_plan", args: { task, steps: steps.map(toStepDef), files } }],
+    calls: [{ id, name: "create_plan", args }],
   })
 }
 

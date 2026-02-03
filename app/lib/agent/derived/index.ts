@@ -163,6 +163,7 @@ export {
   type Section,
   type SectionResult,
   type PerSectionConfig,
+  type ThinkHard,
   type Files,
   lastPlan,
   hasActivePlan,

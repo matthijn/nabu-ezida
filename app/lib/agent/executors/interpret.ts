@@ -3,27 +3,22 @@ import type { Block } from "../types"
 import { tool, registerTool, ok, err } from "./tool"
 import { prompt } from "../stream"
 import { startInterpretEntry, updateInterpretStreaming, updateInterpretReasoning, completeInterpretEntry } from "./interpret-store"
+import { AnnotationSuggestionSchema, type AnnotationSuggestion } from "~/domain/attributes/schema"
 
-const Confidence = z.enum(["low", "medium", "high"])
-
-const InterpretedAnnotation = z.object({
-  text: z.string().describe("Exact text from the document being annotated"),
-  reason: z.string().describe("Why this text was coded this way"),
-  code: z.string().describe("The code ID from the codebook"),
-  ambiguity: z.string().optional().describe("Why the interpretation is uncertain"),
-  confidence: Confidence.describe("How confident the interpretation is"),
-  deleteSuggested: z.boolean().describe("Whether this annotation should be removed"),
+const CodebookResultSchema = z.object({
+  suggestions: z.array(AnnotationSuggestionSchema),
 })
 
-const CodebookAnnotationSchema = z.object({
-  annotations: z.array(InterpretedAnnotation),
-})
+export type CodebookResult = z.infer<typeof CodebookResultSchema>
+export type { AnnotationSuggestion }
 
 const promptSchemas: Record<string, z.ZodType> = {
-  "with-codebook": CodebookAnnotationSchema,
+  "with-codebook": CodebookResultSchema,
 }
 
-const PromptType = z.enum(["with-codebook"])
+export const getPromptSchema = (type: string): z.ZodType | undefined => promptSchemas[type]
+
+const ThinkingMode = z.enum(["with-codebook"])
 
 const buildMessages = (context: string, content: string): Block[] => [
   { type: "system", content: context },
@@ -35,12 +30,24 @@ const extractText = (blocks: Block[]): string => {
   return textBlock?.type === "text" ? textBlock.content : ""
 }
 
-export const interpretContent = async <T extends z.ZodType>(
+export async function interpretContent<T extends z.ZodType>(
+  context: string,
+  content: string,
+  promptType: string,
+  schema: T
+): Promise<z.infer<T>>
+export async function interpretContent(
+  context: string,
+  content: string,
+  promptType: string,
+  schema?: undefined
+): Promise<string>
+export async function interpretContent<T extends z.ZodType>(
   context: string,
   content: string,
   promptType: string,
   schema?: T
-): Promise<T extends z.ZodType ? z.infer<T> : string> => {
+): Promise<z.infer<T> | string> {
   const messages = buildMessages(context, content)
   const entryId = startInterpretEntry(messages)
 
@@ -59,30 +66,30 @@ export const interpretContent = async <T extends z.ZodType>(
 
   const blocks = await prompt({ endpoint, messages, callbacks })
   completeInterpretEntry(entryId, blocks)
-  return extractText(blocks) as T extends z.ZodType ? z.infer<T> : string
+  return extractText(blocks)
 }
 
-const InterpretWithFileArgs = z.object({
-  file: z.string().min(1).describe("Path to the file that provides context for interpretation"),
-  prompt_type: PromptType.describe("The type of interpretation to perform"),
-  content: z.string().min(1).describe("The content to interpret"),
+const ThinkHardArgs = z.object({
+  lens: z.string().min(1).describe("Path to file providing the thinking perspective (e.g., codebook)"),
+  mode: ThinkingMode.describe("How to think about the content"),
+  about: z.string().min(1).describe("The content to think about"),
 })
 
-export const interpretWithFile = registerTool(
+export const thinkHard = registerTool(
   tool({
-    name: "interpret_with_file",
-    description: `Interpret content using a file as context and a predefined interpretation framework.
+    name: "think_hard",
+    description: `Think deeply about content using a file as the thinking lens.
 
-The file provides the interpretation lens (e.g., a codebook), and the content is what gets interpreted.`,
-    schema: InterpretWithFileArgs,
-    handler: async (files, { file, prompt_type, content }) => {
-      const fileContent = files.get(file)
-      if (!fileContent) return err(`${file}: No such file`)
+The lens file provides the perspective/framework (e.g., a codebook), and the content is what gets analyzed.`,
+    schema: ThinkHardArgs,
+    handler: async (files, { lens, mode, about }) => {
+      const lensContent = files.get(lens)
+      if (!lensContent) return err(`${lens}: No such file`)
 
-      const schema = promptSchemas[prompt_type]
+      const schema = promptSchemas[mode]
 
       try {
-        const result = await interpretContent(fileContent, content, prompt_type, schema)
+        const result = await interpretContent(lensContent, about, mode, schema)
         return ok(typeof result === "string" ? result : JSON.stringify(result, null, 2))
       } catch (e) {
         return err(e instanceof Error ? e.message : String(e))

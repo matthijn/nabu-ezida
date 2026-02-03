@@ -6,18 +6,11 @@ import {
 } from "~/domain/attributes/annotations"
 import { generateJsonBlockPatch } from "~/lib/diff/json-block/patch"
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks/parse"
-import type { DocumentMeta } from "~/domain/attributes/schema"
-
-const AnnotationInput = z.object({
-  text: z.string().describe("Text from the document to annotate"),
-  reason: z.string().describe("Reason for this annotation"),
-  color: z.string().optional().describe("Color for the annotation (if no code)"),
-  code: z.string().optional().describe("Code ID to apply (if no color)"),
-})
+import { AnnotationSchema, type DocumentMeta } from "~/domain/attributes/schema"
 
 const UpsertArgs = z.object({
   path: z.string().describe("Path to the document"),
-  annotations: z.array(AnnotationInput).describe("Annotations to add or update"),
+  annotations: z.array(AnnotationSchema).describe("Annotations to add or update"),
 })
 
 const RemoveArgs = z.object({

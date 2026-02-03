@@ -1,11 +1,9 @@
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks/parse"
 import { validateMarkdownBlocks, extractProse, type ValidationError } from "~/domain/blocks/validate"
-import type { DocumentMeta, StoredAnnotation } from "./schema"
+import type { DocumentMeta, StoredAnnotation, AnnotationInput } from "./schema"
 import { getAllCodes } from "~/lib/files/selectors"
 import { getFiles } from "~/lib/files/store"
 import stringComparison from "string-comparison"
-
-type AnnotationInput = Omit<StoredAnnotation, "text"> & { text: string }
 
 export type UpsertResult =
   | { ok: true; content: string; applied: StoredAnnotation[]; notFound: AnnotationInput[] }
@@ -113,7 +111,14 @@ export const upsertAnnotations = (
       continue
     }
 
-    const normalized: StoredAnnotation = { ...input, text: matchedText }
+    const normalized: StoredAnnotation = {
+      text: matchedText,
+      reason: input.reason,
+      color: input.color,
+      code: input.code,
+      ambiguity: input.ambiguity,
+      status: input.status,
+    }
 
     // Upsert: replace if same text exists, otherwise add
     const existingIdx = existingAnnotations.findIndex((a) => a.text === matchedText)

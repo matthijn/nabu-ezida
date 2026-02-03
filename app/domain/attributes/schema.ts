@@ -4,24 +4,42 @@ import { BLOCK_COLORS } from "~/lib/colors/radix"
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
-const emptyToUndefined = <T>(schema: z.ZodType<T>) =>
-  z.preprocess((v) => (v === "" ? undefined : v), schema.optional())
+const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
+  z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>
 
-const AnnotationConfidence = z.enum(["low", "medium", "high"])
-const AnnotationStatus = z.enum(["open", "resolved-locally", "merged", "rejected", "accepted"])
+const AmbiguitySchema = z.object({
+  description: z.string().describe("Why the interpretation is uncertain"),
+  confidence: z.enum(["low", "medium", "high"]).describe("How confident the interpretation is"),
+  feedback: z.string().optional().describe("User's note on resolution"),
+})
 
-const AnnotationSchema = z.object({
-  text: z.string(),
-  reason: z.string(),
-  color: emptyToUndefined(radixColor),
-  code: emptyToUndefined(z.string()),
-  ambiguity: z.string().optional(),
-  confidence: AnnotationConfidence,
-  status: AnnotationStatus.default("open"),
-}).refine(
-  (a) => (a.color !== undefined) !== (a.code !== undefined),
-  { message: "Either color or code must be set, not both" }
-)
+const colorOrCodeRefinement = (a: { color?: unknown; code?: unknown }) =>
+  (a.color !== undefined) !== (a.code !== undefined)
+
+const colorOrCodeMessage = { message: "Either color or code must be set, not both" }
+
+const AnnotationBase = z.object({
+  text: z.string().describe("Exact text from the document"),
+  reason: z.string().describe("Why this text was annotated"),
+  color: emptyToUndefined(radixColor).describe("Color for the annotation (if no code)"),
+  code: emptyToUndefined(z.string()).describe("Code ID from codebook (if no color)"),
+  ambiguity: AmbiguitySchema.optional(),
+})
+
+export const AnnotationSchema = AnnotationBase
+  .extend({ status: z.enum(["accepted", "rejected", "resolved-locally", "merged"]).optional() })
+  .refine(colorOrCodeRefinement, colorOrCodeMessage)
+
+export const AnnotationSuggestionSchema = AnnotationBase
+  .extend({ deleteSuggested: z.boolean().describe("Whether this annotation should be removed") })
+  .refine(colorOrCodeRefinement, colorOrCodeMessage)
+
+export type Annotation = z.infer<typeof AnnotationSchema>
+export type AnnotationSuggestion = z.infer<typeof AnnotationSuggestionSchema>
+
+// Backwards compat aliases
+export type StoredAnnotation = Annotation
+export type AnnotationInput = Annotation
 
 const tagsSchema = z.array(slug).optional()
 const annotationsSchema = z.array(AnnotationSchema).optional()
@@ -32,7 +50,6 @@ export const DocumentMeta = z.object({
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
-export type StoredAnnotation = z.infer<typeof AnnotationSchema>
 export type DocumentMetaField = keyof DocumentMeta
 
 export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } = {

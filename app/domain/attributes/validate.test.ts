@@ -175,7 +175,7 @@ describe("validateField", () => {
     {
       name: "valid annotations",
       field: "annotations",
-      value: [{ text: "test", reason: "note", color: "red" }],
+      value: [{ text: "test", reason: "note", color: "red", code: undefined }],
       expectOk: true,
     },
     {
@@ -220,8 +220,8 @@ describe("validateFieldChanges", () => {
     {
       name: "annotations accepted",
       original: {},
-      patched: { annotations: [{ text: "test", reason: "note", color: "red" }] },
-      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red" }] },
+      patched: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
+      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
       expectRejectedFields: [],
       expectRejectedReasons: [],
     },
@@ -230,11 +230,11 @@ describe("validateFieldChanges", () => {
       original: {},
       patched: {
         tags: ["valid-tag"],
-        annotations: [{ text: "test", reason: "note", color: "red" }],
+        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
       },
       expectAccepted: {
         tags: ["valid-tag"],
-        annotations: [{ text: "test", reason: "note", color: "red" }],
+        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
       },
       expectRejectedFields: [],
       expectRejectedReasons: [],
@@ -244,9 +244,9 @@ describe("validateFieldChanges", () => {
       original: {},
       patched: {
         tags: ["Invalid Tag"],
-        annotations: [{ text: "test", reason: "note", color: "red" }],
+        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
       },
-      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red" }] },
+      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
       expectRejectedFields: ["tags"],
       expectRejectedReasons: ["invalid"],
     },
@@ -280,7 +280,7 @@ describe("validateFieldChanges", () => {
 describe("validateFieldChangesInternal", () => {
   it("accepts valid annotations", () => {
     const patched = {
-      annotations: [{ text: "test", reason: "note", color: "red" as const }],
+      annotations: [{ text: "test", reason: "note", color: "red" as const, code: undefined }],
     }
     const result = validateFieldChangesInternal({}, patched)
     expect(result.rejected).toEqual([])
