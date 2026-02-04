@@ -18,6 +18,7 @@ type CommandCategory = { name: string; commands: string[] }
 
 const categories: CommandCategory[] = [
   { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
+  { name: "JSON", commands: ["blocks", "jq"] },
   { name: "Text Processing", commands: ["cut", "sort", "uniq", "tr", "sed", "echo"] },
   { name: "File Operations", commands: ["cp", "mv", "rm", "touch"] },
 ]
@@ -27,7 +28,8 @@ export const getCommandNames = (): string[] => categories.flatMap((c) => c.comma
 const formatCommandDoc = (name: string): string => {
   const cmd = commands[name as keyof typeof commands]
   if (!cmd) return ""
-  return `**${name}** — ${cmd.description}\n\`\`\`\n${cmd.usage}\n\`\`\``
+  const details = cmd.details ? `\n${cmd.details}` : ""
+  return `**${name}** — ${cmd.description}\n\`\`\`\n${cmd.usage}\n\`\`\`${details}`
 }
 
 export const getShellDocs = (): string => {

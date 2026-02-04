@@ -37,6 +37,7 @@ type FlagDef = { alias?: string; description: string; value?: boolean }
 type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result
 type CommandDef = {
   description: string
+  details?: string
   usage: string
   flags: Record<string, FlagDef>
   handler: (files: Files) => Handler
