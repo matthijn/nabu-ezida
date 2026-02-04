@@ -41,9 +41,10 @@ export type PerSectionConfig = {
   completedSections: SectionResult[]
 }
 
-export type ThinkHard = {
-  lens: string
-  mode: string
+export type AskExpertConfig = {
+  expert: string
+  task?: string
+  using: string
 }
 
 export type DerivedPlan = {
@@ -52,7 +53,7 @@ export type DerivedPlan = {
   steps: Step[]
   currentStep: number | null
   perSection: PerSectionConfig | null
-  thinkHard: ThinkHard | null
+  askExpert: AskExpertConfig | null
   aborted: boolean
 }
 
@@ -124,7 +125,7 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
 export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
   const fileNames = (call.args.files as string[] | undefined) ?? null
-  const thinkHardArg = call.args.think_hard as { lens: string; mode: string } | undefined
+  const askExpertArg = call.args.ask_expert as AskExpertConfig | undefined
   const { steps, perSectionInfo } = flattenSteps(stepDefs)
 
   let perSection: PerSectionConfig | null = null
@@ -146,7 +147,7 @@ export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan =>
     steps,
     currentStep: 0,
     perSection,
-    thinkHard: thinkHardArg ?? null,
+    askExpert: askExpertArg ?? null,
     aborted: false,
   }
 }

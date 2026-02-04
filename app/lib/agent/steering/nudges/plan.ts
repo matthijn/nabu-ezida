@@ -1,13 +1,13 @@
 import type { Block } from "../../types"
 import type { Nudger, NudgeBlock } from "../nudge-tools"
 import { systemNudge, withContext } from "../nudge-tools"
-import type { DerivedPlan, Step, Section, SectionResult, Files, ThinkHard } from "../../derived"
+import type { DerivedPlan, Step, Section, SectionResult, Files, AskExpertConfig } from "../../derived"
 import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { getCodeMapping } from "~/lib/files/selectors"
-import { interpretContent, getPromptSchema } from "../../executors/interpret"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
+import { createShell } from "../../executors/shell/shell"
 
 const STUCK_LIMIT = 10
 
@@ -166,16 +166,16 @@ const formatSectionAnnotations = (
 const formatInterpretResult = (raw: string): string =>
   `\n  <interpretation>\n${raw}\n  </interpretation>`
 
-type ThinkInput = {
-  thinkHard: ThinkHard
+type AskExpertInput = {
+  askExpert: AskExpertConfig
   files: Files
   sectionContent: string
   sectionFile: string
 }
 
-const buildThinkContent = (input: ThinkInput): string => {
-  const { thinkHard, files, sectionContent, sectionFile } = input
-  if (thinkHard.mode !== "with-codebook") return sectionContent
+const buildExpertContent = (input: AskExpertInput): string => {
+  const { askExpert, files, sectionContent, sectionFile } = input
+  if (askExpert.task !== "apply-codebook") return sectionContent
 
   const allAnnotations = getFileAnnotations(files, sectionFile)
   const matching = filterMatchingAnnotations(allAnnotations, sectionContent)
@@ -184,21 +184,49 @@ const buildThinkContent = (input: ThinkInput): string => {
   return `${sectionContent}\n\n<current-annotations>\n${JSON.stringify(matching, null, 2)}\n</current-annotations>`
 }
 
-const createThinkContext = (input: ThinkInput): (() => Promise<string>) => {
-  const { thinkHard, files } = input
+const resolveShellCommand = (files: Files, command: string): string | null => {
+  const fileMap = new Map(Object.entries(files))
+  const shell = createShell(fileMap)
+  const result = shell.exec(command)
+  if (result.isError) return null
+  return result.output
+}
+
+const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) => {
+  const { askExpert, files } = input
   return async () => {
-    const lensFile = files[thinkHard.lens]
-    if (!lensFile) {
-      throw new Error(`Lens file not found: ${thinkHard.lens}`)
+    // Resolve the "using" shell command to get framework content
+    const framework = resolveShellCommand(files, askExpert.using)
+    if (!framework) {
+      throw new Error(`Failed to resolve framework: ${askExpert.using}`)
     }
-    const content = buildThinkContent(input)
-    const schema = getPromptSchema(thinkHard.mode)
-    if (schema) {
-      const result = await interpretContent(lensFile, content, thinkHard.mode, schema)
+
+    const content = buildExpertContent(input)
+
+    // Build endpoint path
+    const endpoint = askExpert.task
+      ? `/ask-expert/${askExpert.expert}/${askExpert.task}`
+      : `/ask-expert/${askExpert.expert}`
+
+    // Dynamic import to avoid circular dependency
+    const { prompt } = await import("../../stream")
+    const { CodeSuggestions } = await import("../../executors/ask-expert")
+    const { z } = await import("zod")
+
+    const messages = [
+      { type: "system" as const, content: framework },
+      { type: "user" as const, content },
+    ]
+
+    if (askExpert.task === "apply-codebook") {
+      const schema = z.object({ suggestions: z.array(z.any()) })
+      const result = await prompt({ endpoint, messages, schema })
       return formatInterpretResult(JSON.stringify(result, null, 2))
     }
-    const result = await interpretContent(lensFile, content, thinkHard.mode)
-    return formatInterpretResult(result)
+
+    const blocks = await prompt({ endpoint, messages })
+    const textBlock = blocks.find((b) => b.type === "text")
+    return formatInterpretResult(textBlock?.type === "text" ? textBlock.content : "")
   }
 }
 
@@ -242,12 +270,12 @@ If blocked: call abort with reason`
 
   const nudge = systemNudge(content)
 
-  if (!plan.thinkHard) {
+  if (!plan.askExpert) {
     return systemNudge(content.replace("{context}", ""))
   }
 
-  return withContext(nudge, createThinkContext({
-    thinkHard: plan.thinkHard,
+  return withContext(nudge, createAskExpertContext({
+    askExpert: plan.askExpert,
     files,
     sectionContent: section.content,
     sectionFile: section.file,

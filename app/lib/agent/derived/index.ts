@@ -163,7 +163,7 @@ export {
   type Section,
   type SectionResult,
   type PerSectionConfig,
-  type ThinkHard,
+  type AskExpertConfig,
   type Files,
   lastPlan,
   hasActivePlan,

@@ -15,16 +15,17 @@ const PerSectionStep = z.object({
 
 const StepOrPerSection = z.union([StepSchema, PerSectionStep])
 
-const ThinkHard = z.object({
-  lens: z.string().min(1).describe("Path to file providing the thinking perspective (e.g., codebook)"),
-  mode: z.enum(["with-codebook"]).describe("How to think about each section"),
+const AskExpertPlan = z.object({
+  expert: z.string().min(1).describe("Specialist type (e.g., qualitative-researcher)"),
+  task: z.string().optional().describe("Specific task (e.g., code) - omit for freeform"),
+  using: z.string().min(1).describe("Shell command to get framework/context"),
 })
 
 const CreatePlanArgs = z.object({
   task: z.string().min(1).describe("High-level description of what we're trying to accomplish"),
   steps: z.array(StepOrPerSection).min(1).describe("Ordered list of steps to complete the task"),
   files: z.array(z.string()).optional().describe("Files relevant to this task (for context)"),
-  think_hard: ThinkHard.optional().describe("Auto-analyze each section before presenting"),
+  ask_expert: AskExpertPlan.optional().describe("Auto-analyze each section with expert (about comes from section)"),
 })
 
 export const createPlan = registerTool(
@@ -39,8 +40,8 @@ Break complex tasks into discrete, verifiable steps. Each step should have:
 Use per_section for repetitive operations across file sections.`,
     schema: CreatePlanArgs,
     handler: async (_files, args) => {
-      if (args.think_hard && !args.files) {
-        return err("think_hard requires files. To think without files, gather the context yourself and use the think_hard tool directly.")
+      if (args.ask_expert && !args.files) {
+        return err("ask_expert in plans requires files - content comes from file sections")
       }
       const stepErrors = validateSteps(args.steps)
       if (stepErrors.length > 0) return err(stepErrors.join(", "))

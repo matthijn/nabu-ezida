@@ -6,7 +6,7 @@ import type { Block, ToolResultBlock } from "../types"
 
 beforeEach(() => resetCallIdCounter())
 
-describe("planNudge with thinkHard", () => {
+describe("planNudge with askExpert", () => {
   const fileContent = "Line 1\nLine 2\nLine 3"
   const files = { "doc.md": fileContent, "codebook.md": "# Codebook\nSome codes" }
 
@@ -20,18 +20,18 @@ describe("planNudge with thinkHard", () => {
 
   const cases: TestCase[] = [
     {
-      name: "per_section with thinkHard → has context and placeholder",
+      name: "per_section with askExpert → has context and placeholder",
       history: createPlanCall(
         "Analyze doc",
         [{ per_section: ["Analyze section"] }],
-        { files: ["doc.md"], thinkHard: { lens: "codebook.md", mode: "with-codebook" } }
+        { files: ["doc.md"], askExpert: { expert: "qualitative-researcher", task: "apply-codebook", using: "cat codebook.md" } }
       ),
       files,
       expectContext: true,
       expectPlaceholder: true,
     },
     {
-      name: "per_section without thinkHard → no context, no placeholder",
+      name: "per_section without askExpert → no context, no placeholder",
       history: createPlanCall(
         "Analyze doc",
         [{ per_section: ["Analyze section"] }],
@@ -42,11 +42,11 @@ describe("planNudge with thinkHard", () => {
       expectPlaceholder: false,
     },
     {
-      name: "regular step with thinkHard → no context (only per_section gets it)",
+      name: "regular step with askExpert → no context (only per_section gets it)",
       history: createPlanCall(
         "Simple task",
         ["Step 1"],
-        { thinkHard: { lens: "codebook.md", mode: "with-codebook" } }
+        { askExpert: { expert: "qualitative-researcher", task: "apply-codebook", using: "cat codebook.md" } }
       ),
       files,
       expectContext: false,

@@ -21,7 +21,7 @@ export {
   type Derived,
   type Mode,
   type Files,
-  type ThinkHard,
+  type AskExpertConfig,
 } from "./derived"
 export { toNudge, combine, collect, isEmptyNudgeBlock, newErrorBlock, systemNudge, emptyNudge, withContext, type Nudger, type MultiNudger, type NudgeBlock } from "./steering"
 export { parse, processLine, initialParseState, blocksToMessages, prompt } from "./stream"

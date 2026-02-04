@@ -28,7 +28,7 @@ const withResult = (callId: string, call: Block): Block[] => [
 
 type CreatePlanOptions = {
   files?: string[]
-  thinkHard?: { lens: string; mode: string }
+  askExpert?: { expert: string; task?: string; using: string }
 }
 
 export const createPlanCall = (task: string, steps: StepInput[], filesOrOptions?: string[] | CreatePlanOptions): Block[] => {
@@ -39,7 +39,7 @@ export const createPlanCall = (task: string, steps: StepInput[], filesOrOptions?
     args.files = filesOrOptions
   } else if (filesOrOptions) {
     if (filesOrOptions.files) args.files = filesOrOptions.files
-    if (filesOrOptions.thinkHard) args.think_hard = filesOrOptions.thinkHard
+    if (filesOrOptions.askExpert) args.ask_expert = filesOrOptions.askExpert
   }
 
   return withResult(id, {
