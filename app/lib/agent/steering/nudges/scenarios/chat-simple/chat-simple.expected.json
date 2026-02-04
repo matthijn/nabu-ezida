@@ -4,7 +4,6 @@
     "content": "hi"
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   }
 ]

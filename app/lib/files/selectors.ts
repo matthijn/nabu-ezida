@@ -87,6 +87,9 @@ const findCodeById = (files: Record<string, string>, id: string): CalloutBlock |
 export const getCodeTitle = (files: Record<string, string>, id: string): string | undefined =>
   findCodeById(files, id)?.title
 
+export const getCodeMapping = (files: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(getAllCodes(files).map((c) => [c.id, c.title]))
+
 const calloutToCode = (callout: CalloutBlock): Code => ({
   id: callout.id,
   name: callout.title,

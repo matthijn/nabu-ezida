@@ -36,7 +36,11 @@ export type ReasoningBlock = {
   content: string
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock
+export type EmptyNudgeBlock = {
+  type: "empty_nudge"
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock
 
 export type ToolDeps = {
   project?: { id: string }

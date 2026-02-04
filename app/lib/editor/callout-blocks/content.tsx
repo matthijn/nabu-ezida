@@ -2,22 +2,12 @@
 
 import type { ReactNode } from "react"
 import * as SubframeCore from "@subframe/core"
-import {
-  FeatherBook,
-  FeatherCode,
-  FeatherLightbulb,
-  FeatherQuote,
-  FeatherAlertCircle,
-} from "@subframe/core"
+import { FeatherCode } from "@subframe/core"
 import type { CalloutBlock, CalloutType } from "~/domain/blocks/callout"
 import { MarkdownContent } from "~/ui/components/editor/MarkdownContent"
 
 const CALLOUT_ICONS: Record<CalloutType, ReactNode> = {
-  codebook: <FeatherBook />,
-  code: <FeatherCode />,
-  idea: <FeatherLightbulb />,
-  quote: <FeatherQuote />,
-  note: <FeatherAlertCircle />,
+  "codebook-code": <FeatherCode />,
 }
 
 type CalloutContentProps = {

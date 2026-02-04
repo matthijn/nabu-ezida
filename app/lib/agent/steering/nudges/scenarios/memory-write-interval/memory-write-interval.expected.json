@@ -15,12 +15,11 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -38,8 +37,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -57,8 +55,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -76,8 +73,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -95,12 +91,11 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   },
   {
     "type": "tool_call",
@@ -118,8 +113,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -137,8 +131,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -156,8 +149,7 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -175,11 +167,10 @@
     "result": {}
   },
   {
-    "type": "system",
-    "content": "EMPTY_NUDGE"
+    "type": "empty_nudge"
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. See <answers>, <user-facing-language> and <tone>"
+    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system."
   }
 ]

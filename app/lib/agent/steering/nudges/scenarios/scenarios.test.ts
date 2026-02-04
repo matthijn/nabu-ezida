@@ -6,7 +6,6 @@ import type { Block } from "../../../types"
 import { nudge } from "../index"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const EMPTY_NUDGE = "EMPTY_NUDGE"
 
 type Files = Record<string, string>
 
@@ -21,7 +20,7 @@ const readFilesJson = (path: string): Files => {
 const shouldNudge = (block: Block): boolean =>
   block.type === "user" || block.type === "tool_result"
 
-const runScenario = (name: string): { actual: Block[]; expected: Block[] } => {
+const runScenario = async (name: string): Promise<{ actual: Block[]; expected: Block[] }> => {
   const basePath = join(__dirname, name, name)
   const input = readJson<Block[]>(`${basePath}.json`)
   const files = readFilesJson(`${basePath}.files.json`)
@@ -31,9 +30,9 @@ const runScenario = (name: string): { actual: Block[]; expected: Block[] } => {
   for (const block of input) {
     history.push(block)
     if (shouldNudge(block)) {
-      const nudges = nudge(history, files, EMPTY_NUDGE)
-      for (const n of nudges) {
-        history.push({ type: "system", content: n })
+      const nudgeBlocks = await nudge(history, files)
+      for (const n of nudgeBlocks) {
+        history.push(n)
       }
     }
   }
@@ -52,8 +51,8 @@ describe("nudge scenarios", () => {
   const scenarios = getScenarioNames()
 
   scenarios.forEach((name) => {
-    it(name, () => {
-      const { actual, expected } = runScenario(name)
+    it(name, async () => {
+      const { actual, expected } = await runScenario(name)
       expect(actual).toEqual(expected)
     })
   })

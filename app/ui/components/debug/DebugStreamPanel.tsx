@@ -58,6 +58,8 @@ const formatBlock = (block: Block): string => {
       return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}]\n${formatResult(block.result)}`
     case "system":
       return `[system]\n${block.content}`
+    case "empty_nudge":
+      return `[empty_nudge]`
   }
 }
 

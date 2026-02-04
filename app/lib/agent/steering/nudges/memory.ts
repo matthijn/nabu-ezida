@@ -1,4 +1,4 @@
-import { combine, afterToolResult, alreadyFired, firedWithin, type Nudger } from "../nudge-tools"
+import { combine, afterToolResult, alreadyFired, firedWithin, systemNudge, type Nudger } from "../nudge-tools"
 import { getCodebookFiles } from "~/lib/files/selectors"
 
 const WRITE_INTERVAL = 15
@@ -7,24 +7,24 @@ const WRITE_MARKER = "## WRITE REMINDER: Only if needed"
 
 const MEMORY_FILE = "memory.hidden.md"
 
-const readMemoryNudge: Nudger = (history, files, _emptyNudge) => {
+const readMemoryNudge: Nudger = (history, files) => {
   if (!afterToolResult(history)) return null
   if (alreadyFired(history, READ_MARKER)) return null
 
   const memory = files[MEMORY_FILE]
   if (!memory) return null
 
-  return `
+  return systemNudge(`
 ${READ_MARKER}
 <file ${MEMORY_FILE}>
 ${memory}
 </file ${MEMORY_FILE}>
 
 Continue.
-`
+`)
 }
 
-const writeMemoryNudge: Nudger = (history, files, _emptyNudge) => {
+const writeMemoryNudge: Nudger = (history, files) => {
   if (!afterToolResult(history)) return null
   if (firedWithin(history, WRITE_MARKER, WRITE_INTERVAL)) return null
 
@@ -34,10 +34,10 @@ const writeMemoryNudge: Nudger = (history, files, _emptyNudge) => {
       ? ` and/or codebook(s) in: ${codeFiles.join(", ")}`
       : ""
 
-  return `
+  return systemNudge(`
 ${WRITE_MARKER}
 Update memory.hidden.md${codebookPart} if needed, then continue.
-`
+`)
 }
 
 export const memoryNudge: Nudger = combine(readMemoryNudge, writeMemoryNudge)

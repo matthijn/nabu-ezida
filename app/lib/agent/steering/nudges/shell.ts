@@ -1,5 +1,5 @@
 import type { Block, ToolResultBlock } from "../../types"
-import { afterToolResult, lastToolResultStatus, findToolCallArgs, withCooldown, type Nudger } from "../nudge-tools"
+import { afterToolResult, lastToolResultStatus, findToolCallArgs, withCooldown, systemNudge, type Nudger } from "../nudge-tools"
 
 const shellReminder = `**Shell error** - Review the run_local_shell tool definition for supported commands and syntax.`
 
@@ -30,7 +30,7 @@ export const buildShellNudge =
     if (!commands) return null
 
     const used = commands.some((cmd) => extractCommandName(cmd) === command)
-    return used ? prompt : null
+    return used ? systemNudge(prompt) : null
   }
 
 export const shellNudge: Nudger = (history) => {
@@ -38,7 +38,7 @@ export const shellNudge: Nudger = (history) => {
   if (!isShellResult(history)) return null
 
   const status = lastToolResultStatus(history)
-  return status === "error" || status === "partial" ? shellReminder : null
+  return status === "error" || status === "partial" ? systemNudge(shellReminder) : null
 }
 
 const grepReminder = `Reminder: Grep finds strings, not concepts.`

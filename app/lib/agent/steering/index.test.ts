@@ -33,7 +33,10 @@ type TestCase = {
   expect: NudgeExpectation
 }
 
-const joinNudges = (nudges: string[]): string => nudges.join("\n")
+const extractContent = (blocks: Block[]): string[] =>
+  blocks.map((b) => ("content" in b ? (b as { content: string }).content : ""))
+
+const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n")
 
 describe("toNudge", () => {
   const cases: TestCase[] = [
@@ -176,16 +179,17 @@ describe("toNudge", () => {
   ]
 
   cases.forEach(({ name, history, files = {}, expect: expectation }) => {
-    it(name, () => {
-      const result = toNudge(history, files)
+    it(name, async () => {
+      const result = await toNudge(history, files)
       const nudge = joinNudges(result)
+      const content = extractContent(result)
       switch (expectation.type) {
         case "none":
           expect(result).toEqual([])
           break
         case "emptyNudge":
           expect(result.length).toBeGreaterThan(0)
-          expect(result.every((r) => r === "")).toBe(true)
+          expect(content.every((c) => c === "")).toBe(true)
           break
         case "contains":
           expect(result.length).toBeGreaterThan(0)

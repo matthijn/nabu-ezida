@@ -5,7 +5,6 @@ import type { Block } from "../../../types"
 import { nudge } from "../index"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const EMPTY_NUDGE = "EMPTY_NUDGE"
 
 type Files = Record<string, string>
 
@@ -20,7 +19,7 @@ const readFilesJson = (path: string): Files => {
 const shouldNudge = (block: Block): boolean =>
   block.type === "user" || block.type === "tool_result"
 
-const regenerateScenario = (name: string): void => {
+const regenerateScenario = async (name: string): Promise<void> => {
   const basePath = join(__dirname, name, name)
   const input = readJson<Block[]>(`${basePath}.json`)
   const files = readFilesJson(`${basePath}.files.json`)
@@ -29,9 +28,9 @@ const regenerateScenario = (name: string): void => {
   for (const block of input) {
     history.push(block)
     if (shouldNudge(block)) {
-      const nudges = nudge(history, files, EMPTY_NUDGE)
-      for (const n of nudges) {
-        history.push({ type: "system", content: n })
+      const nudgeBlocks = await nudge(history, files)
+      for (const n of nudgeBlocks) {
+        history.push(n)
       }
     }
   }
@@ -45,6 +44,12 @@ const getScenarioNames = (): string[] => {
   return entries.filter((e) => e.isDirectory()).map((e) => e.name)
 }
 
-const scenarios = getScenarioNames()
-scenarios.forEach(regenerateScenario)
-console.log(`Done. Regenerated ${scenarios.length} scenarios.`)
+const main = async () => {
+  const scenarios = getScenarioNames()
+  for (const scenario of scenarios) {
+    await regenerateScenario(scenario)
+  }
+  console.log(`Done. Regenerated ${scenarios.length} scenarios.`)
+}
+
+main()

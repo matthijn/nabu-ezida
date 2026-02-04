@@ -305,6 +305,9 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
       output: JSON.stringify(block.result),
     }
   }
+  if (block.type === "reasoning" || block.type === "empty_nudge") {
+    return []
+  }
   return []
 }
 

@@ -1,5 +1,5 @@
-import type { SystemBlock, Block, ToolDeps } from "~/lib/agent"
-import { turn, createToolExecutor, blocksToMessages, appendBlock, toNudge } from "~/lib/agent"
+import type { Block, ToolDeps } from "~/lib/agent"
+import { turn, createToolExecutor, blocksToMessages, toNudge, isEmptyNudgeBlock } from "~/lib/agent"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 import { getFiles } from "~/lib/files"
@@ -8,15 +8,12 @@ export type RunnerDeps = ToolDeps
 
 let controller: AbortController | null = null
 
-const appendNudges = (history: Block[], nudges: string[]): Block[] =>
-  nudges.reduce((h, content) => appendBlock(h, { type: "system", content } as SystemBlock), history)
-
 export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const chat = getChat()
   if (!chat) return
   if (chat.loading) return
 
-  const nudges = toNudge(chat.history, getFiles())
+  const nudges = await toNudge(chat.history, getFiles())
   if (nudges.length === 0) {
     controller = null
     return
@@ -28,9 +25,9 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   console.log("[LLM] Request started", performance.now().toFixed(0) + "ms")
   updateChat({ loading: true, error: null, streamingToolName: null })
 
-  const nonEmpty = nudges.filter((n) => n !== "")
+  const nonEmpty = nudges.filter((n) => !isEmptyNudgeBlock(n))
   if (nonEmpty.length > 0) {
-    updateChat({ history: appendNudges(chat.history, nonEmpty) })
+    updateChat({ history: [...chat.history, ...nonEmpty] })
   }
 
   const current = getChat()

@@ -1,5 +1,5 @@
 import type { Block } from "../../types"
-import { firedWithin, type Nudger } from "../nudge-tools"
+import { firedWithin, systemNudge, type Nudger } from "../nudge-tools"
 
 type WordNudgeConfig = {
   word: string
@@ -18,6 +18,8 @@ const getBlockText = (block: Block): string => {
       return JSON.stringify(block.calls)
     case "tool_result":
       return JSON.stringify(block.result)
+    case "empty_nudge":
+      return ""
   }
 }
 
@@ -40,5 +42,5 @@ export const buildWordNudge =
     const marker = makeMarker(word)
     if (firedWithin(history, marker, lookback)) return null
     if (!wordFoundInLookback(history, word, lookback)) return null
-    return `${marker}\n${prompt}`
+    return systemNudge(`${marker}\n${prompt}`)
   }
