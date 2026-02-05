@@ -9,7 +9,6 @@ import { toExtraPretty } from "~/lib/json"
 import "./patch"
 import "./orchestration"
 import "./shell"
-import "./annotations/tool"
 import "./ask-expert"
 
 export type { ToolDeps }

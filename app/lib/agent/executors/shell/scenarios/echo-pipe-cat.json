@@ -1,0 +1,23 @@
+{
+  "files": {},
+  "args": {
+    "commands": [
+      "echo 'hello world' | cat"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "hello world",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

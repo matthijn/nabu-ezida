@@ -10,7 +10,7 @@ import { getToolDefinitions } from "~/lib/agent/executors"
 import { useInterpretHistory } from "~/lib/agent/executors/useInterpretHistory"
 import type { Block, ToolCall } from "~/lib/agent"
 
-type TabId = "converse" | "interpret"
+type TabId = "converse" | "expert"
 
 type BlockRendererProps = {
   block: Block
@@ -305,8 +305,8 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         <TabButton active={activeTab === "converse"} onClick={() => setActiveTab("converse")} count={history.length}>
           Converse
         </TabButton>
-        <TabButton active={activeTab === "interpret"} onClick={() => setActiveTab("interpret")} count={interpretEntries.length}>
-          Interpret
+        <TabButton active={activeTab === "expert"} onClick={() => setActiveTab("expert")} count={interpretEntries.length}>
+          Expert
         </TabButton>
       </div>
 
@@ -332,17 +332,22 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </AutoScroll>
       )}
 
-      {activeTab === "interpret" && (
+      {activeTab === "expert" && (
         <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
           {interpretEntries.length === 0 && (
             <div className="flex h-full items-center justify-center">
-              <span className="text-sm text-neutral-400">No interpret calls yet</span>
+              <span className="text-sm text-neutral-400">No expert calls yet</span>
             </div>
           )}
           {interpretEntries.map((entry) => (
             <div key={entry.id} className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
-              <div className="text-xs text-neutral-400">
-                #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-purple-600">
+                  {entry.expert}{entry.task ? ` / ${entry.task}` : ""}
+                </div>
+                <div className="text-xs text-neutral-400">
+                  #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
+                </div>
               </div>
               {entry.messages.map((block, i) => (
                 <BlockRenderer key={`msg-${i}`} block={block} />

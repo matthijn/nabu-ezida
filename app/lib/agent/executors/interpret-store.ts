@@ -2,6 +2,8 @@ import type { Block } from "../types"
 
 type InterpretEntry = {
   id: number
+  expert: string
+  task: string | null
   messages: Block[]
   response: Block[]
   timestamp: number
@@ -16,10 +18,16 @@ let listeners: (() => void)[] = []
 
 const notify = (): void => listeners.forEach((l) => l())
 
-export const startInterpretEntry = (messages: Block[]): number => {
+type StartEntryParams = {
+  expert: string
+  task: string | null
+  messages: Block[]
+}
+
+export const startInterpretEntry = ({ expert, task, messages }: StartEntryParams): number => {
   const id = nextId++
   activeId = id
-  entries = [...entries, { id, messages, response: [], timestamp: Date.now(), streaming: "", streamingReasoning: "" }]
+  entries = [...entries, { id, expert, task, messages, response: [], timestamp: Date.now(), streaming: "", streamingReasoning: "" }]
   notify()
   return id
 }

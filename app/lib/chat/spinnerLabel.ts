@@ -7,9 +7,8 @@ const toolLabels: Record<string, string> = {
   complete_step: "Thinking",
   abort: "Stopping",
   run_local_shell: "Reading",
-  upsert_annotations: "Annotating",
-  delete_annotations: "Removing annotations",
   apply_local_patch: "Writing",
+  ask_expert: "Consulting",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {

@@ -1,4 +1,5 @@
 import { applyDiff, generateDiff } from "~/lib/diff"
+import { resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { repairJsonNewlines, toExtraPretty, fromExtraPretty, PrettyJsonError } from "~/lib/json"
 import { parseCodeBlocks } from "~/domain/blocks"
 import {
@@ -71,8 +72,14 @@ const applyMdPatch = (path: string, content: string, patch: string, options: App
     return { path, status: "ok", content: "" }
   }
 
+  // Resolve FUZZY[text] patterns before applying diff
+  const { patch: resolvedPatch, unresolved } = resolveFuzzyPatterns(patch, content)
+  if (unresolved.length > 0) {
+    return { path, status: "error", error: `FUZZY patterns not found: ${unresolved.map(s => `"${s}"`).join(", ")}` }
+  }
+
   const prettyContent = toExtraPretty(content)
-  const diffResult = applyDiff(prettyContent, patch)
+  const diffResult = applyDiff(prettyContent, resolvedPatch)
   if (!diffResult.ok) {
     return { path, status: "error", error: diffResult.error }
   }

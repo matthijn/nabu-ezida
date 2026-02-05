@@ -1,5 +1,5 @@
 import { parseCodeBlocks, type CodeBlock } from "./parse"
-import { isSingleton, getLabelKey } from "./registry"
+import { getLabelKey, getIdPaths, type IdPathConfig } from "./registry"
 
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([a-zA-Z0-9_-]+)\]/g
 const TRAILING_NUMBER_REGEX = /-\d+$/
@@ -12,9 +12,6 @@ const extractPrefix = (name: string): string =>
 
 const generatePrefixedId = (name: string): string =>
   `${extractPrefix(name)}_${generateShortId()}`
-
-const extractTypePrefix = (language: string): string =>
-  language.replace(/^json-/, "")
 
 export type GeneratedId = {
   id: string
@@ -49,6 +46,9 @@ const tryParseJson = (content: string): Record<string, unknown> | null => {
 const isMissingId = (id: unknown): boolean =>
   id === undefined || id === null || id === ""
 
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v)
+
 const getBlockLabel = (parsed: Record<string, unknown>, language: string): string | null => {
   const labelKey = getLabelKey(language)
   if (!labelKey) return null
@@ -57,38 +57,113 @@ const getBlockLabel = (parsed: Record<string, unknown>, language: string): strin
   return value.length > 40 ? value.slice(0, 40) + "..." : value
 }
 
-type BlockNeedingId = {
-  block: CodeBlock
-  parsed: Record<string, unknown>
-}
-
-const findBlocksNeedingIds = (markdown: string): BlockNeedingId[] => {
-  const blocks = parseCodeBlocks(markdown)
-  const result: BlockNeedingId[] = []
-
-  for (const block of blocks) {
-    if (!block.language.startsWith("json-")) continue
-    if (isSingleton(block.language)) continue
-
-    const parsed = tryParseJson(block.content)
-    if (!parsed) continue
-
-    if (isMissingId(parsed.id)) {
-      result.push({ block, parsed })
-    }
-  }
-
-  return result
-}
-
 export type FillIdsResult = {
   content: string
   generated: GeneratedId[]
 }
 
+type BlockUpdate = {
+  block: CodeBlock
+  newContent: string
+  ids: GeneratedId[]
+}
+
+type ParsedPath =
+  | { type: "root"; field: string }
+  | { type: "array"; arrayField: string; itemField: string }
+
+const parsePath = (path: string): ParsedPath | null => {
+  // "id" -> root field
+  if (!path.includes(".")) {
+    return { type: "root", field: path }
+  }
+
+  // "annotations.*.id" -> array items
+  const match = path.match(/^([^.]+)\.\*\.([^.]+)$/)
+  if (match) {
+    return { type: "array", arrayField: match[1], itemField: match[2] }
+  }
+
+  return null
+}
+
+const fillIdPath = (
+  parsed: Record<string, unknown>,
+  config: IdPathConfig,
+  language: string
+): GeneratedId[] => {
+  const pathInfo = parsePath(config.path)
+  if (!pathInfo) return []
+
+  const ids: GeneratedId[] = []
+
+  if (pathInfo.type === "root") {
+    const currentValue = parsed[pathInfo.field]
+    if (isMissingId(currentValue)) {
+      const newId = `${config.prefix}_${generateShortId()}`
+      parsed[pathInfo.field] = newId
+      ids.push({
+        id: newId,
+        type: language,
+        label: getBlockLabel(parsed, language),
+        source: "none",
+      })
+    }
+  } else {
+    const arr = parsed[pathInfo.arrayField]
+    if (!Array.isArray(arr)) return ids
+
+    for (const item of arr) {
+      if (!isObject(item)) continue
+      if (!isMissingId(item[pathInfo.itemField])) continue
+
+      const newId = `${config.prefix}_${generateShortId()}`
+      item[pathInfo.itemField] = newId
+      ids.push({
+        id: newId,
+        type: `${language}.${pathInfo.arrayField}`,
+        label: null,
+        source: "none",
+      })
+    }
+  }
+
+  return ids
+}
+
+const collectBlockUpdates = (markdown: string): BlockUpdate[] => {
+  const blocks = parseCodeBlocks(markdown)
+  const updates: BlockUpdate[] = []
+
+  for (const block of blocks) {
+    if (!block.language.startsWith("json-")) continue
+
+    const parsed = tryParseJson(block.content)
+    if (!parsed) continue
+
+    const idPaths = getIdPaths(block.language)
+    if (idPaths.length === 0) continue
+
+    const ids: GeneratedId[] = []
+    for (const config of idPaths) {
+      ids.push(...fillIdPath(parsed, config, block.language))
+    }
+
+    if (ids.length > 0) {
+      updates.push({
+        block,
+        newContent: JSON.stringify(parsed, null, 2),
+        ids,
+      })
+    }
+  }
+
+  return updates
+}
+
 export const fillMissingIds = (markdown: string): FillIdsResult => {
-  const blocksNeedingIds = findBlocksNeedingIds(markdown)
-  if (blocksNeedingIds.length === 0) {
+  const updates = collectBlockUpdates(markdown)
+  if (updates.length === 0) {
     return { content: markdown, generated: [] }
   }
 
@@ -96,16 +171,7 @@ export const fillMissingIds = (markdown: string): FillIdsResult => {
   let offset = 0
   const generated: GeneratedId[] = []
 
-  for (const { block, parsed } of blocksNeedingIds) {
-    const typePrefix = extractTypePrefix(block.language)
-    const newId = `${typePrefix}_${generateShortId()}`
-    const label = getBlockLabel(parsed, block.language)
-
-    // Add id to parsed object
-    const updatedParsed = { id: newId, ...parsed }
-    const newContent = JSON.stringify(updatedParsed, null, 2)
-
-    // Replace block content
+  for (const { block, newContent, ids } of updates) {
     const blockStart = block.start + offset
     const blockEnd = block.end + offset
     const original = result.slice(blockStart, blockEnd)
@@ -114,12 +180,7 @@ export const fillMissingIds = (markdown: string): FillIdsResult => {
     result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
     offset += replaced.length - original.length
 
-    generated.push({
-      id: newId,
-      type: block.language,
-      label,
-      source: "none",
-    })
+    generated.push(...ids)
   }
 
   return { content: result, generated }

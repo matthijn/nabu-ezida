@@ -8,6 +8,11 @@ export type ValidationContext = {
   availableCodes: { id: string; name: string }[]
 }
 
+type IdPathConfig = {
+  path: string  // "id" for root, "annotations.*.id" for nested array items
+  prefix: string
+}
+
 type BlockTypeConfig<T> = {
   schema: z.ZodType<T>
   readonly: string[]
@@ -15,6 +20,7 @@ type BlockTypeConfig<T> = {
   renderer: "hidden" | "callout"
   singleton: boolean
   labelKey?: string
+  idPaths?: IdPathConfig[]
   validate?: (parsed: T, context: ValidationContext) => ValidationError[]
 }
 
@@ -42,7 +48,7 @@ const validateAnnotations = (
       errors.push({
         block: "json-attributes",
         field: "annotations",
-        message: `Text "${annotation.text}" not found in document`,
+        message: `Text "${annotation.text}" not found in document. Use exact text from the document. If unsure, use FUZZY[approximate text] for fuzzy matching (e.g. "text": "FUZZY[somthing like this]").`,
       })
     }
 
@@ -62,11 +68,10 @@ const validateAnnotations = (
 const jsonAttributes = defineBlock({
   schema: DocumentMeta,
   readonly: [],
-  immutable: {
-    annotations: "Use upsert_annotations or remove_annotations tools to modify annotations",
-  },
+  immutable: {},
   renderer: "hidden",
   singleton: true,
+  idPaths: [{ path: "annotations.*.id", prefix: "annotation" }],
   validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
 })
 
@@ -79,6 +84,7 @@ const jsonCallout = defineBlock({
   renderer: "callout",
   singleton: false,
   labelKey: "title",
+  idPaths: [{ path: "id", prefix: "callout" }],
 })
 
 type AnyBlockConfig = BlockTypeConfig<unknown>
@@ -102,3 +108,8 @@ export const getLabelKey = (language: string): string | undefined =>
 
 export const getImmutableFields = (language: string): Record<string, string> =>
   blockTypes[language]?.immutable ?? {}
+
+export const getIdPaths = (language: string): IdPathConfig[] =>
+  blockTypes[language]?.idPaths ?? []
+
+export type { IdPathConfig }

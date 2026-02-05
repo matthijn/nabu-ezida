@@ -163,8 +163,8 @@ const formatSectionAnnotations = (
   return `\n  <current-annotations>\n${JSON.stringify(data, null, 2)}\n  </current-annotations>`
 }
 
-const formatInterpretResult = (raw: string): string =>
-  `\n  <interpretation>\n${raw}\n  </interpretation>`
+const formatAnalysisResult = (raw: string): string =>
+  `\n  <analysis>\n${raw}\n  </analysis>`
 
 type AskExpertInput = {
   askExpert: AskExpertConfig
@@ -210,23 +210,22 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) 
 
     // Dynamic import to avoid circular dependency
     const { prompt } = await import("../../stream")
-    const { CodeSuggestions } = await import("../../executors/ask-expert")
-    const { z } = await import("zod")
+    const { getExpertSchema } = await import("../../executors/ask-expert")
 
     const messages = [
       { type: "system" as const, content: framework },
       { type: "user" as const, content },
     ]
 
-    if (askExpert.task === "apply-codebook") {
-      const schema = z.object({ suggestions: z.array(z.any()) })
+    const schema = getExpertSchema(askExpert.expert, askExpert.task)
+    if (schema) {
       const result = await prompt({ endpoint, messages, schema })
-      return formatInterpretResult(JSON.stringify(result, null, 2))
+      return formatAnalysisResult(JSON.stringify(result, null, 2))
     }
 
     const blocks = await prompt({ endpoint, messages })
     const textBlock = blocks.find((b) => b.type === "text")
-    return formatInterpretResult(textBlock?.type === "text" ? textBlock.content : "")
+    return formatAnalysisResult(textBlock?.type === "text" ? textBlock.content : "")
   }
 }
 

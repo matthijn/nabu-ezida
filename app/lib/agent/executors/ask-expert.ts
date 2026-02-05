@@ -3,17 +3,34 @@ import type { Block } from "../types"
 import { tool, registerTool, ok, err } from "./tool"
 import { prompt } from "../stream"
 import { startInterpretEntry, updateInterpretStreaming, updateInterpretReasoning, completeInterpretEntry } from "./interpret-store"
-import { AnnotationSuggestionSchema, type AnnotationSuggestion } from "~/domain/attributes/schema"
 import { createShell } from "./shell/shell"
 
 // --- Schemas ---
 
-const CodeSuggestionsSchema = z.object({
-  suggestions: z.array(AnnotationSuggestionSchema),
+const AnnotationEntrySchema = z.object({
+  id: z.string().optional().describe("Existing annotation ID (for updates) or [uuid-xxx] placeholder (for new)"),
+  text: z.string().describe("Exact text from content (use FUZZY[approx] if unsure)"),
+  code: z.string().describe("Code ID from codebook"),
+  code_label: z.string().describe("Code name for readability"),
+  reason: z.string().describe("Why this code applies"),
+  confidence: z.enum(["high", "medium", "low"]).describe("Confidence level"),
+  ambiguity: z.string().optional().describe("Explain if confidence < high"),
 })
 
-export type CodeSuggestions = z.infer<typeof CodeSuggestionsSchema>
-export type { AnnotationSuggestion }
+const DeletionEntrySchema = z.object({
+  id: z.string().describe("Existing annotation ID to remove"),
+  reason: z.string().describe("Why this annotation should be removed"),
+})
+
+const ApplyCodebookResponseSchema = z.object({
+  annotations: z.array(AnnotationEntrySchema).describe("Annotations to add or update"),
+  deletions: z.array(DeletionEntrySchema).describe("Annotations to remove"),
+  notes: z.string().describe("Patterns observed, potential codebook gaps, or 'none'"),
+})
+
+export type ApplyCodebookResponse = z.infer<typeof ApplyCodebookResponseSchema>
+export type AnnotationEntry = z.infer<typeof AnnotationEntrySchema>
+export type DeletionEntry = z.infer<typeof DeletionEntrySchema>
 
 // --- Expert Registry ---
 
@@ -33,9 +50,17 @@ const experts: Record<string, ExpertDef> = {
     tasks: {
       "apply-codebook": {
         description: "Apply codebook codes to content",
-        schema: CodeSuggestionsSchema,
+        schema: ApplyCodebookResponseSchema,
+      },
+      "revise-codebook": {
+        description: "Revise codebook based on locally resolved codings",
+        schema: undefined,
       },
     },
+  },
+  "analyst": {
+    description: "Rigorous analytical reader—evaluates arguments, surfaces assumptions, applies frameworks to content",
+    tasks: {},
   },
 }
 
@@ -100,14 +125,25 @@ const extractText = (blocks: Block[]): string => {
   return textBlock?.type === "text" ? textBlock.content : ""
 }
 
-const askExpertCore = async <T extends z.ZodType>(
-  context: string,
-  content: string,
-  endpoint: string,
+type AskExpertCoreParams<T extends z.ZodType> = {
+  expert: string
+  task: string | null
+  context: string
+  content: string
+  endpoint: string
   schema?: T
-): Promise<{ result?: z.infer<T> | string; error?: string }> => {
+}
+
+const askExpertCore = async <T extends z.ZodType>({
+  expert,
+  task,
+  context,
+  content,
+  endpoint,
+  schema,
+}: AskExpertCoreParams<T>): Promise<{ result?: z.infer<T> | string; error?: string }> => {
   const messages = buildMessages(context, content)
-  const entryId = startInterpretEntry(messages)
+  const entryId = startInterpretEntry({ expert, task, messages })
 
   const callbacks = {
     onChunk: (chunk: string) => updateInterpretStreaming(entryId, chunk),
@@ -167,12 +203,14 @@ ${generateExpertDocs()}`,
       const endpoint = task ? `/ask-expert/${expert}/${task}` : `/ask-expert/${expert}`
 
       // Call expert
-      const { result, error } = await askExpertCore(
-        contextResult.output!,
-        contentResult.output!,
+      const { result, error } = await askExpertCore({
+        expert,
+        task: task ?? null,
+        context: contextResult.output!,
+        content: contentResult.output!,
         endpoint,
-        taskDef?.schema
-      )
+        schema: taskDef?.schema,
+      })
 
       if (error) return err(error)
       return ok(typeof result === "string" ? result : JSON.stringify(result, null, 2))
