@@ -33,27 +33,25 @@ const mergeCallbacks = (a: ParseCallbacks, b: ParseCallbacks): ParseCallbacks =>
 const executeToolCalls = async (
   calls: ToolCall[],
   execute: ToolExecutor,
-  pending: Map<string, Promise<ToolResultBlock>>
-): Promise<ToolResultBlock[]> =>
-  Promise.all(calls.map((call) => pending.get(call.id) ?? executeTool(call, execute)))
+): Promise<ToolResultBlock[]> => {
+  const results: ToolResultBlock[] = []
+  for (const call of calls) {
+    results.push(await executeTool(call, execute))
+  }
+  return results
+}
 
 export const buildCaller = (name: string, config: CallerConfig): Caller =>
   async (history, signal) => {
     const entryId = startObservation(name, history)
-
-    const pendingResults = new Map<string, Promise<ToolResultBlock>>()
 
     const observationCallbacks: ParseCallbacks = {
       onChunk: (chunk) => updateObservationStreaming(entryId, chunk),
       onReasoningChunk: (chunk) => updateObservationReasoning(entryId, chunk),
     }
 
-    const toolCallCallback: ParseCallbacks = config.execute
-      ? { onToolCall: (call) => { pendingResults.set(call.id, executeTool(call, config.execute!)) } }
-      : {}
-
     const merged = mergeCallbacks(
-      mergeCallbacks(observationCallbacks, toolCallCallback),
+      observationCallbacks,
       config.callbacks ?? {}
     )
 
@@ -71,7 +69,7 @@ export const buildCaller = (name: string, config: CallerConfig): Caller =>
     for (const block of blocks) {
       resultBlocks.push(block)
       if (isToolCallBlock(block) && config.execute) {
-        const toolResults = await executeToolCalls(block.calls, config.execute, pendingResults)
+        const toolResults = await executeToolCalls(block.calls, config.execute)
         resultBlocks.push(...toolResults)
       }
     }

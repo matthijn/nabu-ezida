@@ -15,19 +15,62 @@ export const toSnakeCase = (str: string): string =>
 type AnyFn = (...args: any[]) => void
 export type DebouncedFn<T extends AnyFn> = T & { cancel: () => void }
 
-export const debounce = <T extends AnyFn>(fn: T, delay: number): DebouncedFn<T> => {
+type DebounceOptions = { maxWait?: number }
+
+export const debounce = <T extends AnyFn>(fn: T, delay: number, options?: DebounceOptions): DebouncedFn<T> => {
   let timeout: ReturnType<typeof setTimeout> | null = null
+  let firstCall: number | null = null
+  const maxWait = options?.maxWait
+
+  const flush = (...args: Parameters<T>): void => {
+    if (timeout) clearTimeout(timeout)
+    timeout = null
+    firstCall = null
+    fn(...args)
+  }
 
   const debounced = ((...args: Parameters<T>) => {
+    const now = Date.now()
+    if (firstCall === null) firstCall = now
+
     if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => fn(...args), delay)
+
+    if (maxWait && now - firstCall >= maxWait) {
+      flush(...args)
+      return
+    }
+
+    timeout = setTimeout(() => flush(...args), delay)
   }) as DebouncedFn<T>
 
   debounced.cancel = () => {
     if (timeout) clearTimeout(timeout)
+    timeout = null
+    firstCall = null
   }
 
   return debounced
+}
+
+type CappedCache<K, V> = {
+  get: (key: K) => V | undefined
+  has: (key: K) => boolean
+  set: (key: K, value: V) => void
+}
+
+export const createCappedCache = <K, V>(max: number): CappedCache<K, V> => {
+  const map = new Map<K, V>()
+  return {
+    get: (key) => map.get(key),
+    has: (key) => map.has(key),
+    set: (key, value) => {
+      if (map.size >= max && !map.has(key)) {
+        const firstKey = map.keys().next().value!
+        map.delete(firstKey)
+      }
+      map.set(key, value)
+    },
+  }
 }
 
 type CollectedFn<T> = ((items: T[]) => void) & { flush: () => void; clear: () => void }

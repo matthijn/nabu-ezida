@@ -3,6 +3,7 @@ export type Annotation = {
   color: string
   reason?: string
   code?: string
+  pending?: "pending_change" | "pending_deletion"
 }
 
 export type ResolvedAnnotation = {

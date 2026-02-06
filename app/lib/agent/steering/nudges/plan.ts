@@ -8,9 +8,7 @@ import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { getCodeMapping } from "~/lib/files/selectors"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 import { createShell } from "../../executors/shell/shell"
-import { buildCaller, buildTypedCaller } from "../../caller"
-import { getExpertSchema } from "../../executors/ask-expert"
-import { extractText } from "../../stream"
+import { getTaskTools, runExpertWithTools, runExpertFreeform } from "../../executors/ask-expert"
 
 const STUCK_LIMIT = 10
 
@@ -19,7 +17,8 @@ const lastBlock = (history: Block[]): Block | undefined => history[history.lengt
 const isNudgeTrigger = (block: Block | undefined): boolean =>
   block?.type === "user" || block?.type === "tool_result"
 
-export const planNudge: Nudger = (history, files) => {
+export const createPlanNudge = (getFiles: () => Files): Nudger => (history) => {
+  const files = getFiles()
   const d = derive(history, files)
   const plan = lastPlan(d.plans)
   if (!plan) return null
@@ -181,17 +180,24 @@ type AskExpertInput = {
   files: Files
   sectionContent: string
   sectionFile: string
+  sectionIndex: number
+  totalSections: number
 }
 
+const formatSectionHeader = (file: string, index: number, total: number): string =>
+  `File: ${file} (part ${index} of ${total})\n\n`
+
 const buildExpertContent = (input: AskExpertInput): string => {
-  const { askExpert, files, sectionContent, sectionFile } = input
-  if (askExpert.task !== "apply-codebook") return sectionContent
+  const { askExpert, files, sectionContent, sectionFile, sectionIndex, totalSections } = input
+  const header = formatSectionHeader(sectionFile, sectionIndex, totalSections)
+
+  if (askExpert.task !== "apply-codebook") return `${header}${sectionContent}`
 
   const allAnnotations = getFileAnnotations(files, sectionFile)
   const matching = filterMatchingAnnotations(allAnnotations, sectionContent)
-  if (matching.length === 0) return sectionContent
+  if (matching.length === 0) return `${header}${sectionContent}`
 
-  return `${sectionContent}\n\n<current-annotations>\n${JSON.stringify(matching, null, 2)}\n</current-annotations>`
+  return `${header}${sectionContent}\n\n<current-annotations>\n${JSON.stringify(matching, null, 2)}\n</current-annotations>`
 }
 
 const resolveShellCommand = (files: Files, command: string): string | null => {
@@ -211,28 +217,19 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) 
     }
 
     const content = buildExpertContent(input)
-    const endpoint = askExpert.task
-      ? `/ask-expert/${askExpert.expert}/${askExpert.task}`
-      : `/ask-expert/${askExpert.expert}`
-    const callerName = askExpert.task ? `${askExpert.expert}/${askExpert.task}` : askExpert.expert
-
     const messages: Block[] = [
       { type: "system", content: framework },
       { type: "user", content },
     ]
 
-    const schema = getExpertSchema(askExpert.expert, askExpert.task)
-    if (schema) {
-      const typed = buildTypedCaller(callerName, { endpoint }, schema)
-      const out = await typed(messages)
-      if ("error" in out) throw new Error(out.error)
-      return formatAnalysisResult(JSON.stringify(out.result, null, 2))
+    const tools = getTaskTools(askExpert.expert, askExpert.task)
+    if (tools) {
+      const summary = await runExpertWithTools(askExpert.expert, askExpert.task ?? null, messages, tools)
+      return formatAnalysisResult(summary.orchestrator_summary)
     }
 
-    const caller = buildCaller(callerName, { endpoint })
-    const newHistory = await caller(messages)
-    const responseBlocks = newHistory.slice(messages.length)
-    return formatAnalysisResult(extractText(responseBlocks))
+    const text = await runExpertFreeform(askExpert.expert, askExpert.task ?? null, messages)
+    return formatAnalysisResult(text)
   }
 }
 
@@ -285,6 +282,8 @@ If blocked: call abort with reason`
     files,
     sectionContent: section.content,
     sectionFile: section.file,
+    sectionIndex: section.indexInFile,
+    totalSections: section.totalInFile,
   }))
 }
 

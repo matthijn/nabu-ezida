@@ -1,0 +1,43 @@
+{
+  "files": {
+    "data.json": "[{\"file\":\"a.md\",\"json\":{\"tags\":[\"codebook\",\"review\"]}},{\"file\":\"b.md\",\"json\":{\"tags\":[\"notes\"]}},{\"file\":\"c.md\",\"json\":{\"tags\":null}},{\"file\":\"d.md\",\"json\":{}}]"
+  },
+  "args": {
+    "commands": [
+      "jq \"[.[] | select(.json.tags and (.json.tags|index(\\\"codebook\\\")))] | map(.file)\" data.json",
+      "jq \"[.[] | select(.json.tags or .json.name)]\" data.json",
+      "jq \"[1,2,3] | index(2)\" data.json"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "[\n  \"a.md\"\n]",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "[\n  {\n    \"file\": \"a.md\",\n    \"json\": {\n      \"tags\": [\n        \"codebook\",\n        \"review\"\n      ]\n    }\n  },\n  {\n    \"file\": \"b.md\",\n    \"json\": {\n      \"tags\": [\n        \"notes\"\n      ]\n    }\n  }\n]",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "1",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "mutations": [],
+    "message": "All commands completed successfully."
+  }
+}

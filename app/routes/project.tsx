@@ -11,6 +11,7 @@ import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 import { buildSpotlightUrl } from "~/domain/spotlight/url"
 import { createWebSocket, applyCommand } from "~/lib/sync"
+import { setProjectId } from "~/lib/files"
 import { getAnnotationCount } from "~/lib/files/selectors"
 
 type SidebarDocument = {
@@ -120,16 +121,20 @@ export default function ProjectLayout() {
 
   useEffect(() => {
     if (!params.projectId) return
+    setProjectId(params.projectId)
 
     const connection = createWebSocket(params.projectId, {
       onCommand: applyCommand,
     })
 
-    return () => connection.close()
+    return () => {
+      connection.close()
+      setProjectId(null)
+    }
   }, [params.projectId])
 
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
-  const fileImport = useFileImport(params.projectId)
+  const fileImport = useFileImport()
 
   const fileNames = Object.keys(files).filter((f) => debugExpanded || !isHiddenFile(f))
 

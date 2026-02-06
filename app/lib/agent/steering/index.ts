@@ -1,6 +1,7 @@
 import type { Block } from "../types"
+import type { Files } from "../derived"
 import type { MultiNudger } from "./nudge-tools"
-import { nudge } from "./nudges"
+import { createNudge } from "./nudges"
 
 export {
   type Nudger,
@@ -17,4 +18,7 @@ export {
 const excludeReasoning = (history: Block[]): Block[] =>
   history.filter((b) => b.type !== "reasoning")
 
-export const toNudge: MultiNudger = (history, files) => nudge(excludeReasoning(history), files)
+export const createToNudge = (getFiles: () => Files): MultiNudger => {
+  const nudge = createNudge(getFiles)
+  return (history) => nudge(excludeReasoning(history))
+}

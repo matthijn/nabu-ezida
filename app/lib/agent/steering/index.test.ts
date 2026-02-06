@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { toNudge } from "./index"
+import { createToNudge } from "./index"
 import type { Block } from "../types"
+import type { Files } from "../derived"
 import {
   createPlanCall,
   completeStepCall,
@@ -12,6 +13,8 @@ import {
 } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
+
+const createTestNudge = (files: Files = {}) => createToNudge(() => files)
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
 const manyActions = (count: number): Block[] =>
@@ -38,7 +41,7 @@ const extractContent = (blocks: Block[]): string[] =>
 
 const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n")
 
-describe("toNudge", () => {
+describe("createToNudge", () => {
   const cases: TestCase[] = [
     // After tool_result during orientation
     {
@@ -180,7 +183,8 @@ describe("toNudge", () => {
 
   cases.forEach(({ name, history, files = {}, expect: expectation }) => {
     it(name, async () => {
-      const result = await toNudge(history, files)
+      const toNudge = createTestNudge(files)
+      const result = await toNudge(history)
       const nudge = joinNudges(result)
       const content = extractContent(result)
       switch (expectation.type) {

@@ -1,7 +1,7 @@
-import { updateFileRaw, deleteFile, renameFile, getFileRaw, applyFilePatch } from "~/lib/files"
+import { updateFileRaw, deleteFile, renameFile, getFileRaw, applyFilePatch, withoutPersist } from "~/lib/files"
 import type { Command } from "./types"
 
-export const applyCommand = (command: Command): void => {
+const applyCommandInner = (command: Command): void => {
   const { action, path, content, diff, newPath } = command
 
   if (!path) return
@@ -42,6 +42,9 @@ export const applyCommand = (command: Command): void => {
       break
   }
 }
+
+export const applyCommand = (command: Command): void =>
+  withoutPersist(() => applyCommandInner(command))
 
 const applyCreateFile = (path: string, diff: string): void => {
   const result = applyFilePatch(path, "", diff, { skipCodeValidation: true })

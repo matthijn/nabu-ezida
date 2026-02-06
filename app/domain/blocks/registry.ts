@@ -52,7 +52,7 @@ const validateAnnotations = (
       errors.push({
         block: "json-attributes",
         field: "annotations",
-        message: `Text "${annotation.text}" not found in document. Use exact text from the document. If unsure, use FUZZY[approximate text] for fuzzy matching (e.g. "text": "FUZZY[somthing like this]").`,
+        message: `Text "${annotation.text}" not found in document. Use exact text from the document. If unsure, use FUZZY[[approximate text]] for fuzzy matching (e.g. "text": "FUZZY[[somthing like this]]").`,
       })
     }
 
@@ -93,6 +93,7 @@ const jsonAttributes = defineBlock({
   constraints: [
     "annotations: each entry requires either 'color' or 'code', not both",
     "annotations.text: must be exact text from the document prose",
+    "annotations.pending: set by expert tools only, never set manually",
   ],
   renderer: "hidden",
   singleton: true,

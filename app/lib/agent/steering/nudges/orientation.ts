@@ -1,11 +1,11 @@
 import { buildToolNudge, systemNudge, type Nudger, type NudgeBlock } from "../nudge-tools"
-import type { DerivedOrientation, Finding } from "../../derived"
+import type { DerivedOrientation, Finding, Files } from "../../derived"
 import { derive, hasActiveOrientation, actionsSinceOrientationChange } from "../../derived"
 
 const STUCK_LIMIT = 30
 
-export const orientationNudge: Nudger = (history, files) => {
-  const d = derive(history, files)
+export const createOrientationNudge = (getFiles: () => Files): Nudger => (history) => {
+  const d = derive(history, getFiles())
   if (!hasActiveOrientation(d.orientation)) return null
 
   const actions = actionsSinceOrientationChange(history)

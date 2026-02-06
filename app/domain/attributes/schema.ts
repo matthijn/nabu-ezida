@@ -27,7 +27,11 @@ const AnnotationBase = z.object({
 })
 
 export const AnnotationSchema = AnnotationBase
-  .extend({ status: z.enum(["accepted", "rejected", "resolved-locally", "merged"]).optional() })
+  .extend({
+    id: z.string().optional(),
+    status: z.enum(["accepted", "rejected", "resolved-locally", "merged"]).optional(),
+    pending: z.enum(["pending_change", "pending_deletion"]).optional(),
+  })
   .refine(colorOrCodeRefinement, colorOrCodeMessage)
 
 export const AnnotationSuggestionSchema = AnnotationBase

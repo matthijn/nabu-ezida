@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import type { Block } from "../../../types"
-import { nudge } from "../index"
+import { createNudge } from "../index"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -26,11 +26,12 @@ const runScenario = async (name: string): Promise<{ actual: Block[]; expected: B
   const files = readFilesJson(`${basePath}.files.json`)
   const expected = readJson<Block[]>(`${basePath}.expected.json`)
 
+  const nudge = createNudge(() => files)
   const history: Block[] = []
   for (const block of input) {
     history.push(block)
     if (shouldNudge(block)) {
-      const nudgeBlocks = await nudge(history, files)
+      const nudgeBlocks = await nudge(history)
       for (const n of nudgeBlocks) {
         history.push(n)
       }

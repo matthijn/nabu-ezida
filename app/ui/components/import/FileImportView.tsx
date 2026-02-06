@@ -1,13 +1,11 @@
 "use client"
 
 import React from "react"
-import { useParams } from "react-router"
 import { DropZone } from "./DropZone"
 import { FileImportList } from "./FileImportList"
 import { useFileImport } from "~/hooks/useFileImport"
 
 export const FileImportView = () => {
-  const { projectId } = useParams<{ projectId: string }>()
   const {
     files,
     hasFiles,
@@ -16,7 +14,7 @@ export const FileImportView = () => {
     progress,
     dismiss,
     dragHandlers,
-  } = useFileImport(projectId)
+  } = useFileImport()
 
   return (
     <div

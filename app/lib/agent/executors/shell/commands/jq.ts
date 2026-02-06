@@ -137,6 +137,36 @@ const parseFilter = (expr: string): Filter => {
     }
   }
 
+  // Logical or
+  {
+    const parts = splitOnWord(expr, "or")
+    if (parts.length > 1) {
+      const filters = parts.map(parseFilter)
+      return (v) => {
+        for (const f of filters) {
+          const result = f(v)[0]
+          if (result !== null && result !== false && result !== undefined) return [true]
+        }
+        return [false]
+      }
+    }
+  }
+
+  // Logical and
+  {
+    const parts = splitOnWord(expr, "and")
+    if (parts.length > 1) {
+      const filters = parts.map(parseFilter)
+      return (v) => {
+        for (const f of filters) {
+          const result = f(v)[0]
+          if (result === null || result === false || result === undefined) return [false]
+        }
+        return [true]
+      }
+    }
+  }
+
   // Array construction [expr] or [expr, expr, ...]
   if (expr.startsWith("[") && expr.endsWith("]")) {
     const inner = expr.slice(1, -1).trim()
@@ -290,6 +320,24 @@ const parseFilter = (expr: string): Filter => {
     return (v) => [isObject(v) && key in v]
   }
 
+  // index(expr)
+  const indexMatch = expr.match(/^index\((.+)\)$/)
+  if (indexMatch) {
+    const searchFilter = parseFilter(indexMatch[1])
+    return (v) => {
+      const needle = searchFilter(v)[0]
+      if (isArray(v)) {
+        const idx = v.findIndex((item) => JSON.stringify(item) === JSON.stringify(needle))
+        return [idx >= 0 ? idx : null]
+      }
+      if (typeof v === "string" && typeof needle === "string") {
+        const idx = v.indexOf(needle)
+        return [idx >= 0 ? idx : null]
+      }
+      return [null]
+    }
+  }
+
   throw new Error(`Unknown filter: ${expr}`)
 }
 
@@ -348,6 +396,30 @@ const splitByChar = (expr: string, sep: string): string[] => {
 const splitPipe = (expr: string): string[] => splitByChar(expr, "|")
 const splitObjectFields = (expr: string): string[] => splitByChar(expr, ",")
 
+const splitOnWord = (expr: string, word: string): string[] => {
+  const parts: string[] = []
+  let depth = 0
+  let current = ""
+  let i = 0
+  const sep = ` ${word} `
+
+  while (i < expr.length) {
+    const char = expr[i]
+    if (char === "(" || char === "[" || char === "{") depth++
+    else if (char === ")" || char === "]" || char === "}") depth--
+    else if (depth === 0 && expr.slice(i, i + sep.length) === sep) {
+      parts.push(current.trim())
+      current = ""
+      i += sep.length
+      continue
+    }
+    current += char
+    i++
+  }
+  parts.push(current.trim())
+  return parts
+}
+
 const splitAlt = (expr: string): string[] => {
   const parts: string[] = []
   let depth = 0
@@ -372,7 +444,7 @@ const splitAlt = (expr: string): string[] => {
 }
 
 export const jq = command({
-  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Parens: (expr). Functions: map, select, has, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
+  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Logic: and, or, not. Parens: (expr). Functions: map, select, has, index, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
   usage: `jq [-r] [-c] <filter> [file]
   jq ".[].title" data.json
   jq ".[] | select(.type == \\"code\\")" data.json

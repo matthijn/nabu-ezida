@@ -1,5 +1,5 @@
 import type { Block, ToolDeps } from "~/lib/agent"
-import { createToolExecutor, blocksToMessages, toNudge, isEmptyNudgeBlock } from "~/lib/agent"
+import { createToolExecutor, blocksToMessages, createToNudge, isEmptyNudgeBlock } from "~/lib/agent"
 import { getToolDefinitions } from "~/lib/agent/executors/tool"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { buildCaller } from "~/lib/agent/caller"
@@ -9,6 +9,8 @@ import { getFiles } from "~/lib/files"
 
 export type RunnerDeps = ToolDeps
 
+const toNudge = createToNudge(getFiles)
+
 let controller: AbortController | null = null
 
 export const run = async (deps: RunnerDeps = {}): Promise<void> => {
@@ -16,7 +18,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   if (!chat) return
   if (chat.loading) return
 
-  const nudges = await toNudge(chat.history, getFiles())
+  const nudges = await toNudge(chat.history)
   if (nudges.length === 0) {
     controller = null
     return

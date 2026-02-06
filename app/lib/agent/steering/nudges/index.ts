@@ -1,11 +1,13 @@
+import type { Files } from "../../derived"
+import type { MultiNudger } from "../nudge-tools"
 import { combine, collect } from "../nudge-tools"
-import { orientationNudge, orientationStartNudge } from "./orientation"
-import { planNudge } from "./plan"
+import { createOrientationNudge, orientationStartNudge } from "./orientation"
+import { createPlanNudge } from "./plan"
 import { baselineNudge } from "./baseline"
-import { memoryNudge } from "./memory"
 import { shellNudge, grepNudge } from "./shell"
 import { toneNudge } from "./tone"
 
-const orchestrationNudge = combine(orientationNudge, planNudge, baselineNudge)
-
-export const nudge = collect(orchestrationNudge, /*memoryNudge,*/ shellNudge, grepNudge, orientationStartNudge, toneNudge)
+export const createNudge = (getFiles: () => Files): MultiNudger => {
+  const orchestrationNudge = combine(createOrientationNudge(getFiles), createPlanNudge(getFiles), baselineNudge)
+  return collect(orchestrationNudge, shellNudge, grepNudge, orientationStartNudge, toneNudge)
+}

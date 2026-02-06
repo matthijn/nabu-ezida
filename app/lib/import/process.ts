@@ -1,6 +1,5 @@
 import { generateDiff } from "~/lib/diff"
 import { applyFilePatch, updateFileRaw, getFiles } from "~/lib/files"
-import { sendCommand, type Command } from "~/lib/sync"
 import { deduplicateName } from "./dedupe"
 import { readFileContent, isMarkdownFile } from "./read"
 import type { ImportFile, ImportStatus } from "./types"
@@ -38,15 +37,9 @@ const injectTags = (content: string, tags: string[]): string => {
 
 const getExistingNames = (): Set<string> => new Set(Object.keys(getFiles()))
 
-const writeFileOnServer = (projectId: string, path: string, content: string): void => {
-  const command: Command = { action: "WriteFile", path, content }
-  sendCommand(projectId, command).catch(() => {})
-}
-
 const processMarkdownFile = (
   file: File,
   content: string,
-  projectId: string | undefined,
   tags: string[]
 ): ProcessResult => {
   const existingNames = getExistingNames()
@@ -62,16 +55,11 @@ const processMarkdownFile = (
 
   updateFileRaw(result.path, result.content)
 
-  if (projectId) {
-    writeFileOnServer(projectId, finalPath, result.content)
-  }
-
   return { status: "completed", finalPath }
 }
 
 export const processFile = async (
   file: File,
-  projectId: string | undefined,
   onStatus: StatusCallback,
   tags: string[] = []
 ): Promise<void> => {
@@ -93,7 +81,7 @@ export const processFile = async (
 
   onStatus(id, "processing")
 
-  const processResult = processMarkdownFile(file, readResult.content, projectId, tags)
+  const processResult = processMarkdownFile(file, readResult.content, tags)
 
   onStatus(id, processResult.status, {
     error: processResult.error,
@@ -105,10 +93,9 @@ type FileWithTags = { file: File; tags: string[] }
 
 export const processFiles = async (
   files: FileWithTags[],
-  projectId: string | undefined,
   onStatus: StatusCallback
 ): Promise<void> => {
   for (const { file, tags } of files) {
-    await processFile(file, projectId, onStatus, tags)
+    await processFile(file, onStatus, tags)
   }
 }

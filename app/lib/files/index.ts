@@ -12,6 +12,8 @@ export {
   deleteFile,
   renameFile,
   subscribe,
+  setProjectId,
+  withoutPersist,
 } from "./store"
 
 export {

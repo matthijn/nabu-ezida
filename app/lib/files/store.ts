@@ -1,5 +1,7 @@
 import { getCodebook as computeCodebook, type Codebook } from "./selectors"
 import { stripPending, markPending, resolvePending, getAllDefinitions, findPending, findDefinitionIds } from "./pending"
+import { debounce, createScopedDebounce } from "~/lib/utils"
+import { sendCommand } from "~/lib/sync/commands"
 
 type Files = Record<string, string>
 type Listener = () => void
@@ -8,11 +10,45 @@ let files: Files = {}
 let currentFile: string | null = null
 const listeners = new Set<Listener>()
 
-// Memoized selectors - cache invalidated on files change
 let cachedFiles: Files | null = null
 let cachedCodebook: Codebook | undefined
 
 const notify = (): void => listeners.forEach((l) => l())
+const debouncedNotify = debounce(notify, 80, { maxWait: 400 })
+
+let projectId: string | null = null
+let persistSuppressed = false
+const persistDebounce = createScopedDebounce(500)
+
+export const setProjectId = (id: string | null): void => { projectId = id }
+
+export const withoutPersist = <T>(fn: () => T): T => {
+  persistSuppressed = true
+  try { return fn() }
+  finally { persistSuppressed = false }
+}
+
+const persistWrite = (path: string): void => {
+  if (!projectId || persistSuppressed) return
+  const pid = projectId
+  persistDebounce.call(path, async () => {
+    const content = files[path]
+    if (content === undefined) return
+    await sendCommand(pid, { action: "WriteFile", path, content })
+  })
+}
+
+const persistDeleteCommand = (path: string): void => {
+  if (!projectId || persistSuppressed) return
+  persistDebounce.cancel(path)
+  sendCommand(projectId, { action: "DeleteFile", path }).catch(() => {})
+}
+
+const persistRenameCommand = (oldPath: string, newPath: string): void => {
+  if (!projectId || persistSuppressed) return
+  persistDebounce.cancel(oldPath)
+  sendCommand(projectId, { action: "RenameFile", path: oldPath, newPath }).catch(() => {})
+}
 
 export const getFiles = (): Files => files
 
@@ -60,7 +96,7 @@ export const updateFileRaw = (filename: string, raw: string): void => {
 
   const newDefinitions = findDefinitionIds(raw)
   let updatedFiles: Files = { ...files, [filename]: marked }
-  let resolvedCount = 0
+  const resolvedPaths: string[] = []
 
   for (const defId of newDefinitions) {
     for (const [path, content] of Object.entries(updatedFiles)) {
@@ -69,17 +105,19 @@ export const updateFileRaw = (filename: string, raw: string): void => {
       if (pending.includes(defId)) {
         const resolved = resolvePending(content, defId)
         updatedFiles = { ...updatedFiles, [path]: resolved }
-        resolvedCount++
+        resolvedPaths.push(path)
       }
     }
   }
 
-  if (resolvedCount > 0) {
-    console.debug(`[store] resolved ${resolvedCount} pending refs`)
+  if (resolvedPaths.length > 0) {
+    console.debug(`[store] resolved ${resolvedPaths.length} pending refs`)
   }
 
   files = updatedFiles
-  notify()
+  persistWrite(filename)
+  for (const path of resolvedPaths) persistWrite(path)
+  debouncedNotify()
 }
 
 export const deleteFile = (filename: string): void => {
@@ -89,6 +127,7 @@ export const deleteFile = (filename: string): void => {
   if (currentFile === filename) {
     currentFile = null
   }
+  persistDeleteCommand(filename)
   notify()
 }
 
@@ -103,6 +142,7 @@ export const renameFile = (oldName: string, newName: string): void => {
   if (currentFile === oldName) {
     currentFile = newName
   }
+  persistRenameCommand(oldName, newName)
   notify()
 }
 

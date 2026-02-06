@@ -19,7 +19,7 @@ const createImportFile = (file: File): ImportFile => ({
   status: isMarkdownFile(file.name) ? "pending" : "unsupported",
 })
 
-export const useFileImport = (projectId: string | undefined) => {
+export const useFileImport = () => {
   const [state, setState] = useState<ImportState>(initialState)
   const [isDragging, setIsDragging] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -71,7 +71,7 @@ export const useFileImport = (projectId: string | undefined) => {
       const markdownFiles = filesWithPath
         .filter(({ file }) => isMarkdownFile(file.name))
         .map(({ file, pathTags }) => ({ file, tags: pathTags }))
-      await processFiles(markdownFiles, projectId, updateFileStatus)
+      await processFiles(markdownFiles, updateFileStatus)
 
       setState((prev) =>
         produce(prev, (draft) => {
@@ -79,7 +79,7 @@ export const useFileImport = (projectId: string | undefined) => {
         })
       )
     },
-    [projectId, updateFileStatus]
+    [updateFileStatus]
   )
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {

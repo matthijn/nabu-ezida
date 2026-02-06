@@ -3,6 +3,7 @@ import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes"
 import type { Annotation } from "~/domain/document/annotations"
 import { blockTypes } from "~/domain/blocks/registry"
 import { findSingletonBlock, findBlocksByLanguage, type CalloutBlock } from "~/domain/blocks"
+import { createCappedCache } from "~/lib/utils"
 
 type BlockTypeMap = {
   "json-attributes": DocumentMeta
@@ -14,7 +15,7 @@ type BlockLanguage = keyof BlockTypeMap
 type Code = { id: string; name: string; color: string; detail: string }
 export type Codebook = { categories: { name: string; codes: Code[] }[] }
 
-const cache = new Map<string, unknown>()
+const cache = createCappedCache<string, unknown>(100)
 
 const cacheKey = (language: string, content: string): string =>
   `${language}:${content}`
@@ -115,6 +116,7 @@ const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): 
   color: resolveAnnotationColor(files, stored),
   reason: stored.reason,
   code: stored.code,
+  pending: stored.pending,
 })
 
 export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>

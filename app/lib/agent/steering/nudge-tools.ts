@@ -1,5 +1,4 @@
 import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
-import type { Files } from "../derived"
 
 export type NudgeBlock = {
   type: "system" | "empty"
@@ -7,9 +6,9 @@ export type NudgeBlock = {
   context?: () => Promise<string>
 }
 
-export type Nudger = (history: Block[], files: Files) => NudgeBlock | null
+export type Nudger = (history: Block[]) => NudgeBlock | null
 
-export type MultiNudger = (history: Block[], files: Files) => Promise<Block[]>
+export type MultiNudger = (history: Block[]) => Promise<Block[]>
 
 export const systemNudge = (content: string): NudgeBlock => ({ type: "system", content })
 
@@ -82,16 +81,16 @@ export const firedWithin = (history: Block[], marker: string, n: number): boolea
   return since <= n
 }
 
-export const combine = (...nudgers: Nudger[]): Nudger => (history, files) => {
+export const combine = (...nudgers: Nudger[]): Nudger => (history) => {
   for (const nudger of nudgers) {
-    const result = nudger(history, files)
+    const result = nudger(history)
     if (result !== null) return result
   }
   return null
 }
 
-export const collect = (...nudgers: Nudger[]): MultiNudger => async (history, files) => {
-  const results = filterNonNull(nudgers.map((n) => n(history, files)))
+export const collect = (...nudgers: Nudger[]): MultiNudger => async (history) => {
+  const results = filterNonNull(nudgers.map((n) => n(history)))
   return Promise.all(results.map(resolveNudge))
 }
 
@@ -99,8 +98,8 @@ const getNudgeMarker = (nudge: NudgeBlock): string => nudge.content
 
 export const withCooldown =
   (n: number, nudger: Nudger): Nudger =>
-  (history, files) => {
-    const result = nudger(history, files)
+  (history) => {
+    const result = nudger(history)
     if (result === null) return null
     if (firedWithin(history, getNudgeMarker(result), n)) return null
     return result

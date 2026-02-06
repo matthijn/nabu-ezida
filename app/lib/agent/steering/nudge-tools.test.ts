@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { collect, systemNudge, type Nudger } from "./nudge-tools"
-import { planNudge } from "./nudges/plan"
+import { createPlanNudge } from "./nudges/plan"
 import { createPlanCall, resetCallIdCounter } from "../test-helpers"
 import type { Block, SystemBlock } from "../types"
 
@@ -56,7 +56,8 @@ describe("planNudge with askExpert", () => {
 
   cases.forEach(({ name, history, files: testFiles, expectContext, expectPlaceholder }) => {
     it(name, () => {
-      const nudge = planNudge(history, testFiles)
+      const planNudge = createPlanNudge(() => testFiles)
+      const nudge = planNudge(history)
 
       expect(nudge).not.toBeNull()
       if (!nudge) return
@@ -78,7 +79,6 @@ describe("planNudge with askExpert", () => {
 
 describe("collect error handling", () => {
   const emptyHistory: Block[] = []
-  const emptyFiles: Record<string, string> = {}
 
   type TestCase = {
     name: string
@@ -127,7 +127,7 @@ describe("collect error handling", () => {
   cases.forEach(({ name, nudgers, expectErrorMessage, expectSystemBlock }) => {
     it(name, async () => {
       const multiNudger = collect(...nudgers)
-      const result = await multiNudger(emptyHistory, emptyFiles)
+      const result = await multiNudger(emptyHistory)
 
       if (expectErrorMessage) {
         const errorBlock = result.filter(isSystemBlock).find((b) => b.content.includes("nudge context error"))
