@@ -320,6 +320,13 @@ const parseFilter = (expr: string): Filter => {
     return (v) => [isObject(v) && key in v]
   }
 
+  // test("regex")
+  const testMatch = expr.match(/^test\(["'](.+)["']\)$/)
+  if (testMatch) {
+    const re = new RegExp(testMatch[1])
+    return (v) => [typeof v === "string" && re.test(v)]
+  }
+
   // index(expr)
   const indexMatch = expr.match(/^index\((.+)\)$/)
   if (indexMatch) {
@@ -444,7 +451,7 @@ const splitAlt = (expr: string): string[] => {
 }
 
 export const jq = command({
-  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Logic: and, or, not. Parens: (expr). Functions: map, select, has, index, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
+  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Logic: and, or, not. Parens: (expr). Functions: map, select, has, test, index, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
   usage: `jq [-r] [-c] <filter> [file]
   jq ".[].title" data.json
   jq ".[] | select(.type == \\"code\\")" data.json

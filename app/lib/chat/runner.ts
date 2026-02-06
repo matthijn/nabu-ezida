@@ -11,6 +11,12 @@ export type RunnerDeps = ToolDeps
 
 const toNudge = createToNudge(getFiles)
 
+const hasToolError = (blocks: Block[]): boolean =>
+  blocks.some((b) =>
+    b.type === "tool_result" &&
+    ((b.result as { status?: string })?.status === "error" ||
+     (b.result as { status?: string })?.status === "partial"))
+
 let controller: AbortController | null = null
 let paused = false
 
@@ -72,7 +78,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
     const history = await caller(current.history, controller.signal)
 
     updateChat({ history, streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
-    if (paused) return
+    if (paused && hasToolError(history.slice(current.history.length))) return
     run(deps)
   } catch (e) {
     controller = null

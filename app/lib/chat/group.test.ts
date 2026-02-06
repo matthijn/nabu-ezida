@@ -1,13 +1,11 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type PlanGroup, type SectionGroup } from "./group"
+import { toGroupedMessages, type GroupedMessage, type PlanGroup, type PlanStep, type PlanSection } from "./group"
 import {
   createPlanCall,
   completeStepCall,
   abortCall,
-  orientateCall,
-  reorientCall,
   resetCallIdCounter,
   userBlock,
   textBlock,
@@ -19,8 +17,10 @@ const group = (history: Block[], files = {}): GroupedMessage[] =>
   toGroupedMessages(history, derive(history, files))
 
 const isPlanGroup = (m: GroupedMessage): m is PlanGroup => m.type === "plan-group"
-const isSectionGroup = (child: unknown): child is SectionGroup =>
-  (child as SectionGroup).type === "section-group"
+const isPlanStep = (child: unknown): child is PlanStep =>
+  (child as PlanStep).type === "plan-step"
+const isPlanSection = (child: unknown): child is PlanSection =>
+  (child as PlanSection).type === "plan-section"
 
 describe("toGroupedMessages", () => {
   describe("no plan", () => {
@@ -51,7 +51,7 @@ describe("toGroupedMessages", () => {
   describe("simple plan (no sections)", () => {
     const cases = [
       {
-        name: "messages within plan range grouped into PlanGroup",
+        name: "plan group contains steps and messages interleaved",
         history: [
           userBlock("Help me"),
           ...createPlanCall("Build feature", ["Design", "Implement"]),
@@ -67,12 +67,16 @@ describe("toGroupedMessages", () => {
             expect(result[1].task).toBe("Build feature")
             expect(result[1].completed).toBe(false)
             expect(result[1].aborted).toBe(false)
-            expect(result[1].children).toHaveLength(2)
+            const steps = result[1].children.filter(isPlanStep)
+            expect(steps).toHaveLength(2)
+            expect(steps[0].status).toBe("completed")
+            expect(steps[0].summary).toBe("Designed")
+            expect(steps[1].status).toBe("active")
           }
         },
       },
       {
-        name: "completed plan has completed flag",
+        name: "completed plan has completed flag and all steps completed",
         history: [
           ...createPlanCall("Task", ["Step 1"]),
           ...completeStepCall("Done"),
@@ -82,11 +86,13 @@ describe("toGroupedMessages", () => {
           if (isPlanGroup(result[0])) {
             expect(result[0].completed).toBe(true)
             expect(result[0].aborted).toBe(false)
+            const steps = result[0].children.filter(isPlanStep)
+            expect(steps[0].status).toBe("completed")
           }
         },
       },
       {
-        name: "aborted plan has aborted flag",
+        name: "aborted plan has aborted flag and cancelled step",
         history: [
           ...createPlanCall("Task", ["Step 1", "Step 2"]),
           ...abortCall(),
@@ -96,6 +102,9 @@ describe("toGroupedMessages", () => {
           if (isPlanGroup(result[0])) {
             expect(result[0].aborted).toBe(true)
             expect(result[0].completed).toBe(false)
+            const steps = result[0].children.filter(isPlanStep)
+            expect(steps[0].status).toBe("cancelled")
+            expect(steps[1].status).toBe("pending")
           }
         },
       },
@@ -109,7 +118,7 @@ describe("toGroupedMessages", () => {
   describe("messages before and after plan", () => {
     const cases = [
       {
-        name: "messages before plan are leaves, messages after plan start are grouped",
+        name: "messages before plan are leaves, messages after plan start are in group",
         history: [
           userBlock("Before plan"),
           textBlock("Response before"),
@@ -124,7 +133,8 @@ describe("toGroupedMessages", () => {
           expect(result[1].type).toBe("text")
           expect(isPlanGroup(result[2])).toBe(true)
           if (isPlanGroup(result[2])) {
-            expect(result[2].children).toHaveLength(2)
+            const texts = result[2].children.filter((c) => c.type === "text")
+            expect(texts).toHaveLength(2)
           }
         },
       },
@@ -142,7 +152,8 @@ describe("toGroupedMessages", () => {
           expect(isPlanGroup(result[1])).toBe(true)
           if (isPlanGroup(result[0])) {
             expect(result[0].task).toBe("First")
-            expect(result[0].children).toHaveLength(1)
+            const texts = result[0].children.filter((c) => c.type === "text")
+            expect(texts).toHaveLength(1)
           }
           if (isPlanGroup(result[1])) {
             expect(result[1].task).toBe("Second")
@@ -176,8 +187,6 @@ describe("toGroupedMessages", () => {
             expect(result[0].aborted).toBe(true)
             expect(result[1].task).toBe("Second task")
             expect(result[1].aborted).toBe(false)
-            expect(result[0].children).toHaveLength(1)
-            expect(result[1].children).toHaveLength(1)
           }
         },
       },
@@ -191,7 +200,7 @@ describe("toGroupedMessages", () => {
   describe("plan with sections", () => {
     const cases = [
       {
-        name: "messages assigned to correct sections",
+        name: "per-section plan has section labels and inner steps",
         history: [
           ...createPlanCall(
             "Process files",
@@ -211,8 +220,10 @@ describe("toGroupedMessages", () => {
           expect(result).toHaveLength(1)
           expect(isPlanGroup(result[0])).toBe(true)
           if (isPlanGroup(result[0])) {
-            const sectionChildren = result[0].children.filter(isSectionGroup)
-            expect(sectionChildren.length).toBeGreaterThanOrEqual(1)
+            const sections = result[0].children.filter(isPlanSection)
+            expect(sections.length).toBeGreaterThanOrEqual(1)
+            const steps = result[0].children.filter(isPlanStep)
+            expect(steps.length).toBeGreaterThanOrEqual(2)
           }
         },
       },

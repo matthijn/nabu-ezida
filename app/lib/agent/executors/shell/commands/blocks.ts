@@ -5,18 +5,18 @@ type BlockResult = { file: string; block: unknown }
 
 export const blocks = command({
   description: "Extract JSON from fenced code blocks (e.g. json-callout, json-attributes). Returns array.",
-  details: `Output: Without -f: [{...block}, ...]. With -f: [{file:"path", json:{...block}}, ...].
-Example: blocks -f json-callout doc.md | jq ".[0].json.title" or jq ".[] | select(.json.type==\"code\")"`,
-  usage: "blocks [-f] <language> [file-pattern]\n  blocks json-callout doc.md | jq \".[0].title\"\n  blocks -f json-callout \"*.md\" | jq \".[].json.annotations\"",
+  details: `Output: Without -p: [{...block}, ...]. With -p: [{file:"path", json:{...block}}, ...].
+Example: blocks json-callout -p doc.md | jq ".[0].json.title" or jq ".[] | select(.json.type==\"code\")"`,
+  usage: "blocks <language> [-p] [file-pattern]\n  blocks json-callout doc.md | jq \".[0].title\"\n  blocks json-callout -p \"*.md\" | jq \".[].json.annotations\"",
   flags: {
-    "-f": { alias: "--files", description: "wrap output as {file, json} for cross-file queries" },
+    "-p": { alias: "--paths", description: "wrap output as {file, json} for cross-file queries" },
   },
   handler: (files) => (args, flags) => {
     const [language, rawPattern] = args
     if (!language) return err("blocks: missing language argument")
 
     const pattern = normalizePath(rawPattern)
-    const includeFiles = flags.has("-f")
+    const includeFiles = flags.has("-p")
     const results: BlockResult[] = []
 
     const processFile = (filePath: string, content: string) => {

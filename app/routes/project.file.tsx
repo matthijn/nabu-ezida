@@ -35,7 +35,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, togglePauseAfterTool, getFileTags } = useProject()
+  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, togglePauseOnError, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
@@ -74,7 +74,7 @@ export default function ProjectFile() {
         onTogglePersist={togglePersistToServer}
         onToggleRenderJson={toggleRenderAsJson}
         onToggleStreamPanel={toggleStreamPanel}
-        onTogglePauseAfterTool={togglePauseAfterTool}
+        onTogglePauseOnError={togglePauseOnError}
         onCopyRaw={copyRawMarkdown}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },

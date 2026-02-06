@@ -4,8 +4,11 @@ import { getLabelKey, getIdPaths, type IdPathConfig } from "./registry"
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([a-zA-Z0-9_-]+)\]/g
 const TRAILING_NUMBER_REGEX = /-\d+$/
 
-const generateShortId = (): string =>
-  Math.random().toString(36).substring(2, 10)
+const generateShortId = (): string => {
+  const digit = Math.floor(Math.random() * 10).toString()
+  const rest = Math.random().toString(36).substring(2, 9)
+  return digit + rest
+}
 
 const extractPrefix = (name: string): string =>
   name.replace(TRAILING_NUMBER_REGEX, "")

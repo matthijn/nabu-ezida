@@ -45,6 +45,7 @@ export type AskExpertConfig = {
   expert: string
   task?: string
   using: string
+  instructions?: string
 }
 
 export type DerivedPlan = {

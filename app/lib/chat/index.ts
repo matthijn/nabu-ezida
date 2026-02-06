@@ -19,11 +19,12 @@ export {
   toGroupedMessages,
   type GroupedMessage,
   type PlanGroup,
-  type SectionGroup,
+  type PlanChild,
+  type PlanStep,
+  type PlanSection,
+  type StepStatus,
   type LeafMessage,
 } from "./group"
-
-export { getPlanStatus, type PlanStatus } from "./plan-status"
 
 export { useChat } from "./useChat"
 export { getSpinnerLabel } from "./spinnerLabel"

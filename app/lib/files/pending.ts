@@ -7,7 +7,8 @@
  */
 
 const PENDING_PATTERN = /#\[([^\]]+)\]/g
-const ID_PATTERN = /[a-z]+_[a-z0-9]{8}/g
+const ID_SOURCE = "[a-z]+_\\d[a-z0-9]{7}"
+const ID_PATTERN = new RegExp(ID_SOURCE, "g")
 
 export const stripPending = (content: string): string =>
   content.replace(PENDING_PATTERN, "$1")
@@ -37,7 +38,7 @@ const findAllIds = (content: string): string[] => {
 
 export const findDefinitionIds = (content: string): Set<string> => {
   const ids = new Set<string>()
-  const pattern = /"id"\s*:\s*"([a-z]+_[a-z0-9]{8})"/g
+  const pattern = new RegExp(`"id"\\s*:\\s*"(${ID_SOURCE})"`, "g")
   let match
   while ((match = pattern.exec(content)) !== null) {
     ids.add(match[1])

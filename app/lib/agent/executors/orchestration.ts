@@ -19,6 +19,7 @@ const AskExpertPlan = z.object({
   expert: z.string().min(1).describe("Specialist type (e.g., qualitative-researcher)"),
   task: z.string().optional().describe("Specific task (e.g., code) - omit for freeform"),
   using: z.string().min(1).describe("Shell command to get framework/context"),
+  instructions: z.string().optional().describe("Extra guidance for the expert (e.g., focus areas, constraints)"),
 })
 
 const CreatePlanArgs = z.object({

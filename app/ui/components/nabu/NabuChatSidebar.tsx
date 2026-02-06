@@ -3,7 +3,18 @@
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
 import { useNavigate, useParams } from "react-router"
 import Markdown, { type Components } from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherRefreshCw, FeatherX } from "@subframe/core"
+import {
+  FeatherArrowRight,
+  FeatherCheck,
+  FeatherCircle,
+  FeatherLightbulb,
+  FeatherLoader2,
+  FeatherMinus,
+  FeatherRefreshCw,
+  FeatherSend,
+  FeatherSparkles,
+  FeatherX,
+} from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -12,13 +23,12 @@ import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type LeafMessage, type SectionGroup, type PlanGroup } from "~/lib/chat/group"
-import { getPlanStatus } from "~/lib/chat/plan-status"
+import type { DerivedOrientation, Finding } from "~/lib/agent"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanGroup, type PlanChild, type PlanStep, type PlanSection, type StepStatus } from "~/lib/chat/group"
+import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
-import { OrientationCard } from "~/ui/components/ai/OrientationCard"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
-import { StatusBar } from "~/ui/components/ai/StatusBar"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
@@ -94,8 +104,18 @@ const ParticipantAvatar = ({ participant, size = "x-small" }: ParticipantAvatarP
   )
 
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex w-full justify-end">
-    <div className="max-w-[80%] rounded-lg bg-brand-100 px-3 py-2">
+  <div className="flex w-full items-end justify-end">
+    <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-4 py-2 shadow-sm max-w-[80%]">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:underline">
+        {children}
+      </div>
+    </div>
+  </div>
+)
+
+const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex w-full items-start">
+    <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-4 py-2 max-w-[80%]">
       <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
         {children}
       </div>
@@ -103,26 +123,63 @@ const UserBubble = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
-const AssistantText = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex w-full">
-    <div className="rounded-lg bg-neutral-50 px-3 py-3">
-      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-        {children}
-      </div>
-    </div>
-  </div>
-)
-
-type SectionLabelProps = {
-  file: string
-  indexInFile: number
-  totalInFile: number
+const stepIcons: Record<StepStatus, React.ReactNode> = {
+  completed: <FeatherCheck className="text-body font-body text-success-600 mt-0.5 flex-none" />,
+  active: <FeatherCircle className="text-body font-body text-brand-600 mt-0.5 flex-none" />,
+  pending: <FeatherCircle className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
+  cancelled: <FeatherX className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
 }
 
-const SectionLabel = ({ file, indexInFile, totalInFile }: SectionLabelProps) => (
-  <div className="text-caption font-caption text-subtext-color mb-1">
-    Processing <span className="font-medium text-default-font">{file}</span>
-    {totalInFile > 1 && <span className="text-neutral-400"> · {indexInFile} of {totalInFile}</span>}
+const stepTextStyles: Record<StepStatus, string> = {
+  completed: "text-body font-body text-default-font",
+  active: "text-body font-body text-default-font",
+  pending: "text-body font-body text-neutral-400",
+  cancelled: "text-body font-body text-neutral-400",
+}
+
+const PlanStepRow = ({ step }: { step: PlanStep }) => (
+  <div className="flex w-full items-start gap-2">
+    {stepIcons[step.status]}
+    <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
+      <span className={stepTextStyles[step.status]}>{step.description}</span>
+      {step.summary && (
+        <span className="text-body font-body text-subtext-color">{step.summary}</span>
+      )}
+    </div>
+  </div>
+)
+
+const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
+  <span className="text-body-bold font-body-bold text-subtext-color">
+    {section.file}
+    {section.totalInFile > 1 && <span className="text-neutral-400"> · {section.indexInFile} of {section.totalInFile}</span>}
+  </span>
+)
+
+const findingToRows = (finding: Finding): React.ReactNode[] => [
+  <div key={`d-${finding.direction}`} className="flex w-full items-start gap-2">
+    <FeatherArrowRight className="text-body font-body text-neutral-400 mt-0.5 flex-none" />
+    <span className="text-body font-body text-default-font">{finding.direction}</span>
+  </div>,
+  <div key={`l-${finding.learned}`} className="flex w-full items-start gap-2">
+    <FeatherLightbulb className="text-body font-body text-brand-600 mt-0.5 flex-none" />
+    <span className="text-body font-body text-default-font">{finding.learned}</span>
+  </div>,
+]
+
+const ExploreContainer = ({ orientation, aborted }: { orientation: DerivedOrientation; aborted: boolean }) => (
+  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
+    <span className="text-body-bold font-body-bold text-default-font">
+      {orientation.question}
+    </span>
+    {orientation.findings.flatMap(findingToRows)}
+    {orientation.currentDirection && !aborted && (
+      <div className="flex w-full items-start gap-2">
+        <FeatherLoader2 className="text-body font-body text-brand-600 animate-spin mt-0.5 flex-none" />
+        <span className="text-body font-body text-brand-700">{orientation.currentDirection}</span>
+      </div>
+    )}
+    {aborted && <AbortBox />}
   </div>
 )
 
@@ -143,33 +200,73 @@ const LeafRenderer = ({ message, projectId, navigate }: LeafRendererProps) => {
         )
       }
       return (
-        <AssistantText>
+        <AssistantBubble>
           <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
-        </AssistantText>
+        </AssistantBubble>
       )
     case "orientation":
       return (
-        <OrientationCard
+        <ExploreContainer
           orientation={message.orientation}
           aborted={message.aborted}
-          projectId={projectId}
-          navigate={navigate}
         />
       )
   }
 }
 
-type SectionGroupRendererProps = {
-  group: SectionGroup
+const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
+const isPlanSection = (child: PlanChild): child is PlanSection => child.type === "plan-section"
+const isLeafMessage = (child: PlanChild): child is LeafMessage =>
+  child.type === "text" || child.type === "orientation"
+
+type PlanChildRendererProps = {
+  child: PlanChild
+  projectId: string | null
+  navigate?: (url: string) => void
+  nested?: boolean
+}
+
+const PlanChildRenderer = ({ child, projectId, navigate, nested }: PlanChildRendererProps) => {
+  if (isPlanStep(child)) return <PlanStepRow step={child} />
+  if (isPlanSection(child)) return <PlanSectionLabel section={child} />
+  if (isLeafMessage(child)) {
+    if (child.type === "text" && child.role === "user") {
+      return (
+        <div className="flex w-full items-end justify-end">
+          <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
+            <span className="text-body font-body text-default-font">{child.content}</span>
+          </div>
+        </div>
+      )
+    }
+    if (child.type === "text") {
+      return (
+        <div className="flex w-full items-start">
+          <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
+            <span className="text-body font-body text-default-font">{child.content}</span>
+          </div>
+        </div>
+      )
+    }
+    return <LeafRenderer message={child} projectId={projectId} navigate={navigate} />
+  }
+  return null
+}
+
+const isSectionStart = (child: PlanChild): child is PlanSection => child.type === "plan-section"
+
+type SectionBlockProps = {
+  section: PlanSection
+  children: PlanChild[]
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const SectionGroupRenderer = ({ group, projectId, navigate }: SectionGroupRendererProps) => (
-  <div className="border-l-2 border-neutral-200 pl-2 space-y-3">
-    <SectionLabel file={group.file} indexInFile={group.indexInFile} totalInFile={group.totalInFile} />
-    {group.messages.map((msg, i) => (
-      <LeafRenderer key={i} message={msg} projectId={projectId} navigate={navigate} />
+const SectionBlock = ({ section, children, projectId, navigate }: SectionBlockProps) => (
+  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2">
+    <PlanSectionLabel section={section} />
+    {children.map((child, i) => (
+      <PlanChildRenderer key={i} child={child} projectId={projectId} navigate={navigate} nested />
     ))}
   </div>
 )
@@ -180,18 +277,64 @@ type PlanGroupRendererProps = {
   navigate?: (url: string) => void
 }
 
-const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProps) => (
-  <div className="border-l-2 border-brand-200 pl-3 space-y-3">
-    <span className="text-caption font-caption text-brand-600">{group.task}</span>
-    {group.children.map((child, i) =>
-      child.type === "section-group"
-        ? <SectionGroupRenderer key={i} group={child} projectId={projectId} navigate={navigate} />
-        : <LeafRenderer key={i} message={child} projectId={projectId} navigate={navigate} />
-    )}
-    {group.completed && <span className="text-caption text-success-600">Completed</span>}
-    {group.aborted && <AbortBox />}
-  </div>
-)
+const groupSectionChildren = (children: PlanChild[]): { type: "section"; section: PlanSection; children: PlanChild[] }[] | null => {
+  const firstSectionIdx = children.findIndex(isSectionStart)
+  if (firstSectionIdx === -1) return null
+
+  const sections: { type: "section"; section: PlanSection; children: PlanChild[] }[] = []
+  let current: { section: PlanSection; children: PlanChild[] } | null = null
+
+  for (let i = firstSectionIdx; i < children.length; i++) {
+    const child = children[i]
+    if (isSectionStart(child)) {
+      if (current) sections.push({ type: "section", ...current })
+      current = { section: child, children: [] }
+    } else if (current) {
+      const nextSection = children.slice(i + 1).findIndex(isSectionStart)
+      const isStillInSection = isPlanStep(child) || isLeafMessage(child)
+      if (isStillInSection) {
+        current.children.push(child)
+      } else {
+        break
+      }
+    }
+  }
+  if (current) sections.push({ type: "section", ...current })
+  return sections.length > 0 ? sections : null
+}
+
+const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProps) => {
+  const sectionGroups = groupSectionChildren(group.children)
+  const firstSectionIdx = group.children.findIndex(isSectionStart)
+  const lastSectionEndIdx = sectionGroups
+    ? group.children.lastIndexOf(sectionGroups.at(-1)!.children.at(-1)!)
+    : -1
+
+  const before = firstSectionIdx === -1 ? group.children : group.children.slice(0, firstSectionIdx)
+  const after = sectionGroups
+    ? group.children.slice(lastSectionEndIdx + 1).filter((c) => !isSectionStart(c))
+    : []
+
+  return (
+    <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
+      <span className="text-body-bold font-body-bold text-default-font">
+        {group.task}
+      </span>
+      {before.map((child, i) => (
+        <PlanChildRenderer key={`b-${i}`} child={child} projectId={projectId} navigate={navigate} />
+      ))}
+      {sectionGroups?.map((sg, i) => (
+        <SectionBlock key={`s-${i}`} section={sg.section} projectId={projectId} navigate={navigate}>
+          {sg.children}
+        </SectionBlock>
+      ))}
+      {after.map((child, i) => (
+        <PlanChildRenderer key={`a-${i}`} child={child} projectId={projectId} navigate={navigate} />
+      ))}
+      {group.aborted && <AbortBox />}
+    </div>
+  )
+}
 
 type GroupedMessageRendererProps = {
   message: GroupedMessage
@@ -225,6 +368,26 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
+const getFirstLine = (text: string): string | null => {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+  const firstLine = trimmed.split("\n")[0]
+  return firstLine.replace(/^\*\*|\*\*$/g, "").trim() || null
+}
+
+type LoadingBubbleProps = {
+  label: string
+}
+
+const LoadingBubble = ({ label }: LoadingBubbleProps) => (
+  <div className="flex w-full items-start">
+    <div className="flex items-center gap-2 rounded-2xl bg-neutral-100 px-4 py-2">
+      <FeatherLoader2 className="text-body text-brand-600 flex-none animate-spin" />
+      <span className="text-body font-body text-subtext-color">{label}</span>
+    </div>
+  </div>
+)
+
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat, chatWidth, chatHeight, setChatSize } = useNabu()
   const navigate = useNavigate()
@@ -239,7 +402,6 @@ export const NabuChatSidebar = () => {
 
   const derived = useMemo(() => derive(history, files), [history, files])
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
-  const planStatus = useMemo(() => getPlanStatus(derived), [derived])
 
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -259,10 +421,10 @@ export const NabuChatSidebar = () => {
   }, [chat])
 
   const handleSend = useCallback(() => {
-    if (!inputValue.trim()) return
+    if (loading || !inputValue.trim()) return
     send(inputValue.trim(), getDeps())
     setInputValue("")
-  }, [inputValue, send, getDeps])
+  }, [loading, inputValue, send, getDeps])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -287,11 +449,15 @@ export const NabuChatSidebar = () => {
 
   const { recipient } = chat
   const streamingText = streaming ? filterCodeBlocks(streaming) : null
+  const reasoningLabel = getFirstLine(streamingReasoning)
+  const spinnerLabel = loading && !streamingText
+    ? (reasoningLabel ?? getSpinnerLabel(history, streamingToolName))
+    : null
 
   return (
     <div
       style={{ right: position.x, bottom: position.y, width: size.width, height: size.height }}
-      className="fixed z-50 flex flex-col rounded-lg border border-solid border-brand-300 bg-default-background shadow-xl"
+      className="fixed z-50 flex flex-col rounded-xl border border-solid border-neutral-border bg-white shadow-lg overflow-hidden"
     >
       <div
         onMouseDown={handleResizeMouseDown}
@@ -299,7 +465,7 @@ export const NabuChatSidebar = () => {
       />
       <div
         onMouseDown={handleMouseDown}
-        className="flex w-full cursor-move items-center justify-between rounded-t-lg bg-brand-50 px-4 py-3"
+        className="flex w-full cursor-move items-center justify-between border-b border-solid border-neutral-border bg-white px-4 py-3"
       >
         <div className="flex items-center gap-2">
           <ParticipantAvatar participant={recipient} size="small" />
@@ -315,9 +481,9 @@ export const NabuChatSidebar = () => {
         />
       </div>
 
-      <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 py-3">
+      <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
         {messages.length === 0 && !loading && (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center">
             <span className="text-body font-body text-subtext-color">How can I help you today?</span>
           </div>
         )}
@@ -330,10 +496,11 @@ export const NabuChatSidebar = () => {
           />
         ))}
         {loading && streamingText && (
-          <AssistantText>
+          <AssistantBubble>
             <MessageContent content={streamingText} projectId={null} navigate={navigate} />
-          </AssistantText>
+          </AssistantBubble>
         )}
+        {spinnerLabel && <LoadingBubble label={spinnerLabel} />}
         {error && (
           <div className="flex flex-col items-center gap-2 py-4">
             <span className="text-body font-body text-subtext-color">{error}</span>
@@ -344,15 +511,7 @@ export const NabuChatSidebar = () => {
         )}
       </AutoScroll>
 
-      <StatusBar
-        planStatus={planStatus}
-        loading={loading}
-        history={history}
-        streamingReasoning={streamingReasoning}
-        streamingToolName={streamingToolName}
-      />
-
-      <div className="flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3">
+      <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading ? "bg-neutral-50" : ""}`}>
         <TextFieldUnstyled className="grow min-h-5">
           <TextFieldUnstyled.Textarea
             ref={inputRef}
@@ -360,7 +519,6 @@ export const NabuChatSidebar = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={loading}
           />
         </TextFieldUnstyled>
         {loading ? (

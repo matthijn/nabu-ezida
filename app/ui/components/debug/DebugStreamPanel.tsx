@@ -274,12 +274,11 @@ const filterByName = (entries: ObservationEntry[], name: string): ObservationEnt
 const countByName = (entries: ObservationEntry[], name: string): number =>
   entries.filter((e) => e.name === name).length
 
-const isEntryStreaming = (entry: ObservationEntry): boolean =>
-  (entry.streaming != null && entry.streaming !== "") ||
-  (entry.streamingReasoning != null && entry.streamingReasoning !== "")
+const isEntryActive = (entry: ObservationEntry): boolean =>
+  entry.streaming != null || entry.streamingReasoning != null
 
-const hasStreamingEntry = (entries: ObservationEntry[], name: string): boolean =>
-  entries.some((e) => e.name === name && isEntryStreaming(e))
+const hasActiveEntry = (entries: ObservationEntry[], name: string): boolean =>
+  entries.some((e) => e.name === name && isEntryActive(e))
 
 type ObservationListProps = {
   entries: ObservationEntry[]
@@ -323,7 +322,7 @@ const ObservationList = ({ entries }: ObservationListProps) => (
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 350, y: 16 })
-  const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
+  const { history, loading, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
   const observationEntries = useObservationHistory()
   const [copiedAll, setCopiedAll] = useState(false)
   const [activeTab, setActiveTab] = useState(CONVERSE_TAB)
@@ -371,11 +370,11 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
       </div>
 
       <div className="flex gap-1 px-3 pt-2 bg-neutral-100 border-b border-neutral-300 overflow-x-auto">
-        <TabButton active={isConverse} onClick={() => setActiveTab(CONVERSE_TAB)} count={history.length}>
+        <TabButton active={isConverse} onClick={() => setActiveTab(CONVERSE_TAB)} count={history.length} streaming={loading}>
           Converse
         </TabButton>
         {callerNames.map((name) => (
-          <TabButton key={name} active={activeTab === name} onClick={() => setActiveTab(name)} count={countByName(observationEntries, name)} streaming={hasStreamingEntry(observationEntries, name)}>
+          <TabButton key={name} active={activeTab === name} onClick={() => setActiveTab(name)} count={countByName(observationEntries, name)} streaming={hasActiveEntry(observationEntries, name)}>
             {name}
           </TabButton>
         ))}

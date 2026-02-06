@@ -28,15 +28,19 @@ type CallArgs = {
   task: string | null
   context: string
   content: string
+  instructions?: string
 }
 
 type CallResult =
   | { result: string }
   | { error: string }
 
-const buildMessages = (context: string, content: string): Block[] => [
+const appendInstructions = (content: string, instructions?: string): string =>
+  instructions ? `${content}\n\n<instructions>\n${instructions}\n</instructions>` : content
+
+const buildMessages = (context: string, content: string, instructions?: string): Block[] => [
   { type: "system", content: context },
-  { type: "user", content },
+  { type: "user", content: appendInstructions(content, instructions) },
 ]
 
 const buildEndpoint = (expert: string, task?: string): string =>
@@ -45,7 +49,7 @@ const buildEndpoint = (expert: string, task?: string): string =>
 const buildCallerName = (expert: string, task: string | null): string =>
   task ? `${expert}/${task}` : expert
 
-const CONTINUE_MARKER = "Continue your analysis. When finished, call summarize_expertise."
+const CONTINUE_MARKER = "Have you completed your objective? If not, continue working. If yes, call summarize_expertise."
 
 const CONTINUE_BLOCK: Block = { type: "system", content: CONTINUE_MARKER }
 
@@ -96,18 +100,18 @@ export const runExpertFreeform = async (expert: string, task: string | null, mes
 }
 
 const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
-  async ({ expert, task, context, content }) => {
+  async ({ expert, task, context, content, instructions }) => {
     try {
-      const summary = await runExpertWithTools(expert, task, buildMessages(context, content), tools)
+      const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions), tools)
       return { result: summary.display_summary }
     } catch (e) {
       return { error: e instanceof Error ? e.message : String(e) }
     }
   }
 
-const callFreeform: TaskDef["call"] = async ({ expert, task, context, content }) => {
+const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, instructions }) => {
   try {
-    return { result: await runExpertFreeform(expert, task, buildMessages(context, content)) }
+    return { result: await runExpertFreeform(expert, task, buildMessages(context, content, instructions)) }
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) }
   }
@@ -178,6 +182,7 @@ const AskExpertArgs = z.object({
   task: TaskEnum.optional().describe("Specific task (omit for freeform response)"),
   using: z.string().min(1).describe("Shell command to get framework/context"),
   about: z.string().min(1).describe("Shell command to get content to analyze"),
+  instructions: z.string().optional().describe("Extra guidance for the expert (e.g., focus areas, constraints)"),
 })
 
 export const askExpert = registerTool(
@@ -193,7 +198,7 @@ Args:
 
 ${generateExpertDocs()}`,
     schema: AskExpertArgs,
-    handler: async (files, { expert, task, using, about }) => {
+    handler: async (files, { expert, task, using, about, instructions }) => {
       const { error: validationError, taskDef } = getExpertTask(expert, task)
       if (validationError) return err(validationError)
 
@@ -209,6 +214,7 @@ ${generateExpertDocs()}`,
         task: task ?? null,
         context: contextResult.output!,
         content: contentResult.output!,
+        instructions,
       })
 
       if ("error" in callResult) return err(callResult.error)
@@ -220,4 +226,4 @@ ${generateExpertDocs()}`,
 const getTaskTools = (expert: string, task?: string): ToolDefinition[] | null =>
   experts[expert]?.tasks[task ?? ""]?.tools ?? null
 
-export { experts, generateExpertDocs, getExpertTask, getTaskTools }
+export { experts, generateExpertDocs, getExpertTask, getTaskTools, appendInstructions }

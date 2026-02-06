@@ -8,7 +8,7 @@ import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { getCodeMapping } from "~/lib/files/selectors"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 import { createShell } from "../../executors/shell/shell"
-import { getTaskTools, runExpertWithTools, runExpertFreeform } from "../../executors/ask-expert"
+import { getTaskTools, runExpertWithTools, runExpertFreeform, appendInstructions } from "../../executors/ask-expert"
 
 const STUCK_LIMIT = 10
 
@@ -216,7 +216,7 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) 
       throw new Error(`Failed to resolve framework: ${askExpert.using}`)
     }
 
-    const content = buildExpertContent(input)
+    const content = appendInstructions(buildExpertContent(input), askExpert.instructions)
     const messages: Block[] = [
       { type: "system", content: framework },
       { type: "user", content },
@@ -271,13 +271,13 @@ INSTRUCTIONS:
 
 If blocked: call abort with reason`
 
-  const nudge = systemNudge(content)
+  const isFirstInnerStep = stepIndex === ps.firstInnerStepIndex
 
-  if (!plan.askExpert) {
+  if (!plan.askExpert || !isFirstInnerStep) {
     return systemNudge(content.replace("{context}", ""))
   }
 
-  return withContext(nudge, createAskExpertContext({
+  return withContext(systemNudge(content), createAskExpertContext({
     askExpert: plan.askExpert,
     files,
     sectionContent: section.content,

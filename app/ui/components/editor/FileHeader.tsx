@@ -25,7 +25,7 @@ type DebugOptions = {
   persistToServer: boolean
   renderAsJson: boolean
   showStreamPanel: boolean
-  pauseAfterTool: boolean
+  pauseOnError: boolean
 }
 
 type FileHeaderProps = {
@@ -39,7 +39,7 @@ type FileHeaderProps = {
   onTogglePersist?: () => void
   onToggleRenderJson?: () => void
   onToggleStreamPanel?: () => void
-  onTogglePauseAfterTool?: () => void
+  onTogglePauseOnError?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
@@ -57,7 +57,7 @@ export const FileHeader = ({
   onTogglePersist,
   onToggleRenderJson,
   onToggleStreamPanel,
-  onTogglePauseAfterTool,
+  onTogglePauseOnError,
   onCopyRaw,
   menuItems = [],
   onAddTag,
@@ -125,12 +125,12 @@ export const FileHeader = ({
             onClick={onToggleStreamPanel}
           />
         )}
-        {debugExpanded && onTogglePauseAfterTool && (
+        {debugExpanded && onTogglePauseOnError && (
           <IconButton
-            variant={debugOptions?.pauseAfterTool ? "brand-primary" : "neutral-tertiary"}
+            variant={debugOptions?.pauseOnError ? "brand-primary" : "neutral-tertiary"}
             size="small"
             icon={<FeatherPauseCircle />}
-            onClick={onTogglePauseAfterTool}
+            onClick={onTogglePauseOnError}
           />
         )}
         {debugExpanded && onCopyRaw && (

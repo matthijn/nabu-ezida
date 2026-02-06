@@ -12,5 +12,6 @@ export default [
     route("documents3", "routes/designs.documents3.tsx"),
     route("codes2", "routes/designs.codes2.tsx"),
     route("inbox", "routes/designs.inbox.tsx"),
+    route("chat", "routes/designs.chat.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -5,12 +5,12 @@
     {
       "action": "add",
       "path": "doc.md",
-      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_notfound\"}]}"
+      "content": "{\"annotations\": [{\"text\": \"test\", \"code\": \"callout_1otfound\"}]}"
     },
     {
       "action": "check",
       "path": "doc.md",
-      "contains": "#[callout_notfound]"
+      "contains": "#[callout_1otfound]"
     }
   ]
 }

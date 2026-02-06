@@ -5,7 +5,7 @@ export type CodeBlock = {
   end: number
 }
 
-const CODE_BLOCK_REGEX = /```(\S+)\n([\s\S]*?)```/g
+const CODE_BLOCK_REGEX = /```(\S+)[ \t]*\r?\n([\s\S]*?)```/g
 
 export const parseCodeBlocks = (markdown: string): CodeBlock[] => {
   const blocks: CodeBlock[] = []

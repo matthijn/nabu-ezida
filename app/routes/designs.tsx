@@ -27,6 +27,9 @@ export default function DesignsLayout() {
         <NavLink to="/designs/inbox" className={navLinkClass}>
           Inbox
         </NavLink>
+        <NavLink to="/designs/chat" className={navLinkClass}>
+          Chat
+        </NavLink>
       </nav>
       <div className="flex-1 overflow-auto">
         <Outlet />
