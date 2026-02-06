@@ -1,0 +1,6 @@
+[
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "orientate", "args": { "question": "What is X?", "direction": "Look it up" }}]},
+  { "type": "tool_result", "callId": "1", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "reorient", "args": { "learned": "Found the answer", "decision": "answer" }}]},
+  { "type": "tool_result", "callId": "2", "result": {} }
+]

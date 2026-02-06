@@ -2,16 +2,22 @@ import type { Block } from "../../types"
 import type { Nudger, NudgeBlock } from "../nudge-tools"
 import { systemNudge, withContext } from "../nudge-tools"
 import type { DerivedPlan, Step, Section, SectionResult, Files, AskExpertConfig } from "../../derived"
-import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
+import { derive, lastPlan, hasActivePlan, actionsSinceStepChange, isPlanPaused } from "../../derived"
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { getCodeMapping } from "~/lib/files/selectors"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 import { createShell } from "../../executors/shell/shell"
+import { buildCaller, buildTypedCaller } from "../../caller"
+import { getExpertSchema } from "../../executors/ask-expert"
+import { extractText } from "../../stream"
 
 const STUCK_LIMIT = 10
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]
+
+const isNudgeTrigger = (block: Block | undefined): boolean =>
+  block?.type === "user" || block?.type === "tool_result"
 
 export const planNudge: Nudger = (history, files) => {
   const d = derive(history, files)
@@ -19,6 +25,10 @@ export const planNudge: Nudger = (history, files) => {
   if (!plan) return null
 
   if (hasActivePlan(d.plans)) {
+    if (isPlanPaused(history)) {
+      if (isNudgeTrigger(lastBlock(history))) return buildPausedPlanNudge(plan, plan.currentStep!)
+      return null
+    }
     const actions = actionsSinceStepChange(history)
     if (actions > STUCK_LIMIT) return null
     if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)
@@ -195,37 +205,34 @@ const resolveShellCommand = (files: Files, command: string): string | null => {
 const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) => {
   const { askExpert, files } = input
   return async () => {
-    // Resolve the "using" shell command to get framework content
     const framework = resolveShellCommand(files, askExpert.using)
     if (!framework) {
       throw new Error(`Failed to resolve framework: ${askExpert.using}`)
     }
 
     const content = buildExpertContent(input)
-
-    // Build endpoint path
     const endpoint = askExpert.task
       ? `/ask-expert/${askExpert.expert}/${askExpert.task}`
       : `/ask-expert/${askExpert.expert}`
+    const callerName = askExpert.task ? `${askExpert.expert}/${askExpert.task}` : askExpert.expert
 
-    // Dynamic import to avoid circular dependency
-    const { prompt } = await import("../../stream")
-    const { getExpertSchema } = await import("../../executors/ask-expert")
-
-    const messages = [
-      { type: "system" as const, content: framework },
-      { type: "user" as const, content },
+    const messages: Block[] = [
+      { type: "system", content: framework },
+      { type: "user", content },
     ]
 
     const schema = getExpertSchema(askExpert.expert, askExpert.task)
     if (schema) {
-      const result = await prompt({ endpoint, messages, schema })
-      return formatAnalysisResult(JSON.stringify(result, null, 2))
+      const typed = buildTypedCaller(callerName, { endpoint }, schema)
+      const out = await typed(messages)
+      if ("error" in out) throw new Error(out.error)
+      return formatAnalysisResult(JSON.stringify(out.result, null, 2))
     }
 
-    const blocks = await prompt({ endpoint, messages })
-    const textBlock = blocks.find((b) => b.type === "text")
-    return formatAnalysisResult(textBlock?.type === "text" ? textBlock.content : "")
+    const caller = buildCaller(callerName, { endpoint })
+    const newHistory = await caller(messages)
+    const responseBlocks = newHistory.slice(messages.length)
+    return formatAnalysisResult(extractText(responseBlocks))
   }
 }
 
@@ -311,6 +318,17 @@ const buildPlanCompletedNudge = (plan: DerivedPlan): NudgeBlock =>
 ${formatPlanResults(plan)}
 
 Summarize what was accomplished. Do NOT call any tools.`)
+
+const buildPausedPlanNudge = (plan: DerivedPlan, stepIndex: number): NudgeBlock => {
+  const current = plan.steps[stepIndex]
+  return systemNudge(`PLAN PAUSED — Step ${current.id}: ${current.description}
+Expected: "${current.expected}"
+
+You are currently in a paused plan. Did you gather enough info?
+- Continue executing the current step
+- Collect more info (keep conversing)
+- Call abort to stop the plan`)
+}
 
 const buildStuckNudge = (plan: DerivedPlan, stepIndex: number): NudgeBlock =>
   systemNudge(`STUCK ON STEP ${plan.steps[stepIndex].id}: ${plan.steps[stepIndex].description}

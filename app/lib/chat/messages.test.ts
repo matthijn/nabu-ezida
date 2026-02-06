@@ -5,8 +5,8 @@ import {
   createPlanCall,
   completeStepCall,
   abortCall,
-  startExplorationCall,
-  explorationStepCall,
+  orientateCall,
+  reorientCall,
   resetCallIdCounter,
 } from "~/lib/agent/test-helpers"
 
@@ -161,69 +161,69 @@ describe("toRenderMessages", () => {
     })
   })
 
-  describe("exploration messages", () => {
+  describe("orientation messages", () => {
     const cases = [
       {
-        name: "start_exploration renders as exploration message",
-        history: [...startExplorationCall("How does X work?", "Check docs")],
+        name: "orientate renders as orientation message",
+        history: [...orientateCall("How does X work?", "Check docs")],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
-          expect(messages[0].type).toBe("exploration")
-          if (messages[0].type === "exploration") {
-            expect(messages[0].exploration.question).toBe("How does X work?")
-            expect(messages[0].exploration.currentDirection).toBe("Check docs")
-            expect(messages[0].exploration.findings).toHaveLength(0)
+          expect(messages[0].type).toBe("orientation")
+          if (messages[0].type === "orientation") {
+            expect(messages[0].orientation.question).toBe("How does X work?")
+            expect(messages[0].orientation.currentDirection).toBe("Check docs")
+            expect(messages[0].orientation.findings).toHaveLength(0)
             expect(messages[0].aborted).toBe(false)
           }
         },
       },
       {
-        name: "exploration_step adds findings",
+        name: "reorient adds findings",
         history: [
-          ...startExplorationCall("Question", "Look at A"),
-          ...explorationStepCall("ctx:a", "Found info about A", "continue", "Look at B"),
-          ...explorationStepCall("ctx:b", "Found info about B", "continue", "Look at C"),
+          ...orientateCall("Question", "Look at A"),
+          ...reorientCall("ctx:a", "Found info about A", "continue", "Look at B"),
+          ...reorientCall("ctx:b", "Found info about B", "continue", "Look at C"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
-          if (messages[0].type === "exploration") {
-            expect(messages[0].exploration.findings).toHaveLength(2)
-            expect(messages[0].exploration.findings[0].learned).toBe("Found info about A")
-            expect(messages[0].exploration.findings[1].learned).toBe("Found info about B")
-            expect(messages[0].exploration.currentDirection).toBe("Look at C")
+          if (messages[0].type === "orientation") {
+            expect(messages[0].orientation.findings).toHaveLength(2)
+            expect(messages[0].orientation.findings[0].learned).toBe("Found info about A")
+            expect(messages[0].orientation.findings[1].learned).toBe("Found info about B")
+            expect(messages[0].orientation.currentDirection).toBe("Look at C")
           }
         },
       },
       {
-        name: "exploration with answer decision renders as completed",
+        name: "orientation with answer decision renders as completed",
         history: [
-          ...startExplorationCall("Question"),
-          ...explorationStepCall("ctx:done", "Found the answer", "answer"),
+          ...orientateCall("Question"),
+          ...reorientCall("ctx:done", "Found the answer", "answer"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
-          if (messages[0].type === "exploration") {
+          if (messages[0].type === "orientation") {
             expect(messages[0].completed).toBe(true)
-            expect(messages[0].exploration.findings).toHaveLength(1)
+            expect(messages[0].orientation.findings).toHaveLength(1)
           }
         },
       },
       {
-        name: "exploration with plan decision renders as completed",
+        name: "orientation with plan decision renders as completed",
         history: [
-          ...startExplorationCall("Question"),
-          ...explorationStepCall("ctx:ready", "Ready to plan", "plan"),
+          ...orientateCall("Question"),
+          ...reorientCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
-          if (messages[0].type === "exploration") {
+          if (messages[0].type === "orientation") {
             expect(messages[0].completed).toBe(true)
           }
         },
       },
       {
-        name: "aborted exploration does not render",
-        history: [...startExplorationCall("Question"), ...abortCall()],
+        name: "aborted orientation does not render",
+        history: [...orientateCall("Question"), ...abortCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(0)
         },
@@ -252,16 +252,16 @@ describe("toRenderMessages", () => {
         },
       },
       {
-        name: "exploration followed by plan",
+        name: "orientation followed by plan",
         history: [
-          ...startExplorationCall("What should we do?"),
-          ...explorationStepCall("ctx:approach", "Found approach", "plan"),
+          ...orientateCall("What should we do?"),
+          ...reorientCall("ctx:approach", "Found approach", "plan"),
           ...createPlanCall("Execute approach", ["Do it"]),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(2)
-          expect(messages[0].type).toBe("exploration")
-          if (messages[0].type === "exploration") {
+          expect(messages[0].type).toBe("orientation")
+          if (messages[0].type === "orientation") {
             expect(messages[0].completed).toBe(true)
           }
           expect(messages[1].type).toBe("plan")

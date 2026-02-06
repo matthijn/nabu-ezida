@@ -2,7 +2,8 @@ import { z } from "zod"
 import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
-import { getToolDefinitions } from "./executors"
+import type { ToolDefinition } from "./executors/tool"
+import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 
 type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
@@ -123,13 +124,6 @@ const stateToBlocks = (state: ParseState): Block[] => {
   return blocks
 }
 
-export type ParseOptions = {
-  endpoint: string
-  messages: InputItem[]
-  callbacks?: ParseCallbacks
-  signal?: AbortSignal
-}
-
 const RETRYABLE_STATUS = [429, 502, 503]
 const MAX_RETRIES = 3
 
@@ -214,68 +208,108 @@ const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Pr
   return blocks
 }
 
-export const parse = async (options: ParseOptions): Promise<Block[]> => {
-  const { endpoint, messages, callbacks = {}, signal } = options
-  const response = await fetchWithRetry({
-    url: `${getLlmHost()}${endpoint}`,
-    body: JSON.stringify({ messages, tools: getToolDefinitions() }),
-    signal,
-  })
-  return streamToBlocks(response, callbacks)
+type ResponseFormat = {
+  type: "json_schema"
+  json_schema: {
+    name: string
+    schema: unknown
+    strict: boolean
+  }
 }
 
-type PromptOptionsBase = {
-  endpoint: string
-  messages?: Block[]
-  callbacks?: ParseCallbacks
-  signal?: AbortSignal
+const isObjectWithProperties = (s: Record<string, unknown>): boolean =>
+  s.type === "object" && typeof s.properties === "object" && s.properties !== null
+
+export const toStrictSchema = (schema: unknown): unknown => {
+  if (typeof schema !== "object" || schema === null) return schema
+  const { $schema: _, ...s } = schema as Record<string, unknown>
+
+  if (s.type === "array" && s.items) {
+    return { ...s, items: toStrictSchema(s.items) }
+  }
+
+  if (isObjectWithProperties(s)) {
+    const properties = s.properties as Record<string, unknown>
+    const originalRequired = new Set(Array.isArray(s.required) ? (s.required as string[]) : [])
+    const allKeys = Object.keys(properties)
+
+    const wrapOptional = (key: string, prop: unknown): unknown =>
+      originalRequired.has(key) ? prop : { anyOf: [prop, { type: "null" }] }
+
+    const strictProperties = Object.fromEntries(
+      allKeys.map((key) => [key, wrapOptional(key, toStrictSchema(properties[key]))])
+    )
+
+    return { ...s, properties: strictProperties, required: allKeys, additionalProperties: false }
+  }
+
+  for (const key of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(s[key])) {
+      return { ...s, [key]: (s[key] as unknown[]).map(toStrictSchema) }
+    }
+  }
+
+  return s
 }
 
-export type PromptOptions = PromptOptionsBase & { schema?: undefined }
-export type PromptOptionsWithSchema<T extends z.ZodType> = PromptOptionsBase & { schema: T }
-
-const toResponseFormat = <T extends z.ZodType>(schema: T) => ({
-  type: "json_schema" as const,
+export const toResponseFormat = <T extends z.ZodType>(schema: T): ResponseFormat => ({
+  type: "json_schema",
   json_schema: {
     name: "response",
-    schema: schema.toJSONSchema(),
+    schema: toStrictSchema(schema.toJSONSchema()),
     strict: true,
   },
 })
 
-const extractText = (blocks: Block[]): string => {
-  const textBlock = blocks.find((b) => b.type === "text")
-  return textBlock?.type === "text" ? textBlock.content : ""
+export type CallLlmOptions = {
+  endpoint: string
+  messages: InputItem[]
+  tools?: ToolDefinition[]
+  blockSchemas?: BlockSchemaDefinition[]
+  responseFormat?: ResponseFormat
+  callbacks?: ParseCallbacks
+  signal?: AbortSignal
 }
 
-export function prompt(options: PromptOptions): Promise<Block[]>
-export function prompt<T extends z.ZodType>(options: PromptOptionsWithSchema<T>): Promise<z.infer<T>>
-export async function prompt<T extends z.ZodType>(
-  options: PromptOptions | PromptOptionsWithSchema<T>
-): Promise<Block[] | z.infer<T>> {
-  const { endpoint, messages = [], callbacks = {}, signal, schema } = options as PromptOptionsWithSchema<T>
+const formatBlockSchema = (s: BlockSchemaDefinition): string => {
+  const traits = [s.singleton ? "singleton" : "multiple"]
+  if (s.immutable.length > 0) traits.push(`immutable: ${s.immutable.join(", ")}`)
+  const header = `### ${s.language} (${traits.join("; ")})`
+  const schema = JSON.stringify(s.jsonSchema, null, 2)
+  const constraints = s.constraints.length > 0
+    ? `\nConstraints:\n${s.constraints.map((c) => `- ${c}`).join("\n")}`
+    : ""
+  return `${header}\n${schema}${constraints}`
+}
 
-  const body = schema
-    ? { messages: blocksToMessages(messages), response_format: toResponseFormat(schema) }
-    : { messages: blocksToMessages(messages) }
+const formatBlockSchemas = (schemas: BlockSchemaDefinition[]): InputItem => ({
+  type: "message",
+  role: "system",
+  content: `Document block schemas for patch_json_block and remove_block:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`,
+})
 
+const buildRequestBody = (options: CallLlmOptions): string => {
+  const messages = options.blockSchemas?.length
+    ? [...options.messages, formatBlockSchemas(options.blockSchemas)]
+    : options.messages
+  const body: Record<string, unknown> = { messages }
+  if (options.tools) body.tools = options.tools
+  if (options.responseFormat) body.response_format = options.responseFormat
+  return JSON.stringify(body)
+}
+
+export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   const response = await fetchWithRetry({
-    url: `${getLlmHost()}${endpoint}`,
-    body: JSON.stringify(body),
-    signal,
+    url: `${getLlmHost()}${options.endpoint}`,
+    body: buildRequestBody(options),
+    signal: options.signal,
   })
+  return streamToBlocks(response, options.callbacks ?? {})
+}
 
-  const blocks = await streamToBlocks(response, callbacks)
-
-  if (!schema) return blocks
-
-  const text = extractText(blocks)
-  const parsed = JSON.parse(text)
-  const result = schema.safeParse(parsed)
-  if (!result.success) {
-    throw new Error(`Schema validation failed: ${result.error.message}`)
-  }
-  return result.data
+export const extractText = (blocks: Block[]): string => {
+  const textBlock = blocks.find((b) => b.type === "text")
+  return textBlock?.type === "text" ? textBlock.content : ""
 }
 
 const blockToInputItem = (block: Block): InputItem | InputItem[] => {
@@ -314,4 +348,4 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
 export const blocksToMessages = (blocks: Block[]): InputItem[] =>
   blocks.flatMap(blockToInputItem)
 
-export type { InputItem, ParseCallbacks }
+export type { InputItem, ParseCallbacks, ResponseFormat }

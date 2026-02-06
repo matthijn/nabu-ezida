@@ -13,14 +13,18 @@ type IdPathConfig = {
   prefix: string
 }
 
+type JsonSchema = Record<string, unknown>
+
 type BlockTypeConfig<T> = {
   schema: z.ZodType<T>
   readonly: string[]
   immutable: Record<string, string>
+  constraints: string[]
   renderer: "hidden" | "callout"
   singleton: boolean
   labelKey?: string
   idPaths?: IdPathConfig[]
+  patchSchema?: (schema: JsonSchema) => JsonSchema
   validate?: (parsed: T, context: ValidationContext) => ValidationError[]
 }
 
@@ -65,13 +69,35 @@ const validateAnnotations = (
   return errors
 }
 
+const removeFromRequired = (schema: JsonSchema, path: string[], fields: string[]): JsonSchema => {
+  if (path.length === 0) {
+    const required = schema.required as string[] | undefined
+    if (!required) return schema
+    const filtered = required.filter((f) => !fields.includes(f))
+    return { ...schema, required: filtered }
+  }
+
+  const [head, ...rest] = path
+  const child = schema[head]
+  if (typeof child !== "object" || child === null) return schema
+  return { ...schema, [head]: removeFromRequired(child as JsonSchema, rest, fields) }
+}
+
+const patchAnnotationRequired = (schema: JsonSchema): JsonSchema =>
+  removeFromRequired(schema, ["properties", "annotations", "items"], ["color", "code"])
+
 const jsonAttributes = defineBlock({
   schema: DocumentMeta,
   readonly: [],
   immutable: {},
+  constraints: [
+    "annotations: each entry requires either 'color' or 'code', not both",
+    "annotations.text: must be exact text from the document prose",
+  ],
   renderer: "hidden",
   singleton: true,
   idPaths: [{ path: "annotations.*.id", prefix: "annotation" }],
+  patchSchema: patchAnnotationRequired,
   validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
 })
 
@@ -81,6 +107,7 @@ const jsonCallout = defineBlock({
   immutable: {
     id: "Field \"id\" is immutable and cannot be changed",
   },
+  constraints: [],
   renderer: "callout",
   singleton: false,
   labelKey: "title",
@@ -111,5 +138,27 @@ export const getImmutableFields = (language: string): Record<string, string> =>
 
 export const getIdPaths = (language: string): IdPathConfig[] =>
   blockTypes[language]?.idPaths ?? []
+
+export type BlockSchemaDefinition = {
+  language: string
+  jsonSchema: unknown
+  singleton: boolean
+  immutable: string[]
+  constraints: string[]
+}
+
+const toBlockSchema = (config: AnyBlockConfig): unknown => {
+  const schema = z.toJSONSchema(config.schema, { io: "input" }) as JsonSchema
+  return config.patchSchema ? config.patchSchema(schema) : schema
+}
+
+export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
+  Object.entries(blockTypes).map(([language, config]) => ({
+    language,
+    jsonSchema: toBlockSchema(config),
+    singleton: config.singleton,
+    immutable: Object.keys(config.immutable),
+    constraints: config.constraints,
+  }))
 
 export type { IdPathConfig }

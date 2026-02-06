@@ -1,0 +1,8 @@
+[
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "orientate", "args": { "question": "How does auth work?", "direction": "Check login" }}]},
+  { "type": "tool_result", "callId": "1", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "reorient", "args": { "learned": "Found login handler", "decision": "continue", "next": "Check session" }}]},
+  { "type": "tool_result", "callId": "2", "result": {} },
+  { "type": "tool_call", "calls": [{ "id": "3", "name": "reorient", "args": { "learned": "Session uses JWT", "decision": "continue", "next": "Check token validation" }}]},
+  { "type": "tool_result", "callId": "3", "result": {} }
+]

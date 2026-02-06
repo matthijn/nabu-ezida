@@ -1,4 +1,4 @@
-import type { Block, SystemBlock, ToolResultBlock, EmptyNudgeBlock } from "../types"
+import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
 import type { Files } from "../derived"
 
 export type NudgeBlock = {
@@ -22,13 +22,6 @@ export const withContext = (nudge: NudgeBlock, context: () => Promise<string>): 
 
 export const isEmptyNudgeBlock = (b: Block): b is EmptyNudgeBlock => b.type === "empty_nudge"
 
-export const newErrorBlock = (toolName: string, error: string): ToolResultBlock => ({
-  type: "tool_result",
-  callId: `${toolName}-error`,
-  toolName,
-  result: { status: "error", output: error },
-})
-
 const toSystemBlock = (content: string): SystemBlock => ({ type: "system", content })
 
 const toEmptyNudgeBlock = (): EmptyNudgeBlock => ({ type: "empty_nudge" })
@@ -44,7 +37,7 @@ const resolveNudge = async (nudge: NudgeBlock): Promise<Block> => {
     return toSystemBlock(resolved)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    return newErrorBlock("interpret", msg)
+    return toSystemBlock(`[nudge context error] ${msg}`)
   }
 }
 

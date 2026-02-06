@@ -1,22 +1,29 @@
 import { describe, it, expect } from "vitest"
 import { Schema } from "prosemirror-model"
-import { textOffsetToPos } from "./plugin"
+import { textOffsetToPos, proseTextContent } from "./plugin"
 
 const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
     paragraph: { group: "block", content: "inline*" },
+    code_block: { group: "block", content: "text*", code: true },
     text: { group: "inline" },
     hard_break: { group: "inline", inline: true, selectable: false },
   },
 })
 
-const createDoc = (paragraphs: string[]) => {
-  const children = paragraphs.map((text) =>
-    schema.nodes.paragraph.create(null, text ? schema.text(text) : null)
-  )
-  return schema.nodes.doc.create(null, children)
-}
+type BlockDef = string | { code: string }
+
+const isCodeDef = (def: BlockDef): def is { code: string } =>
+  typeof def !== "string"
+
+const toNode = (def: BlockDef) =>
+  isCodeDef(def)
+    ? schema.nodes.code_block.create(null, def.code ? schema.text(def.code) : null)
+    : schema.nodes.paragraph.create(null, def ? schema.text(def) : null)
+
+const createDoc = (blocks: BlockDef[]) =>
+  schema.nodes.doc.create(null, blocks.map(toNode))
 
 const createDocWithBreaks = (content: (string | "br")[]) => {
   const children: ReturnType<typeof schema.nodes.paragraph.create>[] = []
@@ -118,28 +125,54 @@ describe("textOffsetToPos", () => {
 
     it("documents prosemirror position structure", () => {
       const doc = createDoc(["AB", "CD"])
-      // doc.textContent should be "ABCD"
       expect(doc.textContent).toBe("ABCD")
-
-      // Prosemirror positions for <doc><p>AB</p><p>CD</p></doc>:
-      // 0: before doc
-      // 1: start of first p content (before 'A')
-      // 2: after 'A', before 'B'
-      // 3: after 'B' (end of first p content)
-      // 4: between paragraphs
-      // 5: start of second p content (before 'C')
-      // 6: after 'C', before 'D'
-      // 7: after 'D' (end of second p content)
-
-      // So offset 0 ('A') should map to position 1
-      // offset 1 ('B') should map to position 2
-      // offset 2 ('C') should map to position 5
-      // offset 3 ('D') should map to position 6
 
       expect(textOffsetToPos(doc, 0)).toBe(1)  // 'A'
       expect(textOffsetToPos(doc, 1)).toBe(2)  // 'B'
       expect(textOffsetToPos(doc, 2)).toBe(5)  // 'C' - crosses paragraph boundary
       expect(textOffsetToPos(doc, 3)).toBe(6)  // 'D'
+    })
+  })
+
+  describe("code block exclusion", () => {
+    const cases = [
+      {
+        name: "proseTextContent excludes code block text",
+        blocks: ["Hello", { code: '{"tags": ["interview"]}' }, "World"] as BlockDef[],
+        expectedProseText: "HelloWorld",
+      },
+      {
+        name: "proseTextContent with only code block returns empty",
+        blocks: [{ code: "some code" }] as BlockDef[],
+        expectedProseText: "",
+      },
+      {
+        name: "proseTextContent with code block between paragraphs",
+        blocks: ["AAA", { code: "BBB" }, "CCC"] as BlockDef[],
+        expectedProseText: "AAACCC",
+      },
+    ]
+
+    it.each(cases)("$name", ({ blocks, expectedProseText }) => {
+      const doc = createDoc(blocks)
+      expect(proseTextContent(doc)).toBe(expectedProseText)
+    })
+
+    it("textOffsetToPos skips code block and maps to correct paragraph", () => {
+      const doc = createDoc([{ code: '{"annotations": []}' }, "Target text"])
+      expect(proseTextContent(doc)).toBe("Target text")
+      const pos = textOffsetToPos(doc, 0)
+      const resolvedText = doc.textBetween(pos, pos + "Target".length)
+      expect(resolvedText).toBe("Target")
+    })
+
+    it("offset after code block maps to second paragraph", () => {
+      const doc = createDoc(["Before", { code: "code content" }, "After"])
+      expect(proseTextContent(doc)).toBe("BeforeAfter")
+      const afterOffset = "Before".length
+      const pos = textOffsetToPos(doc, afterOffset)
+      const resolvedText = doc.textBetween(pos, pos + "After".length)
+      expect(resolvedText).toBe("After")
     })
   })
 })

@@ -4,7 +4,7 @@
     "calls": [
       {
         "id": "1",
-        "name": "start_exploration",
+        "name": "orientate",
         "args": {
           "question": "How to add feature?",
           "direction": "Check existing code"
@@ -19,7 +19,7 @@
   },
   {
     "type": "system",
-    "content": "EXPLORING: How to add feature?\nCurrent direction: Check existing code\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call exploration_step with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit exploration first.\nEach step must yield insight, not just activity."
+    "content": "ORIENTING: How to add feature?\nCurrent direction: Check existing code\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call reorient with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit orientation first.\nEach step must yield insight, not just activity."
   },
   {
     "type": "system",
@@ -30,7 +30,7 @@
     "calls": [
       {
         "id": "2",
-        "name": "exploration_step",
+        "name": "reorient",
         "args": {
           "learned": "Need to modify handler",
           "decision": "plan"

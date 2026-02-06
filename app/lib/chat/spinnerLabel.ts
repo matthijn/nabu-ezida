@@ -1,8 +1,8 @@
 import type { Block } from "~/lib/agent"
 
 const toolLabels: Record<string, string> = {
-  start_exploration: "Exploring",
-  exploration_step: "Investigating",
+  orientate: "Orienting",
+  reorient: "Focusing",
   create_plan: "Planning",
   complete_step: "Thinking",
   abort: "Stopping",

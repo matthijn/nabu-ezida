@@ -1,4 +1,4 @@
-export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, type ValidationContext } from "./registry"
+export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, getBlockSchemaDefinitions, type ValidationContext, type BlockSchemaDefinition } from "./registry"
 export { parseCodeBlocks, findBlocksByLanguage, findSingletonBlock, parseBlockJson, replaceSingletonBlock, type CodeBlock } from "./parse"
 export {
   replaceUuidPlaceholders,

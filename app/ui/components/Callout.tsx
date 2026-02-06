@@ -8,7 +8,7 @@ import {
   FeatherChevronRight,
 } from "@subframe/core"
 import { cn } from "~/ui/utils"
-import { type RadixColor, elementBackground, subtleBorder } from "~/lib/colors/radix"
+import { type RadixColor, solidBackground } from "~/lib/colors/radix"
 import { DropdownMenu } from "./DropdownMenu"
 import { IconButton } from "./IconButton"
 import { ColorPicker } from "./ColorPicker"
@@ -109,39 +109,41 @@ export const Callout = forwardRef<HTMLDivElement, CalloutProps>(
       <div
         ref={ref}
         className={cn(
-          "flex w-full flex-col items-start gap-4 rounded-lg border border-solid px-4 py-4",
+          "flex w-full items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background relative",
           className
         )}
-        style={{
-          backgroundColor: elementBackground(color),
-          borderColor: subtleBorder(color),
-        }}
         {...props}
       >
-        <div className="flex w-full items-start gap-3">
-          <TypeSelector type={type} color={color} onChange={handleTypeChange} />
-          {!collapsed && (
-            <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
-              <span className="text-heading-2 font-heading-2 text-default-font">
+        <div
+          className="flex w-1 flex-none absolute left-0 top-0 bottom-0"
+          style={{ backgroundColor: solidBackground(color) }}
+        />
+        <div className="flex grow shrink-0 basis-0 flex-col items-start gap-4 pl-5 pr-4 py-4">
+          <div className="flex w-full items-start gap-3">
+            <TypeSelector type={type} color={color} onChange={handleTypeChange} />
+            {!collapsed && (
+              <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
+                <span className="text-heading-2 font-heading-2 text-default-font">
+                  {title}
+                </span>
+                <span className="text-body font-body text-default-font">
+                  {content}
+                </span>
+              </div>
+            )}
+            {collapsed && (
+              <span className="grow shrink-0 basis-0 text-heading-2 font-heading-2 text-default-font self-center">
                 {title}
               </span>
-              <span className="text-body font-body text-default-font">
-                {content}
-              </span>
-            </div>
-          )}
-          {collapsed && (
-            <span className="grow shrink-0 basis-0 text-heading-2 font-heading-2 text-default-font self-center">
-              {title}
-            </span>
-          )}
-          <ColorPicker value={color} onColorChange={handleColorChange} />
-          <IconButton
-            variant="neutral-tertiary"
-            size="small"
-            icon={collapsed ? <FeatherChevronRight /> : <FeatherChevronDown />}
-            onClick={handleCollapseToggle}
-          />
+            )}
+            <ColorPicker value={color} onColorChange={handleColorChange} />
+            <IconButton
+              variant="neutral-tertiary"
+              size="small"
+              icon={collapsed ? <FeatherChevronRight /> : <FeatherChevronDown />}
+              onClick={handleCollapseToggle}
+            />
+          </div>
         </div>
       </div>
     )

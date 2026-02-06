@@ -1,6 +1,9 @@
 type NabuSettings = {
   theme: "light" | "dark";
   sidebarOpen: boolean;
+  chatOpen: boolean;
+  chatWidth: number;
+  chatHeight: number;
 };
 
 const STORAGE_KEY = "nabu-settings";
@@ -8,6 +11,9 @@ const STORAGE_KEY = "nabu-settings";
 const defaults: NabuSettings = {
   theme: "dark",
   sidebarOpen: true,
+  chatOpen: false,
+  chatWidth: 320,
+  chatHeight: 600,
 };
 
 function getSettings(): NabuSettings {

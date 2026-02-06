@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
-import { useInterpretHistory } from "~/lib/agent/executors/useInterpretHistory"
+import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
+import { useObservationHistory } from "~/lib/agent/useObservationHistory"
+import type { ObservationEntry } from "~/lib/agent/observation-store"
 import type { Block, ToolCall } from "~/lib/agent"
-
-type TabId = "converse" | "expert"
 
 type BlockRendererProps = {
   block: Block
@@ -40,6 +40,9 @@ const formatResult = (result: unknown): string => {
 
 const formatToolDefinitions = (): string =>
   JSON.stringify(getToolDefinitions(), null, 2)
+
+const formatBlockSchemaDefinitions = (): string =>
+  JSON.stringify(getBlockSchemaDefinitions(), null, 2)
 
 const isErrorResult = (result: unknown): boolean =>
   typeof result === "object" && result !== null && "status" in result && (result.status === "error" || result.status === "partial")
@@ -238,17 +241,19 @@ type TabButtonProps = {
   onClick: () => void
   children: React.ReactNode
   count?: number
+  streaming?: boolean
 }
 
-const TabButton = ({ active, onClick, children, count }: TabButtonProps) => (
+const TabButton = ({ active, onClick, children, count, streaming }: TabButtonProps) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1 text-xs font-medium rounded-t transition-colors ${
+    className={`px-3 py-1 text-xs font-medium rounded-t transition-colors flex items-center gap-1 ${
       active
         ? "bg-white text-neutral-700 border-t border-l border-r border-neutral-300"
         : "bg-neutral-200 text-neutral-500 hover:text-neutral-700"
     }`}
   >
+    {streaming && <span className="inline-block w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />}
     {children}
     {count !== undefined && (
       <span className="ml-1 px-1 bg-neutral-300 text-neutral-600 rounded text-[10px]">
@@ -258,21 +263,85 @@ const TabButton = ({ active, onClick, children, count }: TabButtonProps) => (
   </button>
 )
 
+const CONVERSE_TAB = "converse"
+
+const getUniqueCallerNames = (entries: ObservationEntry[]): string[] =>
+  [...new Set(entries.map((e) => e.name))]
+
+const filterByName = (entries: ObservationEntry[], name: string): ObservationEntry[] =>
+  entries.filter((e) => e.name === name)
+
+const countByName = (entries: ObservationEntry[], name: string): number =>
+  entries.filter((e) => e.name === name).length
+
+const isEntryStreaming = (entry: ObservationEntry): boolean =>
+  (entry.streaming != null && entry.streaming !== "") ||
+  (entry.streamingReasoning != null && entry.streamingReasoning !== "")
+
+const hasStreamingEntry = (entries: ObservationEntry[], name: string): boolean =>
+  entries.some((e) => e.name === name && isEntryStreaming(e))
+
+type ObservationListProps = {
+  entries: ObservationEntry[]
+}
+
+const ObservationList = ({ entries }: ObservationListProps) => (
+  <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+    {entries.length === 0 && (
+      <div className="flex h-full items-center justify-center">
+        <span className="text-sm text-neutral-400">No calls yet</span>
+      </div>
+    )}
+    {entries.map((entry) => (
+      <div key={entry.id} className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-medium text-purple-600">
+            {entry.name}
+          </div>
+          <div className="text-xs text-neutral-400">
+            #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
+          </div>
+        </div>
+        {entry.messages.map((block, i) => (
+          <BlockRenderer key={`msg-${i}`} block={block} />
+        ))}
+        <div className="border-t border-neutral-200 pt-2">
+          {entry.response.map((block, i) => (
+            <BlockRenderer key={`res-${i}`} block={block} />
+          ))}
+          <StreamingIndicator
+            streaming={entry.streaming ?? ""}
+            streamingToolArgs=""
+            streamingReasoning={entry.streamingReasoning ?? ""}
+            streamingToolName={null}
+          />
+        </div>
+      </div>
+    ))}
+  </AutoScroll>
+)
+
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 350, y: 16 })
   const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
-  const interpretEntries = useInterpretHistory()
+  const observationEntries = useObservationHistory()
   const [copiedAll, setCopiedAll] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabId>("converse")
+  const [activeTab, setActiveTab] = useState(CONVERSE_TAB)
+
+  const callerNames = useMemo(() => getUniqueCallerNames(observationEntries), [observationEntries])
 
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
+    const schemas = `[block schemas]\n${formatBlockSchemaDefinitions()}`
     const blocks = formatAllBlocks(history)
-    const content = blocks ? `${tools}\n\n---\n\n${blocks}` : tools
+    const content = [tools, schemas, blocks].filter(Boolean).join("\n\n---\n\n")
     navigator.clipboard.writeText(content)
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 1500)
   }
+
+  const isConverse = activeTab === CONVERSE_TAB
+  const activeEntries = isConverse ? [] : filterByName(observationEntries, activeTab)
 
   return (
     <div
@@ -301,20 +370,30 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      <div className="flex gap-1 px-3 pt-2 bg-neutral-100 border-b border-neutral-300">
-        <TabButton active={activeTab === "converse"} onClick={() => setActiveTab("converse")} count={history.length}>
+      <div className="flex gap-1 px-3 pt-2 bg-neutral-100 border-b border-neutral-300 overflow-x-auto">
+        <TabButton active={isConverse} onClick={() => setActiveTab(CONVERSE_TAB)} count={history.length}>
           Converse
         </TabButton>
-        <TabButton active={activeTab === "expert"} onClick={() => setActiveTab("expert")} count={interpretEntries.length}>
-          Expert
-        </TabButton>
+        {callerNames.map((name) => (
+          <TabButton key={name} active={activeTab === name} onClick={() => setActiveTab(name)} count={countByName(observationEntries, name)} streaming={hasStreamingEntry(observationEntries, name)}>
+            {name}
+          </TabButton>
+        ))}
       </div>
 
-      {activeTab === "converse" && (
+      {isConverse && (
         <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
           <CollapsibleBlock
             label="tools"
             content={formatToolDefinitions()}
+            borderColor="border-cyan-400"
+            labelColor="text-cyan-600"
+            defaultExpanded={false}
+            mono
+          />
+          <CollapsibleBlock
+            label="block schemas"
+            content={formatBlockSchemaDefinitions()}
             borderColor="border-cyan-400"
             labelColor="text-cyan-600"
             defaultExpanded={false}
@@ -332,41 +411,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </AutoScroll>
       )}
 
-      {activeTab === "expert" && (
-        <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-          {interpretEntries.length === 0 && (
-            <div className="flex h-full items-center justify-center">
-              <span className="text-sm text-neutral-400">No expert calls yet</span>
-            </div>
-          )}
-          {interpretEntries.map((entry) => (
-            <div key={entry.id} className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-purple-600">
-                  {entry.expert}{entry.task ? ` / ${entry.task}` : ""}
-                </div>
-                <div className="text-xs text-neutral-400">
-                  #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
-              {entry.messages.map((block, i) => (
-                <BlockRenderer key={`msg-${i}`} block={block} />
-              ))}
-              <div className="border-t border-neutral-200 pt-2">
-                {entry.response.map((block, i) => (
-                  <BlockRenderer key={`res-${i}`} block={block} />
-                ))}
-                <StreamingIndicator
-                  streaming={entry.streaming ?? ""}
-                  streamingToolArgs=""
-                  streamingReasoning={entry.streamingReasoning ?? ""}
-                  streamingToolName={null}
-                />
-              </div>
-            </div>
-          ))}
-        </AutoScroll>
-      )}
+      {!isConverse && <ObservationList entries={activeEntries} />}
     </div>
   )
 }

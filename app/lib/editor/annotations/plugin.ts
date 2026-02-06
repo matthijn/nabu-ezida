@@ -11,6 +11,18 @@ export const annotationsMeta = pluginKey
 
 type TextRange = { from: number; to: number }
 
+const isCodeBlock = (node: Node): boolean => node.type.name === "code_block"
+
+export const proseTextContent = (doc: Node): string => {
+  let text = ""
+  doc.descendants((node) => {
+    if (isCodeBlock(node)) return false
+    if (node.isLeaf && node.textContent.length > 0) text += node.textContent
+    return !node.isLeaf
+  })
+  return text
+}
+
 export const textOffsetToPos = (doc: Node, offset: number): number => {
   let result = 0
   let textSeen = 0
@@ -19,6 +31,7 @@ export const textOffsetToPos = (doc: Node, offset: number): number => {
 
   doc.descendants((node, nodePos) => {
     if (found || textSeen > offset) return false
+    if (isCodeBlock(node)) return false
 
     const nodeText = node.textContent
     const len = nodeText.length
@@ -44,7 +57,7 @@ export const textOffsetToPos = (doc: Node, offset: number): number => {
 }
 
 const findTextRange = (doc: Node, searchText: string): TextRange | null => {
-  const docText = doc.textContent
+  const docText = proseTextContent(doc)
   const offset = docText.indexOf(searchText)
   if (offset === -1) return null
 

@@ -1,5 +1,5 @@
 import type { Block, Files } from "~/lib/agent"
-import { derive, findCall, type DerivedPlan, type DerivedExploration } from "~/lib/agent"
+import { derive, findCall, type DerivedPlan, type DerivedOrientation } from "~/lib/agent"
 
 export type TextMessage = {
   type: "text"
@@ -14,14 +14,14 @@ export type PlanMessage = {
   aborted: boolean
 }
 
-export type ExplorationMessage = {
-  type: "exploration"
-  exploration: DerivedExploration
+export type OrientationMessage = {
+  type: "orientation"
+  orientation: DerivedOrientation
   completed: boolean
   aborted: boolean
 }
 
-export type RenderMessage = TextMessage | PlanMessage | ExplorationMessage
+export type RenderMessage = TextMessage | PlanMessage | OrientationMessage
 
 type Indexed<T> = { index: number; message: T }
 
@@ -59,15 +59,15 @@ const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<Pl
   }))
 }
 
-const explorationMessagesIndexed = (
+const orientationMessagesIndexed = (
   history: Block[],
-  exploration: DerivedExploration | null
-): Indexed<ExplorationMessage>[] => {
-  if (!exploration) return []
-  const indices = findCreationIndices(history, "start_exploration")
+  orientation: DerivedOrientation | null
+): Indexed<OrientationMessage>[] => {
+  if (!orientation) return []
+  const indices = findCreationIndices(history, "orientate")
   const index = indices[indices.length - 1] ?? 0
-  const aborted = findCall(history[history.length - 1], "abort") !== undefined && !exploration.completed
-  return [{ index, message: { type: "exploration", exploration, completed: exploration.completed, aborted } }]
+  const aborted = findCall(history[history.length - 1], "abort") !== undefined && !orientation.completed
+  return [{ index, message: { type: "orientation", orientation, completed: orientation.completed, aborted } }]
 }
 
 const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
@@ -77,7 +77,7 @@ export const toRenderMessages = (history: Block[], files: Files = {}): RenderMes
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),
     ...planMessagesIndexed(history, d.plans),
-    ...explorationMessagesIndexed(history, d.exploration),
+    ...orientationMessagesIndexed(history, d.orientation),
   ]
   return indexed.sort(byIndex).map((item) => item.message)
 }

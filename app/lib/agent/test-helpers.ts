@@ -64,19 +64,19 @@ export const abortCall = (message = "Stopping"): Block[] => {
   })
 }
 
-export const startExplorationCall = (question: string, direction?: string): Block[] => {
+export const orientateCall = (question: string, direction?: string): Block[] => {
   const id = nextCallId()
   return withResult(id, {
     type: "tool_call",
-    calls: [{ id, name: "start_exploration", args: { question, direction } }],
+    calls: [{ id, name: "orientate", args: { question, direction } }],
   })
 }
 
-export const explorationStepCall = (internal: string, learned: string, decision: string, next?: string): Block[] => {
+export const reorientCall = (internal: string, learned: string, decision: string, next?: string): Block[] => {
   const id = nextCallId()
   return withResult(id, {
     type: "tool_call",
-    calls: [{ id, name: "exploration_step", args: { internal, learned, decision, next } }],
+    calls: [{ id, name: "reorient", args: { internal, learned, decision, next } }],
   })
 }
 
@@ -84,6 +84,11 @@ export const toolResult = (callId: string, result: unknown = { status: "ok" }): 
   type: "tool_result",
   callId,
   result,
+})
+
+export const textBlock = (content: string): Block => ({
+  type: "text",
+  content,
 })
 
 export const userBlock = (content: string): Block => ({

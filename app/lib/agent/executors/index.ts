@@ -10,6 +10,8 @@ import "./patch"
 import "./orchestration"
 import "./shell"
 import "./ask-expert"
+import "./json-patch"
+import "./remove-block"
 
 export type { ToolDeps }
 export { getToolDefinitions }

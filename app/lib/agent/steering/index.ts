@@ -9,7 +9,6 @@ export {
   combine,
   collect,
   isEmptyNudgeBlock,
-  newErrorBlock,
   systemNudge,
   emptyNudge,
   withContext,

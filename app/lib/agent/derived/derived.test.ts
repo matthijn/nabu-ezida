@@ -1,12 +1,13 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, hasActiveExploration, getMode, type Files } from "."
+import { derive, lastPlan, hasActivePlan, hasActiveOrientation, getMode, isPlanPaused, type Files } from "."
 import {
   createPlanCall,
   completeStepCall,
   abortCall,
-  startExplorationCall,
-  explorationStepCall,
+  orientateCall,
+  reorientCall,
+  textBlock,
   userBlock,
   resetCallIdCounter,
 } from "../test-helpers"
@@ -92,92 +93,92 @@ describe("derived", () => {
     })
   })
 
-  describe("exploration", () => {
+  describe("orientation", () => {
     const cases = [
       {
-        name: "no history returns null exploration",
+        name: "no history returns null orientation",
         history: [] as Block[],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration).toBe(null)
-          expect(hasActiveExploration(d.exploration)).toBe(false)
+          expect(d.orientation).toBe(null)
+          expect(hasActiveOrientation(d.orientation)).toBe(false)
         },
       },
       {
-        name: "start_exploration creates exploration",
-        history: [...startExplorationCall("How does X work?", "Check the docs")],
+        name: "orientate creates orientation",
+        history: [...orientateCall("How does X work?", "Check the docs")],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration?.question).toBe("How does X work?")
-          expect(d.exploration?.findings).toHaveLength(0)
-          expect(d.exploration?.currentDirection).toBe("Check the docs")
-          expect(hasActiveExploration(d.exploration)).toBe(true)
+          expect(d.orientation?.question).toBe("How does X work?")
+          expect(d.orientation?.findings).toHaveLength(0)
+          expect(d.orientation?.currentDirection).toBe("Check the docs")
+          expect(hasActiveOrientation(d.orientation)).toBe(true)
         },
       },
       {
-        name: "exploration_step with continue adds finding",
+        name: "reorient with continue adds finding",
         history: [
-          ...startExplorationCall("Question", "Look at A"),
-          ...explorationStepCall("ctx:abc", "Found A details", "continue", "Now look at B"),
+          ...orientateCall("Question", "Look at A"),
+          ...reorientCall("ctx:abc", "Found A details", "continue", "Now look at B"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration?.findings).toHaveLength(1)
-          expect(d.exploration?.findings[0].direction).toBe("Look at A")
-          expect(d.exploration?.findings[0].learned).toBe("Found A details")
-          expect(d.exploration?.currentDirection).toBe("Now look at B")
-          expect(hasActiveExploration(d.exploration)).toBe(true)
+          expect(d.orientation?.findings).toHaveLength(1)
+          expect(d.orientation?.findings[0].direction).toBe("Look at A")
+          expect(d.orientation?.findings[0].learned).toBe("Found A details")
+          expect(d.orientation?.currentDirection).toBe("Now look at B")
+          expect(hasActiveOrientation(d.orientation)).toBe(true)
         },
       },
       {
-        name: "exploration_step stores internal context",
+        name: "reorient stores internal context",
         history: [
-          ...startExplorationCall("Question", "Look at A"),
-          ...explorationStepCall("fileId:abc", "Found it", "continue", "Next"),
+          ...orientateCall("Question", "Look at A"),
+          ...reorientCall("fileId:abc", "Found it", "continue", "Next"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration?.findings[0].internal).toBe("fileId:abc")
-          expect(d.exploration?.findings[0].learned).toBe("Found it")
+          expect(d.orientation?.findings[0].internal).toBe("fileId:abc")
+          expect(d.orientation?.findings[0].learned).toBe("Found it")
         },
       },
       {
-        name: "exploration_step with answer marks completed",
+        name: "reorient with answer marks completed",
         history: [
-          ...startExplorationCall("Question"),
-          ...explorationStepCall("ctx:done", "Answer found", "answer"),
+          ...orientateCall("Question"),
+          ...reorientCall("ctx:done", "Answer found", "answer"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration?.completed).toBe(true)
-          expect(hasActiveExploration(d.exploration)).toBe(false)
+          expect(d.orientation?.completed).toBe(true)
+          expect(hasActiveOrientation(d.orientation)).toBe(false)
         },
       },
       {
-        name: "exploration_step with plan marks completed",
+        name: "reorient with plan marks completed",
         history: [
-          ...startExplorationCall("Question"),
-          ...explorationStepCall("ctx:ready", "Ready to plan", "plan"),
+          ...orientateCall("Question"),
+          ...reorientCall("ctx:ready", "Ready to plan", "plan"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration?.completed).toBe(true)
+          expect(d.orientation?.completed).toBe(true)
         },
       },
       {
-        name: "abort clears exploration",
-        history: [...startExplorationCall("Question"), ...abortCall()],
+        name: "abort clears orientation",
+        history: [...orientateCall("Question"), ...abortCall()],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration).toBe(null)
+          expect(d.orientation).toBe(null)
         },
       },
       {
-        name: "create_plan clears exploration",
-        history: [...startExplorationCall("Question"), ...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
+        name: "create_plan clears orientation",
+        history: [...orientateCall("Question"), ...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
         check: (history: Block[]) => {
           const d = derive(history)
-          expect(d.exploration).toBe(null)
+          expect(d.orientation).toBe(null)
           expect(lastPlan(d.plans)?.task).toBe("Task")
         },
       },
@@ -206,20 +207,83 @@ describe("derived", () => {
         expected: "chat",
       },
       {
-        name: "active exploration returns exploration",
-        history: [...startExplorationCall("Question")],
-        expected: "exploration",
+        name: "active orientation returns orientate",
+        history: [...orientateCall("Question")],
+        expected: "orientate",
       },
       {
-        name: "exploration takes priority over plan",
-        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...startExplorationCall("Question")],
-        expected: "exploration",
+        name: "orientation takes priority over plan",
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...orientateCall("Question")],
+        expected: "orientate",
       },
     ]
 
     cases.forEach(({ name, history, expected }) => {
       it(name, () => {
         expect(getMode(derive(history))).toBe(expected)
+      })
+    })
+  })
+
+  describe("isPlanPaused", () => {
+    const cases = [
+      {
+        name: "empty history is not paused",
+        history: [] as Block[],
+        expected: false,
+      },
+      {
+        name: "right after create_plan is not paused",
+        history: [...createPlanCall("Task", ["Step 1"])],
+        expected: false,
+      },
+      {
+        name: "text block after step boundary is paused",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+          textBlock("Let me ask you something"),
+        ],
+        expected: true,
+      },
+      {
+        name: "text block followed by user message is still paused",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+          textBlock("What should I do?"),
+          userBlock("Do this"),
+        ],
+        expected: true,
+      },
+      {
+        name: "text block followed by tool call is still paused",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+          textBlock("Let me check"),
+          { type: "tool_call" as const, calls: [{ id: "99", name: "shell", args: { command: "ls" } }] },
+          { type: "tool_result" as const, callId: "99", result: { status: "ok" } },
+        ],
+        expected: true,
+      },
+      {
+        name: "complete_step after text un-pauses",
+        history: [
+          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          textBlock("Pausing here"),
+          userBlock("Continue"),
+          ...completeStepCall("Done"),
+        ],
+        expected: false,
+      },
+      {
+        name: "no plan at all is not paused",
+        history: [textBlock("Just chatting")],
+        expected: false,
+      },
+    ]
+
+    cases.forEach(({ name, history, expected }) => {
+      it(name, () => {
+        expect(isPlanPaused(history)).toBe(expected)
       })
     })
   })

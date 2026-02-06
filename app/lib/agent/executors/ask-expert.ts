@@ -1,20 +1,17 @@
 import { z } from "zod"
 import type { Block } from "../types"
 import { tool, registerTool, ok, err } from "./tool"
-import { prompt } from "../stream"
-import { startInterpretEntry, updateInterpretStreaming, updateInterpretReasoning, completeInterpretEntry } from "./interpret-store"
+import { buildCaller, buildTypedCaller } from "../caller"
+import { extractText } from "../stream"
 import { createShell } from "./shell/shell"
 
-// --- Schemas ---
-
 const AnnotationEntrySchema = z.object({
-  id: z.string().optional().describe("Existing annotation ID (for updates) or [uuid-xxx] placeholder (for new)"),
+  id: z.string().nullable().describe("Existing annotation ID (for updates) or [uuid-xxx] placeholder (for new)"),
   text: z.string().describe("Exact text from content (use FUZZY[approx] if unsure)"),
   code: z.string().describe("Code ID from codebook"),
-  code_label: z.string().describe("Code name for readability"),
-  reason: z.string().describe("Why this code applies"),
+  reason: z.string().describe("Why this code applies — user-facing, include code name"),
   confidence: z.enum(["high", "medium", "low"]).describe("Confidence level"),
-  ambiguity: z.string().optional().describe("Explain if confidence < high"),
+  ambiguity: z.string().nullable().describe("Explain if confidence < high — what should the user weigh in on"),
 })
 
 const DeletionEntrySchema = z.object({
@@ -31,8 +28,6 @@ const ApplyCodebookResponseSchema = z.object({
 export type ApplyCodebookResponse = z.infer<typeof ApplyCodebookResponseSchema>
 export type AnnotationEntry = z.infer<typeof AnnotationEntrySchema>
 export type DeletionEntry = z.infer<typeof DeletionEntrySchema>
-
-// --- Expert Registry ---
 
 type TaskDef = {
   description: string
@@ -64,8 +59,6 @@ const experts: Record<string, ExpertDef> = {
   },
 }
 
-// --- Generated enums and descriptions ---
-
 const expertNames = Object.keys(experts) as [string, ...string[]]
 const ExpertEnum = z.enum(expertNames)
 
@@ -84,15 +77,13 @@ const generateExpertDocs = (): string => {
   return lines.join("\n")
 }
 
-// --- Validation ---
-
 const getExpertTask = (expert: string, task?: string): { error?: string; taskDef?: TaskDef } => {
   const expertDef = experts[expert]
   if (!expertDef) {
     return { error: `Unknown expert: ${expert}. Available: ${expertNames.join(", ")}` }
   }
   if (!task) {
-    return {} // Freeform, no task
+    return {}
   }
   const taskDef = expertDef.tasks[task]
   if (!taskDef) {
@@ -101,8 +92,6 @@ const getExpertTask = (expert: string, task?: string): { error?: string; taskDef
   }
   return { taskDef }
 }
-
-// --- Shell resolution ---
 
 const resolveShellCommand = (files: Map<string, string>, command: string): { output?: string; error?: string } => {
   const shell = createShell(files)
@@ -113,59 +102,41 @@ const resolveShellCommand = (files: Map<string, string>, command: string): { out
   return { output: result.output }
 }
 
-// --- Core interpret function ---
-
 const buildMessages = (context: string, content: string): Block[] => [
   { type: "system", content: context },
   { type: "user", content },
 ]
 
-const extractText = (blocks: Block[]): string => {
-  const textBlock = blocks.find((b) => b.type === "text")
-  return textBlock?.type === "text" ? textBlock.content : ""
-}
+const buildEndpoint = (expert: string, task?: string): string =>
+  task ? `/ask-expert/${expert}/${task}` : `/ask-expert/${expert}`
 
-type AskExpertCoreParams<T extends z.ZodType> = {
-  expert: string
-  task: string | null
-  context: string
-  content: string
-  endpoint: string
-  schema?: T
-}
-
-const askExpertCore = async <T extends z.ZodType>({
-  expert,
-  task,
-  context,
-  content,
-  endpoint,
-  schema,
-}: AskExpertCoreParams<T>): Promise<{ result?: z.infer<T> | string; error?: string }> => {
+const callExpert = async (
+  expert: string,
+  task: string | null,
+  context: string,
+  content: string,
+  schema?: z.ZodType
+): Promise<{ result?: string; error?: string }> => {
+  const endpoint = buildEndpoint(expert, task ?? undefined)
   const messages = buildMessages(context, content)
-  const entryId = startInterpretEntry({ expert, task, messages })
-
-  const callbacks = {
-    onChunk: (chunk: string) => updateInterpretStreaming(entryId, chunk),
-    onReasoningChunk: (chunk: string) => updateInterpretReasoning(entryId, chunk),
-  }
+  const name = task ? `${expert}/${task}` : expert
 
   try {
     if (schema) {
-      const result = await prompt({ endpoint, messages, schema, callbacks })
-      completeInterpretEntry(entryId, [{ type: "text", content: JSON.stringify(result, null, 2) }])
-      return { result }
+      const typed = buildTypedCaller(name, { endpoint }, schema)
+      const out = await typed(messages)
+      if ("error" in out) return { error: out.error }
+      return { result: JSON.stringify(out.result, null, 2) }
     }
 
-    const blocks = await prompt({ endpoint, messages, callbacks })
-    completeInterpretEntry(entryId, blocks)
-    return { result: extractText(blocks) }
+    const caller = buildCaller(name, { endpoint })
+    const newHistory = await caller(messages)
+    const responseBlocks = newHistory.slice(messages.length)
+    return { result: extractText(responseBlocks) }
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) }
   }
 }
-
-// --- Tool definition ---
 
 const AskExpertArgs = z.object({
   expert: ExpertEnum.describe("Specialist type"),
@@ -188,37 +159,28 @@ Args:
 ${generateExpertDocs()}`,
     schema: AskExpertArgs,
     handler: async (files, { expert, task, using, about }) => {
-      // Validate expert+task combination
       const { error: validationError, taskDef } = getExpertTask(expert, task)
       if (validationError) return err(validationError)
 
-      // Resolve shell commands
       const contextResult = resolveShellCommand(files, using)
       if (contextResult.error) return err(`using: ${contextResult.error}`)
 
       const contentResult = resolveShellCommand(files, about)
       if (contentResult.error) return err(`about: ${contentResult.error}`)
 
-      // Build endpoint path
-      const endpoint = task ? `/ask-expert/${expert}/${task}` : `/ask-expert/${expert}`
-
-      // Call expert
-      const { result, error } = await askExpertCore({
+      const { result, error } = await callExpert(
         expert,
-        task: task ?? null,
-        context: contextResult.output!,
-        content: contentResult.output!,
-        endpoint,
-        schema: taskDef?.schema,
-      })
+        task ?? null,
+        contextResult.output!,
+        contentResult.output!,
+        taskDef?.schema
+      )
 
       if (error) return err(error)
-      return ok(typeof result === "string" ? result : JSON.stringify(result, null, 2))
+      return ok(result!)
     },
   })
 )
-
-// --- Exports for plan integration ---
 
 export const getExpertSchema = (expert: string, task?: string): z.ZodType | undefined => {
   const { taskDef } = getExpertTask(expert, task)

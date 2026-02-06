@@ -5,8 +5,8 @@ import {
   createPlanCall,
   completeStepCall,
   abortCall,
-  startExplorationCall,
-  explorationStepCall,
+  orientateCall,
+  reorientCall,
   toolResult,
   resetCallIdCounter,
 } from "../test-helpers"
@@ -40,35 +40,35 @@ const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n"
 
 describe("toNudge", () => {
   const cases: TestCase[] = [
-    // After tool_result during exploration
+    // After tool_result during orientation
     {
-      name: "exploring, <10 actions → exploration nudge",
-      history: [...startExplorationCall("Question", "Check A")],
-      expect: { type: "contains", text: "EXPLORING:" },
+      name: "orienting, <10 actions → orientation nudge",
+      history: [...orientateCall("Question", "Check A")],
+      expect: { type: "contains", text: "ORIENTING:" },
     },
     {
-      name: "exploring with findings, <10 actions → exploration nudge with findings",
+      name: "orienting with findings, <10 actions → orientation nudge with findings",
       history: [
-        ...startExplorationCall("Question", "Check A"),
-        ...explorationStepCall("ctx:a", "Found A", "continue", "Check B"),
+        ...orientateCall("Question", "Check A"),
+        ...reorientCall("ctx:a", "Found A", "continue", "Check B"),
       ],
       expect: { type: "contains", text: "Found A" },
     },
     {
-      name: "exploring, exactly 30 actions → stuck nudge",
-      history: [...startExplorationCall("Question"), ...manyActions(30)],
+      name: "orienting, exactly 30 actions → stuck nudge",
+      history: [...orientateCall("Question"), ...manyActions(30)],
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "exploring, >30 actions → exploration stops, tone nudge fires",
-      history: [...startExplorationCall("Question"), ...manyActions(31)],
+      name: "orienting, >30 actions → orientation stops, tone nudge fires",
+      history: [...orientateCall("Question"), ...manyActions(31)],
       expect: { type: "contains", text: "users see titles and names" },
     },
     {
-      name: "exploration completed with answer → tone nudge fires",
+      name: "orientation completed with answer → tone nudge fires",
       history: [
-        ...startExplorationCall("Question"),
-        ...explorationStepCall("ctx:done", "Found it", "answer"),
+        ...orientateCall("Question"),
+        ...reorientCall("ctx:done", "Found it", "answer"),
       ],
       expect: { type: "contains", text: "users see titles and names" },
     },
@@ -130,9 +130,9 @@ describe("toNudge", () => {
       expect: { type: "contains", text: "users see titles and names" },
     },
 
-    // No exploration, no plan (chat mode)
+    // No orientation, no plan (chat mode)
     {
-      name: "no exploration, no plan, first tool_result → tone nudge fires",
+      name: "no orientation, no plan, first tool_result → tone nudge fires",
       history: [toolResult("1")],
       expect: { type: "contains", text: "users see titles and names" },
     },
@@ -156,22 +156,22 @@ describe("toNudge", () => {
       expect: { type: "none" },
     },
 
-    // Exploration takes priority over plan
+    // Orientation takes priority over plan
     {
-      name: "exploration active during plan → exploration nudge",
+      name: "orientation active during plan → orientation nudge",
       history: [
         ...createPlanCall("Task", ["Step 1"]),
-        ...startExplorationCall("Question"),
+        ...orientateCall("Question"),
       ],
-      expect: { type: "contains", text: "EXPLORING:" },
+      expect: { type: "contains", text: "ORIENTING:" },
     },
 
-    // Exploration completed then plan
+    // Orientation completed then plan
     {
-      name: "exploration completed with plan → plan nudge",
+      name: "orientation completed with plan → plan nudge",
       history: [
-        ...startExplorationCall("Question"),
-        ...explorationStepCall("ctx:ready", "Found it", "plan"),
+        ...orientateCall("Question"),
+        ...reorientCall("ctx:ready", "Found it", "plan"),
         ...createPlanCall("Task", ["Step 1"]),
       ],
       expect: { type: "contains", text: "EXECUTING STEP" },

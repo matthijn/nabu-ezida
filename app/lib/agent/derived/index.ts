@@ -8,18 +8,18 @@ import {
   hasActivePlan,
 } from "./plan"
 import {
-  type DerivedExploration,
-  createExplorationFromCall,
+  type DerivedOrientation,
+  createOrientationFromCall,
   addFinding,
-  hasActiveExploration,
-} from "./exploration"
+  hasActiveOrientation,
+} from "./orientation"
 
 export type Derived = {
   plans: DerivedPlan[]
-  exploration: DerivedExploration | null
+  orientation: DerivedOrientation | null
 }
 
-export type Mode = "chat" | "plan" | "exploration"
+export type Mode = "chat" | "plan" | "orientate"
 
 type EnrichedToolCall = ToolCall & { succeeded: boolean }
 type EnrichedToolCallBlock = { type: "tool_call"; calls: EnrichedToolCall[] }
@@ -64,8 +64,8 @@ export const hasCall = (block: Block, name: string): boolean => findCall(block, 
 const isCreatePlan = (call: EnrichedToolCall): boolean => call.name === "create_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
 const isAbort = (call: EnrichedToolCall): boolean => call.name === "abort"
-const isStartExploration = (call: EnrichedToolCall): boolean => call.name === "start_exploration"
-const isExplorationStep = (call: EnrichedToolCall): boolean => call.name === "exploration_step"
+const isOrientate = (call: EnrichedToolCall): boolean => call.name === "orientate"
+const isReorient = (call: EnrichedToolCall): boolean => call.name === "reorient"
 
 const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files): Derived => {
   if (!call.succeeded) return derived
@@ -73,13 +73,13 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
   if (isAbort(call)) {
     return {
       plans: updateLastPlan(derived.plans, (p) => ({ ...p, aborted: true })),
-      exploration: null,
+      orientation: null,
     }
   }
 
   if (isCreatePlan(call)) {
-    const clearExploration = derived.exploration?.completed ? derived.exploration : null
-    return { plans: [...derived.plans, createPlanFromCall(call, files)], exploration: clearExploration }
+    const clearOrientation = derived.orientation?.completed ? derived.orientation : null
+    return { plans: [...derived.plans, createPlanFromCall(call, files)], orientation: clearOrientation }
   }
 
   if (isCompleteStep(call)) {
@@ -93,22 +93,22 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
     }
   }
 
-  if (isStartExploration(call)) {
-    return { ...derived, exploration: createExplorationFromCall(call) }
+  if (isOrientate(call)) {
+    return { ...derived, orientation: createOrientationFromCall(call) }
   }
 
-  if (isExplorationStep(call) && derived.exploration && !derived.exploration.completed) {
-    const direction = derived.exploration.currentDirection || ""
+  if (isReorient(call) && derived.orientation && !derived.orientation.completed) {
+    const direction = derived.orientation.currentDirection || ""
     const internal = (call.args.internal as string) || null
     const learned = call.args.learned as string
     const decision = call.args.decision as string
     const next = call.args.next as string | undefined
-    const withFinding = addFinding(derived.exploration, direction, internal, learned)
+    const withFinding = addFinding(derived.orientation, direction, internal, learned)
 
     if (decision === "answer" || decision === "plan") {
-      return { ...derived, exploration: { ...withFinding, currentDirection: null, completed: true } }
+      return { ...derived, orientation: { ...withFinding, currentDirection: null, completed: true } }
     }
-    return { ...derived, exploration: { ...withFinding, currentDirection: next || null } }
+    return { ...derived, orientation: { ...withFinding, currentDirection: next || null } }
   }
 
   return derived
@@ -120,10 +120,10 @@ const processBlock = (files: Files) => (derived: Derived, block: EnrichedBlock):
 }
 
 export const derive = (history: Block[], files: Files = {}): Derived =>
-  enrichWithResults(history).reduce(processBlock(files), { plans: [], exploration: null })
+  enrichWithResults(history).reduce(processBlock(files), { plans: [], orientation: null })
 
 export const getMode = (d: Derived): Mode => {
-  if (hasActiveExploration(d.exploration)) return "exploration"
+  if (hasActiveOrientation(d.orientation)) return "orientate"
   if (hasActivePlan(d.plans)) return "plan"
   return "chat"
 }
@@ -131,8 +131,8 @@ export const getMode = (d: Derived): Mode => {
 const isStepBoundary = (block: Block): boolean =>
   hasCall(block, "create_plan") || hasCall(block, "complete_step")
 
-const isExplorationBoundary = (block: Block): boolean =>
-  hasCall(block, "start_exploration") || hasCall(block, "exploration_step")
+const isOrientationBoundary = (block: Block): boolean =>
+  hasCall(block, "orientate") || hasCall(block, "reorient")
 
 const isAgentAction = (block: Block): boolean =>
   block.type === "text" || block.type === "tool_call"
@@ -147,11 +147,21 @@ const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => b
   return count
 }
 
+export const isPlanPaused = (history: Block[]): boolean => {
+  let foundText = false
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (isStepBoundary(block)) return foundText
+    if (block.type === "text") foundText = true
+  }
+  return false
+}
+
 export const actionsSinceStepChange = (history: Block[]): number =>
   countActionsSinceBoundary(history, isStepBoundary)
 
-export const actionsSinceExplorationChange = (history: Block[]): number =>
-  countActionsSinceBoundary(history, isExplorationBoundary)
+export const actionsSinceOrientationChange = (history: Block[]): number =>
+  countActionsSinceBoundary(history, isOrientationBoundary)
 
 // Re-export types and selectors from sub-modules
 export {
@@ -170,7 +180,7 @@ export {
 } from "./plan"
 
 export {
-  type DerivedExploration,
+  type DerivedOrientation,
   type Finding,
-  hasActiveExploration,
-} from "./exploration"
+  hasActiveOrientation,
+} from "./orientation"

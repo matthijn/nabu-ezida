@@ -45,7 +45,7 @@ type JsonSchemaProperty = {
   const?: unknown
 }
 
-type ToolDefinition = {
+export type ToolDefinition = {
   type: "function"
   name: string
   description: string

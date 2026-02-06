@@ -1,7 +1,7 @@
 [
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "start_exploration", "args": { "question": "How to add feature?", "direction": "Check existing code" }}]},
+  { "type": "tool_call", "calls": [{ "id": "1", "name": "orientate", "args": { "question": "How to add feature?", "direction": "Check existing code" }}]},
   { "type": "tool_result", "callId": "1", "result": {} },
-  { "type": "tool_call", "calls": [{ "id": "2", "name": "exploration_step", "args": { "learned": "Need to modify handler", "decision": "plan" }}]},
+  { "type": "tool_call", "calls": [{ "id": "2", "name": "reorient", "args": { "learned": "Need to modify handler", "decision": "plan" }}]},
   { "type": "tool_result", "callId": "2", "result": {} },
   { "type": "tool_call", "calls": [{ "id": "3", "name": "create_plan", "args": { "task": "Add the feature", "steps": [{ "title": "Modify handler", "expected": "Handler updated" }, { "title": "Add tests", "expected": "Tests passing" }] }}]},
   { "type": "tool_result", "callId": "3", "result": {} }

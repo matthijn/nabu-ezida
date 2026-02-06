@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest"
 import { collect, systemNudge, type Nudger } from "./nudge-tools"
 import { planNudge } from "./nudges/plan"
 import { createPlanCall, resetCallIdCounter } from "../test-helpers"
-import type { Block, ToolResultBlock } from "../types"
+import type { Block, SystemBlock } from "../types"
 
 beforeEach(() => resetCallIdCounter())
 
@@ -83,7 +83,7 @@ describe("collect error handling", () => {
   type TestCase = {
     name: string
     nudgers: Nudger[]
-    expectErrorBlock: boolean
+    expectErrorMessage: string | null
     expectSystemBlock: boolean
   }
 
@@ -101,41 +101,38 @@ describe("collect error handling", () => {
 
   const simpleNudger: Nudger = () => systemNudge("Simple nudge")
 
+  const isSystemBlock = (b: Block): b is SystemBlock => b.type === "system"
+
   const cases: TestCase[] = [
     {
-      name: "context throws → returns error block",
+      name: "context throws → returns system error block",
       nudgers: [failingNudger],
-      expectErrorBlock: true,
-      expectSystemBlock: false,
+      expectErrorMessage: "Interpretation failed",
+      expectSystemBlock: true,
     },
     {
       name: "context succeeds → returns system block",
       nudgers: [succeedingNudger],
-      expectErrorBlock: false,
+      expectErrorMessage: null,
       expectSystemBlock: true,
     },
     {
-      name: "one fails, one succeeds → both returned",
+      name: "one fails, one succeeds → both returned as system blocks",
       nudgers: [failingNudger, simpleNudger],
-      expectErrorBlock: true,
+      expectErrorMessage: "Interpretation failed",
       expectSystemBlock: true,
     },
   ]
 
-  const isErrorBlock = (b: Block): b is ToolResultBlock =>
-    b.type === "tool_result" && (b.result as { status?: string })?.status === "error"
-
-  const isSystemBlock = (b: Block): boolean => b.type === "system"
-
-  cases.forEach(({ name, nudgers, expectErrorBlock, expectSystemBlock }) => {
+  cases.forEach(({ name, nudgers, expectErrorMessage, expectSystemBlock }) => {
     it(name, async () => {
       const multiNudger = collect(...nudgers)
       const result = await multiNudger(emptyHistory, emptyFiles)
 
-      if (expectErrorBlock) {
-        const errorBlock = result.find(isErrorBlock)
+      if (expectErrorMessage) {
+        const errorBlock = result.filter(isSystemBlock).find((b) => b.content.includes("nudge context error"))
         expect(errorBlock).toBeDefined()
-        expect((errorBlock?.result as { output?: string })?.output).toContain("Interpretation failed")
+        expect(errorBlock!.content).toContain(expectErrorMessage)
       }
 
       if (expectSystemBlock) {

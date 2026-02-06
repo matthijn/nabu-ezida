@@ -1,5 +1,8 @@
 import type { Block, ToolDeps } from "~/lib/agent"
-import { turn, createToolExecutor, blocksToMessages, toNudge, isEmptyNudgeBlock } from "~/lib/agent"
+import { createToolExecutor, blocksToMessages, toNudge, isEmptyNudgeBlock } from "~/lib/agent"
+import { getToolDefinitions } from "~/lib/agent/executors/tool"
+import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
+import { buildCaller } from "~/lib/agent/caller"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 import { getFiles } from "~/lib/files"
@@ -35,31 +38,32 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
 
   const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
 
-  const messages = blocksToMessages(current.history)
+  const caller = buildCaller("orchestrator", {
+    endpoint: "/converse",
+    tools: getToolDefinitions(),
+    blockSchemas: getBlockSchemaDefinitions(),
+    execute: toolExecutor,
+    callbacks: {
+      onChunk: (chunk) => {
+        const c = getChat()
+        if (c) updateChat({ streaming: c.streaming + chunk })
+      },
+      onToolArgsChunk: (chunk) => {
+        const c = getChat()
+        if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
+      },
+      onReasoningChunk: (chunk) => {
+        const c = getChat()
+        if (c) updateChat({ streamingReasoning: c.streamingReasoning + chunk })
+      },
+      onToolName: (name) => {
+        updateChat({ streamingToolArgs: "", streamingToolName: name })
+      },
+    },
+  })
 
   try {
-    const history = await turn(current.history, messages, {
-      endpoint: "/converse",
-      execute: toolExecutor,
-      signal: controller.signal,
-      callbacks: {
-        onChunk: (chunk) => {
-          const c = getChat()
-          if (c) updateChat({ streaming: c.streaming + chunk })
-        },
-        onToolArgsChunk: (chunk) => {
-          const c = getChat()
-          if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
-        },
-        onReasoningChunk: (chunk) => {
-          const c = getChat()
-          if (c) updateChat({ streamingReasoning: c.streamingReasoning + chunk })
-        },
-        onToolName: (name) => {
-          updateChat({ streamingToolArgs: "", streamingToolName: name })
-        },
-      },
-    })
+    const history = await caller(current.history, controller.signal)
 
     updateChat({ history, streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
     run(deps)

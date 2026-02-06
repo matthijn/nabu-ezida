@@ -1,0 +1,25 @@
+{
+  "files": {
+    "data.json": "[{\"tags\":[\"a\",\"b\"]},{\"tags\":null},{\"tags\":[\"b\",\"c\"]}]"
+  },
+  "args": {
+    "commands": [
+      "jq \"map(.tags // []) | flatten | unique\" data.json"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "[\n  \"a\",\n  \"b\",\n  \"c\"\n]",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

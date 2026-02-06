@@ -84,11 +84,31 @@ const applyPath = (values: JqValue[], segments: PathSegment[]): JqValue[] => {
 
 type Filter = (input: JqValue) => JqValue[]
 
+const findMatchingParen = (expr: string, start: number): number => {
+  let depth = 0
+  for (let i = start; i < expr.length; i++) {
+    if (expr[i] === "(") depth++
+    else if (expr[i] === ")") {
+      depth--
+      if (depth === 0) return i
+    }
+  }
+  return -1
+}
+
 const parseFilter = (expr: string): Filter => {
   expr = expr.trim()
 
   // Identity
   if (expr === ".") return (v) => [v]
+
+  // Parenthesized expression
+  if (expr.startsWith("(")) {
+    const close = findMatchingParen(expr, 0)
+    if (close === expr.length - 1) {
+      return parseFilter(expr.slice(1, -1))
+    }
+  }
 
   // Pipe (lowest precedence - split first, then each segment handles //)
   if (expr.includes("|")) {
@@ -352,7 +372,7 @@ const splitAlt = (expr: string): string[] => {
 }
 
 export const jq = command({
-  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Functions: map, select, has, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
+  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Parens: (expr). Functions: map, select, has, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
   usage: `jq [-r] [-c] <filter> [file]
   jq ".[].title" data.json
   jq ".[] | select(.type == \\"code\\")" data.json

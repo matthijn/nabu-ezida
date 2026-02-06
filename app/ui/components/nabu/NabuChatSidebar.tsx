@@ -16,8 +16,9 @@ import type { Block } from "~/lib/agent"
 import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
 import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
-import { ExplorationCard } from "~/ui/components/ai/ExplorationCard"
+import { OrientationCard } from "~/ui/components/ai/OrientationCard"
 import { useDraggable } from "~/hooks/useDraggable"
+import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
 import { resolveFileLink } from "~/domain/spotlight"
 import { useNabu } from "./context"
@@ -54,8 +55,11 @@ const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Com
 
 const allowFileProtocol = (url: string): string => url
 
+const encodeUrlForMarkdown = (url: string): string =>
+  url.replace(/"/g, "%22")
+
 const fixMarkdownUrls = (content: string): string =>
-  content.replace(/\]\(([^)<>]+)\)/g, (_, url) => `](<${url}>)`)
+  content.replace(/\]\(([^)<>]+)\)/g, (_, url: string) => `](<${encodeUrlForMarkdown(url)}>)`)
 
 type MessageContentProps = {
   content: string
@@ -143,10 +147,10 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
           navigate={navigate}
         />
       )
-    case "exploration":
+    case "orientation":
       return (
-        <ExplorationCard
-          exploration={message.exploration}
+        <OrientationCard
+          orientation={message.orientation}
           aborted={message.aborted}
           projectId={projectId}
           navigate={navigate}
@@ -233,7 +237,7 @@ const LoadingIndicator = ({ streaming, streamingReasoning, streamingToolName, hi
 }
 
 export const NabuChatSidebar = () => {
-  const { minimized, minimizeChat } = useNabu()
+  const { minimized, minimizeChat, chatWidth, chatHeight, setChatSize } = useNabu()
   const navigate = useNavigate()
   const params = useParams<{ projectId: string }>()
 
@@ -247,6 +251,13 @@ export const NabuChatSidebar = () => {
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
+  const { size, handleResizeMouseDown } = useResizable(
+    { width: chatWidth, height: chatHeight },
+  )
+
+  useEffect(() => {
+    setChatSize(size.width, size.height)
+  }, [size.width, size.height])
 
   useEffect(() => {
     if (chat) {
@@ -285,9 +296,13 @@ export const NabuChatSidebar = () => {
 
   return (
     <div
-      style={{ right: position.x, bottom: position.y }}
-      className="fixed z-50 flex h-[600px] w-80 flex-col rounded-lg border border-solid border-brand-300 bg-default-background shadow-xl"
+      style={{ right: position.x, bottom: position.y, width: size.width, height: size.height }}
+      className="fixed z-50 flex flex-col rounded-lg border border-solid border-brand-300 bg-default-background shadow-xl"
     >
+      <div
+        onMouseDown={handleResizeMouseDown}
+        className="absolute -left-1 -top-1 z-10 h-4 w-4 cursor-nwse-resize"
+      />
       <div
         onMouseDown={handleMouseDown}
         className="flex w-full cursor-move items-center justify-between rounded-t-lg bg-brand-50 px-4 py-3"
