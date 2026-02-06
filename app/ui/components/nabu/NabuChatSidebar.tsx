@@ -1,22 +1,24 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import { useNavigate, useParams } from "react-router"
 import Markdown, { type Components } from "react-markdown"
-import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherX, FeatherRefreshCw } from "@subframe/core"
+import { FeatherMinus, FeatherSend, FeatherSparkles, FeatherRefreshCw, FeatherX } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useChat, toRenderMessages, getSpinnerLabel, type RenderMessage } from "~/lib/chat"
-import type { Block } from "~/lib/agent"
+import { useChat } from "~/lib/chat"
+import { derive } from "~/lib/agent"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type SectionGroup, type PlanGroup } from "~/lib/chat/group"
+import { getPlanStatus } from "~/lib/chat/plan-status"
 import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
-import { PlanProgressCard } from "~/ui/components/ai/PlanProgressCard"
 import { OrientationCard } from "~/ui/components/ai/OrientationCard"
+import { AbortBox } from "~/ui/components/ai/StepsBlock"
+import { StatusBar } from "~/ui/components/ai/StatusBar"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
@@ -53,13 +55,13 @@ const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Com
   },
 })
 
-const allowFileProtocol = (url: string): string => url
-
 const encodeUrlForMarkdown = (url: string): string =>
   url.replace(/"/g, "%22")
 
 const fixMarkdownUrls = (content: string): string =>
   content.replace(/\]\(([^)<>]+)\)/g, (_, url: string) => `](<${encodeUrlForMarkdown(url)}>)`)
+
+const allowFileProtocol = (url: string): string => url
 
 type MessageContentProps = {
   content: string
@@ -101,11 +103,7 @@ const UserBubble = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
-type AssistantTextProps = {
-  children: React.ReactNode
-}
-
-const AssistantText = ({ children }: AssistantTextProps) => (
+const AssistantText = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full">
     <div className="rounded-lg bg-neutral-50 px-3 py-3">
       <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
@@ -115,13 +113,26 @@ const AssistantText = ({ children }: AssistantTextProps) => (
   </div>
 )
 
-type MessageRendererProps = {
-  message: RenderMessage
+type SectionLabelProps = {
+  file: string
+  indexInFile: number
+  totalInFile: number
+}
+
+const SectionLabel = ({ file, indexInFile, totalInFile }: SectionLabelProps) => (
+  <div className="text-caption font-caption text-subtext-color mb-1">
+    Processing <span className="font-medium text-default-font">{file}</span>
+    {totalInFile > 1 && <span className="text-neutral-400"> · {indexInFile} of {totalInFile}</span>}
+  </div>
+)
+
+type LeafRendererProps = {
+  message: LeafMessage
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps) => {
+const LeafRenderer = ({ message, projectId, navigate }: LeafRendererProps) => {
   switch (message.type) {
     case "text":
       if (message.role === "user") {
@@ -136,17 +147,6 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
           <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
         </AssistantText>
       )
-    case "plan":
-      return (
-        <PlanProgressCard
-          steps={message.plan.steps}
-          currentStep={message.currentStep}
-          perSection={message.plan.perSection}
-          aborted={message.aborted}
-          projectId={projectId}
-          navigate={navigate}
-        />
-      )
     case "orientation":
       return (
         <OrientationCard
@@ -157,6 +157,53 @@ const MessageRenderer = ({ message, projectId, navigate }: MessageRendererProps)
         />
       )
   }
+}
+
+type SectionGroupRendererProps = {
+  group: SectionGroup
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const SectionGroupRenderer = ({ group, projectId, navigate }: SectionGroupRendererProps) => (
+  <div className="border-l-2 border-neutral-200 pl-2 space-y-3">
+    <SectionLabel file={group.file} indexInFile={group.indexInFile} totalInFile={group.totalInFile} />
+    {group.messages.map((msg, i) => (
+      <LeafRenderer key={i} message={msg} projectId={projectId} navigate={navigate} />
+    ))}
+  </div>
+)
+
+type PlanGroupRendererProps = {
+  group: PlanGroup
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProps) => (
+  <div className="border-l-2 border-brand-200 pl-3 space-y-3">
+    <span className="text-caption font-caption text-brand-600">{group.task}</span>
+    {group.children.map((child, i) =>
+      child.type === "section-group"
+        ? <SectionGroupRenderer key={i} group={child} projectId={projectId} navigate={navigate} />
+        : <LeafRenderer key={i} message={child} projectId={projectId} navigate={navigate} />
+    )}
+    {group.completed && <span className="text-caption text-success-600">Completed</span>}
+    {group.aborted && <AbortBox />}
+  </div>
+)
+
+type GroupedMessageRendererProps = {
+  message: GroupedMessage
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const GroupedMessageRenderer = ({ message, projectId, navigate }: GroupedMessageRendererProps) => {
+  if (message.type === "plan-group") {
+    return <PlanGroupRenderer group={message} projectId={projectId} navigate={navigate} />
+  }
+  return <LeafRenderer message={message} projectId={projectId} navigate={navigate} />
 }
 
 type NabuFloatingButtonProps = {
@@ -178,64 +225,6 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
-const AnimatedDots = () => {
-  const [frame, setFrame] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => setFrame((f) => (f + 1) % 3), 400)
-    return () => clearInterval(interval)
-  }, [])
-
-  return <>{".".repeat(frame + 1)}</>
-}
-
-const getFirstLine = (text: string): string | null => {
-  const trimmed = text.trim()
-  if (!trimmed) return null
-  const firstLine = trimmed.split("\n")[0]
-  return firstLine.replace(/^\*\*|\*\*$/g, "").trim() || null
-}
-
-type LoadingIndicatorProps = {
-  streaming: string
-  streamingReasoning: string
-  streamingToolName: string | null
-  history: Block[]
-  projectId: string | null
-  navigate?: (url: string) => void
-}
-
-const LoadingIndicator = ({ streaming, streamingReasoning, streamingToolName, history, projectId, navigate }: LoadingIndicatorProps) => {
-  const filtered = streaming ? filterCodeBlocks(streaming) : null
-  if (filtered) {
-    return (
-      <AssistantText>
-        <MessageContent content={filtered} projectId={projectId} navigate={navigate} />
-      </AssistantText>
-    )
-  }
-
-  const reasoningLabel = getFirstLine(streamingReasoning)
-  const label = reasoningLabel ?? getSpinnerLabel(history, streamingToolName)
-
-  return (
-    <div className="flex w-full rounded-lg bg-neutral-50 px-3 py-3">
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={label}
-          className="text-body font-body text-subtext-color"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          {label}<AnimatedDots />
-        </motion.span>
-      </AnimatePresence>
-    </div>
-  )
-}
-
 export const NabuChatSidebar = () => {
   const { minimized, minimizeChat, chatWidth, chatHeight, setChatSize } = useNabu()
   const navigate = useNavigate()
@@ -247,7 +236,11 @@ export const NabuChatSidebar = () => {
   }, [navigate, params.projectId])
   const { chat, send, run, cancel, loading, streaming, streamingReasoning, streamingToolName, history, error } = useChat()
   const { files } = useFiles()
-  const messages = useMemo(() => toRenderMessages(history, files), [history, files])
+
+  const derived = useMemo(() => derive(history, files), [history, files])
+  const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
+  const planStatus = useMemo(() => getPlanStatus(derived), [derived])
+
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
@@ -292,7 +285,8 @@ export const NabuChatSidebar = () => {
   const showFloatingButton = !chat || minimized
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
-  const { initiator, recipient } = chat
+  const { recipient } = chat
+  const streamingText = streaming ? filterCodeBlocks(streaming) : null
 
   return (
     <div
@@ -328,22 +322,17 @@ export const NabuChatSidebar = () => {
           </div>
         )}
         {messages.map((message, i) => (
-          <MessageRenderer
+          <GroupedMessageRenderer
             key={i}
             message={message}
             projectId={null}
             navigate={navigate}
           />
         ))}
-        {loading && (
-          <LoadingIndicator
-            streaming={streaming}
-            streamingReasoning={streamingReasoning}
-            streamingToolName={streamingToolName}
-            history={history}
-            projectId={null}
-            navigate={navigate}
-          />
+        {loading && streamingText && (
+          <AssistantText>
+            <MessageContent content={streamingText} projectId={null} navigate={navigate} />
+          </AssistantText>
         )}
         {error && (
           <div className="flex flex-col items-center gap-2 py-4">
@@ -354,6 +343,14 @@ export const NabuChatSidebar = () => {
           </div>
         )}
       </AutoScroll>
+
+      <StatusBar
+        planStatus={planStatus}
+        loading={loading}
+        history={history}
+        streamingReasoning={streamingReasoning}
+        streamingToolName={streamingToolName}
+      />
 
       <div className="flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3">
         <TextFieldUnstyled className="grow min-h-5">

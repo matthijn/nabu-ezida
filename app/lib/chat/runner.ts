@@ -12,6 +12,10 @@ export type RunnerDeps = ToolDeps
 const toNudge = createToNudge(getFiles)
 
 let controller: AbortController | null = null
+let paused = false
+
+export const setPaused = (v: boolean): void => { paused = v }
+export const isPaused = (): boolean => paused
 
 export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   const chat = getChat()
@@ -68,6 +72,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
     const history = await caller(current.history, controller.signal)
 
     updateChat({ history, streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null, loading: false })
+    if (paused) return
     run(deps)
   } catch (e) {
     controller = null

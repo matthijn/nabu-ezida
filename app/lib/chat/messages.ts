@@ -23,14 +23,14 @@ export type OrientationMessage = {
 
 export type RenderMessage = TextMessage | PlanMessage | OrientationMessage
 
-type Indexed<T> = { index: number; message: T }
+export type Indexed<T> = { index: number; message: T }
 
 const hasContent = (s: string): boolean => s.trim().length > 0
 
 const isTextBlock = (b: Block): b is { type: "user" | "text"; content: string } =>
   b.type === "user" || b.type === "text"
 
-const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
+export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
     .filter((item): item is { block: { type: "user" | "text"; content: string }; index: number } =>
@@ -45,7 +45,7 @@ const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
       },
     }))
 
-const findCreationIndices = (history: Block[], toolName: string): number[] =>
+export const findCreationIndices = (history: Block[], toolName: string): number[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
     .filter(({ block }) => findCall(block, toolName) !== undefined)
@@ -59,7 +59,7 @@ const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<Pl
   }))
 }
 
-const orientationMessagesIndexed = (
+export const orientationMessagesIndexed = (
   history: Block[],
   orientation: DerivedOrientation | null
 ): Indexed<OrientationMessage>[] => {
@@ -70,7 +70,7 @@ const orientationMessagesIndexed = (
   return [{ index, message: { type: "orientation", orientation, completed: orientation.completed, aborted } }]
 }
 
-const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
+export const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
 
 export const toRenderMessages = (history: Block[], files: Files = {}): RenderMessage[] => {
   const d = derive(history, files)
