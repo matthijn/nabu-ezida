@@ -1,0 +1,25 @@
+{
+  "files": {
+    "data.json": "[{\"file\":\"a.md\",\"tags\":[\"x\",\"y\"]},{\"file\":\"b.md\",\"tags\":null},{\"file\":\"c.md\",\"tags\":[\"z\"]}]"
+  },
+  "args": {
+    "commands": [
+      "jq -r '.[] | [.file, ((.tags // []) | join(\",\"))] | @tsv' data.json"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "a.md\tx,y\nb.md\t\nc.md\tz",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

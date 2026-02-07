@@ -1,6 +1,6 @@
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import type { OverlapSegment } from "~/domain/document/annotations"
+import type { OverlapSegment, ResolvedAnnotation } from "~/domain/document/annotations"
 import { createBackground } from "~/domain/document/annotations"
 
 const toRadixVar = (color: string): string => `var(--${color}-3)`
@@ -16,12 +16,22 @@ const createDecorationAttrs = (segment: OverlapSegment) => {
   }
 }
 
+const hasId = (a: ResolvedAnnotation): a is ResolvedAnnotation & { id: string } =>
+  a.id !== undefined
+
+const toMarkerDecoration = (a: ResolvedAnnotation & { id: string }): Decoration =>
+  Decoration.inline(a.from, a.to, { "data-id": a.id })
+
+export const createMarkerDecorations = (resolved: ResolvedAnnotation[]): Decoration[] =>
+  resolved.filter(hasId).map(toMarkerDecoration)
+
 export const createDecorationSet = (
   doc: Node,
-  segments: OverlapSegment[]
+  segments: OverlapSegment[],
+  markerDecorations: Decoration[] = [],
 ): DecorationSet => {
-  const decorations = segments.map((segment) =>
+  const overlapDecorations = segments.map((segment) =>
     Decoration.inline(segment.from, segment.to, createDecorationAttrs(segment))
   )
-  return DecorationSet.create(doc, decorations)
+  return DecorationSet.create(doc, [...overlapDecorations, ...markerDecorations])
 }

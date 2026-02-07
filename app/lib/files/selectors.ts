@@ -105,13 +105,14 @@ export const getCodebook = (files: Record<string, string>): Codebook | undefined
 
 const DEFAULT_ANNOTATION_COLOR = "gray"
 
-const resolveAnnotationColor = (files: Record<string, string>, annotation: StoredAnnotation): string => {
+export const resolveAnnotationColor = (files: Record<string, string>, annotation: StoredAnnotation): string => {
   if (annotation.color) return annotation.color
   if (annotation.code) return findCodeById(files, annotation.code)?.color ?? DEFAULT_ANNOTATION_COLOR
   return DEFAULT_ANNOTATION_COLOR
 }
 
 const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): Annotation => ({
+  id: stored.id,
   text: stored.text,
   color: resolveAnnotationColor(files, stored),
   reason: stored.reason,
@@ -121,3 +122,15 @@ const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): 
 
 export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>
   getStoredAnnotations(raw).map((a) => toAnnotation(files, a))
+
+export const findAnnotationById = (files: Record<string, string>, id: string): StoredAnnotation | undefined =>
+  Object.values(files).flatMap(getStoredAnnotations).find((a) => a.id === id)
+
+export const findCalloutById = (files: Record<string, string>, id: string): CalloutBlock | undefined =>
+  Object.values(files).flatMap(getCallouts).find((c) => c.id === id)
+
+export const findDocumentForAnnotation = (files: Record<string, string>, id: string): string | undefined =>
+  Object.entries(files).find(([_, raw]) => getStoredAnnotations(raw).some((a) => a.id === id))?.[0]
+
+export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
+  Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]

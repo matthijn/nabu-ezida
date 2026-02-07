@@ -1,0 +1,40 @@
+{
+  "files": {
+    "data.json": "[{\"reason\":\"Citizen as Customer framing\",\"text\":\"hello\"},{\"reason\":\"other\",\"text\":\"world\"},{\"reason\":\"\",\"text\":\"Customer focus\"}]"
+  },
+  "args": {
+    "commands": [
+      "jq -c 'map(select(.reason | test(\"customer\"; \"i\")))' data.json",
+      "jq -c 'map((.reason // \"\") + \" \" + (.text // \"\"))' data.json",
+      "jq -c 'map(.reason + .text)' data.json",
+      "jq -c '[1, 2, 3] | map(. + 10)' data.json"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "[{\"reason\":\"Citizen as Customer framing\",\"text\":\"hello\"}]",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      },
+      {
+        "stdout": "[\"Citizen as Customer framing hello\",\"other world\",\" Customer focus\"]",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      },
+      {
+        "stdout": "[\"Citizen as Customer framinghello\",\"otherworld\",\"Customer focus\"]",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      },
+      {
+        "stdout": "[11,12,13]",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      }
+    ],
+    "mutations": [],
+    "message": "All commands completed successfully."
+  }
+}

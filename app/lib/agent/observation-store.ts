@@ -3,6 +3,7 @@ import type { Block } from "./types"
 export type ObservationEntry = {
   id: number
   name: string
+  endpoint: string
   messages: Block[]
   response: Block[]
   timestamp: number
@@ -16,9 +17,9 @@ let listeners: (() => void)[] = []
 
 const notify = (): void => listeners.forEach((l) => l())
 
-export const startObservation = (name: string, messages: Block[]): number => {
+export const startObservation = (name: string, endpoint: string, messages: Block[]): number => {
   const id = nextId++
-  entries = [...entries, { id, name, messages, response: [], timestamp: Date.now(), streaming: "", streamingReasoning: "" }]
+  entries = [...entries, { id, name, endpoint, messages, response: [], timestamp: Date.now(), streaming: "", streamingReasoning: "" }]
   notify()
   return id
 }

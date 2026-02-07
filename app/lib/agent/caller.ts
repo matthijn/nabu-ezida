@@ -43,7 +43,7 @@ const executeToolCalls = async (
 
 export const buildCaller = (name: string, config: CallerConfig): Caller =>
   async (history, signal) => {
-    const entryId = startObservation(name, history)
+    const entryId = startObservation(name, config.endpoint, history)
 
     const observationCallbacks: ParseCallbacks = {
       onChunk: (chunk) => updateObservationStreaming(entryId, chunk),

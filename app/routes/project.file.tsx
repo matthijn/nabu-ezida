@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react"
+import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { useProject } from "./project"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -38,6 +39,7 @@ export default function ProjectFile() {
   const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, togglePauseOnError, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  useScrollToEntity(editorContainerRef)
 
   const content = currentFile ? getFileRaw(files, currentFile) : undefined
   const copyRawMarkdown = useCallback(() => {

@@ -59,7 +59,7 @@ export const CalloutNodeView = () => {
   return (
     <>
       <BlockSpacer onClick={handleInsertBefore} />
-      <div contentEditable={false}>
+      <div contentEditable={false} data-id={data.id}>
         <CalloutBlockView data={data} onDelete={handleDelete} />
       </div>
     </>

@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, type MouseEvent } from "react"
 
 type Position = { x: number; y: number }
 
+type Anchor = { x?: "left" | "right"; y?: "top" | "bottom" }
+
 type DragState = {
   startX: number
   startY: number
@@ -9,9 +11,14 @@ type DragState = {
   startPosY: number
 }
 
-export const useDraggable = (initialPosition: Position) => {
+const anchorSign = (edge: "left" | "right" | "top" | "bottom"): number =>
+  edge === "left" || edge === "top" ? 1 : -1
+
+export const useDraggable = (initialPosition: Position, anchor: Anchor = {}) => {
   const [position, setPosition] = useState(initialPosition)
   const dragRef = useRef<DragState | null>(null)
+  const xSign = anchorSign(anchor.x ?? "right")
+  const ySign = anchorSign(anchor.y ?? "bottom")
 
   const handleMouseDown = useCallback((e: MouseEvent) => {
     e.preventDefault()
@@ -27,8 +34,8 @@ export const useDraggable = (initialPosition: Position) => {
       const deltaX = e.clientX - dragRef.current.startX
       const deltaY = e.clientY - dragRef.current.startY
       setPosition({
-        x: dragRef.current.startPosX - deltaX,
-        y: dragRef.current.startPosY - deltaY,
+        x: dragRef.current.startPosX + xSign * deltaX,
+        y: dragRef.current.startPosY + ySign * deltaY,
       })
     }
 
@@ -40,7 +47,7 @@ export const useDraggable = (initialPosition: Position) => {
 
     document.addEventListener("mousemove", handleMouseMove)
     document.addEventListener("mouseup", handleMouseUp)
-  }, [position])
+  }, [position, xSign, ySign])
 
   return { position, handleMouseDown }
 }

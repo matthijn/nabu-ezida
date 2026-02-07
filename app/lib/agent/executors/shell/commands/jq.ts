@@ -167,6 +167,15 @@ const parseFilter = (expr: string): Filter => {
     }
   }
 
+  // Addition / string concatenation / array-object merge
+  {
+    const parts = splitByChar(expr, "+")
+    if (parts.length > 1) {
+      const filters = parts.map(parseFilter)
+      return (v) => [addValues(filters.map((f) => f(v)[0]))]
+    }
+  }
+
   // Array construction [expr] or [expr, expr, ...]
   if (expr.startsWith("[") && expr.endsWith("]")) {
     const inner = expr.slice(1, -1).trim()
@@ -320,11 +329,23 @@ const parseFilter = (expr: string): Filter => {
     return (v) => [isObject(v) && key in v]
   }
 
-  // test("regex")
-  const testMatch = expr.match(/^test\(["'](.+)["']\)$/)
+  // test("regex") or test("regex"; "flags")
+  const testMatch = expr.match(/^test\((.+)\)$/)
   if (testMatch) {
-    const re = new RegExp(testMatch[1])
+    const args = splitFuncArgs(testMatch[1])
+    const re = new RegExp(stripQuotes(args[0]), args.length > 1 ? stripQuotes(args[1]) : "")
     return (v) => [typeof v === "string" && re.test(v)]
+  }
+
+  // join(separator)
+  const joinMatch = expr.match(/^join\((.+)\)$/)
+  if (joinMatch) {
+    const sepFilter = parseFilter(joinMatch[1])
+    return (v) => {
+      if (!isArray(v)) return [String(v)]
+      const sep = String(sepFilter(v)[0] ?? "")
+      return [v.map((x) => String(x ?? "")).join(sep)]
+    }
   }
 
   // index(expr)
@@ -450,8 +471,25 @@ const splitAlt = (expr: string): string[] => {
   return parts
 }
 
+const splitFuncArgs = (inner: string): string[] => splitByChar(inner, ";")
+
+const stripQuotes = (s: string): string => {
+  const trimmed = s.trim()
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'")))
+    return trimmed.slice(1, -1)
+  return trimmed
+}
+
+const addValues = (values: JqValue[]): JqValue => {
+  if (values.every((x) => typeof x === "number")) return values.reduce((a: number, b) => a + (b as number), 0)
+  if (values.every((x) => typeof x === "string")) return values.join("")
+  if (values.every((x) => isArray(x))) return (values as unknown[][]).flat()
+  if (values.every((x) => isObject(x))) return Object.assign({}, ...values)
+  return values.map((x) => String(x ?? "")).join("")
+}
+
 export const jq = command({
-  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Logic: and, or, not. Parens: (expr). Functions: map, select, has, test, index, sort_by, group_by, keys, length, unique, flatten, add, first, last, @csv, @tsv. Literals: null, true, false",
+  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Ops: +. Logic: and, or, not. Parens: (expr). Functions: map, select, has, test(pattern; flags), index, sort_by, group_by, keys, length, unique, flatten, add, first, last, join, @csv, @tsv. Literals: null, true, false",
   usage: `jq [-r] [-c] <filter> [file]
   jq ".[].title" data.json
   jq ".[] | select(.type == \\"code\\")" data.json

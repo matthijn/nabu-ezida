@@ -6,9 +6,11 @@ import type { ToolDefinition } from "./tool"
 import { tool, registerTool, ok, err, getToolHandlers } from "./tool"
 import { buildCaller } from "../caller"
 import { extractText } from "../stream"
+import { getStreamingCallbacks, withStreamingReset } from "../streaming-context"
 import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
 import { expertToolDefinitions, reviseCodebookToolDefinitions } from "./expert-tools"
+import { isAbortError } from "~/lib/utils"
 
 export type ExpertSummary = { orchestrator_summary: string }
 
@@ -79,11 +81,12 @@ const expertToolNudge: AgentNudge = async (history) => {
 
 export const runExpertWithTools = async (expert: string, task: string | null, messages: Block[], tools: ToolDefinition[]): Promise<ExpertSummary> => {
   const executor = createExecutor(getToolHandlers())
-  const caller = buildCaller(buildCallerName(expert, task), {
+  const caller = withStreamingReset(buildCaller(buildCallerName(expert, task), {
     endpoint: buildEndpoint(expert, task ?? undefined),
     tools,
     execute: executor,
-  })
+    callbacks: getStreamingCallbacks(),
+  }))
 
   const history = await runAgent(caller, expertToolNudge, messages)
   const summary = findSummarizeResult(history)
@@ -92,9 +95,10 @@ export const runExpertWithTools = async (expert: string, task: string | null, me
 }
 
 export const runExpertFreeform = async (expert: string, task: string | null, messages: Block[]): Promise<string> => {
-  const caller = buildCaller(buildCallerName(expert, task), {
+  const caller = withStreamingReset(buildCaller(buildCallerName(expert, task), {
     endpoint: buildEndpoint(expert, task ?? undefined),
-  })
+    callbacks: getStreamingCallbacks(),
+  }))
   const history = await runAgent(caller, noNudge, messages)
   return extractText(history.slice(messages.length))
 }
@@ -105,6 +109,7 @@ const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
       const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions), tools)
       return { result: summary.orchestrator_summary }
     } catch (e) {
+      if (isAbortError(e)) throw e
       return { error: e instanceof Error ? e.message : String(e) }
     }
   }
@@ -113,6 +118,7 @@ const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, i
   try {
     return { result: await runExpertFreeform(expert, task, buildMessages(context, content, instructions)) }
   } catch (e) {
+    if (isAbortError(e)) throw e
     return { error: e instanceof Error ? e.message : String(e) }
   }
 }

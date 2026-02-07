@@ -1,4 +1,5 @@
 export type Annotation = {
+  id?: string
   text: string
   color: string
   reason?: string
@@ -7,6 +8,7 @@ export type Annotation = {
 }
 
 export type ResolvedAnnotation = {
+  id?: string
   index: number
   from: number
   to: number

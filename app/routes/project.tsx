@@ -152,12 +152,17 @@ export default function ProjectLayout() {
   const fileNames = Object.keys(files).filter((f) => debugExpanded || !isHiddenFile(f))
 
   useEffect(() => {
-    if (!currentFile && fileNames.length > 0 && params.projectId) {
+    if (params.fileId) {
+      const decoded = decodeURIComponent(params.fileId)
+      if (decoded !== currentFile) setCurrentFile(decoded)
+      return
+    }
+    if (fileNames.length > 0 && params.projectId) {
       const first = fileNames[0]
       setCurrentFile(first)
       navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`)
     }
-  }, [currentFile, fileNames.length, params.projectId])
+  }, [params.fileId, fileNames.length, params.projectId])
 
   const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugExpanded)
 

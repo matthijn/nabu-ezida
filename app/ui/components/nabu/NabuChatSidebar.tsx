@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
 import { useNavigate, useParams } from "react-router"
-import Markdown, { type Components } from "react-markdown"
+import Markdown from "react-markdown"
 import {
   FeatherArrowRight,
   FeatherCheck,
@@ -32,38 +32,8 @@ import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
-import { resolveFileLink } from "~/domain/spotlight"
+import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { useNabu } from "./context"
-
-type MarkdownContext = {
-  projectId: string | null
-  navigate?: (url: string) => void
-}
-
-const createMarkdownComponents = ({ projectId, navigate }: MarkdownContext): Components => ({
-  a: (props) => {
-    const href = props.href as string | undefined
-    const resolved = projectId && href ? resolveFileLink(href, projectId) : null
-    const finalHref = resolved ?? href
-
-    const handleClick = (e: React.MouseEvent) => {
-      if (finalHref && navigate) {
-        e.preventDefault()
-        navigate(finalHref)
-      }
-    }
-
-    return (
-      <a
-        href={finalHref}
-        onClick={handleClick}
-        className="bg-brand-100 cursor-pointer hover:bg-brand-200 no-underline font-normal"
-      >
-        {props.children}
-      </a>
-    )
-  },
-})
 
 const encodeUrlForMarkdown = (url: string): string =>
   url.replace(/"/g, "%22")
@@ -75,12 +45,13 @@ const allowFileProtocol = (url: string): string => url
 
 type MessageContentProps = {
   content: string
+  files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const MessageContent = ({ content, projectId, navigate }: MessageContentProps) => (
-  <Markdown components={createMarkdownComponents({ projectId, navigate })} urlTransform={allowFileProtocol}>
+const MessageContent = ({ content, files, projectId, navigate }: MessageContentProps) => (
+  <Markdown components={createEntityLinkComponents({ files, projectId, navigate })} urlTransform={allowFileProtocol}>
     {fixMarkdownUrls(content)}
   </Markdown>
 )
@@ -106,7 +77,7 @@ const ParticipantAvatar = ({ participant, size = "x-small" }: ParticipantAvatarP
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">
     <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-4 py-2 shadow-sm max-w-[80%]">
-      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:underline">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:no-underline">
         {children}
       </div>
     </div>
@@ -116,7 +87,7 @@ const UserBubble = ({ children }: { children: React.ReactNode }) => (
 const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-start">
     <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-4 py-2 max-w-[80%]">
-      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
         {children}
       </div>
     </div>
@@ -124,17 +95,17 @@ const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
 )
 
 const stepIcons: Record<StepStatus, React.ReactNode> = {
-  completed: <FeatherCheck className="text-caption font-caption text-success-600 mt-0.5 flex-none" />,
-  active: <FeatherCircle className="text-caption font-caption text-brand-600 mt-0.5 flex-none" />,
-  pending: <FeatherCircle className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />,
-  cancelled: <FeatherX className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />,
+  completed: <FeatherCheck className="text-body font-body text-success-600 mt-0.5 flex-none" />,
+  active: <FeatherCircle className="text-body font-body text-brand-600 mt-0.5 flex-none" />,
+  pending: <FeatherCircle className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
+  cancelled: <FeatherX className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
 }
 
 const stepTextStyles: Record<StepStatus, string> = {
-  completed: "text-caption font-caption text-default-font",
-  active: "text-caption font-caption text-default-font",
-  pending: "text-caption font-caption text-neutral-400",
-  cancelled: "text-caption font-caption text-neutral-400",
+  completed: "text-body font-body text-default-font",
+  active: "text-body font-body text-default-font",
+  pending: "text-body font-body text-neutral-400",
+  cancelled: "text-body font-body text-neutral-400",
 }
 
 const PlanStepRow = ({ step }: { step: PlanStep }) => (
@@ -143,14 +114,14 @@ const PlanStepRow = ({ step }: { step: PlanStep }) => (
     <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
       <span className={stepTextStyles[step.status]}>{step.description}</span>
       {step.summary && (
-        <span className="text-caption font-caption text-subtext-color">{step.summary}</span>
+        <span className="text-body font-body text-subtext-color">{step.summary}</span>
       )}
     </div>
   </div>
 )
 
 const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
-  <span className="text-caption-bold font-caption-bold text-subtext-color">
+  <span className="text-body-bold font-body-bold text-subtext-color">
     {section.file}
     {section.totalInFile > 1 && <span className="text-neutral-400"> · {section.indexInFile} of {section.totalInFile}</span>}
   </span>
@@ -158,25 +129,25 @@ const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
 
 const findingToRows = (finding: Finding): React.ReactNode[] => [
   <div key={`d-${finding.direction}`} className="flex w-full items-start gap-2">
-    <FeatherArrowRight className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />
-    <span className="text-caption font-caption text-default-font">{finding.direction}</span>
+    <FeatherArrowRight className="text-body font-body text-neutral-400 mt-0.5 flex-none" />
+    <span className="text-body font-body text-default-font">{finding.direction}</span>
   </div>,
   <div key={`l-${finding.learned}`} className="flex w-full items-start gap-2">
-    <FeatherLightbulb className="text-caption font-caption text-brand-600 mt-0.5 flex-none" />
-    <span className="text-caption font-caption text-default-font">{finding.learned}</span>
+    <FeatherLightbulb className="text-body font-body text-brand-600 mt-0.5 flex-none" />
+    <span className="text-body font-body text-default-font">{finding.learned}</span>
   </div>,
 ]
 
 const ExploreContainer = ({ orientation, aborted }: { orientation: DerivedOrientation; aborted: boolean }) => (
   <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 bg-neutral-50 pl-3 pr-2 py-2 my-1">
-    <span className="text-caption-bold font-caption-bold text-default-font">
+    <span className="text-body-bold font-body-bold text-default-font">
       {orientation.question}
     </span>
     {orientation.findings.flatMap(findingToRows)}
     {orientation.currentDirection && !aborted && (
       <div className="flex w-full items-start gap-2">
-        <FeatherLoader2 className="text-caption font-caption text-brand-600 animate-spin mt-0.5 flex-none" />
-        <span className="text-caption font-caption text-brand-700">{orientation.currentDirection}</span>
+        <FeatherLoader2 className="text-body font-body text-brand-600 animate-spin mt-0.5 flex-none" />
+        <span className="text-body font-body text-brand-700">{orientation.currentDirection}</span>
       </div>
     )}
     {aborted && <AbortBox />}
@@ -185,23 +156,24 @@ const ExploreContainer = ({ orientation, aborted }: { orientation: DerivedOrient
 
 type LeafRendererProps = {
   message: LeafMessage
+  files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const LeafRenderer = ({ message, projectId, navigate }: LeafRendererProps) => {
+const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps) => {
   switch (message.type) {
     case "text":
       if (message.role === "user") {
         return (
           <UserBubble>
-            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
           </UserBubble>
         )
       }
       return (
         <AssistantBubble>
-          <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
         </AssistantBubble>
       )
     case "orientation":
@@ -220,13 +192,13 @@ const isPlanSectionGroup = (child: PlanChild): child is PlanSectionGroup => chil
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text" || child.type === "orientation"
 
-const PlanLeafInline = ({ message, projectId, navigate }: { message: LeafMessage; projectId: string | null; navigate?: (url: string) => void }) => {
+const PlanLeafInline = ({ message, files, projectId, navigate }: { message: LeafMessage; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
   if (message.type === "text" && message.role === "user") {
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
+            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
       </div>
@@ -236,55 +208,56 @@ const PlanLeafInline = ({ message, projectId, navigate }: { message: LeafMessage
     return (
       <div className="flex w-full items-start">
         <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
+            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
       </div>
     )
   }
-  return <LeafRenderer message={message} projectId={projectId} navigate={navigate} />
+  return <LeafRenderer message={message} files={files} projectId={projectId} navigate={navigate} />
 }
 
-const SectionGroupRenderer = ({ group, bg, projectId, navigate }: { group: PlanSectionGroup; bg: string; projectId: string | null; navigate?: (url: string) => void }) => (
+const SectionGroupRenderer = ({ group, bg, files, projectId, navigate }: { group: PlanSectionGroup; bg: string; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
   <div className={`flex w-full flex-col items-start gap-1 ml-3 pl-3 py-1 rounded-md${bg ? ` ${bg}` : ""}${group.dimmed ? " opacity-50" : ""}`}>
     <PlanSectionLabel section={group.section} />
     {group.children.map((child, i) =>
       child.type === "plan-step"
         ? <PlanStepRow key={i} step={child} />
-        : <PlanLeafInline key={i} message={child} projectId={projectId} navigate={navigate} />
+        : <PlanLeafInline key={i} message={child} files={files} projectId={projectId} navigate={navigate} />
     )}
   </div>
 )
 
 type PlanChildRendererProps = {
   child: PlanChild
+  files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanChildRenderer = ({ child, projectId, navigate }: PlanChildRendererProps) => {
+const PlanChildRenderer = ({ child, files, projectId, navigate }: PlanChildRendererProps) => {
   if (isPlanStep(child)) return <PlanStepRow step={child} />
   if (isPlanSection(child)) return <PlanSectionLabel section={child} />
-  if (isLeafMessage(child)) return <PlanLeafInline message={child} projectId={projectId} navigate={navigate} />
+  if (isLeafMessage(child)) return <PlanLeafInline message={child} files={files} projectId={projectId} navigate={navigate} />
   return null
 }
 
 const StepProgressLabel = ({ progress }: { progress: { current: number; total: number } }) => (
-  <span className="text-caption font-caption text-subtext-color">
+  <span className="text-body font-body text-subtext-color">
     Step {progress.current} of {progress.total}
   </span>
 )
 
 const SectionProgressLabel = ({ progress }: { progress: SectionProgress }) => (
-  <span className="text-caption font-caption text-subtext-color">
+  <span className="text-body font-body text-subtext-color">
     {progress.completed} of {progress.total} sections
   </span>
 )
 
 const PlanHeaderRenderer = ({ header }: { header: PlanHeader }) => (
   <div className="flex w-full flex-col items-start gap-1 py-1">
-    <span className="text-caption-bold font-caption-bold text-default-font">
+    <span className="text-body-bold font-body-bold text-default-font">
       {header.task}
     </span>
     {header.stepProgress && !header.completed && (
@@ -297,19 +270,19 @@ const PlanHeaderRenderer = ({ header }: { header: PlanHeader }) => (
   </div>
 )
 
-const PlanItemRenderer = ({ item, sectionBg, projectId, navigate }: { item: PlanItem; sectionBg: string; projectId: string | null; navigate?: (url: string) => void }) => {
+const PlanItemRenderer = ({ item, sectionBg, files, projectId, navigate }: { item: PlanItem; sectionBg: string; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
   if (isPlanSectionGroup(item.child))
-    return <SectionGroupRenderer group={item.child} bg={sectionBg} projectId={projectId} navigate={navigate} />
+    return <SectionGroupRenderer group={item.child} bg={sectionBg} files={files} projectId={projectId} navigate={navigate} />
   return (
     <div className={`flex w-full flex-col items-start${item.section ? " ml-3" : ""}${item.dimmed ? " opacity-50" : ""}`}>
-      <PlanChildRenderer child={item.child} projectId={projectId} navigate={navigate} />
+      <PlanChildRenderer child={item.child} files={files} projectId={projectId} navigate={navigate} />
     </div>
   )
 }
 
 const PlanRemainderRenderer = ({ remainder }: { remainder: PlanRemainder }) => (
   <div className="flex w-full items-start ml-3 pl-3 opacity-50">
-    <span className="text-caption font-caption text-subtext-color">
+    <span className="text-body font-body text-subtext-color">
       ...{remainder.count} more
     </span>
   </div>
@@ -352,16 +325,17 @@ const computeSectionBgs = (items: PlanMessage[]): Map<number, string> => {
 type PlanSegmentItemRendererProps = {
   item: PlanMessage
   sectionBg: string
+  files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentItemRenderer = ({ item, sectionBg, projectId, navigate }: PlanSegmentItemRendererProps) => {
+const PlanSegmentItemRenderer = ({ item, sectionBg, files, projectId, navigate }: PlanSegmentItemRendererProps) => {
   switch (item.type) {
     case "plan-header":
       return <PlanHeaderRenderer header={item} />
     case "plan-item":
-      return <PlanItemRenderer item={item} sectionBg={sectionBg} projectId={projectId} navigate={navigate} />
+      return <PlanItemRenderer item={item} sectionBg={sectionBg} files={files} projectId={projectId} navigate={navigate} />
     case "plan-remainder":
       return <PlanRemainderRenderer remainder={item} />
   }
@@ -372,19 +346,20 @@ type PlanSegmentRendererProps = {
   active: boolean
   streamingText: string | null
   spinnerLabel: string | null
+  files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, projectId, navigate }: PlanSegmentRendererProps) => {
+const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => {
   const sectionBgs = computeSectionBgs(items)
   return (
     <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 pr-2">
       {items.map((item, i) => (
-        <PlanSegmentItemRenderer key={i} item={item} sectionBg={sectionBgs.get(i) ?? ""} projectId={projectId} navigate={navigate} />
+        <PlanSegmentItemRenderer key={i} item={item} sectionBg={sectionBgs.get(i) ?? ""} files={files} projectId={projectId} navigate={navigate} />
       ))}
       {active && streamingText && (
-        <PlanLeafInline message={{ type: "text", role: "assistant", content: streamingText }} projectId={projectId} navigate={navigate} />
+        <PlanLeafInline message={{ type: "text", role: "assistant", content: streamingText }} files={files} projectId={projectId} navigate={navigate} />
       )}
       {active && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
     </div>
@@ -541,16 +516,17 @@ export const NabuChatSidebar = () => {
               active={i === lastPlanIdx && activePlan}
               streamingText={i === lastPlanIdx && activePlan && loading ? streamingText : null}
               spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
-              projectId={null}
+              files={files}
+              projectId={params.projectId ?? null}
               navigate={navigate}
             />
           ) : (
-            <LeafRenderer key={i} message={segment} projectId={null} navigate={navigate} />
+            <LeafRenderer key={i} message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           )
         )}
         {!activePlan && loading && streamingText && (
           <AssistantBubble>
-            <MessageContent content={streamingText} projectId={null} navigate={navigate} />
+            <MessageContent content={streamingText} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           </AssistantBubble>
         )}
         {!activePlan && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
