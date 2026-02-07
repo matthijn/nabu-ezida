@@ -24,10 +24,10 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
 import { derive, hasActivePlan } from "~/lib/agent"
 import type { DerivedOrientation, Finding } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanGroup, type PlanChild, type PlanStep, type PlanSection, type StepStatus, type SectionProgress } from "~/lib/chat/group"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanRemainder, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus, type SectionProgress } from "~/lib/chat/group"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
-import { filterCodeBlocks } from "~/lib/streaming/filter"
+import { preprocessStreaming } from "~/lib/streaming/filter"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
@@ -124,17 +124,17 @@ const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
 )
 
 const stepIcons: Record<StepStatus, React.ReactNode> = {
-  completed: <FeatherCheck className="text-body font-body text-success-600 mt-0.5 flex-none" />,
-  active: <FeatherCircle className="text-body font-body text-brand-600 mt-0.5 flex-none" />,
-  pending: <FeatherCircle className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
-  cancelled: <FeatherX className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
+  completed: <FeatherCheck className="text-caption font-caption text-success-600 mt-0.5 flex-none" />,
+  active: <FeatherCircle className="text-caption font-caption text-brand-600 mt-0.5 flex-none" />,
+  pending: <FeatherCircle className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />,
+  cancelled: <FeatherX className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />,
 }
 
 const stepTextStyles: Record<StepStatus, string> = {
-  completed: "text-body font-body text-default-font",
-  active: "text-body font-body text-default-font",
-  pending: "text-body font-body text-neutral-400",
-  cancelled: "text-body font-body text-neutral-400",
+  completed: "text-caption font-caption text-default-font",
+  active: "text-caption font-caption text-default-font",
+  pending: "text-caption font-caption text-neutral-400",
+  cancelled: "text-caption font-caption text-neutral-400",
 }
 
 const PlanStepRow = ({ step }: { step: PlanStep }) => (
@@ -143,14 +143,14 @@ const PlanStepRow = ({ step }: { step: PlanStep }) => (
     <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
       <span className={stepTextStyles[step.status]}>{step.description}</span>
       {step.summary && (
-        <span className="text-body font-body text-subtext-color">{step.summary}</span>
+        <span className="text-caption font-caption text-subtext-color">{step.summary}</span>
       )}
     </div>
   </div>
 )
 
 const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
-  <span className="text-body-bold font-body-bold text-subtext-color">
+  <span className="text-caption-bold font-caption-bold text-subtext-color">
     {section.file}
     {section.totalInFile > 1 && <span className="text-neutral-400"> · {section.indexInFile} of {section.totalInFile}</span>}
   </span>
@@ -158,25 +158,25 @@ const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
 
 const findingToRows = (finding: Finding): React.ReactNode[] => [
   <div key={`d-${finding.direction}`} className="flex w-full items-start gap-2">
-    <FeatherArrowRight className="text-body font-body text-neutral-400 mt-0.5 flex-none" />
-    <span className="text-body font-body text-default-font">{finding.direction}</span>
+    <FeatherArrowRight className="text-caption font-caption text-neutral-400 mt-0.5 flex-none" />
+    <span className="text-caption font-caption text-default-font">{finding.direction}</span>
   </div>,
   <div key={`l-${finding.learned}`} className="flex w-full items-start gap-2">
-    <FeatherLightbulb className="text-body font-body text-brand-600 mt-0.5 flex-none" />
-    <span className="text-body font-body text-default-font">{finding.learned}</span>
+    <FeatherLightbulb className="text-caption font-caption text-brand-600 mt-0.5 flex-none" />
+    <span className="text-caption font-caption text-default-font">{finding.learned}</span>
   </div>,
 ]
 
 const ExploreContainer = ({ orientation, aborted }: { orientation: DerivedOrientation; aborted: boolean }) => (
-  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
-    <span className="text-body-bold font-body-bold text-default-font">
+  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 bg-neutral-50 pl-3 pr-2 py-2 my-1">
+    <span className="text-caption-bold font-caption-bold text-default-font">
       {orientation.question}
     </span>
     {orientation.findings.flatMap(findingToRows)}
     {orientation.currentDirection && !aborted && (
       <div className="flex w-full items-start gap-2">
-        <FeatherLoader2 className="text-body font-body text-brand-600 animate-spin mt-0.5 flex-none" />
-        <span className="text-body font-body text-brand-700">{orientation.currentDirection}</span>
+        <FeatherLoader2 className="text-caption font-caption text-brand-600 animate-spin mt-0.5 flex-none" />
+        <span className="text-caption font-caption text-brand-700">{orientation.currentDirection}</span>
       </div>
     )}
     {aborted && <AbortBox />}
@@ -216,8 +216,46 @@ const LeafRenderer = ({ message, projectId, navigate }: LeafRendererProps) => {
 
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isPlanSection = (child: PlanChild): child is PlanSection => child.type === "plan-section"
+const isPlanSectionGroup = (child: PlanChild): child is PlanSectionGroup => child.type === "plan-section-group"
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text" || child.type === "orientation"
+
+const PlanLeafInline = ({ message, projectId, navigate }: { message: LeafMessage; projectId: string | null; navigate?: (url: string) => void }) => {
+  if (message.type === "text" && message.role === "user") {
+    return (
+      <div className="flex w-full items-end justify-end">
+        <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
+          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (message.type === "text") {
+    return (
+      <div className="flex w-full items-start">
+        <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
+          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+            <MessageContent content={message.content} projectId={projectId} navigate={navigate} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  return <LeafRenderer message={message} projectId={projectId} navigate={navigate} />
+}
+
+const SectionGroupRenderer = ({ group, bg, projectId, navigate }: { group: PlanSectionGroup; bg: string; projectId: string | null; navigate?: (url: string) => void }) => (
+  <div className={`flex w-full flex-col items-start gap-1 ml-3 pl-3 py-1 rounded-md${bg ? ` ${bg}` : ""}${group.dimmed ? " opacity-50" : ""}`}>
+    <PlanSectionLabel section={group.section} />
+    {group.children.map((child, i) =>
+      child.type === "plan-step"
+        ? <PlanStepRow key={i} step={child} />
+        : <PlanLeafInline key={i} message={child} projectId={projectId} navigate={navigate} />
+    )}
+  </div>
+)
 
 type PlanChildRendererProps = {
   child: PlanChild
@@ -228,142 +266,129 @@ type PlanChildRendererProps = {
 const PlanChildRenderer = ({ child, projectId, navigate }: PlanChildRendererProps) => {
   if (isPlanStep(child)) return <PlanStepRow step={child} />
   if (isPlanSection(child)) return <PlanSectionLabel section={child} />
-  if (isLeafMessage(child)) {
-    if (child.type === "text" && child.role === "user") {
-      return (
-        <div className="flex w-full items-end justify-end">
-          <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-            <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-              <MessageContent content={child.content} projectId={projectId} navigate={navigate} />
-            </div>
-          </div>
-        </div>
-      )
-    }
-    if (child.type === "text") {
-      return (
-        <div className="flex w-full items-start">
-          <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-            <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
-              <MessageContent content={child.content} projectId={projectId} navigate={navigate} />
-            </div>
-          </div>
-        </div>
-      )
-    }
-    return <LeafRenderer message={child} projectId={projectId} navigate={navigate} />
-  }
+  if (isLeafMessage(child)) return <PlanLeafInline message={child} projectId={projectId} navigate={navigate} />
   return null
 }
 
-const isSectionStart = (child: PlanChild): child is PlanSection => child.type === "plan-section"
-
-const hasOnlyPendingSteps = (children: PlanChild[]): boolean => {
-  const steps = children.filter(isPlanStep)
-  return steps.length > 0 && steps.every((s) => s.status === "pending")
-}
-
-type SectionBlockProps = {
-  section: PlanSection
-  children: PlanChild[]
-  projectId: string | null
-  navigate?: (url: string) => void
-}
-
-const SectionBlock = ({ section, children, projectId, navigate }: SectionBlockProps) => (
-  <div className={`flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2${hasOnlyPendingSteps(children) ? " opacity-50" : ""}`}>
-    <PlanSectionLabel section={section} />
-    {children.map((child, i) => (
-      <PlanChildRenderer key={i} child={child} projectId={projectId} navigate={navigate} />
-    ))}
-  </div>
+const StepProgressLabel = ({ progress }: { progress: { current: number; total: number } }) => (
+  <span className="text-caption font-caption text-subtext-color">
+    Step {progress.current} of {progress.total}
+  </span>
 )
 
-type PlanGroupRendererProps = {
-  group: PlanGroup
-  projectId: string | null
-  navigate?: (url: string) => void
-}
-
-const groupSectionChildren = (children: PlanChild[]): { type: "section"; section: PlanSection; children: PlanChild[] }[] | null => {
-  const firstSectionIdx = children.findIndex(isSectionStart)
-  if (firstSectionIdx === -1) return null
-
-  const sections: { type: "section"; section: PlanSection; children: PlanChild[] }[] = []
-  let current: { section: PlanSection; children: PlanChild[] } | null = null
-
-  for (let i = firstSectionIdx; i < children.length; i++) {
-    const child = children[i]
-    if (isSectionStart(child)) {
-      if (current) sections.push({ type: "section", ...current })
-      current = { section: child, children: [] }
-    } else if (current) {
-      const nextSection = children.slice(i + 1).findIndex(isSectionStart)
-      const isStillInSection = isPlanStep(child) || isLeafMessage(child)
-      if (isStillInSection) {
-        current.children.push(child)
-      } else {
-        break
-      }
-    }
-  }
-  if (current) sections.push({ type: "section", ...current })
-  return sections.length > 0 ? sections : null
-}
-
 const SectionProgressLabel = ({ progress }: { progress: SectionProgress }) => (
-  <span className="text-body font-body text-subtext-color">
+  <span className="text-caption font-caption text-subtext-color">
     {progress.completed} of {progress.total} sections
   </span>
 )
 
-const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProps) => {
-  const sectionGroups = groupSectionChildren(group.children)
-  const firstSectionIdx = group.children.findIndex(isSectionStart)
-  const lastSectionEndIdx = sectionGroups
-    ? group.children.lastIndexOf(sectionGroups.at(-1)!.children.at(-1)!)
-    : -1
+const PlanHeaderRenderer = ({ header }: { header: PlanHeader }) => (
+  <div className="flex w-full flex-col items-start gap-1 py-1">
+    <span className="text-caption-bold font-caption-bold text-default-font">
+      {header.task}
+    </span>
+    {header.stepProgress && !header.completed && (
+      <StepProgressLabel progress={header.stepProgress} />
+    )}
+    {header.sectionProgress && !header.completed && (
+      <SectionProgressLabel progress={header.sectionProgress} />
+    )}
+    {header.aborted && <AbortBox />}
+  </div>
+)
 
-  const before = firstSectionIdx === -1 ? group.children : group.children.slice(0, firstSectionIdx)
-  const after = sectionGroups
-    ? group.children.slice(lastSectionEndIdx + 1).filter((c) => !isSectionStart(c))
-    : []
-
+const PlanItemRenderer = ({ item, sectionBg, projectId, navigate }: { item: PlanItem; sectionBg: string; projectId: string | null; navigate?: (url: string) => void }) => {
+  if (isPlanSectionGroup(item.child))
+    return <SectionGroupRenderer group={item.child} bg={sectionBg} projectId={projectId} navigate={navigate} />
   return (
-    <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
-      <span className="text-body-bold font-body-bold text-default-font">
-        {group.task}
-      </span>
-      {group.sectionProgress && !group.completed && (
-        <SectionProgressLabel progress={group.sectionProgress} />
-      )}
-      {before.map((child, i) => (
-        <PlanChildRenderer key={`b-${i}`} child={child} projectId={projectId} navigate={navigate} />
-      ))}
-      {sectionGroups?.map((sg, i) => (
-        <SectionBlock key={`s-${i}`} section={sg.section} projectId={projectId} navigate={navigate}>
-          {sg.children}
-        </SectionBlock>
-      ))}
-      {after.map((child, i) => (
-        <PlanChildRenderer key={`a-${i}`} child={child} projectId={projectId} navigate={navigate} />
-      ))}
-      {group.aborted && <AbortBox />}
+    <div className={`flex w-full flex-col items-start${item.section ? " ml-3" : ""}${item.dimmed ? " opacity-50" : ""}`}>
+      <PlanChildRenderer child={item.child} projectId={projectId} navigate={navigate} />
     </div>
   )
 }
 
-type GroupedMessageRendererProps = {
-  message: GroupedMessage
+const PlanRemainderRenderer = ({ remainder }: { remainder: PlanRemainder }) => (
+  <div className="flex w-full items-start ml-3 pl-3 opacity-50">
+    <span className="text-caption font-caption text-subtext-color">
+      ...{remainder.count} more
+    </span>
+  </div>
+)
+
+type PlanMessage = PlanHeader | PlanItem | PlanRemainder
+
+type PlanSegment = { type: "plan-segment"; items: PlanMessage[] }
+type RenderSegment = LeafMessage | PlanSegment
+
+const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
+  m.type === "plan-header" || m.type === "plan-item" || m.type === "plan-remainder"
+
+const isPlanSegment = (s: RenderSegment): s is PlanSegment =>
+  s.type === "plan-segment"
+
+const toRenderSegments = (messages: GroupedMessage[]): RenderSegment[] =>
+  messages.reduce<RenderSegment[]>((acc, m) => {
+    if (!isPlanRelated(m)) return [...acc, m]
+    const prev = acc[acc.length - 1]
+    if (prev && isPlanSegment(prev)) {
+      return [...acc.slice(0, -1), { type: "plan-segment", items: [...prev.items, m] }]
+    }
+    return [...acc, { type: "plan-segment", items: [m] }]
+  }, [])
+
+const computeSectionBgs = (items: PlanMessage[]): Map<number, string> => {
+  const bgs = new Map<number, string>()
+  let counter = 0
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.type === "plan-item" && isPlanSectionGroup(item.child)) {
+      bgs.set(i, counter % 2 === 0 ? "bg-neutral-50" : "")
+      counter++
+    }
+  }
+  return bgs
+}
+
+type PlanSegmentItemRendererProps = {
+  item: PlanMessage
+  sectionBg: string
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const GroupedMessageRenderer = ({ message, projectId, navigate }: GroupedMessageRendererProps) => {
-  if (message.type === "plan-group") {
-    return <PlanGroupRenderer group={message} projectId={projectId} navigate={navigate} />
+const PlanSegmentItemRenderer = ({ item, sectionBg, projectId, navigate }: PlanSegmentItemRendererProps) => {
+  switch (item.type) {
+    case "plan-header":
+      return <PlanHeaderRenderer header={item} />
+    case "plan-item":
+      return <PlanItemRenderer item={item} sectionBg={sectionBg} projectId={projectId} navigate={navigate} />
+    case "plan-remainder":
+      return <PlanRemainderRenderer remainder={item} />
   }
-  return <LeafRenderer message={message} projectId={projectId} navigate={navigate} />
+}
+
+type PlanSegmentRendererProps = {
+  items: PlanMessage[]
+  active: boolean
+  streamingText: string | null
+  spinnerLabel: string | null
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, projectId, navigate }: PlanSegmentRendererProps) => {
+  const sectionBgs = computeSectionBgs(items)
+  return (
+    <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 pr-2">
+      {items.map((item, i) => (
+        <PlanSegmentItemRenderer key={i} item={item} sectionBg={sectionBgs.get(i) ?? ""} projectId={projectId} navigate={navigate} />
+      ))}
+      {active && streamingText && (
+        <PlanLeafInline message={{ type: "text", role: "assistant", content: streamingText }} projectId={projectId} navigate={navigate} />
+      )}
+      {active && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+    </div>
+  )
 }
 
 type NabuFloatingButtonProps = {
@@ -385,11 +410,11 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
-const getFirstLine = (text: string): string | null => {
+const getFirstSentence = (text: string): string | null => {
   const trimmed = text.trim()
   if (!trimmed) return null
-  const firstLine = trimmed.split("\n")[0]
-  return firstLine.replace(/^\*\*|\*\*$/g, "").trim() || null
+  const match = trimmed.match(/^[^\n.!?]+/)
+  return match?.[0].replace(/^\*\*|\*\*$/g, "").trim() || null
 }
 
 type LoadingBubbleProps = {
@@ -418,8 +443,12 @@ export const NabuChatSidebar = () => {
   const { files } = useFiles()
 
   const derived = useMemo(() => derive(history, files), [history, files])
-  const streamingText = streaming ? filterCodeBlocks(streaming) : null
-  const messages = useMemo(() => toGroupedMessages(history, derived, streamingText), [history, derived, streamingText])
+  const isStreamingText = streaming && !streamingToolName
+  const streamingText = isStreamingText ? preprocessStreaming(streaming) : null
+  const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
+  const segments = useMemo(() => toRenderSegments(messages), [messages])
+  const activePlan = hasActivePlan(derived.plans)
+  const lastPlanIdx = segments.reduce<number>((acc, s, i) => isPlanSegment(s) ? i : acc, -1)
 
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -466,7 +495,7 @@ export const NabuChatSidebar = () => {
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const reasoningLabel = getFirstLine(streamingReasoning)
+  const reasoningLabel = getFirstSentence(streamingReasoning)
   const spinnerLabel = loading && !streamingText
     ? (reasoningLabel ?? getSpinnerLabel(history, streamingToolName))
     : null
@@ -504,20 +533,27 @@ export const NabuChatSidebar = () => {
             <span className="text-body font-body text-subtext-color">How can I help you today?</span>
           </div>
         )}
-        {messages.map((message, i) => (
-          <GroupedMessageRenderer
-            key={i}
-            message={message}
-            projectId={null}
-            navigate={navigate}
-          />
-        ))}
-        {loading && streamingText && !hasActivePlan(derived.plans) && (
+        {segments.map((segment, i) =>
+          isPlanSegment(segment) ? (
+            <PlanSegmentRenderer
+              key={i}
+              items={segment.items}
+              active={i === lastPlanIdx && activePlan}
+              streamingText={i === lastPlanIdx && activePlan && loading ? streamingText : null}
+              spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
+              projectId={null}
+              navigate={navigate}
+            />
+          ) : (
+            <LeafRenderer key={i} message={segment} projectId={null} navigate={navigate} />
+          )
+        )}
+        {!activePlan && loading && streamingText && (
           <AssistantBubble>
             <MessageContent content={streamingText} projectId={null} navigate={navigate} />
           </AssistantBubble>
         )}
-        {spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+        {!activePlan && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
         {error && (
           <div className="flex flex-col items-center gap-2 py-4">
             <span className="text-body font-body text-subtext-color">{error}</span>

@@ -48,7 +48,6 @@ const parsePathSegments = (expr: string): PathSegment[] | null => {
         segments.push({ type: "index", idx })
       }
       rest = rest.slice(end + 1)
-      if (rest.startsWith(".")) rest = rest.slice(1)
     }
     // .field
     else {
@@ -56,8 +55,9 @@ const parsePathSegments = (expr: string): PathSegment[] | null => {
       if (!match) return null
       segments.push({ type: "field", name: match[1] })
       rest = rest.slice(match[1].length)
-      if (rest.startsWith(".")) rest = rest.slice(1)
     }
+    if (rest.startsWith("?")) rest = rest.slice(1)
+    if (rest.startsWith(".")) rest = rest.slice(1)
   }
 
   return segments.length > 0 ? segments : [{ type: "identity" }]

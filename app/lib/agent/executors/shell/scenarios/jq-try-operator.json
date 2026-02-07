@@ -1,0 +1,25 @@
+{
+  "files": {
+    "data.json": "[{\"json\":{\"tags\":[\"a\",\"b\"]}},{\"json\":{\"tags\":[\"b\",\"c\"]}},{\"json\":{}}]"
+  },
+  "args": {
+    "commands": [
+      "jq -r \"[.[].json.tags[]?] | unique | .[]\" data.json"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "a\nb\nc",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}
