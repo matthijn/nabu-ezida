@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest"
 import { collect, systemNudge, type Nudger } from "./nudge-tools"
 import { createPlanNudge } from "./nudges/plan"
 import { createPlanCall, resetCallIdCounter } from "../test-helpers"
-import type { Block, SystemBlock } from "../types"
+import type { Block, SystemBlock, ExpertResultBlock } from "../types"
 
 beforeEach(() => resetCallIdCounter())
 
@@ -10,17 +10,24 @@ describe("planNudge with askExpert", () => {
   const fileContent = "Line 1\nLine 2\nLine 3"
   const files = { "doc.md": fileContent, "codebook.md": "# Codebook\nSome codes" }
 
+  const expertResultBlock: ExpertResultBlock = {
+    type: "expert_result",
+    expert: "qualitative-researcher",
+    task: "apply-codebook",
+    section: 1,
+    content: "Previous expert analysis",
+  }
+
   type TestCase = {
     name: string
     history: Block[]
     files: Record<string, string>
     expectContext: boolean
-    expectPlaceholder: boolean
   }
 
   const cases: TestCase[] = [
     {
-      name: "per_section with askExpert → has context and placeholder",
+      name: "per_section with askExpert → has context",
       history: createPlanCall(
         "Analyze doc",
         [{ per_section: ["Analyze section"] }],
@@ -28,10 +35,9 @@ describe("planNudge with askExpert", () => {
       ),
       files,
       expectContext: true,
-      expectPlaceholder: true,
     },
     {
-      name: "per_section without askExpert → no context, no placeholder",
+      name: "per_section without askExpert → no context",
       history: createPlanCall(
         "Analyze doc",
         [{ per_section: ["Analyze section"] }],
@@ -39,7 +45,6 @@ describe("planNudge with askExpert", () => {
       ),
       files,
       expectContext: false,
-      expectPlaceholder: false,
     },
     {
       name: "regular step with askExpert → no context (only per_section gets it)",
@@ -50,11 +55,23 @@ describe("planNudge with askExpert", () => {
       ),
       files,
       expectContext: false,
-      expectPlaceholder: false,
+    },
+    {
+      name: "per_section with askExpert + existing expert_result → no context (already ran)",
+      history: [
+        ...createPlanCall(
+          "Analyze doc",
+          [{ per_section: ["Analyze section"] }],
+          { files: ["doc.md"], askExpert: { expert: "qualitative-researcher", task: "apply-codebook", using: "cat codebook.md" } }
+        ),
+        expertResultBlock,
+      ],
+      files,
+      expectContext: false,
     },
   ]
 
-  cases.forEach(({ name, history, files: testFiles, expectContext, expectPlaceholder }) => {
+  cases.forEach(({ name, history, files: testFiles, expectContext }) => {
     it(name, () => {
       const planNudge = createPlanNudge(() => testFiles)
       const nudge = planNudge(history)
@@ -62,16 +79,12 @@ describe("planNudge with askExpert", () => {
       expect(nudge).not.toBeNull()
       if (!nudge) return
 
+      expect(nudge.content).not.toContain("{context}")
+
       if (expectContext) {
         expect(nudge.context).toBeDefined()
       } else {
         expect(nudge.context).toBeUndefined()
-      }
-
-      if (expectPlaceholder) {
-        expect(nudge.content).toContain("{context}")
-      } else {
-        expect(nudge.content).not.toContain("{context}")
       }
     })
   })

@@ -61,6 +61,8 @@ const formatBlock = (block: Block): string => {
       return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}]\n${formatResult(block.result)}`
     case "system":
       return `[system]\n${block.content}`
+    case "expert_result":
+      return `[expert_result (${block.expert}, section ${block.section})]\n${block.content}`
     case "empty_nudge":
       return `[empty_nudge]`
   }
@@ -178,6 +180,17 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           labelColor="text-yellow-600"
           bgColor="bg-yellow-50"
           defaultExpanded={true}
+        />
+      )
+    case "expert_result":
+      return (
+        <CollapsibleBlock
+          label={`expert_result (${block.expert}, section ${block.section})`}
+          content={block.content}
+          borderColor="border-teal-400"
+          labelColor="text-teal-600"
+          bgColor="bg-teal-50"
+          defaultExpanded={false}
         />
       )
   }

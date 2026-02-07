@@ -22,9 +22,9 @@ import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
-import { derive } from "~/lib/agent"
+import { derive, hasActivePlan } from "~/lib/agent"
 import type { DerivedOrientation, Finding } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanGroup, type PlanChild, type PlanStep, type PlanSection, type StepStatus } from "~/lib/chat/group"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanGroup, type PlanChild, type PlanStep, type PlanSection, type StepStatus, type SectionProgress } from "~/lib/chat/group"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { filterCodeBlocks } from "~/lib/streaming/filter"
@@ -138,7 +138,7 @@ const stepTextStyles: Record<StepStatus, string> = {
 }
 
 const PlanStepRow = ({ step }: { step: PlanStep }) => (
-  <div className="flex w-full items-start gap-2">
+  <div className={`flex w-full items-start gap-2${step.status === "pending" ? " opacity-50" : ""}`}>
     {stepIcons[step.status]}
     <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
       <span className={stepTextStyles[step.status]}>{step.description}</span>
@@ -223,10 +223,9 @@ type PlanChildRendererProps = {
   child: PlanChild
   projectId: string | null
   navigate?: (url: string) => void
-  nested?: boolean
 }
 
-const PlanChildRenderer = ({ child, projectId, navigate, nested }: PlanChildRendererProps) => {
+const PlanChildRenderer = ({ child, projectId, navigate }: PlanChildRendererProps) => {
   if (isPlanStep(child)) return <PlanStepRow step={child} />
   if (isPlanSection(child)) return <PlanSectionLabel section={child} />
   if (isLeafMessage(child)) {
@@ -234,7 +233,9 @@ const PlanChildRenderer = ({ child, projectId, navigate, nested }: PlanChildRend
       return (
         <div className="flex w-full items-end justify-end">
           <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-            <span className="text-body font-body text-default-font">{child.content}</span>
+            <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+              <MessageContent content={child.content} projectId={projectId} navigate={navigate} />
+            </div>
           </div>
         </div>
       )
@@ -243,7 +244,9 @@ const PlanChildRenderer = ({ child, projectId, navigate, nested }: PlanChildRend
       return (
         <div className="flex w-full items-start">
           <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-            <span className="text-body font-body text-default-font">{child.content}</span>
+            <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0">
+              <MessageContent content={child.content} projectId={projectId} navigate={navigate} />
+            </div>
           </div>
         </div>
       )
@@ -255,6 +258,11 @@ const PlanChildRenderer = ({ child, projectId, navigate, nested }: PlanChildRend
 
 const isSectionStart = (child: PlanChild): child is PlanSection => child.type === "plan-section"
 
+const hasOnlyPendingSteps = (children: PlanChild[]): boolean => {
+  const steps = children.filter(isPlanStep)
+  return steps.length > 0 && steps.every((s) => s.status === "pending")
+}
+
 type SectionBlockProps = {
   section: PlanSection
   children: PlanChild[]
@@ -263,10 +271,10 @@ type SectionBlockProps = {
 }
 
 const SectionBlock = ({ section, children, projectId, navigate }: SectionBlockProps) => (
-  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2">
+  <div className={`flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2${hasOnlyPendingSteps(children) ? " opacity-50" : ""}`}>
     <PlanSectionLabel section={section} />
     {children.map((child, i) => (
-      <PlanChildRenderer key={i} child={child} projectId={projectId} navigate={navigate} nested />
+      <PlanChildRenderer key={i} child={child} projectId={projectId} navigate={navigate} />
     ))}
   </div>
 )
@@ -303,6 +311,12 @@ const groupSectionChildren = (children: PlanChild[]): { type: "section"; section
   return sections.length > 0 ? sections : null
 }
 
+const SectionProgressLabel = ({ progress }: { progress: SectionProgress }) => (
+  <span className="text-body font-body text-subtext-color">
+    {progress.completed} of {progress.total} sections
+  </span>
+)
+
 const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProps) => {
   const sectionGroups = groupSectionChildren(group.children)
   const firstSectionIdx = group.children.findIndex(isSectionStart)
@@ -320,6 +334,9 @@ const PlanGroupRenderer = ({ group, projectId, navigate }: PlanGroupRendererProp
       <span className="text-body-bold font-body-bold text-default-font">
         {group.task}
       </span>
+      {group.sectionProgress && !group.completed && (
+        <SectionProgressLabel progress={group.sectionProgress} />
+      )}
       {before.map((child, i) => (
         <PlanChildRenderer key={`b-${i}`} child={child} projectId={projectId} navigate={navigate} />
       ))}
@@ -401,7 +418,8 @@ export const NabuChatSidebar = () => {
   const { files } = useFiles()
 
   const derived = useMemo(() => derive(history, files), [history, files])
-  const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
+  const streamingText = streaming ? filterCodeBlocks(streaming) : null
+  const messages = useMemo(() => toGroupedMessages(history, derived, streamingText), [history, derived, streamingText])
 
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -448,7 +466,6 @@ export const NabuChatSidebar = () => {
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const streamingText = streaming ? filterCodeBlocks(streaming) : null
   const reasoningLabel = getFirstLine(streamingReasoning)
   const spinnerLabel = loading && !streamingText
     ? (reasoningLabel ?? getSpinnerLabel(history, streamingToolName))
@@ -495,7 +512,7 @@ export const NabuChatSidebar = () => {
             navigate={navigate}
           />
         ))}
-        {loading && streamingText && (
+        {loading && streamingText && !hasActivePlan(derived.plans) && (
           <AssistantBubble>
             <MessageContent content={streamingText} projectId={null} navigate={navigate} />
           </AssistantBubble>

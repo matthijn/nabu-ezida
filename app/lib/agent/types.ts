@@ -40,7 +40,15 @@ export type EmptyNudgeBlock = {
   type: "empty_nudge"
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock
+export type ExpertResultBlock = {
+  type: "expert_result"
+  expert: string
+  task: string | null
+  section: number
+  content: string
+}
+
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ExpertResultBlock
 
 export type ToolDeps = {
   project?: { id: string }

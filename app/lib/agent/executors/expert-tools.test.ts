@@ -228,13 +228,11 @@ describe("summarize_expertise", () => {
   it("returns summary object", async () => {
     const files = makeFiles({})
     const result = await summarizeExpertise.handle(files, {
-      orchestrator_summary: "Found 3 codes, 1 ambiguous",
-      display_summary: "Applied 3 codes to the section",
+      orchestrator_summary: "Found 3 codes, 1 ambiguous. Gap: no code covers data retention concerns.",
     })
     expect(result.status).toBe("ok")
     expect(result.output).toEqual({
-      orchestrator_summary: "Found 3 codes, 1 ambiguous",
-      display_summary: "Applied 3 codes to the section",
+      orchestrator_summary: "Found 3 codes, 1 ambiguous. Gap: no code covers data retention concerns.",
     })
     expect(result.mutations).toHaveLength(0)
   })

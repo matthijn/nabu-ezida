@@ -10,7 +10,7 @@ import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
 import { expertToolDefinitions, reviseCodebookToolDefinitions } from "./expert-tools"
 
-export type ExpertSummary = { orchestrator_summary: string; display_summary: string }
+export type ExpertSummary = { orchestrator_summary: string }
 
 type TaskDef = {
   description: string
@@ -103,7 +103,7 @@ const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
   async ({ expert, task, context, content, instructions }) => {
     try {
       const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions), tools)
-      return { result: summary.display_summary }
+      return { result: summary.orchestrator_summary }
     } catch (e) {
       return { error: e instanceof Error ? e.message : String(e) }
     }

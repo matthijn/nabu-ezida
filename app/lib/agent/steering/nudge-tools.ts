@@ -1,9 +1,11 @@
 import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
 
+export type NudgeContext = string | { text: string; blocks: Block[] }
+
 export type NudgeBlock = {
   type: "system" | "empty"
   content: string
-  context?: () => Promise<string>
+  context?: () => Promise<NudgeContext>
 }
 
 export type Nudger = (history: Block[]) => NudgeBlock | null
@@ -14,7 +16,7 @@ export const systemNudge = (content: string): NudgeBlock => ({ type: "system", c
 
 export const emptyNudge = (): NudgeBlock => ({ type: "empty", content: "" })
 
-export const withContext = (nudge: NudgeBlock, context: () => Promise<string>): NudgeBlock => ({
+export const withContext = (nudge: NudgeBlock, context: () => Promise<NudgeContext>): NudgeBlock => ({
   ...nudge,
   context,
 })
@@ -25,18 +27,26 @@ const toSystemBlock = (content: string): SystemBlock => ({ type: "system", conte
 
 const toEmptyNudgeBlock = (): EmptyNudgeBlock => ({ type: "empty_nudge" })
 
-const resolveNudge = async (nudge: NudgeBlock): Promise<Block> => {
+const isStructuredContext = (ctx: NudgeContext): ctx is { text: string; blocks: Block[] } =>
+  typeof ctx === "object" && "text" in ctx
+
+const resolveNudge = async (nudge: NudgeBlock): Promise<Block[]> => {
   if (!nudge.context) {
-    return nudge.type === "empty" ? toEmptyNudgeBlock() : toSystemBlock(nudge.content)
+    const block = nudge.type === "empty" ? toEmptyNudgeBlock() : toSystemBlock(nudge.content)
+    return [block]
   }
 
   try {
     const ctx = await nudge.context()
+    if (isStructuredContext(ctx)) {
+      const resolved = nudge.content.replace("{context}", ctx.text)
+      return [toSystemBlock(resolved), ...ctx.blocks]
+    }
     const resolved = nudge.content.replace("{context}", ctx)
-    return toSystemBlock(resolved)
+    return [toSystemBlock(resolved)]
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    return toSystemBlock(`[nudge context error] ${msg}`)
+    return [toSystemBlock(`[nudge context error] ${msg}`)]
   }
 }
 
@@ -91,7 +101,8 @@ export const combine = (...nudgers: Nudger[]): Nudger => (history) => {
 
 export const collect = (...nudgers: Nudger[]): MultiNudger => async (history) => {
   const results = filterNonNull(nudgers.map((n) => n(history)))
-  return Promise.all(results.map(resolveNudge))
+  const resolved = await Promise.all(results.map(resolveNudge))
+  return resolved.flat()
 }
 
 const getNudgeMarker = (nudge: NudgeBlock): string => nudge.content

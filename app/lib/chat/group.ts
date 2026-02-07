@@ -1,5 +1,5 @@
 import type { Block } from "~/lib/agent"
-import { type Derived, type DerivedPlan, type PerSectionConfig, type Step } from "~/lib/agent"
+import { type Derived, type DerivedPlan, type PerSectionConfig, type Step, hasActivePlan } from "~/lib/agent"
 import {
   type TextMessage,
   type OrientationMessage,
@@ -30,11 +30,14 @@ export type PlanSection = {
 
 export type PlanChild = PlanStep | PlanSection | LeafMessage
 
+export type SectionProgress = { completed: number; total: number }
+
 export type PlanGroup = {
   type: "plan-group"
   task: string
   completed: boolean
   aborted: boolean
+  sectionProgress: SectionProgress | null
   children: PlanChild[]
 }
 
@@ -315,6 +318,14 @@ const buildPerSectionPlanChildren = (
     .map((e) => e.child)
 }
 
+const getSectionProgress = (plan: DerivedPlan): SectionProgress | null => {
+  if (!plan.perSection) return null
+  return {
+    completed: plan.perSection.completedSections.length,
+    total: plan.perSection.sections.length,
+  }
+}
+
 const toPlanGroup = (
   range: PlanRange,
   leaves: Indexed<LeafMessage>[],
@@ -326,6 +337,7 @@ const toPlanGroup = (
     task: range.plan.task,
     completed: isPlanCompleted(range.plan),
     aborted: range.plan.aborted,
+    sectionProgress: getSectionProgress(range.plan),
     children: buildPlanChildren(range.plan, leaves, transitions, range.startIndex),
   }
 }
@@ -333,7 +345,29 @@ const toPlanGroup = (
 const isInRange = (index: number, range: PlanRange): boolean =>
   index >= range.startIndex && index < range.endIndex
 
-export const toGroupedMessages = (history: Block[], derived: Derived): GroupedMessage[] => {
+const findLastPlanGroupIndex = (messages: GroupedMessage[]): number => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type === "plan-group") return i
+  }
+  return -1
+}
+
+const syntheticStreamingLeaf = (content: string): LeafMessage => ({
+  type: "text",
+  role: "assistant",
+  content,
+})
+
+const appendStreamingToPlan = (group: PlanGroup, content: string): PlanGroup => ({
+  ...group,
+  children: [...group.children, syntheticStreamingLeaf(content)],
+})
+
+export const toGroupedMessages = (
+  history: Block[],
+  derived: Derived,
+  streamingText?: string | null
+): GroupedMessage[] => {
   const planRanges = buildPlanRanges(history, derived.plans)
 
   const textLeaves: Indexed<LeafMessage>[] = textMessagesIndexed(history)
@@ -366,7 +400,18 @@ export const toGroupedMessages = (history: Block[], derived: Derived): GroupedMe
     item: toPlanGroup(range, planLeaves.get(i) ?? [], history),
   }))
 
-  return [...outsideEntries, ...planEntries]
+  const sorted = [...outsideEntries, ...planEntries]
     .sort((a, b) => a.blockIndex - b.blockIndex)
     .map((e) => e.item)
+
+  if (streamingText && hasActivePlan(derived.plans)) {
+    const lastPlanIdx = findLastPlanGroupIndex(sorted)
+    if (lastPlanIdx !== -1) {
+      return sorted.map((m, i) =>
+        i === lastPlanIdx ? appendStreamingToPlan(m as PlanGroup, streamingText) : m
+      )
+    }
+  }
+
+  return sorted
 }

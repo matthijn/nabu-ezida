@@ -1,5 +1,5 @@
-import type { Block } from "../../types"
-import type { Nudger, NudgeBlock } from "../nudge-tools"
+import type { Block, ExpertResultBlock } from "../../types"
+import type { Nudger, NudgeBlock, NudgeContext } from "../nudge-tools"
 import { systemNudge, withContext } from "../nudge-tools"
 import type { DerivedPlan, Step, Section, SectionResult, Files, AskExpertConfig } from "../../derived"
 import { derive, lastPlan, hasActivePlan, actionsSinceStepChange, isPlanPaused } from "../../derived"
@@ -9,6 +9,21 @@ import { getCodeMapping } from "~/lib/files/selectors"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 import { createShell } from "../../executors/shell/shell"
 import { getTaskTools, runExpertWithTools, runExpertFreeform, appendInstructions } from "../../executors/ask-expert"
+
+const isStepBoundary = (block: Block): boolean =>
+  block.type === "tool_call" && block.calls.some((c) => c.name === "create_plan" || c.name === "complete_step")
+
+const isExpertResult = (block: Block): block is ExpertResultBlock =>
+  block.type === "expert_result"
+
+export const findExpertResultForSection = (history: Block[], section: number): ExpertResultBlock | null => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (isStepBoundary(block)) return null
+    if (isExpertResult(block) && block.section === section) return block
+  }
+  return null
+}
 
 const STUCK_LIMIT = 10
 
@@ -31,7 +46,7 @@ export const createPlanNudge = (getFiles: () => Files): Nudger => (history) => {
     const actions = actionsSinceStepChange(history)
     if (actions > STUCK_LIMIT) return null
     if (actions === STUCK_LIMIT) return buildStuckNudge(plan, plan.currentStep!)
-    return buildPlanNudge(plan, plan.currentStep!, files)
+    return buildPlanNudge(plan, plan.currentStep!, files, history)
   }
 
   if (plan.currentStep === null && !plan.aborted && lastBlock(history)?.type === "tool_result") {
@@ -185,7 +200,7 @@ type AskExpertInput = {
 }
 
 const formatSectionHeader = (file: string, index: number, total: number): string =>
-  `File: ${file} (part ${index} of ${total})\n\n`
+  `File: ${file}\nPart: ${index} of ${total}\n\n`
 
 const buildExpertContent = (input: AskExpertInput): string => {
   const { askExpert, files, sectionContent, sectionFile, sectionIndex, totalSections } = input
@@ -208,7 +223,15 @@ const resolveShellCommand = (files: Files, command: string): string | null => {
   return result.output
 }
 
-const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) => {
+const toExpertResultBlock = (input: AskExpertInput, content: string): ExpertResultBlock => ({
+  type: "expert_result",
+  expert: input.askExpert.expert,
+  task: input.askExpert.task ?? null,
+  section: input.sectionIndex,
+  content,
+})
+
+const createAskExpertContext = (input: AskExpertInput): (() => Promise<NudgeContext>) => {
   const { askExpert, files } = input
   return async () => {
     const framework = resolveShellCommand(files, askExpert.using)
@@ -223,17 +246,19 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<string>) 
     ]
 
     const tools = getTaskTools(askExpert.expert, askExpert.task)
-    if (tools) {
-      const summary = await runExpertWithTools(askExpert.expert, askExpert.task ?? null, messages, tools)
-      return formatAnalysisResult(summary.orchestrator_summary)
-    }
+    const analysisText = tools
+      ? (await runExpertWithTools(askExpert.expert, askExpert.task ?? null, messages, tools)).orchestrator_summary
+      : await runExpertFreeform(askExpert.expert, askExpert.task ?? null, messages)
 
-    const text = await runExpertFreeform(askExpert.expert, askExpert.task ?? null, messages)
-    return formatAnalysisResult(text)
+    const analysisContent = formatAnalysisResult(analysisText)
+    return {
+      text: analysisContent,
+      blocks: [toExpertResultBlock(input, analysisContent)],
+    }
   }
 }
 
-const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number, files: Files): NudgeBlock => {
+const buildPerSectionNudge = (plan: DerivedPlan, stepIndex: number, files: Files, history: Block[]): NudgeBlock => {
   const current = plan.steps[stepIndex]
   const ps = plan.perSection!
   const section = ps.sections[ps.currentSection]
@@ -259,7 +284,7 @@ ${fileSwitch}
 <section ${section.file} ${section.indexInFile}/${section.totalInFile}>
   <current-content>
 ${section.content}
-  </current-content>${annotationsBlock}{context}
+  </current-content>${annotationsBlock}
 </section>
 ${previousSections}
 ${stepList}
@@ -272,13 +297,15 @@ INSTRUCTIONS:
 If blocked: call abort with reason`
 
   const isFirstInnerStep = stepIndex === ps.firstInnerStepIndex
+  const hasExpertConfig = plan.askExpert && isFirstInnerStep
+  const alreadyHasExpertResult = hasExpertConfig && findExpertResultForSection(history, section.indexInFile) !== null
 
-  if (!plan.askExpert || !isFirstInnerStep) {
-    return systemNudge(content.replace("{context}", ""))
+  if (!hasExpertConfig || alreadyHasExpertResult) {
+    return systemNudge(content)
   }
 
   return withContext(systemNudge(content), createAskExpertContext({
-    askExpert: plan.askExpert,
+    askExpert: plan.askExpert!,
     files,
     sectionContent: section.content,
     sectionFile: section.file,
@@ -287,12 +314,12 @@ If blocked: call abort with reason`
   }))
 }
 
-const buildPlanNudge = (plan: DerivedPlan, stepIndex: number, files: Files): NudgeBlock => {
+const buildPlanNudge = (plan: DerivedPlan, stepIndex: number, files: Files, history: Block[]): NudgeBlock => {
   if (plan.perSection) {
     const { firstInnerStepIndex, innerStepCount } = plan.perSection
     const inPerSection = stepIndex >= firstInnerStepIndex && stepIndex < firstInnerStepIndex + innerStepCount
     if (inPerSection) {
-      return buildPerSectionNudge(plan, stepIndex, files)
+      return buildPerSectionNudge(plan, stepIndex, files, history)
     }
   }
 

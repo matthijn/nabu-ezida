@@ -67,8 +67,7 @@ const MarkForDeletionArgs = z.object({
 })
 
 const SummarizeExpertiseArgs = z.object({
-  orchestrator_summary: z.string().describe("Technical summary for the orchestrator (patterns, gaps, notes)"),
-  display_summary: z.string().describe("User-facing summary of what was found"),
+  orchestrator_summary: z.string().describe("Technical summary for the orchestrator only — patterns, gaps, edge cases, passages that didn't fit any code. Focus on what the file annotations alone don't capture."),
 })
 
 export const addAnnotation = registerTool(
@@ -135,8 +134,8 @@ export const summarizeExpertise = registerTool(
     name: "summarize_expertise",
     description: "Provide a summary of the analysis. Call this last, after all annotations. This is the only output the orchestrator sees.",
     schema: SummarizeExpertiseArgs,
-    handler: async (_files, { orchestrator_summary, display_summary }) =>
-      ok({ orchestrator_summary, display_summary }),
+    handler: async (_files, { orchestrator_summary }) =>
+      ok({ orchestrator_summary }),
   })
 )
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type PlanGroup, type PlanStep, type PlanSection } from "./group"
+import { toGroupedMessages, type GroupedMessage, type PlanGroup, type PlanStep, type PlanSection, type SectionProgress } from "./group"
 import {
   createPlanCall,
   completeStepCall,
@@ -13,8 +13,8 @@ import {
 
 beforeEach(() => resetCallIdCounter())
 
-const group = (history: Block[], files = {}): GroupedMessage[] =>
-  toGroupedMessages(history, derive(history, files))
+const group = (history: Block[], files = {}, streamingText?: string | null): GroupedMessage[] =>
+  toGroupedMessages(history, derive(history, files), streamingText)
 
 const isPlanGroup = (m: GroupedMessage): m is PlanGroup => m.type === "plan-group"
 const isPlanStep = (child: unknown): child is PlanStep =>
@@ -231,6 +231,115 @@ describe("toGroupedMessages", () => {
 
     cases.forEach(({ name, history, files, check }) => {
       it(name, () => check(toGroupedMessages(history, derive(history, files ?? {}))))
+    })
+  })
+
+  describe("sectionProgress", () => {
+    const cases = [
+      {
+        name: "null for simple plans without sections",
+        history: [
+          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          textBlock("Working"),
+        ],
+        files: {},
+        expected: null as SectionProgress | null,
+      },
+      {
+        name: "correct counts for per-section plan with one section completed",
+        history: [
+          ...createPlanCall(
+            "Process files",
+            ["Setup", { per_section: ["Analyze", "Transform"] }, "Finalize"],
+            ["file1.txt", "file2.txt"]
+          ),
+          ...completeStepCall("Setup done"),
+          ...completeStepCall("Analyzed"),
+          ...completeStepCall("Transformed"),
+          textBlock("Analyzing file2"),
+        ],
+        files: { "file1.txt": "content1", "file2.txt": "content2" },
+        expected: { completed: 1, total: 2 } as SectionProgress | null,
+      },
+      {
+        name: "zero completed at start of per-section plan",
+        history: [
+          ...createPlanCall(
+            "Process",
+            ["Setup", { per_section: ["Do it"] }, "Finalize"],
+            ["a.txt", "b.txt"]
+          ),
+          ...completeStepCall("Setup done"),
+          textBlock("Working on first"),
+        ],
+        files: { "a.txt": "a", "b.txt": "b" },
+        expected: { completed: 0, total: 2 } as SectionProgress | null,
+      },
+    ]
+
+    cases.forEach(({ name, history, files, expected }) => {
+      it(name, () => {
+        const result = group(history, files)
+        const plan = result.find(isPlanGroup)
+        expect(plan?.sectionProgress ?? null).toEqual(expected)
+      })
+    })
+  })
+
+  describe("streaming in plan", () => {
+    const cases = [
+      {
+        name: "synthetic streaming leaf appended as last child of active plan group",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+          textBlock("Working"),
+        ],
+        streaming: "Streaming content here",
+        check: (result: GroupedMessage[]) => {
+          const plan = result.find(isPlanGroup)!
+          expect(isPlanGroup(plan)).toBe(true)
+          const lastChild = (plan as PlanGroup).children.at(-1)!
+          expect(lastChild).toEqual({ type: "text", role: "assistant", content: "Streaming content here" })
+        },
+      },
+      {
+        name: "no synthetic leaf when no active plan",
+        history: [textBlock("Just chatting")],
+        streaming: "Streaming text",
+        check: (result: GroupedMessage[]) => {
+          expect(result).toHaveLength(1)
+          expect(result[0].type).toBe("text")
+        },
+      },
+      {
+        name: "no synthetic leaf when streaming is empty",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+        ],
+        streaming: "",
+        check: (result: GroupedMessage[]) => {
+          const plan = result.find(isPlanGroup)! as PlanGroup
+          const textLeaves = plan.children.filter((c) => c.type === "text")
+          expect(textLeaves).toHaveLength(0)
+        },
+      },
+      {
+        name: "no synthetic leaf when plan is completed",
+        history: [
+          ...createPlanCall("Task", ["Step 1"]),
+          ...completeStepCall("Done"),
+        ],
+        streaming: "Should not appear",
+        check: (result: GroupedMessage[]) => {
+          const plan = result.find(isPlanGroup)! as PlanGroup
+          const textLeaves = plan.children.filter((c) => c.type === "text")
+          expect(textLeaves).toHaveLength(0)
+        },
+      },
+    ]
+
+    cases.forEach(({ name, history, streaming, check }) => {
+      it(name, () => check(group(history, {}, streaming)))
     })
   })
 })
