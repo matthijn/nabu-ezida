@@ -40,15 +40,21 @@ export type EmptyNudgeBlock = {
   type: "empty_nudge"
 }
 
-export type ExpertResultBlock = {
-  type: "expert_result"
-  expert: string
-  task: string | null
-  section: number
-  content: string
+export type BlockOrigin = {
+  agent: string
+  instance: string
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ExpertResultBlock
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock
+
+let instanceCounter = 0
+
+export const createInstance = (agent: string): string =>
+  `${agent}-${++instanceCounter}`
+
+export const resetInstanceCounter = (): void => {
+  instanceCounter = 0
+}
 
 export type ToolDeps = {
   project?: { id: string }

@@ -58,14 +58,15 @@ export type ToolDefinition = {
 
 const THEN_PROPERTY: JsonSchemaProperty = {
   type: "object",
+  description: "State your next action BEFORE executing this call.",
   properties: {
     success: {
       type: "string",
-      description: "Concrete next action using the result. Not the goal — the action.",
+      description: "What you do next with the result. Name the specific action, not the goal.",
     },
     empty: {
       type: "string",
-      description: "Concrete next action if result is empty. 'Try again' is not an action — name what you try differently or tell the user.",
+      description: "Concrete next action if result is empty or has no matches. Name what you try differently, or what you tell the user. 'Try again' and 'investigate further' are not actions.",
     },
   },
   required: ["success", "empty"],

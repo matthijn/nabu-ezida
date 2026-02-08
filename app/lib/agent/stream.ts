@@ -339,9 +339,6 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
       output: JSON.stringify(block.result),
     }
   }
-  if (block.type === "expert_result") {
-    return { type: "message", role: "system", content: block.content }
-  }
   if (block.type === "reasoning" || block.type === "empty_nudge") {
     return []
   }

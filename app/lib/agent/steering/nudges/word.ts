@@ -19,7 +19,6 @@ const getBlockText = (block: Block): string => {
     case "tool_result":
       return JSON.stringify(block.result)
     case "empty_nudge":
-    case "expert_result":
       return ""
   }
 }

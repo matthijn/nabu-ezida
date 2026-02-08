@@ -1,10 +1,8 @@
 import type { Participant } from "~/domain/participant"
-import type { Block } from "~/lib/agent"
 
 export type ChatState = {
   initiator: Participant
   recipient: Participant
-  history: Block[]
   streaming: string
   streamingToolArgs: string
   streamingReasoning: string
@@ -27,7 +25,6 @@ export const openChat = (
   chat = {
     initiator,
     recipient,
-    history: [],
     streaming: "",
     streamingToolArgs: "",
     streamingReasoning: "",

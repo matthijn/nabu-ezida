@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useSyncExternalStore } from "react"
 import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
@@ -8,8 +9,7 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { useObservationHistory } from "~/lib/agent/useObservationHistory"
-import type { ObservationEntry } from "~/lib/agent/observation-store"
+import { getAllBlocks, getInstances, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
@@ -61,8 +61,6 @@ const formatBlock = (block: Block): string => {
       return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}]\n${formatResult(block.result)}`
     case "system":
       return `[system]\n${block.content}`
-    case "expert_result":
-      return `[expert_result (${block.expert}, section ${block.section})]\n${block.content}`
     case "empty_nudge":
       return `[empty_nudge]`
   }
@@ -180,17 +178,8 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           defaultExpanded={true}
         />
       )
-    case "expert_result":
-      return (
-        <CollapsibleBlock
-          label={`expert_result (${block.expert}, section ${block.section})`}
-          content={block.content}
-          borderColor="border-teal-400"
-          labelColor="text-teal-600"
-          bgColor="bg-teal-50"
-          defaultExpanded={false}
-        />
-      )
+    case "empty_nudge":
+      return null
   }
 }
 
@@ -247,17 +236,28 @@ type DebugStreamPanelProps = {
   onClose: () => void
 }
 
-const isEntryActive = (entry: ObservationEntry): boolean =>
-  entry.streaming != null || entry.streamingReasoning != null
-
-const matchesFilter = (entry: ObservationEntry, filter: string): boolean => {
-  if (!filter) return true
-  const lower = filter.toLowerCase()
-  return entry.name.toLowerCase().includes(lower) || entry.endpoint.toLowerCase().includes(lower)
+type InstanceGroup = {
+  instance: string
+  agent: string
+  blocks: TaggedBlock[]
 }
 
-const getUniqueLabels = (entries: ObservationEntry[]): string[] =>
-  [...new Set(entries.map((e) => e.name))]
+const groupByInstance = (blocks: TaggedBlock[]): InstanceGroup[] => {
+  const groups = new Map<string, InstanceGroup>()
+  for (const block of blocks) {
+    const key = block.origin.instance
+    const existing = groups.get(key)
+    if (existing) {
+      existing.blocks.push(block)
+    } else {
+      groups.set(key, { instance: key, agent: block.origin.agent, blocks: [block] })
+    }
+  }
+  return [...groups.values()]
+}
+
+const filterByInstance = (blocks: TaggedBlock[], filter: string): TaggedBlock[] =>
+  filter ? blocks.filter((b) => b.origin.instance === filter) : blocks
 
 type FilterChipProps = {
   label: string
@@ -278,46 +278,36 @@ const FilterChip = ({ label, active, onClick }: FilterChipProps) => (
   </button>
 )
 
-const ObservationCard = ({ entry }: { entry: ObservationEntry }) => (
+const InstanceCard = ({ group }: { group: InstanceGroup }) => (
   <div className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        {isEntryActive(entry) && (
-          <span className="inline-block w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
-        )}
-        <span className="text-xs font-medium text-purple-600">{entry.name}</span>
-        <span className="text-[10px] text-neutral-400 font-mono">{entry.endpoint}</span>
+        <span className="text-xs font-medium text-purple-600">{group.agent}</span>
+        <span className="text-[10px] text-neutral-400 font-mono">{group.instance}</span>
       </div>
       <div className="text-xs text-neutral-400">
-        #{entry.id} · {new Date(entry.timestamp).toLocaleTimeString()}
+        {group.blocks.length} blocks
       </div>
     </div>
-    {entry.messages.map((block, i) => (
-      <BlockRenderer key={`msg-${i}`} block={block} />
+    {group.blocks.map((block, i) => (
+      <BlockRenderer key={i} block={block} />
     ))}
-    <div className="border-t border-neutral-200 pt-2">
-      {entry.response.map((block, i) => (
-        <BlockRenderer key={`res-${i}`} block={block} />
-      ))}
-      <StreamingIndicator
-        streaming={entry.streaming ?? ""}
-        streamingToolArgs=""
-        streamingReasoning={entry.streamingReasoning ?? ""}
-        streamingToolName={null}
-      />
-    </div>
   </div>
 )
 
+const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
+const useInstances = () => useSyncExternalStore(subscribeBlocks, getInstances, getInstances)
+
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
-  const { history } = useChat()
-  const observationEntries = useObservationHistory()
+  const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
+  const allBlocks = useBlockStore()
+  const instances = useInstances()
   const [copiedAll, setCopiedAll] = useState(false)
   const [filter, setFilter] = useState("")
 
-  const labels = useMemo(() => getUniqueLabels(observationEntries), [observationEntries])
-  const filtered = useMemo(() => observationEntries.filter((e) => matchesFilter(e, filter)), [observationEntries, filter])
+  const filtered = useMemo(() => filterByInstance(allBlocks, filter), [allBlocks, filter])
+  const groups = useMemo(() => groupByInstance(filtered), [filtered])
 
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
@@ -359,23 +349,29 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      {labels.length > 0 && (
+      {instances.length > 0 && (
         <div className="flex gap-1 px-3 py-2 bg-neutral-50 border-b border-neutral-200 flex-wrap">
-          {labels.map((label) => (
-            <FilterChip key={label} label={label} active={filter === label} onClick={() => toggleFilter(label)} />
+          {instances.map((instance) => (
+            <FilterChip key={instance} label={instance} active={filter === instance} onClick={() => toggleFilter(instance)} />
           ))}
         </div>
       )}
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-        {filtered.length === 0 && (
+        {groups.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <span className="text-sm text-neutral-400">No calls yet</span>
+            <span className="text-sm text-neutral-400">No blocks yet</span>
           </div>
         )}
-        {filtered.map((entry) => (
-          <ObservationCard key={entry.id} entry={entry} />
+        {groups.map((group) => (
+          <InstanceCard key={group.instance} group={group} />
         ))}
+        <StreamingIndicator
+          streaming={streaming}
+          streamingToolArgs={streamingToolArgs}
+          streamingReasoning={streamingReasoning}
+          streamingToolName={streamingToolName}
+        />
       </AutoScroll>
     </div>
   )

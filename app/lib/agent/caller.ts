@@ -1,8 +1,8 @@
 import { z } from "zod"
-import type { Block, ToolCall, ToolResultBlock } from "./types"
+import type { Block, BlockOrigin, ToolCall, ToolResultBlock } from "./types"
 import type { ParseCallbacks, ResponseFormat } from "./stream"
 import { callLlm, blocksToMessages, toResponseFormat, extractText } from "./stream"
-import { startObservation, updateObservationStreaming, updateObservationReasoning, completeObservation } from "./observation-store"
+import { pushBlocks, tagBlocks } from "./block-store"
 import { executeTool, type ToolExecutor } from "./turn"
 import type { ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
@@ -21,15 +21,6 @@ export type Caller = (history: Block[], signal?: AbortSignal) => Promise<Block[]
 
 export type TypedCaller<T> = (history: Block[], signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
 
-const mergeCallbacks = (a: ParseCallbacks, b: ParseCallbacks): ParseCallbacks => ({
-  onChunk: (text) => { a.onChunk?.(text); b.onChunk?.(text) },
-  onToolArgsChunk: (text) => { a.onToolArgsChunk?.(text); b.onToolArgsChunk?.(text) },
-  onReasoningChunk: (text) => { a.onReasoningChunk?.(text); b.onReasoningChunk?.(text) },
-  onBlock: (block) => { a.onBlock?.(block); b.onBlock?.(block) },
-  onToolName: (name) => { a.onToolName?.(name); b.onToolName?.(name) },
-  onToolCall: (call) => { a.onToolCall?.(call); b.onToolCall?.(call) },
-})
-
 const executeToolCalls = async (
   calls: ToolCall[],
   execute: ToolExecutor,
@@ -41,27 +32,15 @@ const executeToolCalls = async (
   return results
 }
 
-export const buildCaller = (name: string, config: CallerConfig): Caller =>
+export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =>
   async (history, signal) => {
-    const entryId = startObservation(name, config.endpoint, history)
-
-    const observationCallbacks: ParseCallbacks = {
-      onChunk: (chunk) => updateObservationStreaming(entryId, chunk),
-      onReasoningChunk: (chunk) => updateObservationReasoning(entryId, chunk),
-    }
-
-    const merged = mergeCallbacks(
-      observationCallbacks,
-      config.callbacks ?? {}
-    )
-
     const blocks = await callLlm({
       endpoint: config.endpoint,
       messages: blocksToMessages(history),
       tools: config.tools,
       blockSchemas: config.blockSchemas,
       responseFormat: config.responseFormat,
-      callbacks: merged,
+      callbacks: config.callbacks,
       signal,
     })
 
@@ -74,7 +53,7 @@ export const buildCaller = (name: string, config: CallerConfig): Caller =>
       }
     }
 
-    completeObservation(entryId, resultBlocks)
+    pushBlocks(tagBlocks(origin, resultBlocks))
     return [...history, ...resultBlocks]
   }
 
@@ -93,8 +72,8 @@ export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller
     }
   }
 
-export const buildTypedCaller = <T>(name: string, config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
+export const buildTypedCaller = <T>(origin: BlockOrigin, config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
   withSchema(
-    buildCaller(name, { ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
+    buildCaller(origin, { ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
     schema
   )

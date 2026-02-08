@@ -1,8 +1,9 @@
 import { useSyncExternalStore, useCallback } from "react"
-import type { Block, SystemBlock } from "~/lib/agent"
-import { getChat, updateChat, subscribe, type ChatState } from "./store"
-import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
-import { appendBlock, appendBlocks } from "~/lib/agent"
+import type { Block, BlockOrigin, SystemBlock } from "~/lib/agent"
+import { createInstance } from "~/lib/agent/types"
+import { getAllBlocks, subscribeBlocks, pushBlocks, tagBlocks } from "~/lib/agent/block-store"
+import { getChat, subscribe, type ChatState } from "./store"
+import { run, cancel as cancelRunner, getHistory, pushToHistory, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
 
 type UseChatResult = {
@@ -19,15 +20,17 @@ type UseChatResult = {
   error: string | null
 }
 
+const USER_ORIGIN: BlockOrigin = { agent: "user", instance: "user" }
+
 export const useChat = (): UseChatResult => {
   const chat = useSyncExternalStore(subscribe, getChat)
+  const history = useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
 
   const loading = chat?.loading ?? false
   const streaming = chat?.streaming ?? ""
   const streamingToolArgs = chat?.streamingToolArgs ?? ""
   const streamingReasoning = chat?.streamingReasoning ?? ""
   const streamingToolName = chat?.streamingToolName ?? null
-  const history = chat?.history ?? []
   const error = chat?.error ?? null
 
   const send = useCallback(
@@ -38,10 +41,11 @@ export const useChat = (): UseChatResult => {
       const userBlock: Block = { type: "user", content }
       const blocksToAdd: Block[] = []
 
+      const currentHistory = getHistory()
       const ctx = getEditorContext()
       if (ctx) {
         const formatted = contextToMessage(ctx)
-        const lastSent = findLastContextMessage(current.history)
+        const lastSent = findLastContextMessage(currentHistory)
         if (formatted !== lastSent) {
           const contextBlock: SystemBlock = { type: "system", content: formatted }
           blocksToAdd.push(contextBlock)
@@ -49,7 +53,8 @@ export const useChat = (): UseChatResult => {
       }
 
       blocksToAdd.push(userBlock)
-      updateChat({ history: appendBlocks(current.history, blocksToAdd) })
+      pushBlocks(tagBlocks(USER_ORIGIN, blocksToAdd))
+      pushToHistory(blocksToAdd)
       run(deps)
     },
     []

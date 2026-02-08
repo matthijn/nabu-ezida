@@ -1,4 +1,4 @@
-import type { Block, ExpertResultBlock } from "../../types"
+import type { Block, SystemBlock } from "../../types"
 import type { Nudger, NudgeBlock, NudgeContext } from "../nudge-tools"
 import { systemNudge, withContext } from "../nudge-tools"
 import type { DerivedPlan, Step, Section, SectionResult, Files, AskExpertConfig } from "../../derived"
@@ -13,14 +13,19 @@ import { getTaskTools, runExpertWithTools, runExpertFreeform, appendInstructions
 const isStepBoundary = (block: Block): boolean =>
   block.type === "tool_call" && block.calls.some((c) => c.name === "create_plan" || c.name === "complete_step")
 
-const isExpertResult = (block: Block): block is ExpertResultBlock =>
-  block.type === "expert_result"
+const EXPERT_MARKER_PREFIX = "<!-- expert-result:"
 
-export const findExpertResultForSection = (history: Block[], section: number): ExpertResultBlock | null => {
+const makeExpertMarker = (section: number): string =>
+  `${EXPERT_MARKER_PREFIX}${section} -->`
+
+const isExpertMarker = (block: Block, section: number): boolean =>
+  block.type === "system" && block.content.startsWith(makeExpertMarker(section))
+
+export const findExpertResultForSection = (history: Block[], section: number): SystemBlock | null => {
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
     if (isStepBoundary(block)) return null
-    if (isExpertResult(block) && block.section === section) return block
+    if (isExpertMarker(block, section)) return block as SystemBlock
   }
   return null
 }
@@ -223,12 +228,9 @@ const resolveShellCommand = (files: Files, command: string): string | null => {
   return result.output
 }
 
-const toExpertResultBlock = (input: AskExpertInput, content: string): ExpertResultBlock => ({
-  type: "expert_result",
-  expert: input.askExpert.expert,
-  task: input.askExpert.task ?? null,
-  section: input.sectionIndex,
-  content,
+const toExpertResultBlock = (input: AskExpertInput, content: string): SystemBlock => ({
+  type: "system",
+  content: `${makeExpertMarker(input.sectionIndex)}\n${content}`,
 })
 
 const createAskExpertContext = (input: AskExpertInput): (() => Promise<NudgeContext>) => {

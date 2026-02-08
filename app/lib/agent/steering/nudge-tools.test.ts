@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest"
 import { collect, systemNudge, type Nudger } from "./nudge-tools"
 import { createPlanNudge } from "./nudges/plan"
 import { createPlanCall, resetCallIdCounter } from "../test-helpers"
-import type { Block, SystemBlock, ExpertResultBlock } from "../types"
+import type { Block, SystemBlock } from "../types"
 
 beforeEach(() => resetCallIdCounter())
 
@@ -10,12 +10,9 @@ describe("planNudge with askExpert", () => {
   const fileContent = "Line 1\nLine 2\nLine 3"
   const files = { "doc.md": fileContent, "codebook.md": "# Codebook\nSome codes" }
 
-  const expertResultBlock: ExpertResultBlock = {
-    type: "expert_result",
-    expert: "qualitative-researcher",
-    task: "apply-codebook",
-    section: 1,
-    content: "Previous expert analysis",
+  const expertResultBlock: SystemBlock = {
+    type: "system",
+    content: "<!-- expert-result:1 -->\nPrevious expert analysis",
   }
 
   type TestCase = {

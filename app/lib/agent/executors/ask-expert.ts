@@ -1,5 +1,6 @@
 import { z } from "zod"
-import type { Block } from "../types"
+import type { Block, BlockOrigin } from "../types"
+import { createInstance } from "../types"
 import type { AgentNudge } from "../loop"
 import { runAgent, noNudge } from "../loop"
 import type { ToolDefinition } from "./tool"
@@ -48,8 +49,10 @@ const buildMessages = (context: string, content: string, instructions?: string):
 const buildEndpoint = (expert: string, task?: string): string =>
   task ? `/ask-expert/${expert}/${task}` : `/ask-expert/${expert}`
 
-const buildCallerName = (expert: string, task: string | null): string =>
-  task ? `${expert}/${task}` : expert
+const buildExpertOrigin = (expert: string, task: string | null): BlockOrigin => {
+  const agent = task ? `${expert}/${task}` : expert
+  return { agent, instance: createInstance(agent) }
+}
 
 const CONTINUE_MARKER = "Have you completed your objective? If not, continue working. If yes, call summarize_expertise."
 
@@ -81,7 +84,8 @@ const expertToolNudge: AgentNudge = async (history) => {
 
 export const runExpertWithTools = async (expert: string, task: string | null, messages: Block[], tools: ToolDefinition[]): Promise<ExpertSummary> => {
   const executor = createExecutor(getToolHandlers())
-  const caller = withStreamingReset(buildCaller(buildCallerName(expert, task), {
+  const origin = buildExpertOrigin(expert, task)
+  const caller = withStreamingReset(buildCaller(origin, {
     endpoint: buildEndpoint(expert, task ?? undefined),
     tools,
     execute: executor,
@@ -95,7 +99,8 @@ export const runExpertWithTools = async (expert: string, task: string | null, me
 }
 
 export const runExpertFreeform = async (expert: string, task: string | null, messages: Block[]): Promise<string> => {
-  const caller = withStreamingReset(buildCaller(buildCallerName(expert, task), {
+  const origin = buildExpertOrigin(expert, task)
+  const caller = withStreamingReset(buildCaller(origin, {
     endpoint: buildEndpoint(expert, task ?? undefined),
     callbacks: getStreamingCallbacks(),
   }))
