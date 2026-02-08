@@ -1,4 +1,4 @@
-import { command, ok, noMatch, err, normalizePath, isGlob, expandGlob } from "./command"
+import { command, ok, noMatch, err, normalizePath, isGlob, resolveFiles } from "./command"
 
 type ContextMatch = { lineNum: number; line: string; isMatch: boolean }
 
@@ -138,19 +138,9 @@ export const grep = command({
     }
 
     if (filename) {
-      if (isGlob(filename)) {
-        const matches = expandGlob(files, filename)
-        for (const filePath of matches) {
-          searchFile(filePath, files.get(filePath)!)
-        }
-      } else {
-        const content = files.get(filename)
-        if (content) {
-          searchFile(filename, content)
-        } else {
-          return err(`grep: ${filename}: No such file`)
-        }
-      }
+      const resolved = resolveFiles(files, filename)
+      if (resolved.length === 0 && !isGlob(filename)) return err(`grep: ${filename}: No such file`)
+      for (const filePath of resolved) { searchFile(filePath, files.get(filePath)!) }
     } else {
       for (const [filePath, content] of files) {
         searchFile(filePath, content)

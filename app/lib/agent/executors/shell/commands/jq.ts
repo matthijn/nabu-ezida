@@ -69,7 +69,7 @@ export const jq = command({
       if (flags.has("-c")) jqFlags.push("-c")
 
       const result = getJq().raw(input, filterExpr, jqFlags.length > 0 ? jqFlags : undefined)
-      return ok(result.trimEnd())
+      return ok((result ?? "").trimEnd())
     } catch (e) {
       return err(extractJqError(e))
     }

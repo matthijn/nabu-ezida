@@ -1,0 +1,34 @@
+{
+  "files": {
+    "CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout_abc12345\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Multiline Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"\"\"\nA definition that spans\nmultiple lines.\n\"\"\"\n}\n```"
+  },
+  "args": {
+    "commands": [
+      "blocks json-callout CODEBOOK.md | jq 'length'",
+      "blocks json-callout CODEBOOK.md | jq -r '.[0].title'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "1",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "Multiline Code",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

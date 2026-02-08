@@ -30,8 +30,16 @@ export const normalizePath = (path: string | undefined): string | undefined => {
 export const isGlob = (pattern: string): boolean =>
   pattern.includes("*") || pattern.includes("?")
 
-export const expandGlob = (files: Map<string, string>, pattern: string): string[] =>
+const expandGlob = (files: Map<string, string>, pattern: string): string[] =>
   Array.from(files.keys()).filter((f) => minimatch(f, pattern))
+
+export const resolveFiles = (files: Map<string, string>, rawPattern: string): string[] => {
+  const pattern = normalizePath(rawPattern)
+  if (!pattern) return []
+  if (isGlob(pattern)) return expandGlob(files, pattern)
+  if (files.has(pattern)) return [pattern]
+  return []
+}
 
 type FlagDef = { alias?: string; description: string; value?: boolean }
 type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result

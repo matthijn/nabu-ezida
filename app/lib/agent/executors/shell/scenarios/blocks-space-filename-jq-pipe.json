@@ -1,0 +1,34 @@
+{
+  "files": {
+    "REAL CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout_abc\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Test Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"Definition.\"\n}\n```"
+  },
+  "args": {
+    "commands": [
+      "blocks json-callout -p \"REAL CODEBOOK.md\" | jq -r '.[] | [.json.id, .json.title] | @tsv'",
+      "blocks json-callout -p \"REAL CODEBOOK.md\" | jq 'length'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "callout_abc\tTest Code",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      },
+      {
+        "stdout": "1",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

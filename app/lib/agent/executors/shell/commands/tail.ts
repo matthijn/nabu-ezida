@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob } from "./command"
+import { command, ok, err, normalizePath, isGlob, resolveFiles } from "./command"
 
 export const tail = command({
   description: "Output last lines of file",
@@ -13,25 +13,20 @@ export const tail = command({
       return ok(stdin.split("\n").slice(-count).join("\n"))
     }
 
-    const resolvedFiles: string[] = []
+    const resolved: string[] = []
     for (const rawPath of paths) {
+      const matches = resolveFiles(files, rawPath)
+      if (matches.length > 0) { resolved.push(...matches); continue }
       const path = normalizePath(rawPath)
-      if (!path) continue
-      if (isGlob(path)) {
-        resolvedFiles.push(...expandGlob(files, path))
-      } else if (files.has(path)) {
-        resolvedFiles.push(path)
-      } else {
-        return err(`tail: ${path}: No such file`)
-      }
+      if (path && !isGlob(path)) return err(`tail: ${path}: No such file`)
     }
 
-    if (resolvedFiles.length === 0) {
+    if (resolved.length === 0) {
       return err(`tail: no matches`)
     }
 
-    const showHeaders = resolvedFiles.length > 1
-    const results = resolvedFiles.map((path) => {
+    const showHeaders = resolved.length > 1
+    const results = resolved.map((path) => {
       const content = files.get(path)!
       const lines = content.split("\n").slice(-count).join("\n")
       return showHeaders ? `==> ${path} <==\n${lines}` : lines

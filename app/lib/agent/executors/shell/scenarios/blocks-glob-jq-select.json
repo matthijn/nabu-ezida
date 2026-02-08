@@ -1,0 +1,27 @@
+{
+  "files": {
+    "REAL CODEBOOK.md": "# Codebook\n\n```json-attributes\n{\n  \"tags\": [\"codebook\"]\n}\n```\n\n## Economy\n\n```json-callout\n{\n  \"id\": \"callout_3tpzmrfo\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Fiscal State Reporting\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"Definition here.\"\n}\n```\n\n## Politics\n\n```json-callout\n{\n  \"id\": \"callout_0c9b8tuz\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Market Justification\",\n  \"color\": \"blue\",\n  \"collapsed\": false,\n  \"content\": \"Another definition.\"\n}\n```",
+    "notes.md": "# Notes\n\nNo callouts here.",
+    "data.txt": "not markdown"
+  },
+  "args": {
+    "commands": [
+      "blocks json-callout -p \"*.md\" | jq -c '[.[].json | {id, title} | select(.id == \"callout_3tpzmrfo\" or .id == \"callout_0c9b8tuz\" or .id == \"callout_missing\")]'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "[{\"id\":\"callout_3tpzmrfo\",\"title\":\"Fiscal State Reporting\"},{\"id\":\"callout_0c9b8tuz\",\"title\":\"Market Justification\"}]",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } from "./command"
+import { command, ok, err, normalizePath, isGlob, resolveFiles, type Operation } from "./command"
 
 const basename = (path: string): string => path.split("/").pop() ?? path
 
@@ -19,19 +19,11 @@ export const mv = command({
 
     const sources: string[] = []
     for (const rawPattern of srcPatterns) {
+      const resolved = resolveFiles(files, rawPattern)
+      if (resolved.length > 0) { sources.push(...resolved); continue }
       const pattern = normalizePath(rawPattern)
       if (!pattern) continue
-      if (isGlob(pattern)) {
-        const matches = expandGlob(files, pattern)
-        if (matches.length === 0) {
-          return err(`mv: ${pattern}: no matches`)
-        }
-        sources.push(...matches)
-      } else if (files.has(pattern)) {
-        sources.push(pattern)
-      } else {
-        return err(`mv: ${pattern}: No such file`)
-      }
+      return err(isGlob(pattern) ? `mv: ${pattern}: no matches` : `mv: ${pattern}: No such file`)
     }
 
     if (sources.length === 0) {

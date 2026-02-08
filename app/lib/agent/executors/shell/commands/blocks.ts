@@ -1,5 +1,6 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob } from "./command"
-import { findBlocksByLanguage, parseBlockJson } from "~/domain/blocks"
+import { command, ok, err, normalizePath, isGlob, resolveFiles } from "./command"
+import { findBlocksByLanguage } from "~/domain/blocks"
+import { parsePrettyJson } from "~/lib/json"
 
 type BlockResult = { file: string; block: unknown }
 
@@ -15,31 +16,23 @@ Example: blocks json-callout -p doc.md | jq ".[0].json.title" or jq ".[] | selec
     const [language, rawPattern] = args
     if (!language) return err("blocks: missing language argument")
 
-    const pattern = normalizePath(rawPattern)
     const includeFiles = flags.has("-p")
     const results: BlockResult[] = []
 
     const processFile = (filePath: string, content: string) => {
       const codeBlocks = findBlocksByLanguage(content, language)
       for (const block of codeBlocks) {
-        const parsed = parseBlockJson(block)
+        const parsed = parsePrettyJson(block.content)
         if (parsed !== null) {
           results.push({ file: filePath, block: parsed })
         }
       }
     }
 
-    if (pattern) {
-      if (isGlob(pattern)) {
-        const matches = expandGlob(files, pattern)
-        for (const filePath of matches) {
-          processFile(filePath, files.get(filePath)!)
-        }
-      } else {
-        const content = files.get(pattern)
-        if (!content) return err(`blocks: ${pattern}: No such file`)
-        processFile(pattern, content)
-      }
+    if (rawPattern) {
+      const resolved = resolveFiles(files, rawPattern)
+      if (resolved.length === 0 && !isGlob(rawPattern)) return err(`blocks: ${normalizePath(rawPattern)}: No such file`)
+      for (const filePath of resolved) { processFile(filePath, files.get(filePath)!) }
     } else {
       for (const [filePath, content] of files) {
         processFile(filePath, content)

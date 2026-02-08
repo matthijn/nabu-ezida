@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob } from "./command"
+import { command, ok, err, normalizePath, isGlob, resolveFiles } from "./command"
 
 export const wc = command({
   description: "Word, line, character count",
@@ -26,27 +26,22 @@ export const wc = command({
       return ok(formatCount(countFile(stdin), ""))
     }
 
-    const resolvedFiles: string[] = []
+    const resolved: string[] = []
     for (const rawPath of paths) {
+      const matches = resolveFiles(files, rawPath)
+      if (matches.length > 0) { resolved.push(...matches); continue }
       const path = normalizePath(rawPath)
-      if (!path) continue
-      if (isGlob(path)) {
-        resolvedFiles.push(...expandGlob(files, path))
-      } else if (files.has(path)) {
-        resolvedFiles.push(path)
-      } else {
-        return err(`wc: ${path}: No such file`)
-      }
+      if (path && !isGlob(path)) return err(`wc: ${path}: No such file`)
     }
 
-    if (resolvedFiles.length === 0) {
+    if (resolved.length === 0) {
       return err(`wc: no matches`)
     }
 
-    const results = resolvedFiles.map((path) => formatCount(countFile(files.get(path)!), path))
+    const results = resolved.map((path) => formatCount(countFile(files.get(path)!), path))
 
-    if (resolvedFiles.length > 1) {
-      const totals = resolvedFiles.reduce(
+    if (resolved.length > 1) {
+      const totals = resolved.reduce(
         (acc, path) => {
           const c = countFile(files.get(path)!)
           return { lines: acc.lines + c.lines, words: acc.words + c.words, chars: acc.chars + c.chars }

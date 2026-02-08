@@ -1,4 +1,4 @@
-import { command, ok, err, normalizePath, isGlob, expandGlob, type Operation } from "./command"
+import { command, ok, err, normalizePath, isGlob, resolveFiles, type Operation } from "./command"
 
 export const rm = command({
   description: "Remove files",
@@ -19,28 +19,16 @@ export const rm = command({
     const errors: string[] = []
 
     for (const rawPattern of paths) {
-      const pattern = normalizePath(rawPattern)
-      if (!pattern) {
-        if (!force) errors.push(`rm: invalid path`)
+      const resolved = resolveFiles(files, rawPattern)
+      if (resolved.length > 0) {
+        for (const path of resolved) { operations.push({ type: "delete", path }); outputs.push(`rm ${path}`) }
         continue
       }
-      if (isGlob(pattern)) {
-        const matches = expandGlob(files, pattern)
-        if (matches.length === 0) {
-          if (!force) errors.push(`rm: ${pattern}: no matches`)
-        } else {
-          for (const path of matches) {
-            operations.push({ type: "delete", path })
-            outputs.push(`rm ${path}`)
-          }
-        }
-      } else {
-        if (!files.has(pattern)) {
-          if (!force) errors.push(`rm: ${pattern}: No such file`)
-        } else {
-          operations.push({ type: "delete", path: pattern })
-          outputs.push(`rm ${pattern}`)
-        }
+      if (!force) {
+        const pattern = normalizePath(rawPattern)
+        if (!pattern) errors.push(`rm: invalid path`)
+        else if (isGlob(pattern)) errors.push(`rm: ${pattern}: no matches`)
+        else errors.push(`rm: ${pattern}: No such file`)
       }
     }
 

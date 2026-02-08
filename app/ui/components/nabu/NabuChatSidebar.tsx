@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
 import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import {
   FeatherArrowRight,
   FeatherCheck,
@@ -50,8 +51,16 @@ type MessageContentProps = {
   navigate?: (url: string) => void
 }
 
+const remarkPlugins = [remarkGfm]
+
+const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { node?: unknown }) => (
+  <div className="overflow-x-auto">
+    <table {...props} />
+  </div>
+)
+
 const MessageContent = ({ content, files, projectId, navigate }: MessageContentProps) => (
-  <Markdown components={createEntityLinkComponents({ files, projectId, navigate })} urlTransform={allowFileProtocol}>
+  <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
     {fixMarkdownUrls(content)}
   </Markdown>
 )

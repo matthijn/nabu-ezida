@@ -1,2 +1,2 @@
 export { parseJson, repairJsonNewlines, type JsonResult } from "./parse"
-export { toExtraPretty, fromExtraPretty, PrettyJsonError } from "./pretty"
+export { toExtraPretty, fromExtraPretty, parsePrettyJson, PrettyJsonError } from "./pretty"

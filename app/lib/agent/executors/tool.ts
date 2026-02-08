@@ -56,9 +56,19 @@ export type ToolDefinition = {
   }
 }
 
-const RATIONALE_PROPERTY: JsonSchemaProperty = {
-  type: "string",
-  description: "What you expect this call to return and what you'll do with the result",
+const THEN_PROPERTY: JsonSchemaProperty = {
+  type: "object",
+  properties: {
+    success: {
+      type: "string",
+      description: "Concrete next action using the result. Not the goal — the action.",
+    },
+    empty: {
+      type: "string",
+      description: "Concrete next action if result is empty. 'Try again' is not an action — name what you try differently or tell the user.",
+    },
+  },
+  required: ["success", "empty"],
 }
 
 export const toToolDefinition = <TSchema extends z.ZodType, TOutput>(
@@ -76,8 +86,8 @@ export const toToolDefinition = <TSchema extends z.ZodType, TOutput>(
     description: t.description,
     parameters: {
       type: "object",
-      properties: { rationale: RATIONALE_PROPERTY, ...(jsonSchema.properties ?? {}) },
-      required: ["rationale", ...(jsonSchema.required ?? [])],
+      properties: { then: THEN_PROPERTY, ...(jsonSchema.properties ?? {}) },
+      required: ["then", ...(jsonSchema.required ?? [])],
     },
   }
 }
