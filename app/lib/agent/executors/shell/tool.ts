@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { Operation } from "../../types"
 import { tool, registerTool, ok, partial } from "../tool"
 import { createShell, getShellDocs, type Operation as ShellOperation } from "./shell"
+import { initJq } from "./commands/jq"
 
 export type ShellCommandOutput = {
   stdout: string
@@ -22,6 +23,7 @@ export const runLocalShell = registerTool(
     description: getShellDocs(),
     schema: ShellArgs,
     handler: async (files, { commands }) => {
+      await initJq()
       const shell = createShell(files)
       const mutations: Operation[] = []
 

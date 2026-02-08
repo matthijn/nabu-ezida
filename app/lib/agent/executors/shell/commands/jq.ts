@@ -1,501 +1,57 @@
 import { command, ok, err } from "./command"
 
-type JqValue = unknown
-
-const isArray = (v: JqValue): v is unknown[] => Array.isArray(v)
-const isObject = (v: JqValue): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v)
-
-const getField = (obj: JqValue, field: string): JqValue => {
-  if (isObject(obj)) return obj[field]
-  return undefined
+export type JqInstance = {
+  raw: (input: string, filter: string, flags?: string[]) => string
 }
 
-const getIndex = (arr: JqValue, idx: number): JqValue => {
-  if (isArray(arr)) return arr[idx < 0 ? arr.length + idx : idx]
-  return undefined
+let instance: JqInstance | null = null
+let pending: Promise<void> | null = null
+
+const loadScript = (src: string): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const script = document.createElement("script")
+    script.src = src
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error(`Failed to load ${src}`))
+    document.head.appendChild(script)
+  })
+
+const loadJqBrowser = async (): Promise<JqInstance> => {
+  await loadScript("/jq.js")
+  return await (window as unknown as { jq: Promise<JqInstance> }).jq
 }
 
-const iterate = (val: JqValue): JqValue[] => {
-  if (isArray(val)) return val
-  if (isObject(val)) return Object.values(val)
-  return []
+export const initJq = (provided?: JqInstance): Promise<void> => {
+  if (instance) return Promise.resolve()
+  if (provided) { instance = provided; return Promise.resolve() }
+  if (pending) return pending
+  pending = loadJqBrowser().then((jq) => { instance = jq })
+  return pending
 }
 
-type PathSegment =
-  | { type: "identity" }
-  | { type: "field"; name: string }
-  | { type: "index"; idx: number }
-  | { type: "iterate" }
-
-const parsePathSegments = (expr: string): PathSegment[] | null => {
-  if (expr === ".") return [{ type: "identity" }]
-
-  const segments: PathSegment[] = []
-  let rest = expr.slice(1) // skip leading dot
-
-  while (rest.length > 0) {
-    // .[n] or .[]
-    if (rest.startsWith("[")) {
-      const end = rest.indexOf("]")
-      if (end === -1) return null
-      const inner = rest.slice(1, end)
-      if (inner === "") {
-        segments.push({ type: "iterate" })
-      } else {
-        const idx = parseInt(inner, 10)
-        if (isNaN(idx)) return null
-        segments.push({ type: "index", idx })
-      }
-      rest = rest.slice(end + 1)
-    }
-    // .field
-    else {
-      const match = rest.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/)
-      if (!match) return null
-      segments.push({ type: "field", name: match[1] })
-      rest = rest.slice(match[1].length)
-    }
-    if (rest.startsWith("?")) rest = rest.slice(1)
-    if (rest.startsWith(".")) rest = rest.slice(1)
-  }
-
-  return segments.length > 0 ? segments : [{ type: "identity" }]
+const getJq = (): JqInstance => {
+  if (!instance) throw new Error("jq-web not initialized — call initJq() first")
+  return instance
 }
 
-const applyPath = (values: JqValue[], segments: PathSegment[]): JqValue[] => {
-  for (const seg of segments) {
-    switch (seg.type) {
-      case "identity":
-        break
-      case "field":
-        values = values.map((v) => getField(v, seg.name))
-        break
-      case "index":
-        values = values.map((v) => getIndex(v, seg.idx))
-        break
-      case "iterate":
-        values = values.flatMap((v) => iterate(v))
-        break
-    }
-  }
-  return values
-}
-
-type Filter = (input: JqValue) => JqValue[]
-
-const findMatchingParen = (expr: string, start: number): number => {
-  let depth = 0
-  for (let i = start; i < expr.length; i++) {
-    if (expr[i] === "(") depth++
-    else if (expr[i] === ")") {
-      depth--
-      if (depth === 0) return i
-    }
-  }
-  return -1
-}
-
-const parseFilter = (expr: string): Filter => {
-  expr = expr.trim()
-
-  // Identity
-  if (expr === ".") return (v) => [v]
-
-  // Parenthesized expression
-  if (expr.startsWith("(")) {
-    const close = findMatchingParen(expr, 0)
-    if (close === expr.length - 1) {
-      return parseFilter(expr.slice(1, -1))
-    }
-  }
-
-  // Pipe (lowest precedence - split first, then each segment handles //)
-  if (expr.includes("|")) {
-    const parts = splitPipe(expr)
-    if (parts.length > 1) {
-      const filters = parts.map(parseFilter)
-      return (v) => filters.reduce((vals, f) => vals.flatMap(f), [v])
-    }
-  }
-
-  // Alternative operator // (higher precedence than pipe)
-  if (expr.includes("//")) {
-    const parts = splitAlt(expr)
-    if (parts.length > 1) {
-      const filters = parts.map(parseFilter)
-      return (v) => {
-        for (const f of filters) {
-          const result = f(v)
-          const val = result[0]
-          if (result.length > 0 && val !== null && val !== false && val !== undefined) {
-            return result
-          }
-        }
-        return [null]
-      }
-    }
-  }
-
-  // Logical or
-  {
-    const parts = splitOnWord(expr, "or")
-    if (parts.length > 1) {
-      const filters = parts.map(parseFilter)
-      return (v) => {
-        for (const f of filters) {
-          const result = f(v)[0]
-          if (result !== null && result !== false && result !== undefined) return [true]
-        }
-        return [false]
-      }
-    }
-  }
-
-  // Logical and
-  {
-    const parts = splitOnWord(expr, "and")
-    if (parts.length > 1) {
-      const filters = parts.map(parseFilter)
-      return (v) => {
-        for (const f of filters) {
-          const result = f(v)[0]
-          if (result === null || result === false || result === undefined) return [false]
-        }
-        return [true]
-      }
-    }
-  }
-
-  // Addition / string concatenation / array-object merge
-  {
-    const parts = splitByChar(expr, "+")
-    if (parts.length > 1) {
-      const filters = parts.map(parseFilter)
-      return (v) => [addValues(filters.map((f) => f(v)[0]))]
-    }
-  }
-
-  // Array construction [expr] or [expr, expr, ...]
-  if (expr.startsWith("[") && expr.endsWith("]")) {
-    const inner = expr.slice(1, -1).trim()
-    if (inner === "") return () => [[]] // Empty array literal
-    // Check for comma-separated elements (but not inside nested structures)
-    const elements = splitObjectFields(inner)
-    if (elements.length > 1) {
-      const filters = elements.map(parseFilter)
-      return (v) => [filters.flatMap((f) => f(v))]
-    }
-    const innerFilter = parseFilter(inner)
-    return (v) => [innerFilter(v)]
-  }
-
-  // Object construction {key: expr, key2, ...}
-  if (expr.startsWith("{") && expr.endsWith("}")) {
-    const inner = expr.slice(1, -1).trim()
-    const fields = splitObjectFields(inner)
-    const fieldFilters: { key: string; filter: Filter }[] = fields.map((f) => {
-      const colonIdx = f.indexOf(":")
-      if (colonIdx === -1) {
-        // shorthand: {foo} means {foo: .foo}
-        const key = f.trim()
-        return { key, filter: parseFilter(`.${key}`) }
-      }
-      const key = f.slice(0, colonIdx).trim()
-      const valExpr = f.slice(colonIdx + 1).trim()
-      return { key, filter: parseFilter(valExpr) }
-    })
-    return (v) => {
-      const result: Record<string, unknown> = {}
-      for (const { key, filter } of fieldFilters) {
-        result[key] = filter(v)[0]
-      }
-      return [result]
-    }
-  }
-
-  // Path expressions: ., .foo, .[n], .[], and chains like .[].foo, .[0].bar
-  if (expr.startsWith(".")) {
-    const segments = parsePathSegments(expr)
-    if (segments) {
-      return (v) => applyPath([v], segments)
-    }
-  }
-
-  // Built-in functions
-  if (expr === "length") return (v) => [isArray(v) ? v.length : isObject(v) ? Object.keys(v).length : 0]
-  if (expr === "keys") return (v) => [isObject(v) ? Object.keys(v) : isArray(v) ? v.map((_, i) => i) : []]
-  if (expr === "values") return (v) => [isObject(v) ? Object.values(v) : isArray(v) ? v : []]
-  if (expr === "type") return (v) => [isArray(v) ? "array" : isObject(v) ? "object" : typeof v]
-  if (expr === "first") return (v) => isArray(v) && v.length > 0 ? [v[0]] : []
-  if (expr === "last") return (v) => isArray(v) && v.length > 0 ? [v[v.length - 1]] : []
-  if (expr === "unique") return (v) => isArray(v) ? [[...new Set(v.map(x => JSON.stringify(x)))].map(x => JSON.parse(x))] : [v]
-  if (expr === "flatten") return (v) => isArray(v) ? [v.flat()] : [v]
-  if (expr === "add") return (v) => {
-    if (!isArray(v)) return [v]
-    if (v.length === 0) return [null]
-    if (typeof v[0] === "number") return [v.reduce((a: number, b) => a + (b as number), 0)]
-    if (typeof v[0] === "string") return [v.join("")]
-    if (isArray(v[0])) return [v.flat()]
-    return [v]
-  }
-  if (expr === "sort") return (v) => isArray(v) ? [[...v].sort()] : [v]
-  if (expr === "reverse") return (v) => isArray(v) ? [[...v].reverse()] : [v]
-  if (expr === "not") return (v) => [!v]
-
-  // sort_by(.field)
-  const sortByMatch = expr.match(/^sort_by\((.+)\)$/)
-  if (sortByMatch) {
-    const keyFilter = parseFilter(sortByMatch[1])
-    return (v) => {
-      if (!isArray(v)) return [v]
-      return [[...v].sort((a, b) => {
-        const ka = keyFilter(a)[0] as string | number
-        const kb = keyFilter(b)[0] as string | number
-        if (ka < kb) return -1
-        if (ka > kb) return 1
-        return 0
-      })]
-    }
-  }
-
-  // group_by(.field)
-  const groupByMatch = expr.match(/^group_by\((.+)\)$/)
-  if (groupByMatch) {
-    const keyFilter = parseFilter(groupByMatch[1])
-    return (v) => {
-      if (!isArray(v)) return [[v]]
-      const groups = new Map<string, unknown[]>()
-      for (const item of v) {
-        const key = JSON.stringify(keyFilter(item)[0])
-        if (!groups.has(key)) groups.set(key, [])
-        groups.get(key)!.push(item)
-      }
-      return [Array.from(groups.values())]
-    }
-  }
-
-  // map(expr)
-  const mapMatch = expr.match(/^map\((.+)\)$/)
-  if (mapMatch) {
-    const innerFilter = parseFilter(mapMatch[1])
-    return (v) => {
-      if (!isArray(v)) return [v]
-      return [v.flatMap((item) => innerFilter(item))]
-    }
-  }
-
-  // select(condition)
-  const selectMatch = expr.match(/^select\((.+)\)$/)
-  if (selectMatch) {
-    const cond = parseCondition(selectMatch[1])
-    return (v) => cond(v) ? [v] : []
-  }
-
-  // @tsv
-  if (expr === "@tsv") return (v) => {
-    if (!isArray(v)) return [String(v)]
-    return [v.map((x) => String(x ?? "")).join("\t")]
-  }
-
-  // @csv
-  if (expr === "@csv") return (v) => {
-    if (!isArray(v)) return [String(v)]
-    return [v.map((x) => {
-      const s = String(x ?? "")
-      return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s
-    }).join(",")]
-  }
-
-  // String literal
-  if ((expr.startsWith('"') && expr.endsWith('"')) || (expr.startsWith("'") && expr.endsWith("'"))) {
-    return () => [expr.slice(1, -1)]
-  }
-
-  // Number literal
-  if (/^-?\d+(\.\d+)?$/.test(expr)) {
-    return () => [parseFloat(expr)]
-  }
-
-  // Boolean and null literals
-  if (expr === "null") return () => [null]
-  if (expr === "true") return () => [true]
-  if (expr === "false") return () => [false]
-
-  // has("key")
-  const hasMatch = expr.match(/^has\(["'](.+)["']\)$/)
-  if (hasMatch) {
-    const key = hasMatch[1]
-    return (v) => [isObject(v) && key in v]
-  }
-
-  // test("regex") or test("regex"; "flags")
-  const testMatch = expr.match(/^test\((.+)\)$/)
-  if (testMatch) {
-    const args = splitFuncArgs(testMatch[1])
-    const re = new RegExp(stripQuotes(args[0]), args.length > 1 ? stripQuotes(args[1]) : "")
-    return (v) => [typeof v === "string" && re.test(v)]
-  }
-
-  // join(separator)
-  const joinMatch = expr.match(/^join\((.+)\)$/)
-  if (joinMatch) {
-    const sepFilter = parseFilter(joinMatch[1])
-    return (v) => {
-      if (!isArray(v)) return [String(v)]
-      const sep = String(sepFilter(v)[0] ?? "")
-      return [v.map((x) => String(x ?? "")).join(sep)]
-    }
-  }
-
-  // index(expr)
-  const indexMatch = expr.match(/^index\((.+)\)$/)
-  if (indexMatch) {
-    const searchFilter = parseFilter(indexMatch[1])
-    return (v) => {
-      const needle = searchFilter(v)[0]
-      if (isArray(v)) {
-        const idx = v.findIndex((item) => JSON.stringify(item) === JSON.stringify(needle))
-        return [idx >= 0 ? idx : null]
-      }
-      if (typeof v === "string" && typeof needle === "string") {
-        const idx = v.indexOf(needle)
-        return [idx >= 0 ? idx : null]
-      }
-      return [null]
-    }
-  }
-
-  throw new Error(`Unknown filter: ${expr}`)
-}
-
-const parseCondition = (expr: string): (v: JqValue) => boolean => {
-  expr = expr.trim()
-
-  // Comparison operators
-  for (const op of ["==", "!=", ">=", "<=", ">", "<"]) {
-    const idx = expr.indexOf(op)
-    if (idx > 0) {
-      const left = parseFilter(expr.slice(0, idx).trim())
-      const right = parseFilter(expr.slice(idx + op.length).trim())
-      return (v) => {
-        const l = left(v)[0]
-        const r = right(v)[0]
-        switch (op) {
-          case "==": return JSON.stringify(l) === JSON.stringify(r)
-          case "!=": return JSON.stringify(l) !== JSON.stringify(r)
-          case ">": return (l as number) > (r as number)
-          case "<": return (l as number) < (r as number)
-          case ">=": return (l as number) >= (r as number)
-          case "<=": return (l as number) <= (r as number)
-        }
-        return false
-      }
-    }
-  }
-
-  // Truthy check
-  const filter = parseFilter(expr)
-  return (v) => {
-    const result = filter(v)[0]
-    return result !== null && result !== false && result !== undefined
-  }
-}
-
-const splitByChar = (expr: string, sep: string): string[] => {
-  const parts: string[] = []
-  let depth = 0
-  let current = ""
-
-  for (const char of expr) {
-    if (char === "(" || char === "[" || char === "{") depth++
-    else if (char === ")" || char === "]" || char === "}") depth--
-    else if (char === sep && depth === 0) {
-      parts.push(current.trim())
-      current = ""
-      continue
-    }
-    current += char
-  }
-  parts.push(current.trim())
-  return parts
-}
-
-const splitPipe = (expr: string): string[] => splitByChar(expr, "|")
-const splitObjectFields = (expr: string): string[] => splitByChar(expr, ",")
-
-const splitOnWord = (expr: string, word: string): string[] => {
-  const parts: string[] = []
-  let depth = 0
-  let current = ""
-  let i = 0
-  const sep = ` ${word} `
-
-  while (i < expr.length) {
-    const char = expr[i]
-    if (char === "(" || char === "[" || char === "{") depth++
-    else if (char === ")" || char === "]" || char === "}") depth--
-    else if (depth === 0 && expr.slice(i, i + sep.length) === sep) {
-      parts.push(current.trim())
-      current = ""
-      i += sep.length
-      continue
-    }
-    current += char
-    i++
-  }
-  parts.push(current.trim())
-  return parts
-}
-
-const splitAlt = (expr: string): string[] => {
-  const parts: string[] = []
-  let depth = 0
-  let current = ""
-  let i = 0
-
-  while (i < expr.length) {
-    const char = expr[i]
-    if (char === "(" || char === "[" || char === "{") depth++
-    else if (char === ")" || char === "]" || char === "}") depth--
-    else if (depth === 0 && char === "/" && expr[i + 1] === "/") {
-      parts.push(current.trim())
-      current = ""
-      i += 2
-      continue
-    }
-    current += char
-    i++
-  }
-  parts.push(current.trim())
-  return parts
-}
-
-const splitFuncArgs = (inner: string): string[] => splitByChar(inner, ";")
-
-const stripQuotes = (s: string): string => {
-  const trimmed = s.trim()
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'")))
-    return trimmed.slice(1, -1)
-  return trimmed
-}
-
-const addValues = (values: JqValue[]): JqValue => {
-  if (values.every((x) => typeof x === "number")) return values.reduce((a: number, b) => a + (b as number), 0)
-  if (values.every((x) => typeof x === "string")) return values.join("")
-  if (values.every((x) => isArray(x))) return (values as unknown[][]).flat()
-  if (values.every((x) => isObject(x))) return Object.assign({}, ...values)
-  return values.map((x) => String(x ?? "")).join("")
+const extractJqError = (e: unknown): string => {
+  const msg = e instanceof Error ? e.message : String(e)
+  const lines = msg.split("\n")
+  const jqLines = lines.filter((l) => !l.startsWith("Non-zero exit code"))
+  return jqLines.length > 0 ? jqLines.join("\n").trim() : msg
 }
 
 export const jq = command({
-  description: "Filter/transform JSON. Paths: .foo, .[0], .[]. Pipes: |. Alt: //. Ops: +. Logic: and, or, not. Parens: (expr). Functions: map, select, has, test(pattern; flags), index, sort_by, group_by, keys, length, unique, flatten, add, first, last, join, @csv, @tsv. Literals: null, true, false",
+  description:
+    "Filter/transform JSON using jq (full jq language). See https://jqlang.github.io/jq/manual/ for complete syntax reference.",
   usage: `jq [-r] [-c] <filter> [file]
   jq ".[].title" data.json
   jq ".[] | select(.type == \\"code\\")" data.json
   jq "map({id, name: .title})" data.json
   jq "group_by(.category) | map({cat: .[0].category, count: length})" data.json
-  jq -r ".[] | [.name, .value] | @tsv" data.json`,
+  jq -r ".[] | [.name, .value] | @tsv" data.json
+  jq "to_entries | map(select(.value > 1))" data.json
+  jq "[.[] | {key: .name, value: .score}] | from_entries" data.json`,
   flags: {
     "-r": { alias: "--raw-output", description: "output raw strings without quotes" },
     "-c": { alias: "--compact-output", description: "compact output (one line per result)" },
@@ -504,30 +60,18 @@ export const jq = command({
     const [filterExpr, filename] = args
     if (!filterExpr) return err("jq: missing filter argument")
 
-    let input: JqValue
-    try {
-      const raw = filename ? files.get(filename) : stdin
-      if (!raw) return err(filename ? `jq: ${filename}: No such file` : "jq: no input")
-      input = JSON.parse(raw)
-    } catch {
-      return err("jq: invalid JSON input")
-    }
+    const input = filename ? files.get(filename) : stdin
+    if (!input) return err(filename ? `jq: ${filename}: No such file` : "jq: no input")
 
     try {
-      const filter = parseFilter(filterExpr)
-      const results = filter(input)
+      const jqFlags: string[] = []
+      if (flags.has("-r")) jqFlags.push("-r")
+      if (flags.has("-c")) jqFlags.push("-c")
 
-      const rawOutput = flags.has("-r")
-      const compact = flags.has("-c")
-
-      const formatted = results.map((r) => {
-        if (rawOutput && typeof r === "string") return r
-        return compact ? JSON.stringify(r) : JSON.stringify(r, null, 2)
-      })
-
-      return ok(formatted.join("\n"))
+      const result = getJq().raw(input, filterExpr, jqFlags.length > 0 ? jqFlags : undefined)
+      return ok(result.trimEnd())
     } catch (e) {
-      return err(`jq: ${e instanceof Error ? e.message : String(e)}`)
+      return err(extractJqError(e))
     }
   },
 })

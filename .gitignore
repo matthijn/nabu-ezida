@@ -28,3 +28,6 @@ bun.lockb.bak
 
 *storybook.log
 storybook-static
+
+public/jq.js
+public/jq.wasm

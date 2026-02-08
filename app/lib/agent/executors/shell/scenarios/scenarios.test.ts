@@ -1,9 +1,11 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeAll } from "vitest"
 import { readdirSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import { shellHandler, type ShellCommandOutput } from "../tool"
 import type { Operation } from "../../../types"
+import { createRequire } from "module"
+import { initJq } from "../commands/jq"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -29,6 +31,11 @@ const loadScenarios = (): { name: string; scenario: Scenario }[] =>
     }))
 
 describe("shell handler scenarios", () => {
+  beforeAll(async () => {
+    const require = createRequire(import.meta.url)
+    initJq(await require("jq-web"))
+  })
+
   const scenarios = loadScenarios()
 
   it.each(scenarios)("$name", async ({ scenario }) => {
