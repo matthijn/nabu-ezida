@@ -56,6 +56,11 @@ export type ToolDefinition = {
   }
 }
 
+const RATIONALE_PROPERTY: JsonSchemaProperty = {
+  type: "string",
+  description: "What you expect this call to return and what you'll do with the result",
+}
+
 export const toToolDefinition = <TSchema extends z.ZodType, TOutput>(
   t: Tool<TSchema, TOutput>
 ): ToolDefinition => {
@@ -71,8 +76,8 @@ export const toToolDefinition = <TSchema extends z.ZodType, TOutput>(
     description: t.description,
     parameters: {
       type: "object",
-      properties: jsonSchema.properties ?? {},
-      required: jsonSchema.required ?? [],
+      properties: { rationale: RATIONALE_PROPERTY, ...(jsonSchema.properties ?? {}) },
+      required: ["rationale", ...(jsonSchema.required ?? [])],
     },
   }
 }
