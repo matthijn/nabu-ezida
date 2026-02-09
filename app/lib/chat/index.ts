@@ -32,4 +32,3 @@ export {
 
 export { useChat } from "./useChat"
 export { getSpinnerLabel } from "./spinnerLabel"
-export { setPaused, isPaused } from "./runner"

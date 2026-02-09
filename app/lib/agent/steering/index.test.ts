@@ -10,11 +10,12 @@ import {
   reorientCall,
   toolResult,
   resetCallIdCounter,
+  orchestratorTools,
 } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
 
-const createTestNudge = (files: Files = {}) => createToNudge(() => files)
+const createTestNudge = (files: Files = {}) => createToNudge(orchestratorTools, true, () => files)
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
 const manyActions = (count: number): Block[] =>

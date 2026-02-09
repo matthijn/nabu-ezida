@@ -12,14 +12,6 @@ import { getFiles } from "~/lib/files"
 
 export type RunnerDeps = ToolDeps
 
-const toNudge = createToNudge(getFiles)
-
-const hasToolError = (blocks: Block[]): boolean =>
-  blocks.some((b) =>
-    b.type === "tool_result" &&
-    ((b.result as { status?: string })?.status === "error" ||
-     (b.result as { status?: string })?.status === "partial"))
-
 const STREAMING_RESET = { streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null } as const
 
 const CANCEL_BLOCK: Block = { type: "system", content: "User cancelled the current operation. Acknowledge this briefly and ask what they'd like to do next." }
@@ -28,12 +20,8 @@ const stop = () => updateChat({ ...STREAMING_RESET, loading: false })
 
 let active = false
 let controller: AbortController | null = null
-let paused = false
 let cancelRequested = false
 let pendingExtra: Block[] = []
-
-export const setPaused = (v: boolean): void => { paused = v }
-export const isPaused = (): boolean => paused
 
 const buildCallbacks = () => ({
   onChunk: (chunk: string) => {
@@ -73,6 +61,8 @@ const readOrchestratorBlocks = (): Block[] =>
   getBlocksForInstances([getOrchestratorOrigin().instance, "user"])
 
 const runLoop = async (deps: RunnerDeps): Promise<void> => {
+  const toNudge = createToNudge(getToolDefinitions(), true, getFiles)
+
   while (true) {
     const chat = getChat()
     if (!chat) return
@@ -119,10 +109,6 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
       updateChat(STREAMING_RESET)
 
       if (handleCancel()) continue
-      if (paused && hasToolError(newBlocks)) {
-        stop()
-        return
-      }
     } catch (e) {
       if (isAbortError(e)) {
         updateChat(STREAMING_RESET)

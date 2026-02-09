@@ -9,7 +9,7 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocks, getInstances, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
+import { getAllBlocks, getAgents, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
@@ -256,8 +256,16 @@ const groupByInstance = (blocks: TaggedBlock[]): InstanceGroup[] => {
   return [...groups.values()]
 }
 
-const filterByInstance = (blocks: TaggedBlock[], filter: string): TaggedBlock[] =>
-  filter ? blocks.filter((b) => b.origin.instance === filter) : blocks
+const isUserAgent = (agent: string): boolean => agent === "user"
+
+const matchesAgent = (block: TaggedBlock, agent: string): boolean =>
+  block.origin.agent === agent || (agent === "orchestrator" && isUserAgent(block.origin.agent))
+
+const filterByAgent = (blocks: TaggedBlock[], agent: string): TaggedBlock[] =>
+  agent ? blocks.filter((b) => matchesAgent(b, agent)) : blocks
+
+const filterVisibleAgents = (agents: string[]): string[] =>
+  agents.filter((a) => !isUserAgent(a))
 
 type FilterChipProps = {
   label: string
@@ -296,18 +304,18 @@ const InstanceCard = ({ group }: { group: InstanceGroup }) => (
 )
 
 const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
-const useInstances = () => useSyncExternalStore(subscribeBlocks, getInstances, getInstances)
+const useAgents = () => useSyncExternalStore(subscribeBlocks, getAgents, getAgents)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
   const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
   const allBlocks = useBlockStore()
-  const instances = useInstances()
+  const agents = useAgents()
   const [copiedAll, setCopiedAll] = useState(false)
   const [filter, setFilter] = useState("")
 
-  const filtered = useMemo(() => filterByInstance(allBlocks, filter), [allBlocks, filter])
-  const groups = useMemo(() => groupByInstance(filtered), [filtered])
+  const filtered = useMemo(() => filterByAgent(allBlocks, filter), [allBlocks, filter])
+  const groups = useMemo(() => filter ? groupByInstance(filtered) : [], [filtered, filter])
 
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
@@ -349,23 +357,28 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      {instances.length > 0 && (
+      {agents.length > 0 && (
         <div className="flex gap-1 px-3 py-2 bg-neutral-50 border-b border-neutral-200 flex-wrap">
-          {instances.map((instance) => (
-            <FilterChip key={instance} label={instance} active={filter === instance} onClick={() => toggleFilter(instance)} />
+          {filterVisibleAgents(agents).map((agent) => (
+            <FilterChip key={agent} label={agent} active={filter === agent} onClick={() => toggleFilter(agent)} />
           ))}
         </div>
       )}
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-        {groups.length === 0 && (
+        {filtered.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <span className="text-sm text-neutral-400">No blocks yet</span>
           </div>
         )}
-        {groups.map((group) => (
-          <InstanceCard key={group.instance} group={group} />
-        ))}
+        {filter
+          ? groups.map((group) => (
+              <InstanceCard key={group.instance} group={group} />
+            ))
+          : filtered.map((block, i) => (
+              <BlockRenderer key={i} block={block} />
+            ))
+        }
         <StreamingIndicator
           streaming={streaming}
           streamingToolArgs={streamingToolArgs}

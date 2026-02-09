@@ -31,6 +31,9 @@
     "content": "EXECUTING STEP 1: Read the file\n\n1. [current] Read the file  ← current\n   expected: \"File contents understood\"\n2. [pending] Write summary\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "system",
     "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
   },
@@ -47,6 +50,9 @@
     "content": "PLAN PAUSED — Step 1: Read the file\nExpected: \"File contents understood\"\n\nYou are currently in a paused plan. Did you gather enough info?\n- Continue executing the current step\n- Collect more info (keep conversing)\n- Call abort to stop the plan"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "text",
     "content": "Got it, I'll focus on methodology. Let me continue."
   },
@@ -57,6 +63,9 @@
   {
     "type": "system",
     "content": "PLAN PAUSED — Step 1: Read the file\nExpected: \"File contents understood\"\n\nYou are currently in a paused plan. Did you gather enough info?\n- Continue executing the current step\n- Collect more info (keep conversing)\n- Call abort to stop the plan"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -82,6 +91,9 @@
     "content": "PLAN PAUSED — Step 1: Read the file\nExpected: \"File contents understood\"\n\nYou are currently in a paused plan. Did you gather enough info?\n- Continue executing the current step\n- Collect more info (keep conversing)\n- Call abort to stop the plan"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -101,6 +113,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 2: Write summary\n\n1. [done] Read the file → \"Read and understood file focusing on methodology\"\n2. [current] Write summary  ← current\n   expected: \"Summary written\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "system",

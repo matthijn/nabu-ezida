@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, writeFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import type { Block } from "../../../types"
-import { createNudge } from "../index"
+import { buildNudge } from "../index"
+import { orchestratorTools } from "../../../test-helpers"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -24,7 +25,7 @@ const regenerateScenario = async (name: string): Promise<void> => {
   const input = readJson<Block[]>(`${basePath}.json`)
   const files = readFilesJson(`${basePath}.files.json`)
 
-  const nudge = createNudge(() => files)
+  const nudge = buildNudge(orchestratorTools, true, () => files)
   const history: Block[] = []
   for (const block of input) {
     history.push(block)

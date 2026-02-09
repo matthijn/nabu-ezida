@@ -5,7 +5,7 @@ import { useFiles } from "~/hooks/useFiles"
 import { useFileImport } from "~/hooks/useFileImport"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
-import { closeChat, setPaused } from "~/lib/chat"
+import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
@@ -50,7 +50,6 @@ export type DebugOptions = {
   persistToServer: boolean
   renderAsJson: boolean
   showStreamPanel: boolean
-  pauseOnError: boolean
 }
 
 const DEBUG_STORAGE_KEY = "nabu-debug-options"
@@ -60,7 +59,6 @@ const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
   persistToServer: true,
   renderAsJson: false,
   showStreamPanel: false,
-  pauseOnError: false,
 }
 
 const loadDebugOptions = (): DebugOptions => {
@@ -88,7 +86,6 @@ export type ProjectContextValue = {
   togglePersistToServer: () => void
   toggleRenderAsJson: () => void
   toggleStreamPanel: () => void
-  togglePauseOnError: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -106,27 +103,17 @@ export default function ProjectLayout() {
   const [persistToServer, setPersistToServer] = useState(() => loadDebugOptions().persistToServer)
   const [renderAsJson, setRenderAsJson] = useState(() => loadDebugOptions().renderAsJson)
   const [showStreamPanel, setShowStreamPanel] = useState(() => loadDebugOptions().showStreamPanel)
-  const [pauseOnError, setPauseOnError] = useState(() => {
-    const v = loadDebugOptions().pauseOnError
-    setPaused(v)
-    return v
-  })
 
-  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel, pauseOnError }
+  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel }
 
   useEffect(() => {
     saveDebugOptions(debugOptions)
-  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, pauseOnError])
+  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel])
 
   const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
   const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
   const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
   const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
-  const togglePauseOnError = useCallback(() => setPauseOnError((prev) => {
-    const next = !prev
-    setPaused(next)
-    return next
-  }), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -217,7 +204,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, togglePauseOnError, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />

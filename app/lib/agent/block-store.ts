@@ -25,16 +25,20 @@ export const getBlocksForInstances = (instances: string[]): TaggedBlock[] =>
   blocks.filter((b) => instances.includes(b.origin.instance))
 
 let cachedInstances: string[] = []
+let cachedAgents: string[] = []
 
 const recomputeInstances = (): void => {
   cachedInstances = [...new Set(blocks.map((b) => b.origin.instance))]
+  cachedAgents = [...new Set(blocks.map((b) => b.origin.agent))]
 }
 
 export const getInstances = (): string[] => cachedInstances
+export const getAgents = (): string[] => cachedAgents
 
 export const clearBlocks = (): void => {
   blocks = []
   cachedInstances = []
+  cachedAgents = []
   notify()
 }
 

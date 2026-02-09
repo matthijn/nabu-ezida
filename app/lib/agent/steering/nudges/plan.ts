@@ -244,7 +244,7 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<NudgeCont
     const content = appendInstructions(buildExpertContent(input), askExpert.instructions)
     const messages: Block[] = [
       { type: "system", content: framework },
-      { type: "user", content },
+      { type: "system", content },
     ]
 
     const tools = getTaskTools(askExpert.expert, askExpert.task)

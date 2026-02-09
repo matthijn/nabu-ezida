@@ -29,11 +29,11 @@
     }
   },
   {
-    "type": "empty_nudge"
-  },
-  {
     "type": "system",
     "content": "Reminder: Grep finds strings, not concepts."
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "system",

@@ -50,10 +50,10 @@
     }
   },
   {
-    "type": "empty_nudge"
-  },
-  {
     "type": "system",
     "content": "**Shell error** - Review the run_local_shell tool definition for supported commands and syntax."
+  },
+  {
+    "type": "empty_nudge"
   }
 ]

@@ -27,6 +27,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "system",
     "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
   },
@@ -50,6 +53,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -67,6 +73,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -88,6 +97,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -105,6 +117,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "system",
@@ -130,6 +145,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -147,6 +165,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "tool_call",
@@ -168,6 +189,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -185,6 +209,9 @@
   {
     "type": "system",
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
+  },
+  {
+    "type": "empty_nudge"
   },
   {
     "type": "system",
@@ -210,6 +237,9 @@
     "content": "EXECUTING STEP 1: Step one\n\n1. [current] Step one  ← current\n   expected: \"Task completed\"\n\nINSTRUCTIONS:\n1. Execute this step using available tools\n2. When DONE, call complete_step with summary of what you accomplished\n3. Do NOT proceed to next step - system will prompt you\n\nIf blocked: call abort with reason"
   },
   {
+    "type": "empty_nudge"
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -227,5 +257,8 @@
   {
     "type": "system",
     "content": "STUCK ON STEP 1: Step one\n\nYou have made too many attempts without completing this step.\n\nYou MUST now either:\n1. Call complete_step if the step is actually done\n2. Call abort with a clear reason why you cannot complete this step\n\nNo other actions are allowed. Choose one NOW."
+  },
+  {
+    "type": "empty_nudge"
   }
 ]

@@ -9,6 +9,8 @@ import { buildCaller } from "../caller"
 import { extractText } from "../stream"
 import { getStreamingCallbacks, getCallerOrigin, withStreamingReset } from "../streaming-context"
 import { pushBlocks, tagBlocks, retagBlocks, getBlocksForInstance, findLastSuccessfulCalls, type TaggedBlock } from "../block-store"
+import { createToNudge, type MultiNudger } from "../steering"
+import { getFiles } from "~/lib/files"
 import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
 import { expertToolDefinitions, reviseCodebookToolDefinitions, summarizeExpertise } from "./expert-tools"
@@ -26,6 +28,7 @@ type TaskDef = {
 
 type ExpertDef = {
   description: string
+  talk?: boolean
   tasks: Record<string, TaskDef>
 }
 
@@ -35,6 +38,7 @@ type CallArgs = {
   context: string
   content: string
   instructions?: string
+  contentType?: ContentBlockType
 }
 
 type CallResult =
@@ -44,9 +48,11 @@ type CallResult =
 const appendInstructions = (content: string, instructions?: string): string =>
   instructions ? `${content}\n\n<instructions>\n${instructions}\n</instructions>` : content
 
-const buildMessages = (context: string, content: string, instructions?: string): Block[] => [
+type ContentBlockType = "user" | "system"
+
+const buildMessages = (context: string, content: string, instructions?: string, contentType: ContentBlockType = "user"): Block[] => [
   { type: "system", content: context },
-  { type: "user", content: appendInstructions(content, instructions) },
+  { type: contentType, content: appendInstructions(content, instructions) },
 ]
 
 const buildEndpoint = (expert: string, task?: string): string =>
@@ -79,10 +85,11 @@ const findSummarizeResult = (history: Block[]): ExpertSummary | null => {
 const countContinueNudges = (history: Block[]): number =>
   history.filter((b) => b.type === "system" && b.content === CONTINUE_MARKER).length
 
-const expertToolNudge: AgentNudge = async (history) => {
+const buildGatedExpertNudge = (inner: MultiNudger): AgentNudge => async (history) => {
   if (findSummarizeResult(history)) return []
   if (countContinueNudges(history) >= MAX_EXPERT_TURNS - 1) return []
-  return [CONTINUE_BLOCK]
+  const nudges = await inner(history)
+  return nudges.length > 0 ? nudges : [CONTINUE_BLOCK]
 }
 
 const readBlocksFor = (instance: string) => (): Block[] =>
@@ -110,7 +117,11 @@ const runExpertWithToolsTracked = async (expert: string, task: string | null, me
     readBlocks,
   }))
 
-  await runAgent(origin, caller, expertToolNudge, readBlocks)
+  const expertDef = experts[expert]
+  const talk = expertDef?.talk ?? false
+  const toNudge = createToNudge(tools, talk, getFiles)
+  const gatedNudge = buildGatedExpertNudge(toNudge)
+  await runAgent(origin, caller, gatedNudge, readBlocks)
   const summary = findSummarizeResult(readBlocks())
   if (!summary) throw new Error("Expert did not call summarize_expertise")
   return { summary, origin }
@@ -134,9 +145,9 @@ export const runExpertFreeform = async (expert: string, task: string | null, mes
 }
 
 const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
-  async ({ expert, task, context, content, instructions }) => {
+  async ({ expert, task, context, content, instructions, contentType }) => {
     try {
-      const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions), tools)
+      const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions, contentType), tools)
       return { result: summary.orchestrator_summary }
     } catch (e) {
       if (isAbortError(e)) throw e
@@ -144,9 +155,9 @@ const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
     }
   }
 
-const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, instructions }) => {
+const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, instructions, contentType }) => {
   try {
-    return { result: await runExpertFreeform(expert, task, buildMessages(context, content, instructions)) }
+    return { result: await runExpertFreeform(expert, task, buildMessages(context, content, instructions, contentType)) }
   } catch (e) {
     if (isAbortError(e)) throw e
     return { error: e instanceof Error ? e.message : String(e) }
@@ -164,7 +175,7 @@ const plannerToolDefinitions: ToolDefinition[] = [
 const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): TaskDef["call"] =>
   async (args) => {
     try {
-      const messages = buildMessages(args.context, args.content, args.instructions)
+      const messages = buildMessages(args.context, args.content, args.instructions, args.contentType)
       const { summary, origin } = await runExpertWithToolsTracked(args.expert, args.task, messages, tools)
       const expertBlocks = getBlocksForInstance(origin.instance) as TaggedBlock[]
       const proxied = findLastSuccessfulCalls(expertBlocks, proxyToolNames)
@@ -327,6 +338,7 @@ The planner will orient, investigate, and create_plan. The resulting plan will a
         task: "plan",
         context: contextResult.output!,
         content,
+        contentType: "system",
       })
 
       if ("error" in callResult) return err(callResult.error)
