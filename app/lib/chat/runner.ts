@@ -4,7 +4,7 @@ import { createToolExecutor, createToNudge, isEmptyNudgeBlock } from "~/lib/agen
 import { getToolDefinitions } from "~/lib/agent/executors/tool"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { buildCaller } from "~/lib/agent/caller"
-import { pushBlocks, tagBlocks, clearBlocks } from "~/lib/agent/block-store"
+import { pushBlocks, tagBlocks, clearBlocks, getBlocksForInstances } from "~/lib/agent/block-store"
 import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
@@ -31,21 +31,9 @@ let controller: AbortController | null = null
 let paused = false
 let cancelRequested = false
 let pendingExtra: Block[] = []
-let history: Block[] = []
 
 export const setPaused = (v: boolean): void => { paused = v }
 export const isPaused = (): boolean => paused
-
-export const getHistory = (): Block[] => history
-
-export const pushToHistory = (blocks: Block[]): void => {
-  history = [...history, ...blocks]
-}
-
-export const resetHistory = (): void => {
-  history = []
-  clearBlocks()
-}
 
 const buildCallbacks = () => ({
   onChunk: (chunk: string) => {
@@ -74,12 +62,15 @@ const handleCancel = (): boolean => {
 
 let orchestratorOrigin: BlockOrigin | null = null
 
-const getOrchestratorOrigin = (): BlockOrigin => {
+export const getOrchestratorOrigin = (): BlockOrigin => {
   if (!orchestratorOrigin) {
     orchestratorOrigin = { agent: "orchestrator", instance: createInstance("orchestrator") }
   }
   return orchestratorOrigin
 }
+
+const readOrchestratorBlocks = (): Block[] =>
+  getBlocksForInstances([getOrchestratorOrigin().instance, "user"])
 
 const runLoop = async (deps: RunnerDeps): Promise<void> => {
   while (true) {
@@ -89,14 +80,12 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
     const extra = pendingExtra
     pendingExtra = []
     if (extra.length > 0) {
-      const origin = getOrchestratorOrigin()
-      pushBlocks(tagBlocks(origin, extra))
-      history = [...history, ...extra]
+      pushBlocks(tagBlocks(getOrchestratorOrigin(), extra))
     }
 
     controller = new AbortController()
 
-    const nudges = await toNudge(history)
+    const nudges = await toNudge(readOrchestratorBlocks())
     if (nudges.length === 0 && extra.length === 0) {
       stop()
       return
@@ -107,15 +96,13 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
 
     const nonEmpty = nudges.filter((n) => !isEmptyNudgeBlock(n))
     if (nonEmpty.length > 0) {
-      const origin = getOrchestratorOrigin()
-      pushBlocks(tagBlocks(origin, nonEmpty))
-      history = [...history, ...nonEmpty]
+      pushBlocks(tagBlocks(getOrchestratorOrigin(), nonEmpty))
     }
 
     const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
     const callbacks = buildCallbacks()
     const resetStreaming = () => updateChat(STREAMING_RESET)
-    setStreamingContext({ callbacks, reset: resetStreaming, signal: controller.signal })
+    setStreamingContext({ callbacks, reset: resetStreaming, signal: controller.signal, callerOrigin: getOrchestratorOrigin() })
 
     const origin = getOrchestratorOrigin()
     const caller = buildCaller(origin, {
@@ -124,15 +111,15 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
       blockSchemas: getBlockSchemaDefinitions(),
       execute: toolExecutor,
       callbacks,
+      readBlocks: readOrchestratorBlocks,
     })
 
-    const prevLength = history.length
     try {
-      history = await caller(history, controller.signal)
+      const newBlocks = await caller(controller.signal)
       updateChat(STREAMING_RESET)
 
       if (handleCancel()) continue
-      if (paused && hasToolError(history.slice(prevLength))) {
+      if (paused && hasToolError(newBlocks)) {
         stop()
         return
       }

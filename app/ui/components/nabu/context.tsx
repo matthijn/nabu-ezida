@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from "react"
 import { openChat, closeChat as closeChatStore } from "~/lib/chat/store"
-import { resetHistory } from "~/lib/chat/runner"
+import { clearBlocks } from "~/lib/agent/block-store"
 import { setEditorContext } from "~/lib/chat/context"
 import { getCurrentFile } from "~/lib/files"
 import { CURRENT_USER, NABU } from "~/domain/participant"
@@ -48,7 +48,7 @@ export const NabuProvider = ({ children }: NabuProviderProps) => {
   }, [])
 
   const startChat = useCallback(() => {
-    resetHistory()
+    clearBlocks()
     openChat(CURRENT_USER, NABU)
     setMinimized(false)
     setSetting("chatOpen", true)

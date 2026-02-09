@@ -15,11 +15,12 @@ export type CallerConfig = {
   execute?: ToolExecutor
   responseFormat?: ResponseFormat
   callbacks?: ParseCallbacks
+  readBlocks: () => Block[]
 }
 
-export type Caller = (history: Block[], signal?: AbortSignal) => Promise<Block[]>
+export type Caller = (signal?: AbortSignal) => Promise<Block[]>
 
-export type TypedCaller<T> = (history: Block[], signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
+export type TypedCaller<T> = (signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
 
 const executeToolCalls = async (
   calls: ToolCall[],
@@ -33,7 +34,8 @@ const executeToolCalls = async (
 }
 
 export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =>
-  async (history, signal) => {
+  async (signal) => {
+    const history = config.readBlocks()
     const blocks = await callLlm({
       endpoint: config.endpoint,
       messages: blocksToMessages(history),
@@ -54,14 +56,13 @@ export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =
     }
 
     pushBlocks(tagBlocks(origin, resultBlocks))
-    return [...history, ...resultBlocks]
+    return resultBlocks
   }
 
 export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>
-  async (history, signal) => {
-    const newHistory = await caller(history, signal)
-    const responseBlocks = newHistory.slice(history.length)
-    const text = extractText(responseBlocks)
+  async (signal) => {
+    const newBlocks = await caller(signal)
+    const text = extractText(newBlocks)
     try {
       const parsed = JSON.parse(text)
       const result = schema.safeParse(parsed)

@@ -9,6 +9,7 @@ const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
   ask_expert: "Consulting",
+  delegate_plan: "Planning",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {

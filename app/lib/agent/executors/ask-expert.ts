@@ -4,13 +4,16 @@ import { createInstance } from "../types"
 import type { AgentNudge } from "../loop"
 import { runAgent, noNudge } from "../loop"
 import type { ToolDefinition } from "./tool"
-import { tool, registerTool, ok, err, getToolHandlers } from "./tool"
+import { tool, registerTool, ok, err, getToolHandlers, toToolDefinition } from "./tool"
 import { buildCaller } from "../caller"
 import { extractText } from "../stream"
-import { getStreamingCallbacks, withStreamingReset } from "../streaming-context"
+import { getStreamingCallbacks, getCallerOrigin, withStreamingReset } from "../streaming-context"
+import { pushBlocks, tagBlocks, retagBlocks, getBlocksForInstance, findLastSuccessfulCalls, type TaggedBlock } from "../block-store"
 import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
-import { expertToolDefinitions, reviseCodebookToolDefinitions } from "./expert-tools"
+import { expertToolDefinitions, reviseCodebookToolDefinitions, summarizeExpertise } from "./expert-tools"
+import { createPlan, orientate, reorient } from "./orchestration"
+import { runLocalShell } from "./shell/tool"
 import { isAbortError } from "~/lib/utils"
 
 export type ExpertSummary = { orchestrator_summary: string }
@@ -82,30 +85,52 @@ const expertToolNudge: AgentNudge = async (history) => {
   return [CONTINUE_BLOCK]
 }
 
+const readBlocksFor = (instance: string) => (): Block[] =>
+  getBlocksForInstance(instance)
+
+export type ExpertRunResult = { summary: ExpertSummary; origin: BlockOrigin }
+
 export const runExpertWithTools = async (expert: string, task: string | null, messages: Block[], tools: ToolDefinition[]): Promise<ExpertSummary> => {
+  const { summary } = await runExpertWithToolsTracked(expert, task, messages, tools)
+  return summary
+}
+
+const runExpertWithToolsTracked = async (expert: string, task: string | null, messages: Block[], tools: ToolDefinition[]): Promise<ExpertRunResult> => {
   const executor = createExecutor(getToolHandlers())
   const origin = buildExpertOrigin(expert, task)
+
+  pushBlocks(tagBlocks(origin, messages))
+
+  const readBlocks = readBlocksFor(origin.instance)
   const caller = withStreamingReset(buildCaller(origin, {
     endpoint: buildEndpoint(expert, task ?? undefined),
     tools,
     execute: executor,
     callbacks: getStreamingCallbacks(),
+    readBlocks,
   }))
 
-  const history = await runAgent(caller, expertToolNudge, messages)
-  const summary = findSummarizeResult(history)
+  await runAgent(origin, caller, expertToolNudge, readBlocks)
+  const summary = findSummarizeResult(readBlocks())
   if (!summary) throw new Error("Expert did not call summarize_expertise")
-  return summary
+  return { summary, origin }
 }
 
 export const runExpertFreeform = async (expert: string, task: string | null, messages: Block[]): Promise<string> => {
   const origin = buildExpertOrigin(expert, task)
+
+  pushBlocks(tagBlocks(origin, messages))
+
+  const readBlocks = readBlocksFor(origin.instance)
   const caller = withStreamingReset(buildCaller(origin, {
     endpoint: buildEndpoint(expert, task ?? undefined),
     callbacks: getStreamingCallbacks(),
+    readBlocks,
   }))
-  const history = await runAgent(caller, noNudge, messages)
-  return extractText(history.slice(messages.length))
+
+  await runAgent(origin, caller, noNudge, readBlocks)
+  const allBlocks = readBlocks()
+  return extractText(allBlocks.slice(messages.length))
 }
 
 const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
@@ -128,6 +153,32 @@ const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, i
   }
 }
 
+const plannerToolDefinitions: ToolDefinition[] = [
+  toToolDefinition(runLocalShell),
+  toToolDefinition(orientate),
+  toToolDefinition(reorient),
+  toToolDefinition(createPlan),
+  toToolDefinition(summarizeExpertise),
+]
+
+const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): TaskDef["call"] =>
+  async (args) => {
+    try {
+      const messages = buildMessages(args.context, args.content, args.instructions)
+      const { summary, origin } = await runExpertWithToolsTracked(args.expert, args.task, messages, tools)
+      const expertBlocks = getBlocksForInstance(origin.instance) as TaggedBlock[]
+      const proxied = findLastSuccessfulCalls(expertBlocks, proxyToolNames)
+      const callerOrigin = getCallerOrigin()
+      if (proxied.length > 0 && callerOrigin) {
+        pushBlocks(retagBlocks(proxied, callerOrigin))
+      }
+      return { result: summary.orchestrator_summary }
+    } catch (e) {
+      if (isAbortError(e)) throw e
+      return { error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
 const experts: Record<string, ExpertDef> = {
   "qualitative-researcher": {
     description: "Qualitative analysis specialist",
@@ -147,6 +198,16 @@ const experts: Record<string, ExpertDef> = {
   "analyst": {
     description: "Rigorous analytical reader—evaluates arguments, surfaces assumptions, applies frameworks to content",
     tasks: {},
+  },
+  "planner": {
+    description: "Plans multi-step tasks given intent and constraints",
+    tasks: {
+      "plan": {
+        description: "Create execution plan",
+        tools: plannerToolDefinitions,
+        call: callWithProxy(["create_plan"], plannerToolDefinitions),
+      },
+    },
   },
 }
 
@@ -226,6 +287,46 @@ ${generateExpertDocs()}`,
         context: contextResult.output!,
         content: contentResult.output!,
         instructions,
+      })
+
+      if ("error" in callResult) return err(callResult.error)
+      return ok(callResult.result)
+    },
+  })
+)
+
+const DelegatePlanArgs = z.object({
+  intent: z.string().min(1).describe("What the user wants to accomplish"),
+  outcome: z.string().min(1).describe("What success looks like"),
+  context: z.string().min(1).describe("Shell command to get relevant context"),
+  involvement: z.string().min(1).describe("How deeply should the plan involve the user"),
+  constraints: z.string().min(1).describe("Boundaries, limitations, or requirements"),
+})
+
+export const delegatePlan = registerTool(
+  tool({
+    name: "delegate_plan",
+    description: `Delegate plan creation to the planner expert.
+
+The planner will orient, investigate, and create_plan. The resulting plan will appear in your context automatically.`,
+    schema: DelegatePlanArgs,
+    handler: async (files, { intent, outcome, context: ctxCmd, involvement, constraints }) => {
+      const contextResult = resolveShellCommand(files, ctxCmd)
+      if (contextResult.error) return err(`context: ${contextResult.error}`)
+
+      const content = [
+        `Intent: ${intent}`,
+        `Desired outcome: ${outcome}`,
+        `User involvement: ${involvement}`,
+        `Constraints: ${constraints}`,
+      ].join("\n")
+
+      const callFn = experts["planner"].tasks["plan"].call
+      const callResult = await callFn({
+        expert: "planner",
+        task: "plan",
+        context: contextResult.output!,
+        content,
       })
 
       if ("error" in callResult) return err(callResult.error)

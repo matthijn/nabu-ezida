@@ -1,9 +1,8 @@
 import { useSyncExternalStore, useCallback } from "react"
 import type { Block, BlockOrigin, SystemBlock } from "~/lib/agent"
-import { createInstance } from "~/lib/agent/types"
 import { getAllBlocks, subscribeBlocks, pushBlocks, tagBlocks } from "~/lib/agent/block-store"
 import { getChat, subscribe, type ChatState } from "./store"
-import { run, cancel as cancelRunner, getHistory, pushToHistory, type RunnerDeps } from "./runner"
+import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
 
 type UseChatResult = {
@@ -41,11 +40,10 @@ export const useChat = (): UseChatResult => {
       const userBlock: Block = { type: "user", content }
       const blocksToAdd: Block[] = []
 
-      const currentHistory = getHistory()
       const ctx = getEditorContext()
       if (ctx) {
         const formatted = contextToMessage(ctx)
-        const lastSent = findLastContextMessage(currentHistory)
+        const lastSent = findLastContextMessage(getAllBlocks())
         if (formatted !== lastSent) {
           const contextBlock: SystemBlock = { type: "system", content: formatted }
           blocksToAdd.push(contextBlock)
@@ -54,7 +52,6 @@ export const useChat = (): UseChatResult => {
 
       blocksToAdd.push(userBlock)
       pushBlocks(tagBlocks(USER_ORIGIN, blocksToAdd))
-      pushToHistory(blocksToAdd)
       run(deps)
     },
     []
