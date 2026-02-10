@@ -97,6 +97,7 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
     const origin = getOrchestratorOrigin()
     const caller = buildCaller(origin, {
       endpoint: "/converse",
+      chat: true,
       tools: getToolDefinitions(),
       blockSchemas: getBlockSchemaDefinitions(),
       execute: toolExecutor,

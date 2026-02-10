@@ -267,6 +267,7 @@ export type CallLlmOptions = {
   tools?: ToolDefinition[]
   blockSchemas?: BlockSchemaDefinition[]
   responseFormat?: ResponseFormat
+  chat?: boolean
   callbacks?: ParseCallbacks
   signal?: AbortSignal
 }
@@ -295,6 +296,7 @@ const buildRequestBody = (options: CallLlmOptions): string => {
   const body: Record<string, unknown> = { messages }
   if (options.tools) body.tools = options.tools
   if (options.responseFormat) body.response_format = options.responseFormat
+  if (options.chat) body.chat = true
   return JSON.stringify(body)
 }
 

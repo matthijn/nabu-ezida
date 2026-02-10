@@ -17,38 +17,16 @@ import { expertToolDefinitions, reviseCodebookToolDefinitions, summarizeExpertis
 import { createPlan, orientate, reorient } from "./orchestration"
 import { runLocalShell } from "./shell/tool"
 import { isAbortError } from "~/lib/utils"
+import {
+  setExperts, getExperts, getExpertNames, getAllTaskNames,
+  generateExpertDocs, getExpertTask, getTaskTools,
+  type CallArgs, type CallResult, type ContentBlockType,
+} from "./expert-registry"
 
 export type ExpertSummary = { orchestrator_summary: string }
 
-type TaskDef = {
-  description: string
-  tools?: ToolDefinition[]
-  call: (args: CallArgs) => Promise<CallResult>
-}
-
-type ExpertDef = {
-  description: string
-  talk?: boolean
-  tasks: Record<string, TaskDef>
-}
-
-type CallArgs = {
-  expert: string
-  task: string | null
-  context: string
-  content: string
-  instructions?: string
-  contentType?: ContentBlockType
-}
-
-type CallResult =
-  | { result: string }
-  | { error: string }
-
 const appendInstructions = (content: string, instructions?: string): string =>
   instructions ? `${content}\n\n<instructions>\n${instructions}\n</instructions>` : content
-
-type ContentBlockType = "user" | "system"
 
 const buildMessages = (context: string, content: string, instructions?: string, contentType: ContentBlockType = "user"): Block[] => [
   { type: "system", content: context },
@@ -117,7 +95,7 @@ const runExpertWithToolsTracked = async (expert: string, task: string | null, me
     readBlocks,
   }))
 
-  const expertDef = experts[expert]
+  const expertDef = getExperts()[expert]
   const talk = expertDef?.talk ?? false
   const toNudge = createToNudge(tools, talk, getFiles)
   const gatedNudge = buildGatedExpertNudge(toNudge)
@@ -144,7 +122,7 @@ export const runExpertFreeform = async (expert: string, task: string | null, mes
   return extractText(allBlocks.slice(messages.length))
 }
 
-const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
+const callWithToolDefs = (tools: ToolDefinition[]): ((args: CallArgs) => Promise<CallResult>) =>
   async ({ expert, task, context, content, instructions, contentType }) => {
     try {
       const summary = await runExpertWithTools(expert, task, buildMessages(context, content, instructions, contentType), tools)
@@ -155,7 +133,7 @@ const callWithToolDefs = (tools: ToolDefinition[]): TaskDef["call"] =>
     }
   }
 
-const callFreeform: TaskDef["call"] = async ({ expert, task, context, content, instructions, contentType }) => {
+const callFreeform: (args: CallArgs) => Promise<CallResult> = async ({ expert, task, context, content, instructions, contentType }) => {
   try {
     return { result: await runExpertFreeform(expert, task, buildMessages(context, content, instructions, contentType)) }
   } catch (e) {
@@ -172,7 +150,7 @@ const plannerToolDefinitions: ToolDefinition[] = [
   toToolDefinition(summarizeExpertise),
 ]
 
-const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): TaskDef["call"] =>
+const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): ((args: CallArgs) => Promise<CallResult>) =>
   async (args) => {
     try {
       const messages = buildMessages(args.context, args.content, args.instructions, args.contentType)
@@ -190,7 +168,7 @@ const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): TaskD
     }
   }
 
-const experts: Record<string, ExpertDef> = {
+setExperts({
   "qualitative-researcher": {
     description: "Qualitative analysis specialist",
     tasks: {
@@ -220,38 +198,7 @@ const experts: Record<string, ExpertDef> = {
       },
     },
   },
-}
-
-const expertNames = Object.keys(experts) as [string, ...string[]]
-const ExpertEnum = z.enum(expertNames)
-
-const allTasks = [...new Set(Object.values(experts).flatMap((e) => Object.keys(e.tasks)))] as [string, ...string[]]
-const TaskEnum = z.enum(allTasks)
-
-const generateExpertDocs = (): string => {
-  const lines: string[] = ["Experts & tasks:"]
-  for (const [name, def] of Object.entries(experts)) {
-    lines.push(`- ${name}: ${def.description}`)
-    for (const [taskName, taskDef] of Object.entries(def.tasks)) {
-      lines.push(`  - ${taskName}: ${taskDef.description}`)
-    }
-  }
-  return lines.join("\n")
-}
-
-const getExpertTask = (expert: string, task?: string): { error?: string; taskDef?: TaskDef } => {
-  const expertDef = experts[expert]
-  if (!expertDef) {
-    return { error: `Unknown expert: ${expert}. Available: ${expertNames.join(", ")}` }
-  }
-  if (!task) return {}
-  const taskDef = expertDef.tasks[task]
-  if (!taskDef) {
-    const available = Object.keys(expertDef.tasks).join(", ")
-    return { error: `Expert '${expert}' cannot do task '${task}'. Available tasks: ${available}` }
-  }
-  return { taskDef }
-}
+})
 
 const resolveShellCommand = (files: Map<string, string>, command: string): { output?: string; error?: string } => {
   const shell = createShell(files)
@@ -261,8 +208,8 @@ const resolveShellCommand = (files: Map<string, string>, command: string): { out
 }
 
 const AskExpertArgs = z.object({
-  expert: ExpertEnum.describe("Specialist type"),
-  task: TaskEnum.optional().describe("Specific task (omit for freeform response)"),
+  expert: z.enum(getExpertNames() as [string, ...string[]]).describe("Specialist type"),
+  task: z.enum(getAllTaskNames() as [string, ...string[]]).optional().describe("Specific task (omit for freeform response)"),
   using: z.string().min(1).describe("Shell command to get framework/context"),
   about: z.string().min(1).describe("Shell command to get content to analyze"),
   instructions: z.string().optional().describe("Extra guidance for the expert (e.g., focus areas, constraints)"),
@@ -332,7 +279,7 @@ The planner will orient, investigate, and create_plan. The resulting plan will a
         `Constraints: ${constraints}`,
       ].join("\n")
 
-      const callFn = experts["planner"].tasks["plan"].call
+      const callFn = getExperts()["planner"].tasks["plan"].call
       const callResult = await callFn({
         expert: "planner",
         task: "plan",
@@ -347,7 +294,4 @@ The planner will orient, investigate, and create_plan. The resulting plan will a
   })
 )
 
-const getTaskTools = (expert: string, task?: string): ToolDefinition[] | null =>
-  experts[expert]?.tasks[task ?? ""]?.tools ?? null
-
-export { experts, generateExpertDocs, getExpertTask, getTaskTools, appendInstructions }
+export { getExperts, generateExpertDocs, getExpertTask, getTaskTools, appendInstructions }
