@@ -1,17 +1,13 @@
 import { z } from "zod"
-import { tool, registerTool, ok, err, toToolDefinition } from "./tool"
-import type { ToolDefinition } from "./tool"
+import { tool, registerTool, ok, err } from "./tool"
 import type { RawFiles, HandlerResult } from "../types"
 import type { StoredAnnotation } from "~/domain/attributes/schema"
 import { extractProse } from "~/domain/blocks/validate"
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks/parse"
 import { generateJsonBlockPatch } from "~/lib/diff/json-block/patch"
 import { patchJsonBlock } from "./json-patch"
-import { applyLocalPatch } from "./patch"
 
 const ATTRIBUTES_LANG = "json-attributes"
-
-export const expertToolDefinitions: ToolDefinition[] = []
 
 const wrapFuzzy = (text: string): string => `FUZZY[[${text}]]`
 
@@ -139,14 +135,3 @@ export const summarizeExpertise = registerTool(
   })
 )
 
-expertToolDefinitions.push(
-  toToolDefinition(addAnnotation),
-  toToolDefinition(markForDeletion),
-  toToolDefinition(summarizeExpertise),
-)
-
-export const reviseCodebookToolDefinitions: ToolDefinition[] = [
-  toToolDefinition(patchJsonBlock),
-  toToolDefinition(applyLocalPatch),
-  toToolDefinition(summarizeExpertise),
-]

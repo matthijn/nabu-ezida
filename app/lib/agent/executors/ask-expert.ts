@@ -13,14 +13,11 @@ import { createToNudge, type MultiNudger } from "../steering"
 import { getFiles } from "~/lib/files"
 import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
-import { expertToolDefinitions, reviseCodebookToolDefinitions, summarizeExpertise } from "./expert-tools"
-import { createPlan, orientate, reorient } from "./orchestration"
-import { runLocalShell } from "./shell/tool"
 import { isAbortError } from "~/lib/utils"
 import {
-  setExperts, getExperts, getExpertNames, getAllTaskNames,
+  getExperts, getExpertNames, getAllTaskNames,
   generateExpertDocs, getExpertTask, getTaskTools,
-  type CallArgs, type CallResult, type ContentBlockType,
+  type CallArgs, type CallResult, type ContentBlockType, type TaskConfig,
 } from "./expert-registry"
 
 export type ExpertSummary = { orchestrator_summary: string }
@@ -142,14 +139,6 @@ const callFreeform: (args: CallArgs) => Promise<CallResult> = async ({ expert, t
   }
 }
 
-const plannerToolDefinitions: ToolDefinition[] = [
-  toToolDefinition(runLocalShell),
-  toToolDefinition(orientate),
-  toToolDefinition(reorient),
-  toToolDefinition(createPlan),
-  toToolDefinition(summarizeExpertise),
-]
-
 const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): ((args: CallArgs) => Promise<CallResult>) =>
   async (args) => {
     try {
@@ -168,37 +157,15 @@ const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): ((arg
     }
   }
 
-setExperts({
-  "qualitative-researcher": {
-    description: "Qualitative analysis specialist",
-    tasks: {
-      "apply-codebook": {
-        description: "Apply codebook codes to content (uses annotation tools)",
-        tools: expertToolDefinitions,
-        call: callWithToolDefs(expertToolDefinitions),
-      },
-      "revise-codebook": {
-        description: "Revise codebook based on locally resolved codings (uses patch tools)",
-        tools: reviseCodebookToolDefinitions,
-        call: callWithToolDefs(reviseCodebookToolDefinitions),
-      },
-    },
-  },
-  "analyst": {
-    description: "Rigorous analytical reader—evaluates arguments, surfaces assumptions, applies frameworks to content",
-    tasks: {},
-  },
-  "planner": {
-    description: "Plans multi-step tasks given intent and constraints",
-    tasks: {
-      "plan": {
-        description: "Create execution plan",
-        tools: plannerToolDefinitions,
-        call: callWithProxy(["create_plan"], plannerToolDefinitions),
-      },
-    },
-  },
-})
+const hasProxy = (config: TaskConfig): config is TaskConfig & { proxy: string[] } =>
+  "proxy" in config
+
+const resolveCall = (config?: TaskConfig): ((args: CallArgs) => Promise<CallResult>) => {
+  if (!config) return callFreeform
+  const defs = config.tools.map(toToolDefinition)
+  if (hasProxy(config)) return callWithProxy(config.proxy, defs)
+  return callWithToolDefs(defs)
+}
 
 const resolveShellCommand = (files: Map<string, string>, command: string): { output?: string; error?: string } => {
   const shell = createShell(files)
@@ -229,7 +196,7 @@ Args:
 ${generateExpertDocs()}`,
     schema: AskExpertArgs,
     handler: async (files, { expert, task, using, about, instructions }) => {
-      const { error: validationError, taskDef } = getExpertTask(expert, task)
+      const { error: validationError, taskConfig } = getExpertTask(expert, task)
       if (validationError) return err(validationError)
 
       const contextResult = resolveShellCommand(files, using)
@@ -238,7 +205,7 @@ ${generateExpertDocs()}`,
       const contentResult = resolveShellCommand(files, about)
       if (contentResult.error) return err(`about: ${contentResult.error}`)
 
-      const callFn = taskDef?.call ?? callFreeform
+      const callFn = resolveCall(taskConfig)
       const callResult = await callFn({
         expert,
         task: task ?? null,
@@ -279,7 +246,8 @@ The planner will orient, investigate, and create_plan. The resulting plan will a
         `Constraints: ${constraints}`,
       ].join("\n")
 
-      const callFn = getExperts()["planner"].tasks["plan"].call
+      const { taskConfig } = getExpertTask("planner", "plan")
+      const callFn = resolveCall(taskConfig)
       const callResult = await callFn({
         expert: "planner",
         task: "plan",

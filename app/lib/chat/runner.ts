@@ -6,6 +6,7 @@ import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { buildCaller } from "~/lib/agent/caller"
 import { pushBlocks, tagBlocks, clearBlocks, getBlocksForInstances } from "~/lib/agent/block-store"
 import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
+import { orchestrator } from "~/lib/agent/executors/agents"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 import { getFiles } from "~/lib/files"
@@ -61,7 +62,7 @@ const readOrchestratorBlocks = (): Block[] =>
   getBlocksForInstances([getOrchestratorOrigin().instance, "user"])
 
 const runLoop = async (deps: RunnerDeps): Promise<void> => {
-  const toNudge = createToNudge(getToolDefinitions(), true, getFiles)
+  const toNudge = createToNudge(getToolDefinitions(), orchestrator.talk, getFiles)
 
   while (true) {
     const chat = getChat()
@@ -96,8 +97,8 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
 
     const origin = getOrchestratorOrigin()
     const caller = buildCaller(origin, {
-      endpoint: "/converse",
-      chat: true,
+      endpoint: orchestrator.endpoint,
+      chat: orchestrator.talk,
       tools: getToolDefinitions(),
       blockSchemas: getBlockSchemaDefinitions(),
       execute: toolExecutor,

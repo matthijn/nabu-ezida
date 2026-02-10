@@ -12,6 +12,12 @@ type Tool<TSchema extends z.ZodType, TOutput> = ToolDef<TSchema, TOutput> & {
   handle: Handler<TOutput>
 }
 
+export type AnyTool = {
+  name: string
+  description: string
+  schema: z.ZodType
+}
+
 export const tool = <TSchema extends z.ZodType, TOutput>(
   def: ToolDef<TSchema, TOutput>
 ): Tool<TSchema, TOutput> => {
@@ -72,8 +78,8 @@ const THEN_PROPERTY: JsonSchemaProperty = {
   required: ["success", "empty"],
 }
 
-export const toToolDefinition = <TSchema extends z.ZodType, TOutput>(
-  t: Tool<TSchema, TOutput>
+export const toToolDefinition = (
+  t: AnyTool
 ): ToolDefinition => {
   const jsonSchema = t.schema.toJSONSchema() as {
     type?: string
