@@ -14,7 +14,6 @@ export type CallerConfig = {
   blockSchemas?: BlockSchemaDefinition[]
   execute?: ToolExecutor
   responseFormat?: ResponseFormat
-  chat?: boolean
   callbacks?: ParseCallbacks
   readBlocks: () => Block[]
 }
@@ -43,7 +42,6 @@ export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =
       tools: config.tools,
       blockSchemas: config.blockSchemas,
       responseFormat: config.responseFormat,
-      chat: config.chat,
       callbacks: config.callbacks,
       signal,
     })

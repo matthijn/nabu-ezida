@@ -8,7 +8,7 @@ import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { getCodeMapping } from "~/lib/files/selectors"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes/schema"
 import { createShell } from "../../executors/shell/shell"
-import { getTaskTools, runExpertWithTools, runExpertFreeform, appendInstructions } from "../../executors/ask-expert"
+import { getAgentTools, runExpertWithTools, runExpertFreeform, appendInstructions } from "../../executors/ask-expert"
 
 const isStepBoundary = (block: Block): boolean =>
   block.type === "tool_call" && block.calls.some((c) => c.name === "create_plan" || c.name === "complete_step")
@@ -247,7 +247,7 @@ const createAskExpertContext = (input: AskExpertInput): (() => Promise<NudgeCont
       { type: "system", content },
     ]
 
-    const tools = getTaskTools(askExpert.expert, askExpert.task)
+    const tools = getAgentTools(askExpert.expert, askExpert.task ?? null)
     const analysisText = tools
       ? (await runExpertWithTools(askExpert.expert, askExpert.task ?? null, messages, tools)).orchestrator_summary
       : await runExpertFreeform(askExpert.expert, askExpert.task ?? null, messages)

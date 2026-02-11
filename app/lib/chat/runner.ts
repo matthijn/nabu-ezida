@@ -1,12 +1,13 @@
 import type { Block, BlockOrigin, ToolDeps } from "~/lib/agent"
 import { createInstance } from "~/lib/agent/types"
 import { createToolExecutor, createToNudge, isEmptyNudgeBlock } from "~/lib/agent"
-import { getToolDefinitions } from "~/lib/agent/executors/tool"
+import { toToolDefinition } from "~/lib/agent/executors/tool"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { buildCaller } from "~/lib/agent/caller"
 import { pushBlocks, tagBlocks, clearBlocks, getBlocksForInstances } from "~/lib/agent/block-store"
 import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
-import { orchestrator } from "~/lib/agent/executors/agents"
+import { agents, buildEndpoint } from "~/lib/agent/executors/agents"
+import { askExpert } from "~/lib/agent/executors/ask-expert"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 import { getFiles } from "~/lib/files"
@@ -61,8 +62,10 @@ export const getOrchestratorOrigin = (): BlockOrigin => {
 const readOrchestratorBlocks = (): Block[] =>
   getBlocksForInstances([getOrchestratorOrigin().instance, "user"])
 
+const orchestratorTools = [...agents.orchestrator.tools, askExpert].map(toToolDefinition)
+
 const runLoop = async (deps: RunnerDeps): Promise<void> => {
-  const toNudge = createToNudge(getToolDefinitions(), orchestrator.talk, getFiles)
+  const toNudge = createToNudge(orchestratorTools, agents.orchestrator.chat, getFiles)
 
   while (true) {
     const chat = getChat()
@@ -97,9 +100,8 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
 
     const origin = getOrchestratorOrigin()
     const caller = buildCaller(origin, {
-      endpoint: orchestrator.endpoint,
-      chat: orchestrator.talk,
-      tools: getToolDefinitions(),
+      endpoint: buildEndpoint(agents.orchestrator),
+      tools: orchestratorTools,
       blockSchemas: getBlockSchemaDefinitions(),
       execute: toolExecutor,
       callbacks,

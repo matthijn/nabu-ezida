@@ -14,24 +14,22 @@ import { getFiles } from "~/lib/files"
 import { createShell } from "./shell/shell"
 import { createExecutor } from "./execute"
 import { isAbortError } from "~/lib/utils"
+import { buildEndpoint, type AgentDef } from "./agents"
 import {
-  getExperts, getExpertNames, getAllTaskNames,
-  generateExpertDocs, getExpertTask, getTaskTools,
-  type CallArgs, type CallResult, type ContentBlockType, type TaskConfig,
+  getExpertNames, getAllTaskNames,
+  generateExpertDocs, validateExpertCall, getAgentTools, getAgentDef,
+  type CallArgs, type CallResult, type ContentBlockType,
 } from "./expert-registry"
 
 export type ExpertSummary = { orchestrator_summary: string }
 
-const appendInstructions = (content: string, instructions?: string): string =>
+export const appendInstructions = (content: string, instructions?: string): string =>
   instructions ? `${content}\n\n<instructions>\n${instructions}\n</instructions>` : content
 
 const buildMessages = (context: string, content: string, instructions?: string, contentType: ContentBlockType = "user"): Block[] => [
   { type: "system", content: context },
   { type: contentType, content: appendInstructions(content, instructions) },
 ]
-
-const buildEndpoint = (expert: string, task?: string): string =>
-  task ? `/ask-expert/${expert}/${task}` : `/ask-expert/${expert}`
 
 const buildExpertOrigin = (expert: string, task: string | null): BlockOrigin => {
   const agent = task ? `${expert}/${task}` : expert
@@ -80,21 +78,21 @@ export const runExpertWithTools = async (expert: string, task: string | null, me
 const runExpertWithToolsTracked = async (expert: string, task: string | null, messages: Block[], tools: ToolDefinition[]): Promise<ExpertRunResult> => {
   const executor = createExecutor(getToolHandlers())
   const origin = buildExpertOrigin(expert, task)
+  const agentDef = getAgentDef(expert, task)
 
   pushBlocks(tagBlocks(origin, messages))
 
   const readBlocks = readBlocksFor(origin.instance)
   const caller = withStreamingReset(buildCaller(origin, {
-    endpoint: buildEndpoint(expert, task ?? undefined),
+    endpoint: agentDef ? buildEndpoint(agentDef) : `/expert/${task ? `${expert}/${task}` : expert}`,
     tools,
     execute: executor,
     callbacks: getStreamingCallbacks(),
     readBlocks,
   }))
 
-  const expertDef = getExperts()[expert]
-  const talk = expertDef?.talk ?? false
-  const toNudge = createToNudge(tools, talk, getFiles)
+  const chat = agentDef?.chat ?? false
+  const toNudge = createToNudge(tools, chat, getFiles)
   const gatedNudge = buildGatedExpertNudge(toNudge)
   await runAgent(origin, caller, gatedNudge, readBlocks)
   const summary = findSummarizeResult(readBlocks())
@@ -104,12 +102,13 @@ const runExpertWithToolsTracked = async (expert: string, task: string | null, me
 
 export const runExpertFreeform = async (expert: string, task: string | null, messages: Block[]): Promise<string> => {
   const origin = buildExpertOrigin(expert, task)
+  const agentDef = getAgentDef(expert, task)
 
   pushBlocks(tagBlocks(origin, messages))
 
   const readBlocks = readBlocksFor(origin.instance)
   const caller = withStreamingReset(buildCaller(origin, {
-    endpoint: buildEndpoint(expert, task ?? undefined),
+    endpoint: agentDef ? buildEndpoint(agentDef) : `/expert/${task ? `${expert}/${task}` : expert}`,
     callbacks: getStreamingCallbacks(),
     readBlocks,
   }))
@@ -157,13 +156,10 @@ const callWithProxy = (proxyToolNames: string[], tools: ToolDefinition[]): ((arg
     }
   }
 
-const hasProxy = (config: TaskConfig): config is TaskConfig & { proxy: string[] } =>
-  "proxy" in config
-
-const resolveCall = (config?: TaskConfig): ((args: CallArgs) => Promise<CallResult>) => {
-  if (!config) return callFreeform
-  const defs = config.tools.map(toToolDefinition)
-  if (hasProxy(config)) return callWithProxy(config.proxy, defs)
+const resolveCall = (agentDef: AgentDef | null): ((args: CallArgs) => Promise<CallResult>) => {
+  if (!agentDef || agentDef.tools.length === 0) return callFreeform
+  const defs = agentDef.tools.map(toToolDefinition)
+  if (agentDef.proxy) return callWithProxy(agentDef.proxy, defs)
   return callWithToolDefs(defs)
 }
 
@@ -175,8 +171,8 @@ const resolveShellCommand = (files: Map<string, string>, command: string): { out
 }
 
 const AskExpertArgs = z.object({
-  expert: z.enum(getExpertNames() as [string, ...string[]]).describe("Specialist type"),
-  task: z.enum(getAllTaskNames() as [string, ...string[]]).optional().describe("Specific task (omit for freeform response)"),
+  expert: z.string().min(1).describe(`Specialist type. Available: ${getExpertNames().join(", ")}`),
+  task: z.string().optional().describe(`Specific task. Available: ${getAllTaskNames().join(", ")}`),
   using: z.string().min(1).describe("Shell command to get framework/context"),
   about: z.string().min(1).describe("Shell command to get content to analyze"),
   instructions: z.string().optional().describe("Extra guidance for the expert (e.g., focus areas, constraints)"),
@@ -196,7 +192,7 @@ Args:
 ${generateExpertDocs()}`,
     schema: AskExpertArgs,
     handler: async (files, { expert, task, using, about, instructions }) => {
-      const { error: validationError, taskConfig } = getExpertTask(expert, task)
+      const { error: validationError, agentDef } = validateExpertCall(expert, task)
       if (validationError) return err(validationError)
 
       const contextResult = resolveShellCommand(files, using)
@@ -205,7 +201,7 @@ ${generateExpertDocs()}`,
       const contentResult = resolveShellCommand(files, about)
       if (contentResult.error) return err(`about: ${contentResult.error}`)
 
-      const callFn = resolveCall(taskConfig)
+      const callFn = resolveCall(agentDef ?? null)
       const callResult = await callFn({
         expert,
         task: task ?? null,
@@ -220,46 +216,4 @@ ${generateExpertDocs()}`,
   })
 )
 
-const DelegatePlanArgs = z.object({
-  intent: z.string().min(1).describe("What the user wants to accomplish"),
-  outcome: z.string().min(1).describe("What success looks like"),
-  context: z.string().min(1).describe("Shell command to get relevant context"),
-  involvement: z.string().min(1).describe("How deeply should the plan involve the user"),
-  constraints: z.string().min(1).describe("Boundaries, limitations, or requirements"),
-})
-
-export const delegatePlan = registerTool(
-  tool({
-    name: "delegate_plan",
-    description: `Delegate plan creation to the planner expert.
-
-The planner will orient, investigate, and create_plan. The resulting plan will appear in your context automatically.`,
-    schema: DelegatePlanArgs,
-    handler: async (files, { intent, outcome, context: ctxCmd, involvement, constraints }) => {
-      const contextResult = resolveShellCommand(files, ctxCmd)
-      if (contextResult.error) return err(`context: ${contextResult.error}`)
-
-      const content = [
-        `Intent: ${intent}`,
-        `Desired outcome: ${outcome}`,
-        `User involvement: ${involvement}`,
-        `Constraints: ${constraints}`,
-      ].join("\n")
-
-      const { taskConfig } = getExpertTask("planner", "plan")
-      const callFn = resolveCall(taskConfig)
-      const callResult = await callFn({
-        expert: "planner",
-        task: "plan",
-        context: contextResult.output!,
-        content,
-        contentType: "system",
-      })
-
-      if ("error" in callResult) return err(callResult.error)
-      return ok(callResult.result)
-    },
-  })
-)
-
-export { getExperts, generateExpertDocs, getExpertTask, getTaskTools, appendInstructions }
+export { generateExpertDocs, getAgentTools }

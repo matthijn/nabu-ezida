@@ -2,55 +2,61 @@ import type { AnyTool } from "./tool"
 import { addAnnotation, markForDeletion, summarizeExpertise } from "./expert-tools"
 import { patchJsonBlock } from "./json-patch"
 import { applyLocalPatch } from "./patch"
+import { removeBlock } from "./remove-block"
 import { runLocalShell } from "./shell/tool"
-import { orientate, reorient, createPlan } from "./orchestration"
+import { createPlan, completeStep, abort, orientate, reorient } from "./orchestration"
 
-export type TaskConfig =
-  | { description: string; tools: AnyTool[] }
-  | { description: string; tools: AnyTool[]; proxy: string[] }
-
-export type ExpertConfig = {
+export type AgentDef = {
+  path: string
   description: string
-  talk?: boolean
-  tasks: Record<string, TaskConfig>
+  chat: boolean
+  tools: AnyTool[]
+  proxy?: string[]
 }
 
-export type OrchestratorConfig = {
-  endpoint: string
-  talk: boolean
+export const buildEndpoint = (agent: AgentDef, extra?: string): string => {
+  const params = new URLSearchParams()
+  if (agent.chat) params.set("chat", "true")
+  if (extra) params.set("extra", extra)
+  const qs = params.toString()
+  return qs ? `${agent.path}?${qs}` : agent.path
 }
 
-export const orchestrator: OrchestratorConfig = {
-  endpoint: "/converse",
-  talk: true,
-}
-
-export const experts: Record<string, ExpertConfig> = {
-  "qualitative-researcher": {
-    description: "Qualitative analysis specialist",
-    tasks: {
-      "apply-codebook": {
-        description: "Apply codebook codes to content (uses annotation tools)",
-        tools: [addAnnotation, markForDeletion, summarizeExpertise],
-      },
-      "revise-codebook": {
-        description: "Revise codebook based on locally resolved codings (uses patch tools)",
-        tools: [patchJsonBlock, applyLocalPatch, summarizeExpertise],
-      },
-    },
+export const agents: Record<string, AgentDef> = {
+  orchestrator: {
+    path: "/",
+    description: "Coordinates experts, manages conversation flow",
+    chat: true,
+    tools: [
+        runLocalShell,
+      createPlan,
+      completeStep,
+      abort,
+      orientate,
+      reorient,
+      patchJsonBlock,
+      applyLocalPatch,
+      removeBlock],
   },
-  "analyst": {
-    description: "Rigorous analytical reader—evaluates arguments, surfaces assumptions, applies frameworks to content",
-    tasks: {},
+
+  "qualitative-researcher/apply-codebook": {
+    path: "/expert/qualitative-researcher/apply-codebook",
+    description: "Apply codebook codes to content (uses annotation tools)",
+    chat: true,
+    tools: [addAnnotation, markForDeletion, summarizeExpertise],
   },
-  "planner": {
-    description: "Plans multi-step tasks given intent and constraints",
-    tasks: {
-      "plan": {
-        description: "Create execution plan",
-        tools: [runLocalShell, orientate, reorient, createPlan, summarizeExpertise],
-        proxy: ["create_plan"],
-      },
-    },
+
+  "qualitative-researcher/revise-codebook": {
+    path: "/expert/qualitative-researcher/revise-codebook",
+    description: "Revise codebook based on locally resolved codings (uses patch tools)",
+    chat: true,
+    tools: [patchJsonBlock, applyLocalPatch, summarizeExpertise],
+  },
+
+  analyst: {
+    path: "/expert/analyst",
+    description: "Evaluates arguments, surfaces assumptions, applies frameworks",
+    chat: true,
+    tools: [],
   },
 }
