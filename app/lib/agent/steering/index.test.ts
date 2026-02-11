@@ -3,9 +3,6 @@ import { createToNudge } from "./index"
 import type { Block } from "../types"
 import type { Files } from "../derived"
 import {
-  createPlanCall,
-  completeStepCall,
-  abortCall,
   orientateCall,
   reorientCall,
   toolResult,
@@ -44,7 +41,6 @@ const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n"
 
 describe("createToNudge", () => {
   const cases: TestCase[] = [
-    // After tool_result during orientation
     {
       name: "orienting, <10 actions → orientation nudge",
       history: [...orientateCall("Question", "Check A")],
@@ -77,71 +73,12 @@ describe("createToNudge", () => {
       expect: { type: "contains", text: "users see titles and names" },
     },
 
-    // After tool_result during plan execution
     {
-      name: "executing plan step, <10 actions → plan nudge",
-      history: [...createPlanCall("Task", ["Step 1", "Step 2"])],
-      expect: { type: "contains", text: "EXECUTING STEP" },
-    },
-    {
-      name: "executing plan step, exactly 10 actions → stuck nudge",
-      history: [...createPlanCall("Task", ["Step 1"]), ...manyActions(10)],
-      expect: { type: "contains", text: "STUCK" },
-    },
-    {
-      name: "executing plan step, >10 actions → plan stops, tone nudge fires",
-      history: [...createPlanCall("Task", ["Step 1"]), ...manyActions(11)],
-      expect: { type: "contains", text: "users see titles and names" },
-    },
-    {
-      name: "plan step count resets after complete_step",
-      history: [
-        ...createPlanCall("Task", ["Step 1", "Step 2"]),
-        ...manyActions(9),
-        ...completeStepCall(),
-        ...manyActions(9),
-      ],
-      expect: { type: "contains_not", text: "EXECUTING STEP", not: "STUCK" },
-    },
-
-    // Plan completion
-    {
-      name: "plan just completed (all steps done) → completion nudge",
-      history: [
-        ...createPlanCall("Task", ["Step 1", "Step 2"]),
-        ...completeStepCall(),
-        ...completeStepCall(),
-      ],
-      expect: { type: "contains", text: "PLAN COMPLETED" },
-    },
-    {
-      name: "plan completed, last block is text → null",
-      history: [
-        ...createPlanCall("Task", ["Step 1"]),
-        ...completeStepCall(),
-        textBlock("Summary"),
-      ],
-      expect: { type: "none" },
-    },
-
-    // Plan aborted
-    {
-      name: "plan aborted → tone nudge fires",
-      history: [
-        ...createPlanCall("Task", ["Step 1"]),
-        ...abortCall("Cannot continue"),
-      ],
-      expect: { type: "contains", text: "users see titles and names" },
-    },
-
-    // No orientation, no plan (chat mode)
-    {
-      name: "no orientation, no plan, first tool_result → tone nudge fires",
+      name: "no orientation, first tool_result → tone nudge fires",
       history: [toolResult("1")],
       expect: { type: "contains", text: "users see titles and names" },
     },
 
-    // Shell error nudge
     {
       name: "shell error → reminder nudge",
       history: [toolCallBlock(), shellErrorResult()],
@@ -153,32 +90,10 @@ describe("createToNudge", () => {
       expect: { type: "emptyNudge" },
     },
 
-    // After text (no nudge needed)
     {
       name: "text block only → null",
       history: [textBlock("Response")],
       expect: { type: "none" },
-    },
-
-    // Orientation takes priority over plan
-    {
-      name: "orientation active during plan → orientation nudge",
-      history: [
-        ...createPlanCall("Task", ["Step 1"]),
-        ...orientateCall("Question"),
-      ],
-      expect: { type: "contains", text: "ORIENTING:" },
-    },
-
-    // Orientation completed then plan
-    {
-      name: "orientation completed with plan → plan nudge",
-      history: [
-        ...orientateCall("Question"),
-        ...reorientCall("ctx:ready", "Found it", "plan"),
-        ...createPlanCall("Task", ["Step 1"]),
-      ],
-      expect: { type: "contains", text: "EXECUTING STEP" },
     },
   ]
 

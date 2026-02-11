@@ -1,8 +1,0 @@
-[
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "create_plan", "args": { "task": "Do the thing", "steps": [{ "title": "Step one", "expected": "First part done" }, { "title": "Step two", "expected": "Second part done" }] }}]},
-  { "type": "tool_result", "callId": "1", "result": {} },
-  { "type": "tool_call", "calls": [{ "id": "2", "name": "complete_step", "args": { "summary": "Did step one", "internal": "completed first task" }}]},
-  { "type": "tool_result", "callId": "2", "result": {} },
-  { "type": "tool_call", "calls": [{ "id": "3", "name": "complete_step", "args": { "summary": "Did step two", "internal": "completed second task" }}]},
-  { "type": "tool_result", "callId": "3", "result": {} }
-]

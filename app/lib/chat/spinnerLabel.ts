@@ -3,12 +3,8 @@ import type { Block } from "~/lib/agent"
 const toolLabels: Record<string, string> = {
   orientate: "Orienting",
   reorient: "Focusing",
-  create_plan: "Planning",
-  complete_step: "Thinking",
-  abort: "Stopping",
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
-  ask_expert: "Consulting",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {

@@ -4,12 +4,10 @@ import { extractFiles, resolveOpPlaceholders, applyMutation } from "./execute"
 
 // Import tools to register them
 import "./patch"
-import "./orchestration"
+import "./orientation"
 import "./shell"
-import "./ask-expert"
 import "./json-patch"
 import "./remove-block"
-import "./expert-tools"
 
 export type { ToolDeps }
 export { getToolDefinitions }

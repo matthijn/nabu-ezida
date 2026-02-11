@@ -2,7 +2,6 @@ import type { Files } from "../../derived"
 import type { MultiNudger, Nudger } from "../nudge-tools"
 import { collect } from "../nudge-tools"
 import { createOrientationNudge, orientationStartNudge } from "./orientation"
-import { createPlanNudge } from "./plan"
 import { baselineNudge } from "./baseline"
 import { shellNudge, grepNudge } from "./shell"
 import { toneNudge } from "./tone"
@@ -17,7 +16,6 @@ type NudgeBinding = {
 const NUDGE_BINDINGS: NudgeBinding[] = [
   { tools: ["orientate"],       nudger: createOrientationNudge },
   { tools: ["orientate"],       nudger: () => orientationStartNudge },
-  { tools: ["create_plan"],     nudger: createPlanNudge },
   { tools: ["run_local_shell"], nudger: () => shellNudge },
   { tools: ["run_local_shell"], nudger: () => grepNudge },
 ]
