@@ -13,7 +13,7 @@ import { getAllBlocks, getAgents, subscribeBlocks, type TaggedBlock } from "~/li
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
-  block: Block
+  block: TaggedBlock
 }
 
 const PREVIEW_LENGTH = 120
@@ -78,9 +78,10 @@ type CollapsibleBlockProps = {
   defaultExpanded?: boolean
   mono?: boolean
   icon?: React.ReactNode
+  suffix?: React.ReactNode
 }
 
-const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon }: CollapsibleBlockProps) => {
+const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix }: CollapsibleBlockProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
 
@@ -101,6 +102,7 @@ const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, de
           {expanded ? <FeatherChevronDown className="w-3 h-3" /> : <FeatherChevronRight className="w-3 h-3" />}
           {icon}
           {label}
+          {suffix}
         </button>
         <button onClick={handleCopy} className="text-neutral-400 hover:text-neutral-600 p-1">
           {copied ? <FeatherCheck className="w-3 h-3 text-green-500" /> : <FeatherCopy className="w-3 h-3" />}
@@ -113,7 +115,15 @@ const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, de
   )
 }
 
+const OriginBadge = ({ origin }: { origin: TaggedBlock["origin"] }) => (
+  <span className="text-[10px] text-neutral-400 font-mono ml-1">
+    {origin.agent} #{origin.instance.split("-").pop()}
+  </span>
+)
+
 const BlockRenderer = ({ block }: BlockRendererProps) => {
+  const badge = <OriginBadge origin={block.origin} />
+
   switch (block.type) {
     case "user":
       return (
@@ -122,6 +132,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           content={block.content}
           borderColor="border-blue-400"
           labelColor="text-blue-600"
+          suffix={badge}
         />
       )
     case "text":
@@ -131,6 +142,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           content={block.content}
           borderColor="border-green-400"
           labelColor="text-green-600"
+          suffix={badge}
         />
       )
     case "tool_call":
@@ -142,6 +154,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           labelColor="text-orange-600"
           bgColor="bg-orange-50"
           mono
+          suffix={badge}
         />
       )
     case "tool_result":
@@ -155,6 +168,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           defaultExpanded={isErrorResult(block.result)}
           mono
           icon={isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined}
+          suffix={badge}
         />
       )
     case "system":
@@ -165,6 +179,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           borderColor="border-gray-400"
           labelColor="text-gray-600"
           defaultExpanded={false}
+          suffix={badge}
         />
       )
     case "reasoning":
@@ -176,6 +191,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           labelColor="text-yellow-600"
           bgColor="bg-yellow-50"
           defaultExpanded={true}
+          suffix={badge}
         />
       )
     case "empty_nudge":

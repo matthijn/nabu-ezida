@@ -92,7 +92,7 @@ const runLoop = async (deps: RunnerDeps): Promise<void> => {
       pushBlocks(tagBlocks(getOrchestratorOrigin(), nonEmpty))
     }
 
-    const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate })
+    const toolExecutor = createToolExecutor({ project: deps.project, navigate: deps.navigate }, getOrchestratorOrigin())
     const callbacks = buildCallbacks()
     const resetStreaming = () => updateChat(STREAMING_RESET)
     setStreamingContext({ callbacks, reset: resetStreaming, signal: controller.signal, callerOrigin: getOrchestratorOrigin() })

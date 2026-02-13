@@ -36,6 +36,9 @@ export const parseMarkdownBlocks = (raw: string): MarkdownBlock[] => {
 const isAttributesBlock = (block: MarkdownBlock): boolean =>
   block.type === "code" && block.lang === "json-attributes"
 
+const isProseBlock = (block: MarkdownBlock): boolean =>
+  block.type !== "code"
+
 export const stripAttributesBlock = (raw: string): string =>
   parseMarkdownBlocks(raw)
     .filter((b) => !isAttributesBlock(b))
@@ -66,11 +69,13 @@ const canSplitBefore = (block: MarkdownBlock, prevBlock: MarkdownBlock | null): 
 
 type SplitOptions = {
   stripAttributes?: boolean
+  proseOnly?: boolean
 }
 
 export const splitByLines = (raw: string, targetLines: number, options: SplitOptions = {}): string[] => {
   const content = options.stripAttributes ? stripAttributesBlock(raw) : raw
-  const blocks = parseMarkdownBlocks(content)
+  const allBlocks = parseMarkdownBlocks(content)
+  const blocks = options.proseOnly ? allBlocks.filter(isProseBlock) : allBlocks
   const chunks: string[] = []
   let currentBlocks: MarkdownBlock[] = []
   let currentLineCount = 0

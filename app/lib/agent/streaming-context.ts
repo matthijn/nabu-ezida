@@ -22,6 +22,9 @@ export const clearStreamingContext = (): void => {
 export const getStreamingCallbacks = (): ParseCallbacks | undefined =>
   current?.callbacks ?? undefined
 
+export const getStreamingSignal = (): AbortSignal | undefined =>
+  current?.signal ?? undefined
+
 export const getCallerOrigin = (): BlockOrigin | undefined =>
   current?.callerOrigin ?? undefined
 

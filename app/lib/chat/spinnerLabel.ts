@@ -5,6 +5,11 @@ const toolLabels: Record<string, string> = {
   reorient: "Focusing",
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
+  delegate: "Delegating",
+  orchestrate: "Orchestrating",
+  for_each: "Processing",
+  resolve: "Completing",
+  reject: "Reporting",
 }
 
 const findLastToolCallName = (history: Block[]): string | null => {
