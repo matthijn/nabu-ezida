@@ -10,6 +10,7 @@ import type { AgentDef } from "./agents"
 import { buildCaller } from "../caller"
 import { pushBlocks, tagBlocks, getBlocksForInstances } from "../block-store"
 import { getStreamingCallbacks, getStreamingSignal } from "../streaming-context"
+import { collect, isEmptyNudgeBlock } from "../steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { getFileRaw, getStoredAnnotations } from "~/lib/files"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
@@ -47,11 +48,15 @@ const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null => {
   return null
 }
 
+const excludeReasoning = (blocks: Block[]): Block[] =>
+  blocks.filter((b) => b.type !== "reasoning")
+
 const runPhase = async (origin: BlockOrigin, agent: AgentDef, signal?: AbortSignal): Promise<ToolResult<unknown> | null> => {
   const tools = agent.tools.map(toToolDefinition)
   const base = createExecutor(getToolHandlers())
   const executor = withDelegation(base, origin)
   const readBlocks = (): Block[] => getBlocksForInstances([origin.instance])
+  const nudge = collect(...agent.nudges)
 
   const caller = buildCaller(origin, {
     endpoint: buildEndpoint(agent),
@@ -66,6 +71,12 @@ const runPhase = async (origin: BlockOrigin, agent: AgentDef, signal?: AbortSign
     const newBlocks = await caller(signal)
     const terminal = findTerminalResult(newBlocks)
     if (terminal) return terminal
+
+    const nudges = await nudge(excludeReasoning(readBlocks()))
+    const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))
+    if (nonEmpty.length > 0) {
+      pushBlocks(tagBlocks(origin, nonEmpty))
+    }
   }
 }
 

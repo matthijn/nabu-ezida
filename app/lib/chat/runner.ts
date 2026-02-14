@@ -1,6 +1,7 @@
 import type { Block, BlockOrigin, ToolDeps } from "~/lib/agent"
 import { createInstance } from "~/lib/agent/types"
-import { createToolExecutor, createToNudge, isEmptyNudgeBlock } from "~/lib/agent"
+import { createToolExecutor, isEmptyNudgeBlock } from "~/lib/agent"
+import { collect } from "~/lib/agent/steering/nudge-tools"
 import { toToolDefinition } from "~/lib/agent/executors/tool"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { buildCaller } from "~/lib/agent/caller"
@@ -9,7 +10,6 @@ import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streamin
 import { agents, buildEndpoint } from "~/lib/agent/executors/agents"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
-import { getFiles } from "~/lib/files"
 
 export type RunnerDeps = ToolDeps
 
@@ -61,10 +61,14 @@ export const getOrchestratorOrigin = (): BlockOrigin => {
 const readOrchestratorBlocks = (): Block[] =>
   getBlocksForInstances([getOrchestratorOrigin().instance, "user"])
 
+const excludeReasoning = (blocks: Block[]): Block[] =>
+  blocks.filter((b) => b.type !== "reasoning")
+
 const orchestratorTools = agents.orchestrator.tools.map(toToolDefinition)
 
 const runLoop = async (deps: RunnerDeps): Promise<void> => {
-  const toNudge = createToNudge(orchestratorTools, agents.orchestrator.chat, getFiles)
+  const nudge = collect(...agents.orchestrator.nudges)
+  const toNudge = (history: Block[]) => nudge(excludeReasoning(history))
 
   while (true) {
     const chat = getChat()
