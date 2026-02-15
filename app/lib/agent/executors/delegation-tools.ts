@@ -51,3 +51,4 @@ export const ForEachArgs = z.object({
   files: z.array(z.string()),
   task: z.string(),
 })
+

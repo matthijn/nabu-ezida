@@ -9,6 +9,8 @@ import { pushBlocks, tagBlocks, getBlocksForInstances, subscribeBlocks, setActiv
 import { getStreamingCallbacks, getStreamingSignal, getSetLoading } from "../streaming-context"
 import { agentLoop } from "../agent-loop"
 import { getFileRaw, getStoredAnnotations } from "~/lib/files"
+import { getFiles } from "~/lib/files/store"
+import { derive, lastPlan, guardCompleteStep, guardCompleteSubstep } from "../derived"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { stripAttributesBlock } from "~/lib/text/markdown"
 
@@ -23,6 +25,14 @@ export const formatTaskContext = (args: TaskContext): string =>
     `**Intent:** ${args.intent}`,
     args.context && `**Context:** ${args.context}`,
   ].filter(Boolean).join("\n")
+
+const synthesizeCreatePlan = (planData: Record<string, unknown>): Block[] => {
+  const callId = `synth-${Date.now()}`
+  return [
+    { type: "tool_call", calls: [{ id: callId, name: "create_plan", args: planData }] },
+    { type: "tool_result", callId, result: { status: "ok" } },
+  ]
+}
 
 const countInstanceBlocks = (instance: string): number =>
   getBlocksForInstances([instance]).length
@@ -125,8 +135,16 @@ const executeWithPlan = async (call: ToolCall, origin: BlockOrigin): Promise<Too
   const planResult = await startPhase(planKey, taskContext)
   if (planResult.status === "error") return planResult
 
-  const execContext = [taskContext, "\n## Plan Result", JSON.stringify(planResult.output)].join("\n")
-  return startPhase(execKey, execContext)
+  const planOutput = planResult.output as { outcome: string; artifacts?: string[] }
+  const planData = JSON.parse(planOutput.outcome) as Record<string, unknown>
+
+  const execOrigin: BlockOrigin = { agent: execKey, instance: createInstance(execKey) }
+  const planBlocks = synthesizeCreatePlan(planData)
+  pushBlocks(tagBlocks(execOrigin, [
+    { type: "system", content: taskContext },
+    ...planBlocks,
+  ]))
+  return runAgent(execKey, execOrigin, agents[execKey].chat)
 }
 
 export type BranchResult = { file: string; result: ToolResult<unknown> }
@@ -204,10 +222,33 @@ const executeForEach = async (call: ToolCall, origin: BlockOrigin): Promise<Tool
   return startBranch(mergeKey, frozenBlocks, mergeContext)
 }
 
+const isStepGuarded = (name: string): boolean =>
+  name === "complete_step" || name === "complete_substep"
+
+const guardMap = { complete_step: guardCompleteStep, complete_substep: guardCompleteSubstep } as const
+
+const checkStepGuard = (call: ToolCall, origin: BlockOrigin): ToolResult<unknown> | null => {
+  const guardFn = guardMap[call.name as keyof typeof guardMap]
+  if (!guardFn) return null
+
+  const blocks = getBlocksForInstances([origin.instance])
+  const d = derive(blocks, getFiles())
+  const plan = lastPlan(d.plans)
+  if (!plan) return null
+
+  const guard = guardFn(plan)
+  if (guard.allowed) return null
+  return { status: "error", output: guard.reason }
+}
+
 export const withDelegation = (base: ToolExecutor, origin?: BlockOrigin): ToolExecutor =>
   async (call) => {
     if (call.name === "delegate") return executeDelegation(call)
     if (call.name === "execute_with_plan" && origin) return executeWithPlan(call, origin)
     if (call.name === "for_each" && origin) return executeForEach(call, origin)
+    if (isStepGuarded(call.name) && origin) {
+      const guardResult = checkStepGuard(call, origin)
+      if (guardResult) return guardResult
+    }
     return base(call)
   }

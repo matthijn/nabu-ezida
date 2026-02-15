@@ -30,4 +30,40 @@ export const reject = registerTool(
   })
 )
 
+const CompleteStepArgs = z.object({
+  summary: z.string().describe("What was accomplished — visible to the user."),
+  internal: z.string().optional().describe("Context, IDs, or findings to carry forward to later steps. Not shown to user."),
+})
+
+export const completeStep = registerTool(
+  tool({
+    name: "complete_step",
+    description: "Mark the current plan step as done.",
+    schema: CompleteStepArgs,
+    handler: async (_files, args) => ok(args),
+  })
+)
+
+const AbortArgs = z.object({
+  reason: z.string().describe("Why the plan cannot continue."),
+})
+
+export const abortPlan = registerTool(
+  tool({
+    name: "abort",
+    description: "Abort the current plan.",
+    schema: AbortArgs,
+    handler: async (_files, args) => ok(args),
+  })
+)
+
+export const completeSubstep = registerTool(
+  tool({
+    name: "complete_substep",
+    description: "Mark the current substep as done within a per-section iteration.",
+    schema: z.object({}),
+    handler: async () => ok({}),
+  })
+)
+
 export const TERMINAL_TOOLS = new Set(["resolve", "reject"])

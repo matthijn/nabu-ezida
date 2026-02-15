@@ -4,6 +4,7 @@ import {
   type Files,
   createPlanFromCall,
   processCompleteStep,
+  processCompleteSubstep,
   updateLastPlan,
   hasActivePlan,
 } from "./plan"
@@ -63,6 +64,7 @@ export const hasCall = (block: Block, name: string): boolean => findCall(block, 
 
 const isCreatePlan = (call: EnrichedToolCall): boolean => call.name === "create_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
+const isCompleteSubstep = (call: EnrichedToolCall): boolean => call.name === "complete_substep"
 const isAbort = (call: EnrichedToolCall): boolean => call.name === "abort"
 const isOrientate = (call: EnrichedToolCall): boolean => call.name === "orientate"
 const isReorient = (call: EnrichedToolCall): boolean => call.name === "reorient"
@@ -90,6 +92,15 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
     return {
       ...derived,
       plans: updateLastPlan(derived.plans, (p) => processCompleteStep(p, internal, summary)),
+    }
+  }
+
+  if (isCompleteSubstep(call)) {
+    const lastPlan = derived.plans.at(-1)
+    if (!lastPlan || lastPlan.currentStep === null) return derived
+    return {
+      ...derived,
+      plans: updateLastPlan(derived.plans, processCompleteSubstep),
     }
   }
 
@@ -129,7 +140,7 @@ export const getMode = (d: Derived): Mode => {
 }
 
 const isStepBoundary = (block: Block): boolean =>
-  hasCall(block, "create_plan") || hasCall(block, "complete_step")
+  hasCall(block, "create_plan") || hasCall(block, "complete_step") || hasCall(block, "complete_substep")
 
 const isOrientationBoundary = (block: Block): boolean =>
   hasCall(block, "orientate") || hasCall(block, "reorient")
@@ -174,9 +185,12 @@ export {
   type SectionResult,
   type PerSectionConfig,
   type AskExpertConfig,
+  type StepGuard,
   type Files,
   lastPlan,
   hasActivePlan,
+  guardCompleteStep,
+  guardCompleteSubstep,
 } from "./plan"
 
 export {

@@ -1,12 +1,9 @@
 import { afterToolResult, withCooldown, systemNudge, type Nudger } from "../nudge-tools"
-import { derive, hasActiveOrientation } from "../../derived"
 
-const planReminder = `You are building a plan for another agent to execute. If you still have open questions for the user — ask them before writing the plan. Do not guess what the user wants. Once you have enough clarity, write the plan file and resolve. Do not execute the work — plan it.`
+const planReminder = `Talk to the user first — ask about involvement, scope, and preferences. Once you have clarity, do quick structural checks if needed, then resolve with the structured plan as JSON. Do not execute the work — plan it.`
 
 const basePlanNudge: Nudger = (history) => {
   if (!afterToolResult(history)) return null
-  const d = derive(history)
-  if (hasActiveOrientation(d.orientation)) return null
   return systemNudge(planReminder)
 }
 

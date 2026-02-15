@@ -5,7 +5,7 @@ export type Files = Record<string, string>
 
 // Input type from create_plan args
 export type StepDefObject = { title: string; expected: string }
-export type StepDefPerSection = { per_section: StepDefObject[] }
+export type StepDefPerSection = { per_section: StepDefObject[]; files: string[] }
 export type StepDef = StepDefObject | StepDefPerSection
 
 // Flattened step with tracking
@@ -50,12 +50,12 @@ export type AskExpertConfig = {
 
 export type DerivedPlan = {
   task: string
-  files: string[] | null
   steps: Step[]
   currentStep: number | null
   perSection: PerSectionConfig | null
   askExpert: AskExpertConfig | null
   aborted: boolean
+  decisions: string[]
 }
 
 const SECTION_TARGET_LINES = 30
@@ -88,9 +88,11 @@ const computeSections = (fileNames: string[], files: Files): Section[] => {
   return sections
 }
 
-const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { topIndex: number; innerCount: number; firstInnerIndex: number } | null } => {
+type PerSectionInfo = { topIndex: number; innerCount: number; firstInnerIndex: number; files: string[] }
+
+const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: PerSectionInfo | null } => {
   const steps: Step[] = []
-  let perSectionInfo: { topIndex: number; innerCount: number; firstInnerIndex: number } | null = null
+  let perSectionInfo: PerSectionInfo | null = null
   let topIndex = 0
 
   for (const def of stepDefs) {
@@ -106,7 +108,7 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
           summary: null,
         })
       })
-      perSectionInfo = { topIndex, innerCount: def.per_section.length, firstInnerIndex }
+      perSectionInfo = { topIndex, innerCount: def.per_section.length, firstInnerIndex, files: def.files }
     } else {
       steps.push({
         id: String(topIndex + 1),
@@ -125,13 +127,12 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: { t
 
 export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
-  const fileNames = (call.args.files as string[] | undefined) ?? null
   const askExpertArg = call.args.ask_expert as AskExpertConfig | undefined
   const { steps, perSectionInfo } = flattenSteps(stepDefs)
 
   let perSection: PerSectionConfig | null = null
-  if (fileNames && perSectionInfo) {
-    const sections = computeSections(fileNames, files)
+  if (perSectionInfo) {
+    const sections = computeSections(perSectionInfo.files, files)
     perSection = {
       topStepIndex: perSectionInfo.topIndex,
       innerStepCount: perSectionInfo.innerCount,
@@ -144,12 +145,12 @@ export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan =>
 
   return {
     task: call.args.task as string,
-    files: fileNames,
     steps,
     currentStep: 0,
     perSection,
     askExpert: askExpertArg ?? null,
     aborted: false,
+    decisions: (call.args.decisions as string[] | undefined) ?? [],
   }
 }
 
@@ -245,6 +246,42 @@ export const processCompleteStep = (plan: DerivedPlan, internal: string | null, 
     currentStep: findCurrentStep(newSteps),
     perSection: newPerSection,
   }
+}
+
+const markSubstepDone = (steps: Step[], index: number): Step[] =>
+  steps.map((s, i) => (i === index ? { ...s, done: true, internal: null, summary: "" } : s))
+
+export const processCompleteSubstep = (plan: DerivedPlan): DerivedPlan => {
+  if (plan.currentStep === null) return plan
+
+  const newSteps = markSubstepDone(plan.steps, plan.currentStep)
+  return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
+}
+
+export type StepGuard = { allowed: true } | { allowed: false; reason: string }
+
+const allowed: StepGuard = { allowed: true }
+const denied = (reason: string): StepGuard => ({ allowed: false, reason })
+
+export const guardCompleteSubstep = (plan: DerivedPlan): StepGuard => {
+  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done. Call resolve instead.")
+  if (!isInPerSection(plan, plan.currentStep)) return denied("complete_substep is only valid inside a per_section block. The current step is a regular step — use complete_step to mark it done.")
+  if (isLastInnerStep(plan, plan.currentStep)) return denied("You are on the last substep of this section. Use complete_step (with summary and internal) to finish the section and advance to the next one.")
+  return allowed
+}
+
+export const guardCompleteStep = (plan: DerivedPlan): StepGuard => {
+  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done. Call resolve instead.")
+  if (!isInPerSection(plan, plan.currentStep)) return allowed
+  if (!isLastInnerStep(plan, plan.currentStep)) {
+    const { firstInnerStepIndex, innerStepCount } = plan.perSection!
+    const remaining = plan.steps
+      .slice(firstInnerStepIndex, firstInnerStepIndex + innerStepCount)
+      .filter((s) => !s.done)
+      .map((s) => s.description)
+    return denied(`You still have substeps to complete before calling complete_step: ${remaining.join(", ")}. Use complete_substep for each one first.`)
+  }
+  return allowed
 }
 
 export const lastPlan = (plans: DerivedPlan[]): DerivedPlan | null => plans.at(-1) ?? null

@@ -206,8 +206,7 @@ describe("toGroupedMessages", () => {
         history: [
           ...createPlanCall(
             "Process files",
-            ["Setup", { per_section: ["Analyze", "Transform"] }, "Finalize"],
-            ["file1.txt", "file2.txt"]
+            ["Setup", { per_section: ["Analyze", "Transform"], files: ["file1.txt", "file2.txt"] }, "Finalize"],
           ),
           textBlock("Setting up"),
           ...completeStepCall("Setup done"),
@@ -234,8 +233,7 @@ describe("toGroupedMessages", () => {
         history: [
           ...createPlanCall(
             "Process",
-            ["Setup", { per_section: ["Do it"] }, "Finalize"],
-            ["a.txt", "b.txt"]
+            ["Setup", { per_section: ["Do it"], files: ["a.txt", "b.txt"] }, "Finalize"],
           ),
           ...completeStepCall("Setup done"),
           textBlock("Working on first"),
@@ -273,8 +271,7 @@ describe("toGroupedMessages", () => {
         history: [
           ...createPlanCall(
             "Process files",
-            ["Setup", { per_section: ["Analyze", "Transform"] }, "Finalize"],
-            ["file1.txt", "file2.txt"]
+            ["Setup", { per_section: ["Analyze", "Transform"], files: ["file1.txt", "file2.txt"] }, "Finalize"],
           ),
           ...completeStepCall("Setup done"),
           ...completeStepCall("Analyzed"),
@@ -289,8 +286,7 @@ describe("toGroupedMessages", () => {
         history: [
           ...createPlanCall(
             "Process",
-            ["Setup", { per_section: ["Do it"] }, "Finalize"],
-            ["a.txt", "b.txt"]
+            ["Setup", { per_section: ["Do it"], files: ["a.txt", "b.txt"] }, "Finalize"],
           ),
           ...completeStepCall("Setup done"),
           textBlock("Working on first"),

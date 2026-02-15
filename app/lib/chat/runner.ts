@@ -3,7 +3,7 @@ import { createInstance } from "~/lib/agent/types"
 import { createToolExecutor } from "~/lib/agent"
 import { setActiveOrigin } from "~/lib/agent/block-store"
 import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
-import { agents } from "~/lib/agent/executors/agents"
+import { agents, BASE_AGENT } from "~/lib/agent/executors/agents"
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
@@ -38,21 +38,21 @@ const buildCallbacks = () => ({
   },
 })
 
-let orchestratorOrigin: BlockOrigin | null = null
+let baseOrigin: BlockOrigin | null = null
 
-export const getOrchestratorOrigin = (): BlockOrigin => {
-  if (!orchestratorOrigin) {
-    orchestratorOrigin = { agent: "orchestrator", instance: createInstance("orchestrator") }
-    setActiveOrigin(orchestratorOrigin)
+export const getBaseOrigin = (): BlockOrigin => {
+  if (!baseOrigin) {
+    baseOrigin = { agent: BASE_AGENT, instance: createInstance(BASE_AGENT) }
+    setActiveOrigin(baseOrigin)
   }
-  return orchestratorOrigin
+  return baseOrigin
 }
 
 const runAgent = async (deps: RunnerDeps): Promise<void> => {
   const chat = getChat()
   if (!chat) return
 
-  const origin = getOrchestratorOrigin()
+  const origin = getBaseOrigin()
   controller = new AbortController()
   const executor = createToolExecutor(deps, origin)
   const callbacks = buildCallbacks()
@@ -64,7 +64,7 @@ const runAgent = async (deps: RunnerDeps): Promise<void> => {
   try {
     await agentLoop({
       origin,
-      agent: agents.orchestrator,
+      agent: agents[BASE_AGENT],
       executor,
       callbacks,
       signal: controller.signal,
@@ -88,7 +88,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
     active = false
     controller = null
     clearStreamingContext()
-    setActiveOrigin(getOrchestratorOrigin())
+    setActiveOrigin(getBaseOrigin())
   }
 }
 

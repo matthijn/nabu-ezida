@@ -6,7 +6,7 @@ let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)
 export const resetCallIdCounter = (): void => { callIdCounter = 0 }
 
-type StepInput = string | StepDefObject | { per_section: (string | StepDefObject)[] }
+type StepInput = string | StepDefObject | { per_section: (string | StepDefObject)[]; files: string[] }
 
 const toStepDef = (input: StepInput): StepDef => {
   if (typeof input === "string") {
@@ -17,6 +17,7 @@ const toStepDef = (input: StepInput): StepDef => {
       per_section: input.per_section.map((s) =>
         typeof s === "string" ? { title: s, expected: `${s} done` } : s
       ),
+      files: input.files,
     }
   }
   return input
@@ -28,24 +29,26 @@ const withResult = (callId: string, call: Block): Block[] => [
 ]
 
 type CreatePlanOptions = {
-  files?: string[]
   askExpert?: { expert: string; task?: string; using: string }
 }
 
-export const createPlanCall = (task: string, steps: StepInput[], filesOrOptions?: string[] | CreatePlanOptions): Block[] => {
+export const createPlanCall = (task: string, steps: StepInput[], options?: CreatePlanOptions): Block[] => {
   const id = nextCallId()
   const args: Record<string, unknown> = { task, steps: steps.map(toStepDef) }
 
-  if (Array.isArray(filesOrOptions)) {
-    args.files = filesOrOptions
-  } else if (filesOrOptions) {
-    if (filesOrOptions.files) args.files = filesOrOptions.files
-    if (filesOrOptions.askExpert) args.ask_expert = filesOrOptions.askExpert
-  }
+  if (options?.askExpert) args.ask_expert = options.askExpert
 
   return withResult(id, {
     type: "tool_call",
     calls: [{ id, name: "create_plan", args }],
+  })
+}
+
+export const completeSubstepCall = (): Block[] => {
+  const id = nextCallId()
+  return withResult(id, {
+    type: "tool_call",
+    calls: [{ id, name: "complete_substep", args: {} }],
   })
 }
 
