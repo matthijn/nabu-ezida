@@ -19,7 +19,7 @@
   },
   {
     "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
+    "content": "You are specifically a: test assistant\nRemember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
   },
   {
     "type": "tool_call",
@@ -94,10 +94,6 @@
     "type": "empty_nudge"
   },
   {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
-  },
-  {
     "type": "tool_call",
     "calls": [
       {
@@ -134,6 +130,10 @@
     "type": "empty_nudge"
   },
   {
+    "type": "system",
+    "content": "You are specifically a: test assistant\nRemember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
+  },
+  {
     "type": "tool_call",
     "calls": [
       {
@@ -168,9 +168,5 @@
   },
   {
     "type": "empty_nudge"
-  },
-  {
-    "type": "system",
-    "content": "Remember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
   }
 ]

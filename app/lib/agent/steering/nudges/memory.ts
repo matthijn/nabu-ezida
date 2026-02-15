@@ -1,6 +1,5 @@
 import { combine, afterToolResult, alreadyFired, firedWithin, systemNudge, type Nudger } from "../nudge-tools"
 import type { Files } from "../../derived"
-import { getCodebookFiles } from "~/lib/files/selectors"
 
 const WRITE_INTERVAL = 15
 const READ_MARKER = "## READ MEMORY"
@@ -30,15 +29,9 @@ Continue.
     if (!afterToolResult(history)) return null
     if (firedWithin(history, WRITE_MARKER, WRITE_INTERVAL)) return null
 
-    const codeFiles = getCodebookFiles(getFiles())
-    const codebookPart =
-      codeFiles.length > 0
-        ? ` and/or codebook(s) in: ${codeFiles.join(", ")}`
-        : ""
-
     return systemNudge(`
 ${WRITE_MARKER}
-Update memory.hidden.md${codebookPart} if needed, then continue.
+Update memory.hidden.md if needed, then continue.
 `)
   }
 

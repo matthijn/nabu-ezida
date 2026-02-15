@@ -55,12 +55,15 @@ const filterNonNull = <T>(results: (T | null)[]): T[] =>
 
 const isSystem = (block: Block): block is SystemBlock => block.type === "system"
 
+const isActionBlock = (block: Block): boolean =>
+  block.type === "tool_call" || block.type === "tool_result" || block.type === "user" || block.type === "text"
+
 const blocksSinceMarker = (history: Block[], marker: string): number => {
+  let actions = 0
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
-    if (isSystem(block) && block.content.includes(marker)) {
-      return history.length - 1 - i
-    }
+    if (isSystem(block) && block.content.includes(marker)) return actions
+    if (isActionBlock(block)) actions++
   }
   return -1
 }

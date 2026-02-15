@@ -4,11 +4,8 @@ import type { AnyTool } from "./tool"
 type ExpertEntry = { key: string; description: string }
 
 const taskFields = {
-  intent: z.string().describe("The task in one sentence. What you want accomplished. Describe the goal, not the method — the receiver decides how."),
-  outcome: z.string().optional().describe("What done looks like. The receiver checks its work against this. Be specific enough that both sender and receiver agree when it's met."),
-  context: z.string().optional().describe("What the receiver needs to know or read before starting. Can include file paths, background, domain info, or references. The receiver decides whether and how to load any referenced material."),
-  involvement: z.string().optional().describe("How autonomous the receiver is. When should it pause for the user? Examples: 'fully autonomous', 'check in if anything is ambiguous', 'show me each step before proceeding'."),
-  constraints: z.string().optional().describe("Rules the receiver must follow. What to do, what not to do, and any quality standards or conventions to respect."),
+  intent: z.string().describe("What the user wants, in one sentence. Pass along the goal — the receiver decides how to approach it."),
+  context: z.string().optional().describe("Relevant file paths, background, or anything the receiver needs to get started."),
 }
 
 const formatExpertList = (experts: ExpertEntry[]): string =>
@@ -28,8 +25,8 @@ export const buildDelegateTool = (experts: ExpertEntry[]): AnyTool => {
   }
 }
 
-export const orchestrateTool: AnyTool = {
-  name: "orchestrate",
+export const executeWithPlanTool: AnyTool = {
+  name: "execute_with_plan",
   description: "Delegate complex work into a planned, structured execution with fresh context. Use when the task has multiple steps, spans files, or benefits from upfront planning. The work is taken over entirely — you receive the result when done.",
   schema: z.object(taskFields),
 }
@@ -39,7 +36,7 @@ export const TaskArgs = z.object({
   ...taskFields,
 })
 
-export const OrchestrateArgs = z.object(taskFields)
+export const ExecuteWithPlanArgs = z.object(taskFields)
 
 export const forEachTool: AnyTool = {
   name: "for_each",

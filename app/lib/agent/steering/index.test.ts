@@ -1,18 +1,31 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { createToNudge } from "./index"
+import { collect } from "./nudge-tools"
 import type { Block } from "../types"
 import type { Files } from "../derived"
+import type { Nudger } from "./nudge-tools"
+import { buildToolNudges } from "./nudges"
+import { baselineNudge } from "./nudges/baseline"
+import { identityNudge } from "./nudges/identity"
 import {
   orientateCall,
   reorientCall,
   toolResult,
   resetCallIdCounter,
-  orchestratorTools,
 } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
 
-const createTestNudge = (files: Files = {}) => createToNudge(orchestratorTools, true, () => files)
+const orchestratorToolNames = ["orientate", "reorient", "run_local_shell"]
+
+const buildTestNudge = (files: Files = {}) => {
+  const toolNudges = buildToolNudges(() => files)
+  const nudgers: Nudger[] = orchestratorToolNames.flatMap((n) => toolNudges[n] ?? [])
+  nudgers.push(baselineNudge, identityNudge("test assistant"))
+  const nudge = collect(...nudgers)
+  const excludeReasoning = (history: Block[]): Block[] =>
+    history.filter((b) => b.type !== "reasoning")
+  return (history: Block[]) => nudge(excludeReasoning(history))
+}
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
 const manyActions = (count: number): Block[] =>
@@ -39,7 +52,7 @@ const extractContent = (blocks: Block[]): string[] =>
 
 const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n")
 
-describe("createToNudge", () => {
+describe("nudge integration", () => {
   const cases: TestCase[] = [
     {
       name: "orienting, <10 actions → orientation nudge",
@@ -60,12 +73,12 @@ describe("createToNudge", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "orienting, >30 actions → orientation stops, tone nudge fires",
+      name: "orienting, >30 actions → orientation stops, identity nudge fires",
       history: [...orientateCall("Question"), ...manyActions(31)],
       expect: { type: "contains", text: "users see titles and names" },
     },
     {
-      name: "orientation completed with answer → tone nudge fires",
+      name: "orientation completed with answer, short history → identity fires (first time)",
       history: [
         ...orientateCall("Question"),
         ...reorientCall("ctx:done", "Found it", "answer"),
@@ -74,7 +87,7 @@ describe("createToNudge", () => {
     },
 
     {
-      name: "no orientation, first tool_result → tone nudge fires",
+      name: "no orientation, first tool_result → identity fires (first time)",
       history: [toolResult("1")],
       expect: { type: "contains", text: "users see titles and names" },
     },
@@ -85,21 +98,21 @@ describe("createToNudge", () => {
       expect: { type: "contains", text: "Shell error" },
     },
     {
-      name: "user message → no shell nudge (tool defs in request)",
+      name: "user message → identity fires (first time)",
       history: [userMessage("Hello")],
-      expect: { type: "emptyNudge" },
+      expect: { type: "contains", text: "users see titles and names" },
     },
 
     {
-      name: "text block only → null",
+      name: "text block only → identity fires (first time)",
       history: [textBlock("Response")],
-      expect: { type: "none" },
+      expect: { type: "contains", text: "users see titles and names" },
     },
   ]
 
   cases.forEach(({ name, history, files = {}, expect: expectation }) => {
     it(name, async () => {
-      const toNudge = createTestNudge(files)
+      const toNudge = buildTestNudge(files)
       const result = await toNudge(history)
       const nudge = joinNudges(result)
       const content = extractContent(result)

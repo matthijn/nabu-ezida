@@ -7,6 +7,7 @@ type ParseCallbacks = {
   onToolArgsChunk?: (text: string) => void
   onReasoningChunk?: (text: string) => void
   onToolName?: (name: string) => void
+  onToolCall?: (call: { id: string; name: string; args: Record<string, unknown> }) => void
 }
 
 type TestContext = {
@@ -16,19 +17,31 @@ type TestContext = {
   toolNames: string[]
 }
 
-const processWithCallbacks = (line: string, state: ReturnType<typeof initialParseState>, ctx: TestContext) => {
-  const callbacks: ParseCallbacks = {
-    onChunk: (text) => ctx.chunks.push(text),
-    onToolArgsChunk: (text) => ctx.toolArgsChunks.push(text),
-    onReasoningChunk: (text) => ctx.reasoningChunks.push(text),
-    onToolName: (name) => ctx.toolNames.push(name),
+const makeCallbacks = (ctx: TestContext): ParseCallbacks => ({
+  onChunk: (text) => ctx.chunks.push(text),
+  onToolArgsChunk: (text) => ctx.toolArgsChunks.push(text),
+  onReasoningChunk: (text) => ctx.reasoningChunks.push(text),
+  onToolName: (name) => ctx.toolNames.push(name),
+})
+
+const emptyCtx = (): TestContext => ({ chunks: [], toolArgsChunks: [], reasoningChunks: [], toolNames: [] })
+
+const processLines = (lines: string[], callbacks: ParseCallbacks = {}) => {
+  let state = initialParseState()
+  for (const line of lines) {
+    state = processLine(line, state, callbacks)
   }
-  return processLine(line, state, callbacks)
+  return state
 }
 
-const processWithChunks = (line: string, state: ReturnType<typeof initialParseState>, chunks: string[]) => {
-  const callbacks: ParseCallbacks = { onChunk: (text) => chunks.push(text) }
-  return processLine(line, state, callbacks)
+const flushBlocks = (lines: string[], callbacks: ParseCallbacks = {}): Block[] => {
+  const state = processLines(lines, callbacks)
+  // Manually flush remaining state (same as stateToBlocks does)
+  const blocks = [...state.blocks]
+  if (state.reasoningContent) blocks.push({ type: "reasoning", content: state.reasoningContent })
+  if (state.textContent) blocks.push({ type: "text", content: state.textContent })
+  if (state.pendingToolCalls.length > 0) blocks.push({ type: "tool_call", calls: state.pendingToolCalls })
+  return blocks
 }
 
 describe("parser", () => {
@@ -41,8 +54,6 @@ describe("parser", () => {
           'data: {"delta":"Hello"}',
           "event: response.output_text.delta",
           'data: {"delta":" world"}',
-          "event: response.completed",
-          "data: {}",
         ],
         expectedText: "Hello world",
         expectedChunks: ["Hello", " world"],
@@ -54,8 +65,6 @@ describe("parser", () => {
           "data: {}",
           "event: response.output_text.delta",
           'data: {"delta":"Hi"}',
-          "event: response.completed",
-          "data: {}",
         ],
         expectedText: "Hi",
         expectedChunks: ["Hi"],
@@ -64,15 +73,11 @@ describe("parser", () => {
 
     cases.forEach(({ name, lines, expectedText, expectedChunks }) => {
       it(name, () => {
-        let state = initialParseState()
-        const chunks: string[] = []
-
-        for (const line of lines) {
-          state = processWithChunks(line, state, chunks)
-        }
-
-        expect(state.textContent).toBe(expectedText)
-        expect(chunks).toEqual(expectedChunks)
+        const ctx = emptyCtx()
+        const blocks = flushBlocks(lines, makeCallbacks(ctx))
+        const textBlock = blocks.find((b) => b.type === "text")
+        expect(textBlock?.type === "text" ? textBlock.content : "").toBe(expectedText)
+        expect(ctx.chunks).toEqual(expectedChunks)
       })
     })
   })
@@ -106,7 +111,7 @@ describe("parser", () => {
         expectedToolArgsChunks: ['{"sql'],
       },
       {
-        name: "ignores apply_patch diff delta (no streaming)",
+        name: "ignores apply_patch diff delta",
         lines: [
           "event: response.apply_patch_call_operation_diff.delta",
           'data: {"delta":"+hello"}',
@@ -140,49 +145,56 @@ describe("parser", () => {
 
     cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolArgsChunks, expectedReasoningChunks, expectedToolNames }) => {
       it(name, () => {
-        let state = initialParseState()
-        const ctx: TestContext = { chunks: [], toolArgsChunks: [], reasoningChunks: [], toolNames: [] }
-
-        for (const line of lines) {
-          state = processWithCallbacks(line, state, ctx)
-        }
-
-        expect(state.toolCalls).toEqual(expectedCalls)
-        if (expectedChunks) {
-          expect(ctx.chunks).toEqual(expectedChunks)
-        }
-        if (expectedToolArgsChunks) {
-          expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
-        }
-        if (expectedReasoningChunks) {
-          expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
-        }
-        if (expectedToolNames) {
-          expect(ctx.toolNames).toEqual(expectedToolNames)
-        }
+        const ctx = emptyCtx()
+        const blocks = flushBlocks(lines, makeCallbacks(ctx))
+        const toolBlock = blocks.find((b) => b.type === "tool_call")
+        const calls = toolBlock?.type === "tool_call" ? toolBlock.calls : []
+        expect(calls).toEqual(expectedCalls)
+        if (expectedChunks) expect(ctx.chunks).toEqual(expectedChunks)
+        if (expectedToolArgsChunks) expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
+        if (expectedReasoningChunks) expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
+        if (expectedToolNames) expect(ctx.toolNames).toEqual(expectedToolNames)
       })
     })
   })
 
   describe("mixed content", () => {
     it("captures both text and tool calls", () => {
-      let state = initialParseState()
-      const chunks: string[] = []
-      const lines = [
+      const blocks = flushBlocks([
         "event: response.output_text.delta",
         'data: {"delta":"Let me help"}',
         "event: response.output_item.done",
         'data: {"item":{"type":"function_call","call_id":"call_1","name":"create_plan","arguments":"{}"}}',
-        "event: response.completed",
-        "data: {}",
-      ]
+      ])
 
-      for (const line of lines) {
-        state = processWithChunks(line, state, chunks)
-      }
+      const textBlock = blocks.find((b) => b.type === "text")
+      const toolBlock = blocks.find((b) => b.type === "tool_call")
+      expect(textBlock?.type === "text" ? textBlock.content : "").toBe("Let me help")
+      expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([{ id: "call_1", name: "create_plan", args: {} }])
+    })
 
-      expect(state.textContent).toBe("Let me help")
-      expect(state.toolCalls).toEqual([{ id: "call_1", name: "create_plan", args: {} }])
+    it("interleaves reasoning and tool calls into separate blocks", () => {
+      const blocks = flushBlocks([
+        "event: response.reasoning_summary_text.delta",
+        'data: {"delta":"First thought"}',
+        "event: response.output_item.added",
+        'data: {"item":{"type":"function_call","call_id":"call_1","name":"read_file"}}',
+        "event: response.output_item.done",
+        'data: {"item":{"type":"function_call","call_id":"call_1","name":"read_file","arguments":"{}"}}',
+        "event: response.reasoning_summary_text.delta",
+        'data: {"delta":"Second thought"}',
+        "event: response.output_item.added",
+        'data: {"item":{"type":"function_call","call_id":"call_2","name":"write_file"}}',
+        "event: response.output_item.done",
+        'data: {"item":{"type":"function_call","call_id":"call_2","name":"write_file","arguments":"{}"}}',
+      ])
+
+      expect(blocks).toEqual([
+        { type: "reasoning", content: "First thought" },
+        { type: "tool_call", calls: [{ id: "call_1", name: "read_file", args: {} }] },
+        { type: "reasoning", content: "Second thought" },
+        { type: "tool_call", calls: [{ id: "call_2", name: "write_file", args: {} }] },
+      ])
     })
   })
 
@@ -202,13 +214,7 @@ describe("parser", () => {
 
     cases.forEach(({ name, lines, expectedText }) => {
       it(name, () => {
-        let state = initialParseState()
-        const chunks: string[] = []
-
-        for (const line of lines) {
-          state = processWithChunks(line, state, chunks)
-        }
-
+        const state = processLines(lines)
         expect(state.textContent).toBe(expectedText)
       })
     })

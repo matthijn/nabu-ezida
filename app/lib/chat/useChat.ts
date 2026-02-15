@@ -1,6 +1,6 @@
 import { useSyncExternalStore, useCallback } from "react"
-import type { Block, BlockOrigin, SystemBlock } from "~/lib/agent"
-import { getAllBlocks, subscribeBlocks, pushBlocks, tagBlocks } from "~/lib/agent/block-store"
+import type { Block, SystemBlock } from "~/lib/agent"
+import { getAllBlocks, subscribeBlocks, pushBlocks, tagBlocks, getActiveOrigin } from "~/lib/agent/block-store"
 import { getChat, subscribe, type ChatState } from "./store"
 import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
@@ -19,8 +19,6 @@ type UseChatResult = {
   error: string | null
 }
 
-const USER_ORIGIN: BlockOrigin = { agent: "user", instance: "user" }
-
 export const useChat = (): UseChatResult => {
   const chat = useSyncExternalStore(subscribe, getChat)
   const history = useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
@@ -35,7 +33,7 @@ export const useChat = (): UseChatResult => {
   const send = useCallback(
     (content: string, deps?: RunnerDeps) => {
       const current = getChat()
-      if (!current || current.loading) return
+      if (!current) return
 
       const userBlock: Block = { type: "user", content }
       const blocksToAdd: Block[] = []
@@ -51,7 +49,9 @@ export const useChat = (): UseChatResult => {
       }
 
       blocksToAdd.push(userBlock)
-      pushBlocks(tagBlocks(USER_ORIGIN, blocksToAdd))
+      const origin = getActiveOrigin()
+      if (!origin) return
+      pushBlocks(tagBlocks(origin, blocksToAdd))
       run(deps)
     },
     []

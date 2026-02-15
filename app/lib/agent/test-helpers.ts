@@ -1,12 +1,5 @@
 import type { Block } from "./types"
 import type { StepDef, StepDefObject } from "./derived"
-import type { NudgeTools } from "./steering"
-
-export const orchestratorTools: NudgeTools = [
-  { name: "orientate" },
-  { name: "reorient" },
-  { name: "run_local_shell" },
-]
 
 let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)

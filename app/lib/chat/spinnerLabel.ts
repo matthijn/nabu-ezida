@@ -6,7 +6,7 @@ const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
   delegate: "Delegating",
-  orchestrate: "Orchestrating",
+  execute_with_plan: "Planning",
   for_each: "Processing",
   resolve: "Completing",
   reject: "Reporting",

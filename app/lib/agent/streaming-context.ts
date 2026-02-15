@@ -1,12 +1,12 @@
 import type { BlockOrigin } from "./types"
 import type { ParseCallbacks } from "./stream"
-import type { Caller } from "./caller"
 
 export type StreamingContext = {
   callbacks: ParseCallbacks
   reset: () => void
   signal?: AbortSignal
   callerOrigin?: BlockOrigin
+  setLoading?: (loading: boolean) => void
 }
 
 let current: StreamingContext | null = null
@@ -28,8 +28,6 @@ export const getStreamingSignal = (): AbortSignal | undefined =>
 export const getCallerOrigin = (): BlockOrigin | undefined =>
   current?.callerOrigin ?? undefined
 
-export const withStreamingReset = (caller: Caller): Caller =>
-  async (signal) => {
-    current?.reset()
-    return caller(current?.signal ?? signal)
-  }
+export const getSetLoading = (): ((loading: boolean) => void) | undefined =>
+  current?.setLoading
+

@@ -46,17 +46,18 @@ export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =
       signal,
     })
 
-    const resultBlocks: Block[] = []
+    pushBlocks(tagBlocks(origin, blocks))
+
+    const toolResults: Block[] = []
     for (const block of blocks) {
-      resultBlocks.push(block)
       if (isToolCallBlock(block) && config.execute) {
-        const toolResults = await executeToolCalls(block.calls, config.execute)
-        resultBlocks.push(...toolResults)
+        const results = await executeToolCalls(block.calls, config.execute)
+        pushBlocks(tagBlocks(origin, results))
+        toolResults.push(...results)
       }
     }
 
-    pushBlocks(tagBlocks(origin, resultBlocks))
-    return resultBlocks
+    return [...blocks, ...toolResults]
   }
 
 export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>

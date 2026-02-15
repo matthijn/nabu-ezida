@@ -17,6 +17,7 @@ type ParseCallbacks = {
   onBlock?: (block: Block) => void
   onToolName?: (name: string) => void
   onToolCall?: (call: ToolCall) => void
+  onStreamEnd?: () => void
 }
 
 const parseToolArgs = (args: string): Record<string, unknown> => {
@@ -31,17 +32,34 @@ type ParseState = {
   currentEvent: string
   textContent: string
   reasoningContent: string
-  toolCalls: ToolCall[]
+  pendingToolCalls: ToolCall[]
   streamingToolName: string | null
+  blocks: Block[]
 }
 
 export const initialParseState = (): ParseState => ({
   currentEvent: "",
   textContent: "",
   reasoningContent: "",
-  toolCalls: [],
+  pendingToolCalls: [],
   streamingToolName: null,
+  blocks: [],
 })
+
+const flushReasoning = (state: ParseState): ParseState =>
+  state.reasoningContent
+    ? { ...state, reasoningContent: "", blocks: [...state.blocks, { type: "reasoning", content: state.reasoningContent }] }
+    : state
+
+const flushText = (state: ParseState): ParseState =>
+  state.textContent
+    ? { ...state, textContent: "", blocks: [...state.blocks, { type: "text", content: state.textContent }] }
+    : state
+
+const flushToolCalls = (state: ParseState): ParseState =>
+  state.pendingToolCalls.length > 0
+    ? { ...state, pendingToolCalls: [], blocks: [...state.blocks, { type: "tool_call", calls: state.pendingToolCalls }] }
+    : state
 
 export const processLine = (
   line: string,
@@ -62,7 +80,8 @@ export const processLine = (
     if (state.currentEvent === "response.output_text.delta") {
       if (parsed.delta) {
         callbacks.onChunk?.(parsed.delta)
-        return { ...state, textContent: state.textContent + parsed.delta }
+        const flushed = flushReasoning(flushToolCalls(state))
+        return { ...flushed, textContent: flushed.textContent + parsed.delta }
       }
     }
 
@@ -71,7 +90,8 @@ export const processLine = (
         const name = parsed.item.name
         if (name && name !== state.streamingToolName) {
           callbacks.onToolName?.(name)
-          return { ...state, streamingToolName: name }
+          const flushed = flushReasoning(flushText(state))
+          return { ...flushed, streamingToolName: name }
         }
       }
     }
@@ -86,7 +106,8 @@ export const processLine = (
     if (state.currentEvent === "response.reasoning_summary_text.delta") {
       if (parsed.delta) {
         callbacks.onReasoningChunk?.(parsed.delta)
-        return { ...state, reasoningContent: state.reasoningContent + parsed.delta }
+        const flushed = flushText(flushToolCalls(state))
+        return { ...flushed, reasoningContent: flushed.reasoningContent + parsed.delta }
       }
       return state
     }
@@ -100,7 +121,7 @@ export const processLine = (
           args: parseToolArgs(item.arguments),
         }
         callbacks.onToolCall?.(toolCall)
-        return { ...state, toolCalls: [...state.toolCalls, toolCall] }
+        return { ...state, pendingToolCalls: [...state.pendingToolCalls, toolCall] }
       }
     }
 
@@ -111,17 +132,8 @@ export const processLine = (
 }
 
 const stateToBlocks = (state: ParseState): Block[] => {
-  const blocks: Block[] = []
-  if (state.reasoningContent) {
-    blocks.push({ type: "reasoning", content: state.reasoningContent })
-  }
-  if (state.textContent) {
-    blocks.push({ type: "text", content: state.textContent })
-  }
-  if (state.toolCalls.length > 0) {
-    blocks.push({ type: "tool_call", calls: state.toolCalls })
-  }
-  return blocks
+  const flushed = flushToolCalls(flushText(flushReasoning(state)))
+  return flushed.blocks
 }
 
 const RETRYABLE_STATUS = [429, 502, 503]
@@ -202,8 +214,9 @@ const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Pr
   for (const block of blocks) {
     callbacks.onBlock?.(block)
   }
+  callbacks.onStreamEnd?.()
 
-  console.debug("[STREAM END]", { toolCalls: state.toolCalls.length })
+  console.debug("[STREAM END]", { pendingToolCalls: state.pendingToolCalls.length, blocks: blocks.length })
 
   return blocks
 }

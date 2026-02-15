@@ -1,82 +1,83 @@
-import { getToolHandlers, toToolDefinition } from "./tool"
+import { getToolHandlers } from "./tool"
 import { createExecutor } from "./execute"
-import { TERMINAL_TOOLS } from "./reporting"
-import { TaskArgs, OrchestrateArgs, ForEachArgs } from "./delegation-tools"
+import { TaskArgs, ExecuteWithPlanArgs, ForEachArgs } from "./delegation-tools"
 import type { ToolCall, ToolResult, Block, BlockOrigin } from "../types"
 import type { ToolExecutor } from "../turn"
 import { createInstance } from "../types"
-import { agents, buildEndpoint } from "./agents"
-import type { AgentDef } from "./agents"
-import { buildCaller } from "../caller"
-import { pushBlocks, tagBlocks, getBlocksForInstances } from "../block-store"
-import { getStreamingCallbacks, getStreamingSignal } from "../streaming-context"
-import { collect, isEmptyNudgeBlock } from "../steering/nudge-tools"
-import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
+import { agents } from "./agents"
+import { pushBlocks, tagBlocks, getBlocksForInstances, subscribeBlocks, setActiveOrigin } from "../block-store"
+import { getStreamingCallbacks, getStreamingSignal, getSetLoading } from "../streaming-context"
+import { agentLoop } from "../agent-loop"
 import { getFileRaw, getStoredAnnotations } from "~/lib/files"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { stripAttributesBlock } from "~/lib/text/markdown"
 
 type TaskContext = {
   intent: string
-  outcome?: string
   context?: string
-  involvement?: string
-  constraints?: string
 }
 
 const formatTaskContext = (args: TaskContext): string =>
   [
     "# Delegated Task",
     `**Intent:** ${args.intent}`,
-    args.outcome && `**Expected Outcome:** ${args.outcome}`,
     args.context && `**Context:** ${args.context}`,
-    args.involvement && `**Involvement:** ${args.involvement}`,
-    args.constraints && `**Constraints:** ${args.constraints}`,
   ].filter(Boolean).join("\n")
 
-const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null => {
-  for (const block of blocks) {
-    if (block.type !== "tool_result") continue
-    if (!block.toolName || !TERMINAL_TOOLS.has(block.toolName)) continue
-    const result = block.result as ToolResult<unknown>
-    if (block.toolName === "reject") {
-      const args = result.output as { reason: string; need: string }
-      return { status: "error", output: `Rejected: ${args.reason}. Need: ${args.need}` }
+const countInstanceBlocks = (instance: string): number =>
+  getBlocksForInstances([instance]).length
+
+const waitForUser = (origin: BlockOrigin, signal?: AbortSignal): Promise<void> => {
+  setActiveOrigin(origin)
+  const before = countInstanceBlocks(origin.instance)
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) { reject(signal.reason); return }
+
+    const cleanup = () => {
+      unsub()
+      if (signal) signal.removeEventListener("abort", onAbort)
     }
-    return { status: "ok", output: result.output }
-  }
-  return null
+
+    const unsub = subscribeBlocks(() => {
+      if (countInstanceBlocks(origin.instance) > before) {
+        cleanup()
+        resolve()
+      }
+    })
+
+    const onAbort = () => {
+      cleanup()
+      reject(signal!.reason)
+    }
+
+    if (signal) signal.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
-const excludeReasoning = (blocks: Block[]): Block[] =>
-  blocks.filter((b) => b.type !== "reasoning")
+const buildExecutor = (origin: BlockOrigin): ToolExecutor =>
+  withDelegation(createExecutor(getToolHandlers()), origin)
 
-const runPhase = async (origin: BlockOrigin, agent: AgentDef, signal?: AbortSignal): Promise<ToolResult<unknown> | null> => {
-  const tools = agent.tools.map(toToolDefinition)
-  const base = createExecutor(getToolHandlers())
-  const executor = withDelegation(base, origin)
-  const readBlocks = (): Block[] => getBlocksForInstances([origin.instance])
-  const nudge = collect(...agent.nudges)
+const runAgent = async (agentKey: string, origin: BlockOrigin, chat: boolean): Promise<ToolResult<unknown>> => {
+  const agent = agents[agentKey]
+  if (!agent) return { status: "error", output: `Unknown agent: ${agentKey}` }
 
-  const caller = buildCaller(origin, {
-    endpoint: buildEndpoint(agent),
-    tools,
-    blockSchemas: getBlockSchemaDefinitions(),
-    execute: executor,
-    callbacks: getStreamingCallbacks(),
-    readBlocks,
-  })
+  const effectiveAgent = chat ? agent : { ...agent, chat: false }
+  const executor = buildExecutor(origin)
+  const signal = getStreamingSignal()
 
   while (true) {
-    const newBlocks = await caller(signal)
-    const terminal = findTerminalResult(newBlocks)
-    if (terminal) return terminal
-
-    const nudges = await nudge(excludeReasoning(readBlocks()))
-    const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))
-    if (nonEmpty.length > 0) {
-      pushBlocks(tagBlocks(origin, nonEmpty))
-    }
+    const result = await agentLoop({
+      origin,
+      agent: effectiveAgent,
+      executor,
+      callbacks: getStreamingCallbacks(),
+      signal,
+    })
+    if (result) return result
+    if (!effectiveAgent.chat) return { status: "error", output: "Agent ended without resolve/reject" }
+    getSetLoading()?.(false)
+    await waitForUser(origin, signal)
+    getSetLoading()?.(true)
   }
 }
 
@@ -86,8 +87,7 @@ const startPhase = async (agentKey: string, context: string): Promise<ToolResult
 
   const origin: BlockOrigin = { agent: agentKey, instance: createInstance(agentKey) }
   pushBlocks(tagBlocks(origin, [{ type: "system", content: context }]))
-  const result = await runPhase(origin, agent, getStreamingSignal())
-  return result ?? { status: "error", output: "Agent ended without resolve/reject" }
+  return runAgent(agentKey, origin, agent.chat)
 }
 
 const startBranch = async (agentKey: string, frozenBlocks: Block[], context: string): Promise<ToolResult<unknown>> => {
@@ -97,8 +97,7 @@ const startBranch = async (agentKey: string, frozenBlocks: Block[], context: str
   const origin: BlockOrigin = { agent: agentKey, instance: createInstance(agentKey) }
   const history = tagBlocks(origin, frozenBlocks)
   pushBlocks([...history, ...tagBlocks(origin, [{ type: "system", content: context }])])
-  const result = await runPhase(origin, agent, getStreamingSignal())
-  return result ?? { status: "error", output: "Agent ended without resolve/reject" }
+  return runAgent(agentKey, origin, false)
 }
 
 const executeDelegation = async (call: ToolCall): Promise<ToolResult<unknown>> => {
@@ -109,8 +108,8 @@ const executeDelegation = async (call: ToolCall): Promise<ToolResult<unknown>> =
   return startPhase(who, formatTaskContext(fields))
 }
 
-const executeOrchestrate = async (call: ToolCall, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
-  const parsed = OrchestrateArgs.safeParse(call.args)
+const executeWithPlan = async (call: ToolCall, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
+  const parsed = ExecuteWithPlanArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
   const agentKey = origin.agent
@@ -208,7 +207,7 @@ const executeForEach = async (call: ToolCall, origin: BlockOrigin): Promise<Tool
 export const withDelegation = (base: ToolExecutor, origin?: BlockOrigin): ToolExecutor =>
   async (call) => {
     if (call.name === "delegate") return executeDelegation(call)
-    if (call.name === "orchestrate" && origin) return executeOrchestrate(call, origin)
+    if (call.name === "execute_with_plan" && origin) return executeWithPlan(call, origin)
     if (call.name === "for_each" && origin) return executeForEach(call, origin)
     return base(call)
   }

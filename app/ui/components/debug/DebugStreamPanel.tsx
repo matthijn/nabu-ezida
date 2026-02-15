@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useSyncExternalStore } from "react"
 import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
@@ -9,7 +9,7 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocks, getAgents, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
+import { getAllBlocks, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
@@ -116,7 +116,7 @@ const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, de
 }
 
 const OriginBadge = ({ origin }: { origin: TaggedBlock["origin"] }) => (
-  <span className="text-[10px] text-neutral-400 font-mono ml-1">
+  <span className="text-xs text-neutral-600 font-mono bg-neutral-100 px-1.5 py-0.5 rounded ml-2">
     {origin.agent} #{origin.instance.split("-").pop()}
   </span>
 )
@@ -252,86 +252,13 @@ type DebugStreamPanelProps = {
   onClose: () => void
 }
 
-type InstanceGroup = {
-  instance: string
-  agent: string
-  blocks: TaggedBlock[]
-}
-
-const groupByInstance = (blocks: TaggedBlock[]): InstanceGroup[] => {
-  const groups = new Map<string, InstanceGroup>()
-  for (const block of blocks) {
-    const key = block.origin.instance
-    const existing = groups.get(key)
-    if (existing) {
-      existing.blocks.push(block)
-    } else {
-      groups.set(key, { instance: key, agent: block.origin.agent, blocks: [block] })
-    }
-  }
-  return [...groups.values()]
-}
-
-const isUserAgent = (agent: string): boolean => agent === "user"
-
-const matchesAgent = (block: TaggedBlock, agent: string): boolean =>
-  block.origin.agent === agent || (agent === "orchestrator" && isUserAgent(block.origin.agent))
-
-const filterByAgent = (blocks: TaggedBlock[], agent: string): TaggedBlock[] =>
-  agent ? blocks.filter((b) => matchesAgent(b, agent)) : blocks
-
-const filterVisibleAgents = (agents: string[]): string[] =>
-  agents.filter((a) => !isUserAgent(a))
-
-type FilterChipProps = {
-  label: string
-  active: boolean
-  onClick: () => void
-}
-
-const FilterChip = ({ label, active, onClick }: FilterChipProps) => (
-  <button
-    onClick={onClick}
-    className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors ${
-      active
-        ? "bg-purple-100 text-purple-700 border border-purple-300"
-        : "bg-neutral-100 text-neutral-500 border border-neutral-200 hover:bg-neutral-200"
-    }`}
-  >
-    {label}
-  </button>
-)
-
-const InstanceCard = ({ group }: { group: InstanceGroup }) => (
-  <div className="border border-neutral-200 rounded-lg p-2 flex flex-col gap-2">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-purple-600">{group.agent}</span>
-        <span className="text-[10px] text-neutral-400 font-mono">{group.instance}</span>
-      </div>
-      <div className="text-xs text-neutral-400">
-        {group.blocks.length} blocks
-      </div>
-    </div>
-    {group.blocks.map((block, i) => (
-      <BlockRenderer key={i} block={block} />
-    ))}
-  </div>
-)
-
 const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
-const useAgents = () => useSyncExternalStore(subscribeBlocks, getAgents, getAgents)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
   const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
   const allBlocks = useBlockStore()
-  const agents = useAgents()
   const [copiedAll, setCopiedAll] = useState(false)
-  const [filter, setFilter] = useState("")
-
-  const filtered = useMemo(() => filterByAgent(allBlocks, filter), [allBlocks, filter])
-  const groups = useMemo(() => filter ? groupByInstance(filtered) : [], [filtered, filter])
 
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
@@ -342,9 +269,6 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 1500)
   }
-
-  const toggleFilter = (label: string) =>
-    setFilter((f) => f === label ? "" : label)
 
   return (
     <div
@@ -373,28 +297,15 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      {agents.length > 0 && (
-        <div className="flex gap-1 px-3 py-2 bg-neutral-50 border-b border-neutral-200 flex-wrap">
-          {filterVisibleAgents(agents).map((agent) => (
-            <FilterChip key={agent} label={agent} active={filter === agent} onClick={() => toggleFilter(agent)} />
-          ))}
-        </div>
-      )}
-
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-        {filtered.length === 0 && (
+        {allBlocks.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <span className="text-sm text-neutral-400">No blocks yet</span>
           </div>
         )}
-        {filter
-          ? groups.map((group) => (
-              <InstanceCard key={group.instance} group={group} />
-            ))
-          : filtered.map((block, i) => (
-              <BlockRenderer key={i} block={block} />
-            ))
-        }
+        {allBlocks.map((block, i) => (
+          <BlockRenderer key={i} block={block} />
+        ))}
         <StreamingIndicator
           streaming={streaming}
           streamingToolArgs={streamingToolArgs}

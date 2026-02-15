@@ -84,3 +84,11 @@ export const subscribeBlocks = (listener: () => void): (() => void) => {
     listeners = listeners.filter((l) => l !== listener)
   }
 }
+
+let activeOrigin: BlockOrigin | null = null
+
+export const setActiveOrigin = (origin: BlockOrigin | null): void => {
+  activeOrigin = origin
+}
+
+export const getActiveOrigin = (): BlockOrigin | null => activeOrigin

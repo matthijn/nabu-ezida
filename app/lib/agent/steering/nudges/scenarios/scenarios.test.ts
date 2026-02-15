@@ -3,10 +3,15 @@ import { readdirSync, readFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import type { Block } from "../../../types"
-import { buildNudge } from "../index"
-import { orchestratorTools } from "../../../test-helpers"
+import type { Nudger } from "../../nudge-tools"
+import { collect } from "../../nudge-tools"
+import { buildToolNudges } from "../index"
+import { baselineNudge } from "../baseline"
+import { identityNudge } from "../identity"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const orchestratorToolNames = ["orientate", "reorient", "run_local_shell"]
 
 type Files = Record<string, string>
 
@@ -21,13 +26,20 @@ const readFilesJson = (path: string): Files => {
 const shouldNudge = (block: Block): boolean =>
   block.type === "user" || block.type === "tool_result"
 
+const buildNudge = (files: Files) => {
+  const toolNudges = buildToolNudges(() => files)
+  const nudgers: Nudger[] = orchestratorToolNames.flatMap((n) => toolNudges[n] ?? [])
+  nudgers.push(baselineNudge, identityNudge("test assistant"))
+  return collect(...nudgers)
+}
+
 const runScenario = async (name: string): Promise<{ actual: Block[]; expected: Block[] }> => {
   const basePath = join(__dirname, name, name)
   const input = readJson<Block[]>(`${basePath}.json`)
   const files = readFilesJson(`${basePath}.files.json`)
   const expected = readJson<Block[]>(`${basePath}.expected.json`)
 
-  const nudge = buildNudge(orchestratorTools, true, () => files)
+  const nudge = buildNudge(files)
   const history: Block[] = []
   for (const block of input) {
     history.push(block)
