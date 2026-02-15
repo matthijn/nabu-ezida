@@ -18,13 +18,18 @@ export type AgentLoopConfig = {
   signal?: AbortSignal
 }
 
-const excludeReasoning = (blocks: Block[]): Block[] =>
+export type LoopAction =
+  | { type: "terminal"; result: ToolResult<unknown> }
+  | { type: "continue" }
+  | { type: "stop" }
+
+export const excludeReasoning = (blocks: Block[]): Block[] =>
   blocks.filter((b) => b.type !== "reasoning")
 
-const hasToolCalls = (blocks: Block[]): boolean =>
+export const hasToolCalls = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_call")
 
-const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null => {
+export const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null => {
   for (const block of blocks) {
     if (block.type !== "tool_result") continue
     if (!block.toolName || !TERMINAL_TOOLS.has(block.toolName)) continue
@@ -36,6 +41,14 @@ const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null => {
     return { status: "ok", output: result.output }
   }
   return null
+}
+
+export const processResponse = (chat: boolean, newBlocks: Block[]): LoopAction => {
+  const terminal = findTerminalResult(newBlocks)
+  if (terminal) return { type: "terminal", result: terminal }
+  if (hasToolCalls(newBlocks)) return { type: "continue" }
+  if (chat) return { type: "stop" }
+  return { type: "continue" }
 }
 
 export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unknown> | null> => {
@@ -66,9 +79,8 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unk
 
     const newBlocks = await caller(signal)
 
-    const terminal = findTerminalResult(newBlocks)
-    if (terminal) return terminal
-
-    if (agent.chat && !hasToolCalls(newBlocks)) return null
+    const action = processResponse(agent.chat, newBlocks)
+    if (action.type === "terminal") return action.result
+    if (action.type === "stop") return null
   }
 }

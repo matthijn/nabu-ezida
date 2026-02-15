@@ -12,12 +12,12 @@ import { getFileRaw, getStoredAnnotations } from "~/lib/files"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { stripAttributesBlock } from "~/lib/text/markdown"
 
-type TaskContext = {
+export type TaskContext = {
   intent: string
   context?: string
 }
 
-const formatTaskContext = (args: TaskContext): string =>
+export const formatTaskContext = (args: TaskContext): string =>
   [
     "# Delegated Task",
     `**Intent:** ${args.intent}`,
@@ -129,7 +129,7 @@ const executeWithPlan = async (call: ToolCall, origin: BlockOrigin): Promise<Too
   return startPhase(execKey, execContext)
 }
 
-type BranchResult = { file: string; result: ToolResult<unknown> }
+export type BranchResult = { file: string; result: ToolResult<unknown> }
 
 const readFileChunk = (file: string): string => {
   const raw = getFileRaw(file)
@@ -145,7 +145,7 @@ const readFileAnnotations = (file: string): string => {
   return JSON.stringify(annotations)
 }
 
-const formatBranchContext = (task: string, file: string, content: string, annotations: string, priorResults: BranchResult[]): string =>
+export const formatBranchContext = (task: string, file: string, content: string, annotations: string, priorResults: BranchResult[]): string =>
   [
     `# Task\n${task}`,
     `## File: ${file}\n${content}`,
@@ -153,13 +153,13 @@ const formatBranchContext = (task: string, file: string, content: string, annota
     priorResults.length > 0 && formatPriorResults(priorResults),
   ].filter(Boolean).join("\n\n")
 
-const formatPriorResults = (results: BranchResult[]): string =>
+export const formatPriorResults = (results: BranchResult[]): string =>
   ["## Prior Results", ...results.map(formatBranchResult)].join("\n\n")
 
 const formatBranchResult = (r: BranchResult): string =>
   `### ${r.file}\n${JSON.stringify(r.result.output)}`
 
-const formatMergeContext = (task: string, results: BranchResult[]): string =>
+export const formatMergeContext = (task: string, results: BranchResult[]): string =>
   [
     "# Merge Results",
     `**Original task:** ${task}`,
@@ -168,7 +168,7 @@ const formatMergeContext = (task: string, results: BranchResult[]): string =>
     "Summarize the results into a single resolve or reject.",
   ].join("\n\n")
 
-const siblingKey = (agentKey: string, suffix: string): string => {
+export const siblingKey = (agentKey: string, suffix: string): string => {
   const lastSlash = agentKey.lastIndexOf("/")
   const base = lastSlash === -1 ? agentKey : agentKey.slice(0, lastSlash)
   return `${base}/${suffix}`
