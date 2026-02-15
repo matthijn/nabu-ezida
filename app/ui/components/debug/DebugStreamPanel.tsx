@@ -10,7 +10,7 @@ import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { getAllBlocks, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
-import type { Block, ToolCall } from "~/lib/agent"
+import type { ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
   block: TaggedBlock
@@ -47,31 +47,36 @@ const formatBlockSchemaDefinitions = (): string =>
 const isErrorResult = (result: unknown): boolean =>
   typeof result === "object" && result !== null && "status" in result && (result.status === "error" || result.status === "partial")
 
-const formatBlock = (block: Block): string => {
+const formatOrigin = (origin: TaggedBlock["origin"]): string =>
+  `${origin.agent} #${origin.instance.split("-").pop()}`
+
+const formatBlock = (block: TaggedBlock): string => {
+  const agent = formatOrigin(block.origin)
   switch (block.type) {
     case "user":
-      return `[user]\n${block.content}`
+      return `[user] (${agent})\n${block.content}`
     case "text":
-      return `[assistant]\n${block.content}`
+      return `[assistant] (${agent})\n${block.content}`
     case "reasoning":
-      return `[thinking]\n${block.content}`
+      return `[thinking] (${agent})\n${block.content}`
     case "tool_call":
-      return `[tool_call]\n${block.calls.map(formatToolCall).join("\n\n")}`
+      return `[tool_call] (${agent})\n${block.calls.map(formatToolCall).join("\n\n")}`
     case "tool_result":
-      return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}]\n${formatResult(block.result)}`
+      return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}] (${agent})\n${formatResult(block.result)}`
     case "system":
-      return `[system]\n${block.content}`
+      return `[system] (${agent})\n${block.content}`
     case "empty_nudge":
-      return `[empty_nudge]`
+      return `[empty_nudge] (${agent})`
   }
 }
 
-const formatAllBlocks = (blocks: Block[]): string =>
+const formatAllBlocks = (blocks: TaggedBlock[]): string =>
   blocks.map(formatBlock).join("\n\n---\n\n")
 
 type CollapsibleBlockProps = {
   label: string
   content: string
+  copyContent?: string
   borderColor: string
   labelColor: string
   bgColor?: string
@@ -81,13 +86,13 @@ type CollapsibleBlockProps = {
   suffix?: React.ReactNode
 }
 
-const CollapsibleBlock = ({ label, content, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix }: CollapsibleBlockProps) => {
+const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix }: CollapsibleBlockProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(content)
+    navigator.clipboard.writeText(copyContent ?? content)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -123,6 +128,7 @@ const OriginBadge = ({ origin }: { origin: TaggedBlock["origin"] }) => (
 
 const BlockRenderer = ({ block }: BlockRendererProps) => {
   const badge = <OriginBadge origin={block.origin} />
+  const copy = formatBlock(block)
 
   switch (block.type) {
     case "user":
@@ -130,6 +136,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label="user"
           content={block.content}
+          copyContent={copy}
           borderColor="border-blue-400"
           labelColor="text-blue-600"
           suffix={badge}
@@ -140,6 +147,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label="assistant"
           content={block.content}
+          copyContent={copy}
           borderColor="border-green-400"
           labelColor="text-green-600"
           suffix={badge}
@@ -150,6 +158,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label="tool_call"
           content={block.calls.map(formatToolCall).join("\n\n")}
+          copyContent={copy}
           borderColor="border-orange-400"
           labelColor="text-orange-600"
           bgColor="bg-orange-50"
@@ -162,6 +171,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label={`tool_result${block.toolName ? ` (${block.toolName})` : ""}`}
           content={formatResult(block.result)}
+          copyContent={copy}
           borderColor={isErrorResult(block.result) ? "border-red-400" : "border-purple-400"}
           labelColor={isErrorResult(block.result) ? "text-red-600" : "text-purple-600"}
           bgColor={isErrorResult(block.result) ? "bg-red-50" : "bg-purple-50"}
@@ -176,6 +186,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label="system"
           content={block.content}
+          copyContent={copy}
           borderColor="border-gray-400"
           labelColor="text-gray-600"
           defaultExpanded={false}
@@ -187,6 +198,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
         <CollapsibleBlock
           label="thinking"
           content={block.content}
+          copyContent={copy}
           borderColor="border-yellow-400"
           labelColor="text-yellow-600"
           bgColor="bg-yellow-50"
@@ -263,7 +275,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const handleCopyAll = () => {
     const tools = `[tools]\n${formatToolDefinitions()}`
     const schemas = `[block schemas]\n${formatBlockSchemaDefinitions()}`
-    const blocks = formatAllBlocks(history)
+    const blocks = formatAllBlocks(allBlocks)
     const content = [tools, schemas, blocks].filter(Boolean).join("\n\n---\n\n")
     navigator.clipboard.writeText(content)
     setCopiedAll(true)
