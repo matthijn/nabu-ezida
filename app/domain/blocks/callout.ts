@@ -17,6 +17,7 @@ export const CalloutSchema = z.object({
   content: normalizedString,
   color: radixColor,
   collapsed: z.boolean(),
+  actor: z.enum(["ai", "user"]).optional(),
 })
 
 export type CalloutBlock = z.infer<typeof CalloutSchema>

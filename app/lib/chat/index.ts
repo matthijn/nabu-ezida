@@ -24,10 +24,8 @@ export {
   type PlanStep,
   type PlanSection,
   type PlanSectionGroup,
-  type PlanRemainder,
   type StepStatus,
   type LeafMessage,
-  type SectionProgress,
 } from "./group"
 
 export { useChat } from "./useChat"

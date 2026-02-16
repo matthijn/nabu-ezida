@@ -18,7 +18,7 @@ export const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
 type PatchOptions = { skipImmutableCheck?: boolean; placeholderIds?: Record<string, string> }
 
 const applyPatchAndStore = (path: string, content: string, diff: string, verb: string, options: PatchOptions): ToolResult<string> => {
-  const result = applyFilePatch(path, content, diff, options)
+  const result = applyFilePatch(path, content, diff, { ...options, actor: "ai" })
   if (result.status === "error") return { status: "error", output: result.error }
   updateFileRaw(result.path, result.content)
 

@@ -47,7 +47,7 @@ const processMarkdownFile = (
   const contentWithTags = injectTags(content, tags)
   const diff = generateDiff("", contentWithTags)
 
-  const result = applyFilePatch(finalPath, "", diff)
+  const result = applyFilePatch(finalPath, "", diff, { actor: "user" })
 
   if (result.status === "error") {
     return { status: "error", error: result.error }

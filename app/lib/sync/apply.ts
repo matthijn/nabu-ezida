@@ -47,7 +47,7 @@ export const applyCommand = (command: Command): void =>
   withoutPersist(() => applyCommandInner(command))
 
 const applyCreateFile = (path: string, diff: string): void => {
-  const result = applyFilePatch(path, "", diff, { skipCodeValidation: true })
+  const result = applyFilePatch(path, "", diff, { skipCodeValidation: true, actor: "user" })
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   } else {
@@ -57,7 +57,7 @@ const applyCreateFile = (path: string, diff: string): void => {
 
 const applyUpdateFile = (path: string, diff: string): void => {
   const current = getFileRaw(path)
-  const result = applyFilePatch(path, current, diff, { skipCodeValidation: true })
+  const result = applyFilePatch(path, current, diff, { skipCodeValidation: true, actor: "user" })
   if (result.status === "ok") {
     updateFileRaw(result.path, result.content)
   } else {

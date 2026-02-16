@@ -2,6 +2,7 @@ import { z } from "zod"
 import { DocumentMeta, type StoredAnnotation } from "~/domain/attributes/schema"
 import { CalloutSchema, type CalloutBlock } from "./callout"
 import type { ValidationError } from "./validate"
+import { parsePath, type ParsedPath } from "./json"
 
 export type ValidationContext = {
   documentProse: string
@@ -11,6 +12,10 @@ export type ValidationContext = {
 type IdPathConfig = {
   path: string  // "id" for root, "annotations.*.id" for nested array items
   prefix: string
+}
+
+type ActorPathConfig = {
+  path: string  // "actor" for root, "annotations.*.actor" for nested array items
 }
 
 type JsonSchema = Record<string, unknown>
@@ -24,6 +29,7 @@ type BlockTypeConfig<T> = {
   singleton: boolean
   labelKey?: string
   idPaths?: IdPathConfig[]
+  actorPaths?: ActorPathConfig[]
   patchSchema?: (schema: JsonSchema) => JsonSchema
   validate?: (parsed: T, context: ValidationContext) => ValidationError[]
 }
@@ -69,19 +75,47 @@ const validateAnnotations = (
   return errors
 }
 
-const removeFromRequired = (schema: JsonSchema, path: string[], fields: string[]): JsonSchema => {
-  if (path.length === 0) {
-    const required = schema.required as string[] | undefined
-    if (!required) return schema
-    const filtered = required.filter((f) => !fields.includes(f))
-    return { ...schema, required: filtered }
-  }
+const modifySchemaAtPath = (
+  schema: JsonSchema,
+  path: string[],
+  modify: (target: JsonSchema) => JsonSchema
+): JsonSchema => {
+  if (path.length === 0) return modify(schema)
 
   const [head, ...rest] = path
   const child = schema[head]
   if (typeof child !== "object" || child === null) return schema
-  return { ...schema, [head]: removeFromRequired(child as JsonSchema, rest, fields) }
+  return { ...schema, [head]: modifySchemaAtPath(child as JsonSchema, rest, modify) }
 }
+
+const removeFromRequired = (schema: JsonSchema, path: string[], fields: string[]): JsonSchema =>
+  modifySchemaAtPath(schema, path, (target) => {
+    const required = target.required as string[] | undefined
+    if (!required) return target
+    const filtered = required.filter((f) => !fields.includes(f))
+    return { ...target, required: filtered }
+  })
+
+const removeFromProperties = (schema: JsonSchema, path: string[], field: string): JsonSchema =>
+  modifySchemaAtPath(schema, path, (target) => {
+    const props = target.properties as Record<string, unknown> | undefined
+    if (!props || !(field in props)) return target
+    const { [field]: _, ...rest } = props
+    return { ...target, properties: rest }
+  })
+
+const actorSchemaPath = (parsed: ParsedPath): string[] =>
+  parsed.type === "root"
+    ? []
+    : ["properties", parsed.arrayField, "items"]
+
+const stripActorFields = (schema: JsonSchema, actorPaths: ActorPathConfig[]): JsonSchema =>
+  actorPaths.reduce((s, { path }) => {
+    const parsed = parsePath(path)
+    if (!parsed) return s
+    const field = parsed.type === "root" ? parsed.field : parsed.itemField
+    return removeFromProperties(s, actorSchemaPath(parsed), field)
+  }, schema)
 
 const patchAnnotationRequired = (schema: JsonSchema): JsonSchema =>
   removeFromRequired(schema, ["properties", "annotations", "items"], ["color", "code"])
@@ -92,12 +126,14 @@ const jsonAttributes = defineBlock({
   immutable: {},
   constraints: [
     "annotations: each entry requires either 'color' or 'code', not both",
-    "annotations.text: must be exact text from the document prose",
-    "annotations.pending: set by expert tools only, never set manually",
+    "annotations.text: must be text from the document prose (fuzzy-matched automatically)",
+    "annotations.ambiguity.confidence: always present, defaults to 'high' if omitted",
+    "annotations.ambiguity.description: required when confidence is not 'high'",
   ],
   renderer: "hidden",
   singleton: true,
   idPaths: [{ path: "annotations.*.id", prefix: "annotation" }],
+  actorPaths: [{ path: "annotations.*.actor" }],
   patchSchema: patchAnnotationRequired,
   validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
 })
@@ -113,6 +149,7 @@ const jsonCallout = defineBlock({
   singleton: false,
   labelKey: "title",
   idPaths: [{ path: "id", prefix: "callout" }],
+  actorPaths: [{ path: "actor" }],
 })
 
 type AnyBlockConfig = BlockTypeConfig<unknown>
@@ -140,6 +177,9 @@ export const getImmutableFields = (language: string): Record<string, string> =>
 export const getIdPaths = (language: string): IdPathConfig[] =>
   blockTypes[language]?.idPaths ?? []
 
+export const getActorPaths = (language: string): ActorPathConfig[] =>
+  blockTypes[language]?.actorPaths ?? []
+
 export type BlockSchemaDefinition = {
   language: string
   jsonSchema: unknown
@@ -149,8 +189,10 @@ export type BlockSchemaDefinition = {
 }
 
 const toBlockSchema = (config: AnyBlockConfig): unknown => {
-  const schema = z.toJSONSchema(config.schema, { io: "input" }) as JsonSchema
-  return config.patchSchema ? config.patchSchema(schema) : schema
+  let schema = z.toJSONSchema(config.schema, { io: "input" }) as JsonSchema
+  if (config.patchSchema) schema = config.patchSchema(schema)
+  if (config.actorPaths?.length) schema = stripActorFields(schema, config.actorPaths)
+  return schema
 }
 
 export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
@@ -162,4 +204,4 @@ export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
     constraints: config.constraints,
   }))
 
-export type { IdPathConfig }
+export type { IdPathConfig, ActorPathConfig }

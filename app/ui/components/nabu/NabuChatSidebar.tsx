@@ -25,7 +25,7 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
 import { derive, hasActivePlan } from "~/lib/agent"
 import type { DerivedOrientation, Finding } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanRemainder, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus, type SectionProgress } from "~/lib/chat/group"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
@@ -103,34 +103,57 @@ const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
-const stepIcons: Record<StepStatus, React.ReactNode> = {
-  completed: <FeatherCheck className="text-body font-body text-success-600 mt-0.5 flex-none" />,
-  active: <FeatherCircle className="text-body font-body text-brand-600 mt-0.5 flex-none" />,
-  pending: <FeatherCircle className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
-  cancelled: <FeatherX className="text-body font-body text-neutral-400 mt-0.5 flex-none" />,
+const stepIconComponent: Record<StepStatus, React.ComponentType<{ className?: string }>> = {
+  completed: FeatherCheck,
+  active: FeatherCircle,
+  pending: FeatherCircle,
+  cancelled: FeatherX,
 }
 
-const stepTextStyles: Record<StepStatus, string> = {
-  completed: "text-body font-body text-default-font",
-  active: "text-body font-body text-default-font",
-  pending: "text-body font-body text-neutral-400",
-  cancelled: "text-body font-body text-neutral-400",
+const stepIconColor: Record<StepStatus, string> = {
+  completed: "text-success-600",
+  active: "text-brand-600",
+  pending: "text-neutral-400",
+  cancelled: "text-neutral-400",
 }
 
-const PlanStepRow = ({ step }: { step: PlanStep }) => (
-  <div className={`flex w-full items-start gap-2${step.status === "pending" ? " opacity-50" : ""}`}>
-    {stepIcons[step.status]}
-    <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
-      <span className={stepTextStyles[step.status]}>{step.description}</span>
-      {step.summary && (
-        <span className="text-body font-body text-subtext-color">{step.summary}</span>
-      )}
+const stepTextColor: Record<StepStatus, string> = {
+  completed: "text-default-font",
+  active: "text-default-font",
+  pending: "text-neutral-400",
+  cancelled: "text-neutral-400",
+}
+
+type PlanStepRowProps = {
+  step: PlanStep
+  nested?: boolean
+  files: Record<string, string>
+  projectId: string | null
+  navigate?: (url: string) => void
+}
+
+const PlanStepRow = ({ step, nested = false, files, projectId, navigate }: PlanStepRowProps) => {
+  const sizeClass = nested ? "text-caption font-caption" : "text-body font-body"
+  const Icon = stepIconComponent[step.status]
+  return (
+    <div className="flex w-full items-start gap-2">
+      <Icon className={`${sizeClass} ${stepIconColor[step.status]} mt-0.5 flex-none`} />
+      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
+        <div className={`prose prose-sm [&>*]:mb-0 [&_a]:no-underline ${sizeClass} ${stepTextColor[step.status]}`}>
+          <MessageContent content={step.description} files={files} projectId={projectId} navigate={navigate} />
+        </div>
+        {step.summary && (
+          <div className="prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-caption font-caption text-subtext-color">
+            <MessageContent content={step.summary} files={files} projectId={projectId} navigate={navigate} />
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
-  <span className="text-body-bold font-body-bold text-subtext-color">
+  <span className="text-caption-bold font-caption-bold text-subtext-color">
     {section.file}
     {section.totalInFile > 1 && <span className="text-neutral-400"> · {section.indexInFile} of {section.totalInFile}</span>}
   </span>
@@ -206,7 +229,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
+          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
             <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
@@ -215,9 +238,9 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
   }
   if (message.type === "text") {
     return (
-      <div className="flex w-full items-start">
+      <div className="flex w-full items-start mt-1">
         <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
+          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
             <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
@@ -227,14 +250,16 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
   return <LeafRenderer message={message} files={files} projectId={projectId} navigate={navigate} />
 }
 
-const SectionGroupRenderer = ({ group, bg, files, projectId, navigate }: { group: PlanSectionGroup; bg: string; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
-  <div className={`flex w-full flex-col items-start gap-1 ml-3 pl-3 py-1 rounded-md${bg ? ` ${bg}` : ""}${group.dimmed ? " opacity-50" : ""}`}>
-    <PlanSectionLabel section={group.section} />
-    {group.children.map((child, i) =>
-      child.type === "plan-step"
-        ? <PlanStepRow key={i} step={child} />
-        : <PlanLeafInline key={i} message={child} files={files} projectId={projectId} navigate={navigate} />
-    )}
+const SectionGroupRenderer = ({ group, files, projectId, navigate }: { group: PlanSectionGroup; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
+  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2">
+    <div className={`flex w-full flex-col items-start gap-1${group.dimmed ? " opacity-50" : ""}`}>
+      <PlanSectionLabel section={group.section} />
+      {group.children.map((child, i) =>
+        child.type === "plan-step"
+          ? <PlanStepRow key={i} step={child} nested files={files} projectId={projectId} navigate={navigate} />
+          : <PlanLeafInline key={i} message={child} files={files} projectId={projectId} navigate={navigate} />
+      )}
+    </div>
   </div>
 )
 
@@ -246,42 +271,31 @@ type PlanChildRendererProps = {
 }
 
 const PlanChildRenderer = ({ child, files, projectId, navigate }: PlanChildRendererProps) => {
-  if (isPlanStep(child)) return <PlanStepRow step={child} />
+  if (isPlanStep(child)) return <PlanStepRow step={child} files={files} projectId={projectId} navigate={navigate} />
   if (isPlanSection(child)) return <PlanSectionLabel section={child} />
   if (isLeafMessage(child)) return <PlanLeafInline message={child} files={files} projectId={projectId} navigate={navigate} />
   return null
 }
 
-const StepProgressLabel = ({ progress }: { progress: { current: number; total: number } }) => (
-  <span className="text-body font-body text-subtext-color">
-    Step {progress.current} of {progress.total}
-  </span>
-)
+type PlanHeaderRendererProps = {
+  header: PlanHeader
+  files: Record<string, string>
+  projectId: string | null
+  navigate?: (url: string) => void
+}
 
-const SectionProgressLabel = ({ progress }: { progress: SectionProgress }) => (
-  <span className="text-body font-body text-subtext-color">
-    {progress.completed} of {progress.total} sections
-  </span>
-)
-
-const PlanHeaderRenderer = ({ header }: { header: PlanHeader }) => (
+const PlanHeaderRenderer = ({ header, files, projectId, navigate }: PlanHeaderRendererProps) => (
   <div className="flex w-full flex-col items-start gap-1 py-1">
-    <span className="text-body-bold font-body-bold text-default-font">
-      {header.task}
-    </span>
-    {header.stepProgress && !header.completed && (
-      <StepProgressLabel progress={header.stepProgress} />
-    )}
-    {header.sectionProgress && !header.completed && (
-      <SectionProgressLabel progress={header.sectionProgress} />
-    )}
+    <div className="prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-body-bold font-body-bold text-default-font">
+      <MessageContent content={header.task} files={files} projectId={projectId} navigate={navigate} />
+    </div>
     {header.aborted && <AbortBox />}
   </div>
 )
 
-const PlanItemRenderer = ({ item, sectionBg, files, projectId, navigate }: { item: PlanItem; sectionBg: string; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
+const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
   if (isPlanSectionGroup(item.child))
-    return <SectionGroupRenderer group={item.child} bg={sectionBg} files={files} projectId={projectId} navigate={navigate} />
+    return <SectionGroupRenderer group={item.child} files={files} projectId={projectId} navigate={navigate} />
   return (
     <div className={`flex w-full flex-col items-start${item.section ? " ml-3" : ""}${item.dimmed ? " opacity-50" : ""}`}>
       <PlanChildRenderer child={item.child} files={files} projectId={projectId} navigate={navigate} />
@@ -289,21 +303,13 @@ const PlanItemRenderer = ({ item, sectionBg, files, projectId, navigate }: { ite
   )
 }
 
-const PlanRemainderRenderer = ({ remainder }: { remainder: PlanRemainder }) => (
-  <div className="flex w-full items-start ml-3 pl-3 opacity-50">
-    <span className="text-body font-body text-subtext-color">
-      ...{remainder.count} more
-    </span>
-  </div>
-)
-
-type PlanMessage = PlanHeader | PlanItem | PlanRemainder
+type PlanMessage = PlanHeader | PlanItem
 
 type PlanSegment = { type: "plan-segment"; items: PlanMessage[] }
 type RenderSegment = LeafMessage | PlanSegment
 
 const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
-  m.type === "plan-header" || m.type === "plan-item" || m.type === "plan-remainder"
+  m.type === "plan-header" || m.type === "plan-item"
 
 const isPlanSegment = (s: RenderSegment): s is PlanSegment =>
   s.type === "plan-segment"
@@ -318,35 +324,19 @@ const toRenderSegments = (messages: GroupedMessage[]): RenderSegment[] =>
     return [...acc, { type: "plan-segment", items: [m] }]
   }, [])
 
-const computeSectionBgs = (items: PlanMessage[]): Map<number, string> => {
-  const bgs = new Map<number, string>()
-  let counter = 0
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i]
-    if (item.type === "plan-item" && isPlanSectionGroup(item.child)) {
-      bgs.set(i, counter % 2 === 0 ? "bg-neutral-50" : "")
-      counter++
-    }
-  }
-  return bgs
-}
-
 type PlanSegmentItemRendererProps = {
   item: PlanMessage
-  sectionBg: string
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentItemRenderer = ({ item, sectionBg, files, projectId, navigate }: PlanSegmentItemRendererProps) => {
+const PlanSegmentItemRenderer = ({ item, files, projectId, navigate }: PlanSegmentItemRendererProps) => {
   switch (item.type) {
     case "plan-header":
-      return <PlanHeaderRenderer header={item} />
+      return <PlanHeaderRenderer header={item} files={files} projectId={projectId} navigate={navigate} />
     case "plan-item":
-      return <PlanItemRenderer item={item} sectionBg={sectionBg} files={files} projectId={projectId} navigate={navigate} />
-    case "plan-remainder":
-      return <PlanRemainderRenderer remainder={item} />
+      return <PlanItemRenderer item={item} files={files} projectId={projectId} navigate={navigate} />
   }
 }
 
@@ -360,20 +350,17 @@ type PlanSegmentRendererProps = {
   navigate?: (url: string) => void
 }
 
-const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => {
-  const sectionBgs = computeSectionBgs(items)
-  return (
-    <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 pr-2">
+const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => (
+    <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
       {items.map((item, i) => (
-        <PlanSegmentItemRenderer key={i} item={item} sectionBg={sectionBgs.get(i) ?? ""} files={files} projectId={projectId} navigate={navigate} />
+        <PlanSegmentItemRenderer key={i} item={item} files={files} projectId={projectId} navigate={navigate} />
       ))}
       {active && streamingText && (
         <PlanLeafInline message={{ type: "text", role: "assistant", content: streamingText }} files={files} projectId={projectId} navigate={navigate} />
       )}
       {active && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
     </div>
-  )
-}
+)
 
 type NabuFloatingButtonProps = {
   hasChat: boolean

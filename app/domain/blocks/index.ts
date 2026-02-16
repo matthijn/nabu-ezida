@@ -1,4 +1,4 @@
-export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, getBlockSchemaDefinitions, type ValidationContext, type BlockSchemaDefinition } from "./registry"
+export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, getBlockSchemaDefinitions, getActorPaths, type ValidationContext, type BlockSchemaDefinition, type ActorPathConfig } from "./registry"
 export { parseCodeBlocks, findBlocksByLanguage, findSingletonBlock, parseBlockJson, replaceSingletonBlock, type CodeBlock } from "./parse"
 export {
   replaceUuidPlaceholders,
@@ -12,3 +12,4 @@ export {
 } from "./uuid"
 export { validateMarkdownBlocks, wouldViolateSingleton, extractProse, type ValidationError, type ValidationResult, type ValidateOptions } from "./validate"
 export { CalloutSchema, parseCallout, type CalloutBlock, type CalloutType } from "./callout"
+export { stampActors } from "./actor"

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { patchJsonBlock } from "./json-patch"
+import { patchJsonBlock, autoFuzzyAnnotationText, resolveSelectors, partitionNumericIndices } from "./json-patch"
+import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 
 const makeFiles = (entries: Record<string, string>): Map<string, string> =>
   new Map(Object.entries(entries))
@@ -126,6 +127,95 @@ describe("patch_json_block", () => {
       expectOutput: /Patched/,
       expectMutations: 1,
     },
+    {
+      name: "selector removes by id",
+      files: makeFiles({
+        "doc.md": doc({
+          annotations: [
+            { id: "ann_1", text: "first" },
+            { id: "ann_2", text: "second" },
+          ],
+        }),
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "remove", path: "/annotations[id=ann_1]" }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
+      name: "selector replaces nested field",
+      files: makeFiles({
+        "doc.md": doc({
+          annotations: [
+            { id: "ann_1", code: "old" },
+            { id: "ann_2", code: "keep" },
+          ],
+        }),
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "replace", path: "/annotations[id=ann_1]/code", value: "new" }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
+      name: "selector error on no match",
+      files: makeFiles({
+        "doc.md": doc({ annotations: [{ id: "ann_1" }] }),
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "remove", path: "/annotations[id=nonexistent]" }],
+      },
+      expectStatus: "error",
+      expectOutput: /No items match/,
+    },
+    {
+      name: "all numeric indices — error",
+      files: makeFiles({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "remove", path: "/annotations/0" }],
+      },
+      expectStatus: "error",
+      expectOutput: /All operations use numeric array indices/,
+    },
+    {
+      name: "mixed: applies valid ops, reports rejected numeric index",
+      files: makeFiles({ "doc.md": doc({ color: "red", annotations: [{ id: "ann_1", code: "x" }] }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [
+          { op: "replace", path: "/color", value: "blue" },
+          { op: "replace", path: "/annotations/0/code", value: "y" },
+        ],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched.*\nRejected 1 op/,
+      expectMutations: 1,
+    },
+    {
+      name: "allows append with /-",
+      files: makeFiles({ "doc.md": doc({ annotations: [] }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "add", path: "/annotations/-", value: { id: "new", text: "t", reason: "r", color: "red" } }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
   ]
 
   it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMutations }) => {
@@ -142,5 +232,253 @@ describe("patch_json_block", () => {
     if (expectMutations && expectMutations > 0) {
       expect(result.mutations[0].type).toBe("update_file")
     }
+  })
+})
+
+describe("autoFuzzyAnnotationText", () => {
+  type Case = {
+    name: string
+    op: Parameters<typeof autoFuzzyAnnotationText>[0]
+    expected: Parameters<typeof autoFuzzyAnnotationText>[0]
+  }
+
+  const cases: Case[] = [
+    {
+      name: "wraps text in annotation entry add",
+      op: { op: "add", path: "/annotations/-", value: { text: "some phrase", code: "x" } },
+      expected: { op: "add", path: "/annotations/-", value: { text: "FUZZY[[some phrase]]", code: "x" } },
+    },
+    {
+      name: "wraps text in annotation entry replace",
+      op: { op: "replace", path: "/annotations/0", value: { text: "some phrase" } },
+      expected: { op: "replace", path: "/annotations/0", value: { text: "FUZZY[[some phrase]]" } },
+    },
+    {
+      name: "wraps text field directly",
+      op: { op: "replace", path: "/annotations/2/text", value: "some phrase" },
+      expected: { op: "replace", path: "/annotations/2/text", value: "FUZZY[[some phrase]]" },
+    },
+    {
+      name: "skips already fuzzy text in entry",
+      op: { op: "add", path: "/annotations/-", value: { text: "FUZZY[[already wrapped]]" } },
+      expected: { op: "add", path: "/annotations/-", value: { text: "FUZZY[[already wrapped]]" } },
+    },
+    {
+      name: "skips already fuzzy text field",
+      op: { op: "replace", path: "/annotations/0/text", value: "FUZZY[[already]]" },
+      expected: { op: "replace", path: "/annotations/0/text", value: "FUZZY[[already]]" },
+    },
+    {
+      name: "skips non-annotation path",
+      op: { op: "add", path: "/codes/-", value: { text: "some phrase" } },
+      expected: { op: "add", path: "/codes/-", value: { text: "some phrase" } },
+    },
+    {
+      name: "skips remove op",
+      op: { op: "remove", path: "/annotations/0" },
+      expected: { op: "remove", path: "/annotations/0" },
+    },
+    {
+      name: "skips test op",
+      op: { op: "test", path: "/annotations/0/text", value: "exact" },
+      expected: { op: "test", path: "/annotations/0/text", value: "exact" },
+    },
+    {
+      name: "skips annotation entry without text field",
+      op: { op: "add", path: "/annotations/-", value: { code: "x" } },
+      expected: { op: "add", path: "/annotations/-", value: { code: "x" } },
+    },
+    {
+      name: "skips non-string annotation text field",
+      op: { op: "replace", path: "/annotations/0/text", value: 42 },
+      expected: { op: "replace", path: "/annotations/0/text", value: 42 },
+    },
+  ]
+
+  it.each(cases)("$name", ({ op, expected }) => {
+    expect(autoFuzzyAnnotationText(op)).toEqual(expected)
+  })
+})
+
+describe("resolveSelectors", () => {
+  const annotations = [
+    { id: "ann_1", code: "code_a", ambiguity: { confidence: "high" } },
+    { id: "ann_2", code: "code_b", ambiguity: { confidence: "medium" } },
+    { id: "ann_3", code: "code_a", ambiguity: { confidence: "medium" } },
+    { id: "ann_4", code: "code_c", ambiguity: { confidence: "low" } },
+  ]
+  const docJson = { annotations }
+
+  type Case = {
+    name: string
+    ops: JsonPatchOp[]
+    doc: unknown
+    expected: { ok: true; ops: JsonPatchOp[] } | { ok: false; error: string | RegExp }
+  }
+
+  const cases: Case[] = [
+    {
+      name: "no selector — passthrough",
+      ops: [{ op: "remove", path: "/annotations/0" }],
+      doc: docJson,
+      expected: { ok: true, ops: [{ op: "remove", path: "/annotations/0" }] },
+    },
+    {
+      name: "single match by id",
+      ops: [{ op: "remove", path: "/annotations[id=ann_2]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [{ op: "remove", path: "/annotations/1" }] },
+    },
+    {
+      name: "single match with rest path",
+      ops: [{ op: "replace", path: "/annotations[id=ann_1]/code", value: "code_new" }],
+      doc: docJson,
+      expected: { ok: true, ops: [{ op: "replace", path: "/annotations/0/code", value: "code_new" }] },
+    },
+    {
+      name: "nested key selector",
+      ops: [{ op: "remove", path: "/annotations[ambiguity.confidence=low]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [{ op: "remove", path: "/annotations/3" }] },
+    },
+    {
+      name: "multi-match remove — descending indices",
+      ops: [{ op: "remove", path: "/annotations[ambiguity.confidence=medium]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "remove", path: "/annotations/2" },
+        { op: "remove", path: "/annotations/1" },
+      ]},
+    },
+    {
+      name: "multi-match replace — ascending indices",
+      ops: [{ op: "replace", path: "/annotations[code=code_a]/code", value: "code_x" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "replace", path: "/annotations/0/code", value: "code_x" },
+        { op: "replace", path: "/annotations/2/code", value: "code_x" },
+      ]},
+    },
+    {
+      name: "no matches — error",
+      ops: [{ op: "remove", path: "/annotations[id=nonexistent]" }],
+      doc: docJson,
+      expected: { ok: false, error: /No items match/ },
+    },
+    {
+      name: "mixed selector and normal ops",
+      ops: [
+        { op: "replace", path: "/annotations[id=ann_1]/code", value: "code_z" },
+        { op: "add", path: "/annotations/-", value: { id: "ann_5" } },
+      ],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "replace", path: "/annotations/0/code", value: "code_z" },
+        { op: "add", path: "/annotations/-", value: { id: "ann_5" } },
+      ]},
+    },
+    {
+      name: "selector on non-array path — no matches",
+      ops: [{ op: "remove", path: "/annotations[id=ann_1]" }],
+      doc: { annotations: "not an array" },
+      expected: { ok: false, error: /No items match/ },
+    },
+    {
+      name: "deeply nested rest path",
+      ops: [{ op: "replace", path: "/annotations[id=ann_2]/ambiguity/confidence", value: "high" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "replace", path: "/annotations/1/ambiguity/confidence", value: "high" },
+      ]},
+    },
+  ]
+
+  it.each(cases)("$name", ({ ops, doc, expected }) => {
+    const result = resolveSelectors(ops, doc)
+    if (expected.ok) {
+      expect(result).toEqual(expected)
+    } else {
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        if (expected.error instanceof RegExp) {
+          expect(result.error).toMatch(expected.error)
+        } else {
+          expect(result.error).toBe(expected.error)
+        }
+      }
+    }
+  })
+})
+
+describe("partitionNumericIndices", () => {
+  type Case = {
+    name: string
+    ops: JsonPatchOp[]
+    expectedAccepted: JsonPatchOp[]
+    expectedRejected: string[]
+  }
+
+  const cases: Case[] = [
+    {
+      name: "rejects /annotations/0",
+      ops: [{ op: "remove", path: "/annotations/0" }],
+      expectedAccepted: [],
+      expectedRejected: ["/annotations/0"],
+    },
+    {
+      name: "rejects /annotations/0/text",
+      ops: [{ op: "replace", path: "/annotations/0/text", value: "x" }],
+      expectedAccepted: [],
+      expectedRejected: ["/annotations/0/text"],
+    },
+    {
+      name: "rejects numeric in move from",
+      ops: [{ op: "move", from: "/items/3", path: "/other/-" }],
+      expectedAccepted: [],
+      expectedRejected: ["/other/-"],
+    },
+    {
+      name: "allows /annotations/-",
+      ops: [{ op: "add", path: "/annotations/-", value: {} }],
+      expectedAccepted: [{ op: "add", path: "/annotations/-", value: {} }],
+      expectedRejected: [],
+    },
+    {
+      name: "allows /color",
+      ops: [{ op: "replace", path: "/color", value: "red" }],
+      expectedAccepted: [{ op: "replace", path: "/color", value: "red" }],
+      expectedRejected: [],
+    },
+    {
+      name: "allows selector path",
+      ops: [{ op: "remove", path: "/annotations[id=ann_1]" }],
+      expectedAccepted: [{ op: "remove", path: "/annotations[id=ann_1]" }],
+      expectedRejected: [],
+    },
+    {
+      name: "allows /nested/deep/field",
+      ops: [{ op: "replace", path: "/nested/deep/field", value: 1 }],
+      expectedAccepted: [{ op: "replace", path: "/nested/deep/field", value: 1 }],
+      expectedRejected: [],
+    },
+    {
+      name: "partitions mixed ops",
+      ops: [
+        { op: "replace", path: "/color", value: "blue" },
+        { op: "remove", path: "/annotations/2" },
+        { op: "remove", path: "/annotations[id=ann_1]" },
+      ],
+      expectedAccepted: [
+        { op: "replace", path: "/color", value: "blue" },
+        { op: "remove", path: "/annotations[id=ann_1]" },
+      ],
+      expectedRejected: ["/annotations/2"],
+    },
+  ]
+
+  it.each(cases)("$name", ({ ops, expectedAccepted, expectedRejected }) => {
+    const { accepted, rejectedPaths } = partitionNumericIndices(ops)
+    expect(accepted).toEqual(expectedAccepted)
+    expect(rejectedPaths).toEqual(expectedRejected)
   })
 })

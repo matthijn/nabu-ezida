@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanRemainder, type PlanStep, type PlanSectionGroup, type SectionProgress } from "./group"
+import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanStep, type PlanSectionGroup } from "./group"
 import {
   createPlanCall,
   completeStepCall,
@@ -229,7 +229,7 @@ describe("toGroupedMessages", () => {
         },
       },
       {
-        name: "untouched sections collapse into plan-remainder",
+        name: "untouched sections show as dimmed section groups",
         history: [
           ...createPlanCall(
             "Process",
@@ -241,105 +241,15 @@ describe("toGroupedMessages", () => {
         files: { "a.txt": "a", "b.txt": "b" } as Record<string, string>,
         check: (result: GroupedMessage[]) => {
           const sectionGroups = result.filter(isSectionGroupItem)
-          expect(sectionGroups.length).toBe(1)
+          expect(sectionGroups.length).toBe(2)
           expect(sectionGroups[0].dimmed).toBe(false)
-          const remainders = result.filter((m): m is PlanRemainder => m.type === "plan-remainder")
-          expect(remainders.length).toBe(1)
-          expect(remainders[0].count).toBe(1)
+          expect(sectionGroups[1].dimmed).toBe(true)
         },
       },
     ]
 
     cases.forEach(({ name, history, files, check }) => {
       it(name, () => check(toGroupedMessages(history, derive(history, files ?? {}))))
-    })
-  })
-
-  describe("sectionProgress", () => {
-    const cases = [
-      {
-        name: "null for simple plans without sections",
-        history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2"]),
-          textBlock("Working"),
-        ],
-        files: {} as Record<string, string>,
-        expected: null as SectionProgress | null,
-      },
-      {
-        name: "correct counts for per-section plan with one section completed",
-        history: [
-          ...createPlanCall(
-            "Process files",
-            ["Setup", { per_section: ["Analyze", "Transform"], files: ["file1.txt", "file2.txt"] }, "Finalize"],
-          ),
-          ...completeStepCall("Setup done"),
-          ...completeStepCall("Analyzed"),
-          ...completeStepCall("Transformed"),
-          textBlock("Analyzing file2"),
-        ],
-        files: { "file1.txt": "content1", "file2.txt": "content2" } as Record<string, string>,
-        expected: { completed: 1, total: 2 } as SectionProgress | null,
-      },
-      {
-        name: "zero completed at start of per-section plan",
-        history: [
-          ...createPlanCall(
-            "Process",
-            ["Setup", { per_section: ["Do it"], files: ["a.txt", "b.txt"] }, "Finalize"],
-          ),
-          ...completeStepCall("Setup done"),
-          textBlock("Working on first"),
-        ],
-        files: { "a.txt": "a", "b.txt": "b" } as Record<string, string>,
-        expected: { completed: 0, total: 2 } as SectionProgress | null,
-      },
-    ]
-
-    cases.forEach(({ name, history, files, expected }) => {
-      it(name, () => {
-        const result = group(history, files)
-        const header = result.find(isPlanHeader)
-        expect(header?.sectionProgress ?? null).toEqual(expected)
-      })
-    })
-  })
-
-  describe("stepProgress", () => {
-    const cases = [
-      {
-        name: "step progress shows current position for active plan",
-        history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
-          ...completeStepCall("Done"),
-          textBlock("Working"),
-        ],
-        expected: { current: 2, total: 3 },
-      },
-      {
-        name: "null when plan is completed",
-        history: [
-          ...createPlanCall("Task", ["Step 1"]),
-          ...completeStepCall("Done"),
-        ],
-        expected: null,
-      },
-      {
-        name: "step 1 of N at start",
-        history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2"]),
-          textBlock("Starting"),
-        ],
-        expected: { current: 1, total: 2 },
-      },
-    ]
-
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        const result = group(history)
-        const header = result.find(isPlanHeader)!
-        expect(header.stepProgress).toEqual(expected)
-      })
     })
   })
 

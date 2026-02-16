@@ -1,6 +1,7 @@
 import equal from "fast-deep-equal"
 import { getBlockConfig, isSingleton, getImmutableFields, type ValidationContext } from "./registry"
 import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
+import { tryParseJson } from "./json"
 
 export type ValidationError = {
   block: string
@@ -99,14 +100,6 @@ const groupBlocksByLanguage = (blocks: CodeBlock[]): BlocksByLanguage =>
     const list = acc[block.language] ?? []
     return { ...acc, [block.language]: [...list, block] }
   }, {})
-
-const tryParseJson = (content: string): Record<string, unknown> | null => {
-  try {
-    return JSON.parse(content)
-  } catch {
-    return null
-  }
-}
 
 const getBlockId = (block: CodeBlock): string | null =>
   tryParseJson(block.content)?.id as string | null

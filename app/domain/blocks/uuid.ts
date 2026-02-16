@@ -1,5 +1,6 @@
 import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { getLabelKey, getIdPaths, type IdPathConfig } from "./registry"
+import { tryParseJson, isObject, parsePath } from "./json"
 
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([a-zA-Z0-9_-]+)\]/g
 const TRAILING_NUMBER_REGEX = /-\d+$/
@@ -38,19 +39,8 @@ export const replaceUuidPlaceholders = (content: string): { result: string; gene
   return { result, generated }
 }
 
-const tryParseJson = (content: string): Record<string, unknown> | null => {
-  try {
-    return JSON.parse(content)
-  } catch {
-    return null
-  }
-}
-
 const isMissingId = (id: unknown): boolean =>
   id === undefined || id === null || id === ""
-
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v)
 
 const getBlockLabel = (parsed: Record<string, unknown>, language: string): string | null => {
   const labelKey = getLabelKey(language)
@@ -69,25 +59,6 @@ type BlockUpdate = {
   block: CodeBlock
   newContent: string
   ids: GeneratedId[]
-}
-
-type ParsedPath =
-  | { type: "root"; field: string }
-  | { type: "array"; arrayField: string; itemField: string }
-
-const parsePath = (path: string): ParsedPath | null => {
-  // "id" -> root field
-  if (!path.includes(".")) {
-    return { type: "root", field: path }
-  }
-
-  // "annotations.*.id" -> array items
-  const match = path.match(/^([^.]+)\.\*\.([^.]+)$/)
-  if (match) {
-    return { type: "array", arrayField: match[1], itemField: match[2] }
-  }
-
-  return null
 }
 
 const fillIdPath = (

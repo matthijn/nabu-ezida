@@ -8,9 +8,10 @@ const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
   z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>
 
 const AmbiguitySchema = z.object({
-  description: z.string().describe("Why the interpretation is uncertain"),
-  confidence: z.enum(["low", "medium", "high"]).describe("How confident the interpretation is"),
-  feedback: z.string().optional().describe("User's note on resolution"),
+  confidence: z.enum(["low", "medium", "high"]).describe("How confident the coding is"),
+  description: z.string().optional().describe("Why the interpretation is uncertain — required when confidence is not high"),
+  user_feedback: z.string().optional().describe("User's note on resolution"),
+  merged: z.boolean().optional().describe("Whether the resolution was absorbed into the codebook"),
 })
 
 const colorOrCodeRefinement = (a: { color?: unknown; code?: unknown }) =>
@@ -23,14 +24,13 @@ const AnnotationBase = z.object({
   reason: z.string().describe("Why this text was annotated"),
   color: emptyToUndefined(radixColor).describe("Color for the annotation (if no code)"),
   code: emptyToUndefined(z.string()).describe("Code ID from codebook (if no color)"),
-  ambiguity: AmbiguitySchema.optional(),
+  ambiguity: AmbiguitySchema.default({ confidence: "high" }),
 })
 
 export const AnnotationSchema = AnnotationBase
   .extend({
     id: z.string().optional(),
-    status: z.enum(["accepted", "rejected", "resolved-locally", "merged"]).optional(),
-    pending: z.enum(["pending_change", "pending_deletion"]).optional(),
+    actor: z.enum(["ai", "user"]).optional(),
   })
   .refine(colorOrCodeRefinement, colorOrCodeMessage)
 

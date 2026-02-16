@@ -14,6 +14,7 @@ import { planNudge } from "../steering/nudges/plan"
 import { createMemoryNudge } from "../steering/nudges/memory"
 import { identityNudge } from "../steering/nudges/identity"
 import { createStepStateNudge } from "../steering/nudges/step-state"
+import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
 
 export type AgentDef = {
@@ -35,6 +36,7 @@ export const buildEndpoint = (agent: AgentDef, extra?: string): string => {
 const toolNudges = buildToolNudges(getFiles)
 const memoryNudge = createMemoryNudge(getFiles)
 const stepStateNudge = createStepStateNudge(getFiles)
+const planProgressNudge = createPlanProgressNudge(getFiles)
 
 const resolveNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
   const fromTools = tools.flatMap((t) => toolNudges[t.name] ?? [])
@@ -66,7 +68,7 @@ const rawAgents: Record<string, AgentDef> = {
     description: "Qualitative coding (executing)",
     chat: true,
     tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, resolve, reject, executeWithPlanTool, forEachTool, completeStep, completeSubstep, abortPlan],
-    nudges: [baselineNudge, memoryNudge, stepStateNudge, identityNudge("Qualitative coding specialist — plan execution phase")],
+    nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge, identityNudge("Qualitative coding specialist — plan execution phase")],
   },
   "qualitative-researcher/merge": {
     path: "/expert/qualitative-researcher/merge",

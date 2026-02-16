@@ -37,13 +37,9 @@ export type PlanSectionGroup = {
 
 export type PlanChild = PlanStep | PlanSection | PlanSectionGroup | LeafMessage
 
-export type SectionProgress = { completed: number; total: number }
-
 export type PlanHeader = {
   type: "plan-header"
   task: string
-  stepProgress: { current: number; total: number } | null
-  sectionProgress: SectionProgress | null
   completed: boolean
   aborted: boolean
 }
@@ -55,12 +51,7 @@ export type PlanItem = {
   dimmed: boolean
 }
 
-export type PlanRemainder = {
-  type: "plan-remainder"
-  count: number
-}
-
-export type GroupedMessage = LeafMessage | PlanHeader | PlanItem | PlanRemainder
+export type GroupedMessage = LeafMessage | PlanHeader | PlanItem
 
 type PlanRange = {
   plan: DerivedPlan
@@ -194,28 +185,12 @@ const toItem = (child: PlanChild, section: boolean, dimmed: boolean): PlanItem =
   dimmed,
 })
 
-export const getStepProgress = (plan: DerivedPlan): { current: number; total: number } | null => {
-  if (plan.currentStep === null) return null
-  const completedCount = plan.steps.filter((s) => s.done).length
-  return { current: completedCount + 1, total: plan.steps.length }
-}
-
 const buildPlanHeader = (plan: DerivedPlan): PlanHeader => ({
   type: "plan-header",
   task: plan.task,
-  stepProgress: getStepProgress(plan),
-  sectionProgress: getSectionProgress(plan),
   completed: isPlanCompleted(plan),
   aborted: plan.aborted,
 })
-
-const getSectionProgress = (plan: DerivedPlan): SectionProgress | null => {
-  if (!plan.perSection) return null
-  return {
-    completed: plan.perSection.completedSections.length,
-    total: plan.perSection.sections.length,
-  }
-}
 
 const buildSimplePlanEntries = (
   plan: DerivedPlan,
@@ -417,22 +392,7 @@ export const toGroupedMessages = (
     buildPlanEntries(range, planLeaves.get(i) ?? [], history)
   )
 
-  return collapseDimmedSections(
-    [...outsideEntries, ...planEntries]
-      .sort((a, b) => a.blockIndex - b.blockIndex)
-      .map((e) => e.item)
-  )
+  return [...outsideEntries, ...planEntries]
+    .sort((a, b) => a.blockIndex - b.blockIndex)
+    .map((e) => e.item)
 }
-
-const isDimmedSectionGroup = (m: GroupedMessage): boolean =>
-  m.type === "plan-item" && m.child.type === "plan-section-group" && m.dimmed
-
-const collapseDimmedSections = (messages: GroupedMessage[]): GroupedMessage[] =>
-  messages.reduce<GroupedMessage[]>((acc, m) => {
-    if (!isDimmedSectionGroup(m)) return [...acc, m]
-    const prev = acc[acc.length - 1]
-    if (prev?.type === "plan-remainder") {
-      return [...acc.slice(0, -1), { type: "plan-remainder", count: prev.count + 1 }]
-    }
-    return [...acc, { type: "plan-remainder", count: 1 }]
-  }, [])

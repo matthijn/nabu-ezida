@@ -7,10 +7,10 @@ const formatSectionHeader = (ps: PerSectionConfig): string => {
   return `Section ${ps.currentSection + 1}/${ps.sections.length} (${section.file}, ${section.indexInFile} of ${section.totalInFile})`
 }
 
-const formatStepLine = (step: Step): string =>
+export const formatStepLine = (step: Step): string =>
   step.done ? `[done] ${step.description}` : `[    ] ${step.description}`
 
-const formatStepProgress = (plan: DerivedPlan): string => {
+export const formatStepProgress = (plan: DerivedPlan): string => {
   if (!plan.perSection) return plan.steps.map(formatStepLine).join("\n")
   const ps = plan.perSection
   const innerSteps = plan.steps.slice(ps.firstInnerStepIndex, ps.firstInnerStepIndex + ps.innerStepCount)

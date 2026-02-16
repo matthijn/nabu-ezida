@@ -6,7 +6,6 @@ export type HighlightEntry = {
   color: string
   title?: string
   description?: string
-  pending?: "pending_change" | "pending_deletion"
   onDelete?: () => void
 }
 
@@ -35,15 +34,15 @@ export const HighlightTooltip = ({ entries }: HighlightTooltipProps) => {
       />
       <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
         {entries.map((entry) => (
-          <div key={entry.id} className={`flex w-full items-start gap-2${entry.pending === "pending_deletion" ? " opacity-50" : ""}`}>
+          <div key={entry.id} className="flex w-full items-start gap-2">
             <div
-              className={`flex h-3 w-3 flex-none items-start rounded-full mt-0.5${entry.pending ? " border border-dashed border-neutral-border" : ""}`}
+              className="flex h-3 w-3 flex-none items-start rounded-full mt-0.5"
               style={{ backgroundColor: entry.color }}
             />
             <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
               {entry.title && (
-                <span className={`text-body-bold font-body-bold text-default-font${entry.pending === "pending_deletion" ? " line-through" : ""}`}>
-                  {entry.pending === "pending_change" ? "+ " : ""}{entry.title}
+                <span className="text-body-bold font-body-bold text-default-font">
+                  {entry.title}
                 </span>
               )}
               {entry.description && (
