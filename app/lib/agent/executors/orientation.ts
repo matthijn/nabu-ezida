@@ -13,7 +13,7 @@ export const orientate = registerTool(
 
 Use when you need to understand the landscape before creating a plan. State your question and initial investigation direction.`,
     schema: OrientateArgs,
-    handler: async () => ok(null),
+    handler: async () => ok({}),
   })
 )
 
@@ -36,6 +36,6 @@ export const reorient = registerTool(
 - **answer**: You have enough information to answer the original question
 - **plan**: You have enough information to create an execution plan`,
     schema: ReorientArgs,
-    handler: async () => ok(null),
+    handler: async () => ok({}),
   })
 )

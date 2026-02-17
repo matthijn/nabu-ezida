@@ -67,6 +67,30 @@ const waitForUser = (origin: BlockOrigin, signal?: AbortSignal): Promise<void> =
 const buildExecutor = (origin: BlockOrigin): ToolExecutor =>
   withDelegation(createExecutor(getToolHandlers()), origin)
 
+const MEMORY_FILE = "memory.hidden.md"
+
+export const extractMemory = (result: ToolResult<unknown>): string | null => {
+  if (result.status !== "ok") return null
+  const output = result.output as Record<string, unknown> | null
+  if (!output || typeof output.memory !== "string") return null
+  return output.memory
+}
+
+const formatMemoryContext = (insight: string, current: string): string =>
+  [
+    `# New insight\n${insight}`,
+    current ? `# Current memory\n${current}` : "# Current memory\n(empty — no memory file exists yet)",
+  ].join("\n\n")
+
+const triggerMemoryUpdate = (agentKey: string, insight: string): void => {
+  const memoryKey = siblingKey(agentKey, "memory")
+  if (!agents[memoryKey]) return
+
+  const current = getFiles()[MEMORY_FILE] ?? ""
+  const context = formatMemoryContext(insight, current)
+  startPhase(memoryKey, context).catch(() => {})
+}
+
 const runAgent = async (agentKey: string, origin: BlockOrigin, chat: boolean): Promise<ToolResult<unknown>> => {
   const agent = agents[agentKey]
   if (!agent) return { status: "error", output: `Unknown agent: ${agentKey}` }
@@ -83,7 +107,11 @@ const runAgent = async (agentKey: string, origin: BlockOrigin, chat: boolean): P
       callbacks: getStreamingCallbacks(),
       signal,
     })
-    if (result) return result
+    if (result) {
+      const memory = extractMemory(result)
+      if (memory) triggerMemoryUpdate(agentKey, memory)
+      return result
+    }
     if (!effectiveAgent.chat) return { status: "error", output: "Agent ended without resolve/reject" }
     getSetLoading()?.(false)
     await waitForUser(origin, signal)

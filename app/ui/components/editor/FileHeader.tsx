@@ -5,7 +5,7 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherBug, FeatherClipboard, FeatherCode, FeatherCloud, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity } from "@subframe/core"
+import { FeatherBug, FeatherClipboard, FeatherCode, FeatherCloud, FeatherGitBranch, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -25,6 +25,7 @@ type DebugOptions = {
   persistToServer: boolean
   renderAsJson: boolean
   showStreamPanel: boolean
+  thenEnabled: boolean
 }
 
 type FileHeaderProps = {
@@ -38,6 +39,7 @@ type FileHeaderProps = {
   onTogglePersist?: () => void
   onToggleRenderJson?: () => void
   onToggleStreamPanel?: () => void
+  onToggleThen?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
@@ -55,6 +57,7 @@ export const FileHeader = ({
   onTogglePersist,
   onToggleRenderJson,
   onToggleStreamPanel,
+  onToggleThen,
   onCopyRaw,
   menuItems = [],
   onAddTag,
@@ -120,6 +123,14 @@ export const FileHeader = ({
             size="small"
             icon={<FeatherActivity />}
             onClick={onToggleStreamPanel}
+          />
+        )}
+        {debugExpanded && onToggleThen && (
+          <IconButton
+            variant={debugOptions?.thenEnabled ? "brand-primary" : "neutral-tertiary"}
+            size="small"
+            icon={<FeatherGitBranch />}
+            onClick={onToggleThen}
           />
         )}
         {debugExpanded && onCopyRaw && (

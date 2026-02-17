@@ -10,7 +10,7 @@
     "output": [
       {
         "stdout": "",
-        "stderr": "Redirects not supported: '<'",
+        "stderr": "This is not bash. '<' is not supported.\nUse only: cat, head, tail, ls, grep, find, wc, blocks, jq, cut, sort, uniq, tr, sed, echo, cp, mv, rm, touch",
         "outcome": {
           "type": "exit",
           "exit_code": 1

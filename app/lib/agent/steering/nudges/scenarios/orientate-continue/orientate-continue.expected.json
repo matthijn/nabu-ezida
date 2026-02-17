@@ -19,14 +19,10 @@
   },
   {
     "type": "system",
-    "content": "ORIENTING: How does auth work?\nCurrent direction: Check login\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call reorient with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit orientation first.\nEach step must yield insight, not just activity."
+    "content": "ORIENTING: How does auth work?\nCurrent direction: Check login\n\n[orientation-instructions]\nInvestigate the current direction using tools, then call reorient with what you learned and your decision (continue / answer / plan).\nDo NOT answer directly — use decision \"answer\" to exit orientation first."
   },
   {
     "type": "empty_nudge"
-  },
-  {
-    "type": "system",
-    "content": "You are specifically a: test assistant\nRemember: users see titles and names, not IDs or internal terms. Write like a colleague, not a system. Use file:// protocol to link when appropriate."
   },
   {
     "type": "tool_call",
@@ -49,7 +45,7 @@
   },
   {
     "type": "system",
-    "content": "ORIENTING: How does auth work?\nCurrent direction: Check session\n\nFindings so far:\n1. [Check login] → \"Found login handler\"\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call reorient with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit orientation first.\nEach step must yield insight, not just activity."
+    "content": "ORIENTING: How does auth work?\nCurrent direction: Check session\n\nFindings so far:\n1. [Check login] → \"Found login handler\""
   },
   {
     "type": "empty_nudge"
@@ -75,7 +71,7 @@
   },
   {
     "type": "system",
-    "content": "ORIENTING: How does auth work?\nCurrent direction: Check token validation\n\nFindings so far:\n1. [Check login] → \"Found login handler\"\n2. [Check session] → \"Session uses JWT\"\n\nINSTRUCTIONS:\n1. Investigate the current direction using tools\n2. Call reorient with:\n   - learned: what you discovered (be specific)\n   - decision: \"continue\" | \"answer\" | \"plan\"\n   - next: (if continuing) your next direction\n\nDo NOT answer directly - use decision \"answer\" to exit orientation first.\nEach step must yield insight, not just activity."
+    "content": "ORIENTING: How does auth work?\nCurrent direction: Check token validation\n\nFindings so far:\n1. [Check login] → \"Found login handler\"\n2. [Check session] → \"Session uses JWT\""
   },
   {
     "type": "empty_nudge"

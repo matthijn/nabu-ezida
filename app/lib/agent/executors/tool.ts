@@ -78,8 +78,21 @@ const THEN_PROPERTY: JsonSchemaProperty = {
   required: ["success", "empty"],
 }
 
+const SKIP_THEN_TOOLS = new Set([
+  "orientate", "reorient",
+  "resolve", "reject",
+  "complete_step", "complete_substep", "abort",
+  "delegate", "execute_with_plan", "for_each",
+])
+
+export type ToolDefinitionOptions = { includeThen?: boolean }
+
+const shouldIncludeThen = (name: string, options?: ToolDefinitionOptions): boolean =>
+  (options?.includeThen ?? false) && !SKIP_THEN_TOOLS.has(name)
+
 export const toToolDefinition = (
-  t: AnyTool
+  t: AnyTool,
+  options?: ToolDefinitionOptions
 ): ToolDefinition => {
   const jsonSchema = t.schema.toJSONSchema() as {
     type?: string
@@ -87,14 +100,20 @@ export const toToolDefinition = (
     required?: string[]
   }
 
+  const addThen = shouldIncludeThen(t.name, options)
+
   return {
     type: "function",
     name: t.name,
     description: t.description,
     parameters: {
       type: "object",
-      properties: { then: THEN_PROPERTY, ...(jsonSchema.properties ?? {}) },
-      required: ["then", ...(jsonSchema.required ?? [])],
+      properties: addThen
+        ? { then: THEN_PROPERTY, ...(jsonSchema.properties ?? {}) }
+        : { ...(jsonSchema.properties ?? {}) },
+      required: addThen
+        ? ["then", ...(jsonSchema.required ?? [])]
+        : [...(jsonSchema.required ?? [])],
     },
   }
 }

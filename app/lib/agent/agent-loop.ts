@@ -3,7 +3,7 @@ import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
 import type { AgentDef } from "./executors/agents"
 import { buildEndpoint } from "./executors/agents"
-import { toToolDefinition } from "./executors/tool"
+import { toToolDefinition, type ToolDefinitionOptions } from "./executors/tool"
 import { buildCaller } from "./caller"
 import { pushBlocks, tagBlocks, getAllBlocks } from "./block-store"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
@@ -51,13 +51,24 @@ export const processResponse = (chat: boolean, newBlocks: Block[]): LoopAction =
   return { type: "continue" }
 }
 
+const readThenEnabled = (): boolean => {
+  if (typeof window === "undefined") return true
+  try {
+    const stored = localStorage.getItem("nabu-debug-options")
+    return stored ? (JSON.parse(stored).thenEnabled ?? false) : false
+  } catch {
+    return false
+  }
+}
+
 export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unknown> | null> => {
   const { origin, agent, executor, callbacks, signal } = config
 
   const readBlocks = (): Block[] =>
     getAllBlocks().filter((b) => b.origin.instance === origin.instance)
   const nudge = collect(...agent.nudges)
-  const tools = agent.tools.map(toToolDefinition)
+  const toolOptions: ToolDefinitionOptions = { includeThen: readThenEnabled() }
+  const tools = agent.tools.map(t => toToolDefinition(t, toolOptions))
 
   const caller = buildCaller(origin, {
     endpoint: buildEndpoint(agent),

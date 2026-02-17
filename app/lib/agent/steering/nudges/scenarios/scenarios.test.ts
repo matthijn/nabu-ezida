@@ -7,7 +7,6 @@ import type { Nudger } from "../../nudge-tools"
 import { collect } from "../../nudge-tools"
 import { buildToolNudges } from "../index"
 import { baselineNudge } from "../baseline"
-import { identityNudge } from "../identity"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -29,7 +28,7 @@ const shouldNudge = (block: Block): boolean =>
 const buildNudge = (files: Files) => {
   const toolNudges = buildToolNudges(() => files)
   const nudgers: Nudger[] = orchestratorToolNames.flatMap((n) => toolNudges[n] ?? [])
-  nudgers.push(baselineNudge, identityNudge("test assistant"))
+  nudgers.push(baselineNudge)
   return collect(...nudgers)
 }
 

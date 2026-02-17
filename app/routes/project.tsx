@@ -50,6 +50,7 @@ export type DebugOptions = {
   persistToServer: boolean
   renderAsJson: boolean
   showStreamPanel: boolean
+  thenEnabled: boolean
 }
 
 const DEBUG_STORAGE_KEY = "nabu-debug-options"
@@ -59,6 +60,7 @@ const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
   persistToServer: true,
   renderAsJson: false,
   showStreamPanel: false,
+  thenEnabled: false,
 }
 
 const loadDebugOptions = (): DebugOptions => {
@@ -86,6 +88,7 @@ export type ProjectContextValue = {
   togglePersistToServer: () => void
   toggleRenderAsJson: () => void
   toggleStreamPanel: () => void
+  toggleThenEnabled: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -103,17 +106,19 @@ export default function ProjectLayout() {
   const [persistToServer, setPersistToServer] = useState(() => loadDebugOptions().persistToServer)
   const [renderAsJson, setRenderAsJson] = useState(() => loadDebugOptions().renderAsJson)
   const [showStreamPanel, setShowStreamPanel] = useState(() => loadDebugOptions().showStreamPanel)
+  const [thenEnabled, setThenEnabled] = useState(() => loadDebugOptions().thenEnabled)
 
-  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel }
+  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel, thenEnabled }
 
   useEffect(() => {
     saveDebugOptions(debugOptions)
-  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel])
+  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, thenEnabled])
 
   const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
   const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
   const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
   const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
+  const toggleThenEnabled = useCallback(() => setThenEnabled((prev) => !prev), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -204,7 +209,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleThenEnabled, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { tool, registerTool, ok, err } from "./tool"
+import { tool, registerTool, ok, partial, err } from "./tool"
 import { findSingletonBlock, parseBlockJson } from "~/domain/blocks/parse"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
@@ -162,16 +162,7 @@ export const autoFuzzyAnnotationText = (op: JsonPatchOp): JsonPatchOp => {
 export const patchJsonBlock = registerTool(
   tool({
     name: "patch_json_block",
-    description: `Apply RFC 6902 JSON Patch operations to a fenced JSON code block within a document.
-
-Finds the block by language identifier, applies the operations to its parsed JSON, and produces a file diff.
-
-Supported operations: add, remove, replace, move, copy, test.
-Paths use JSON Pointer syntax (RFC 6901): /field, /nested/deep/field, /array/- (append).
-
-Array items MUST be targeted by selector: /annotations[id=annotation_8f2a] or /annotations[ambiguity.confidence=medium]. Numeric indices (/annotations/0) are not allowed — always use a selector. Selectors match all items with the given key=value. Nested keys use dot notation in selectors.
-
-Annotation text is automatically fuzzy-matched against the document prose — you do not need to quote it exactly.`,
+    description: "Apply RFC 6902 JSON Patch operations to a fenced JSON code block within a document. Array items must be targeted by selector, not numeric index.",
     schema: PatchJsonBlockArgs,
     handler: async (files, { path, language, operations }) => {
       const content = files.get(path)
@@ -184,12 +175,12 @@ Annotation text is automatically fuzzy-matched against the document prose — yo
       if (json === null) return err(`${path}: Failed to parse JSON in \`${language}\` block`)
 
       const { accepted, rejectedPaths } = partitionNumericIndices(operations)
-      const rejectedNote = rejectedPaths.length > 0
-        ? `\nRejected ${rejectedPaths.length} op(s) with numeric indices (use selectors instead): ${rejectedPaths.join(", ")}`
+      const rejectedMessage = rejectedPaths.length > 0
+        ? `Rejected ${rejectedPaths.length} op(s) with numeric indices (use selectors instead): ${rejectedPaths.join(", ")}`
         : ""
 
       if (accepted.length === 0) {
-        return err(`All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]${rejectedNote}`)
+        return err(`All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`)
       }
 
       const selectorResult = resolveSelectors(accepted, json)
@@ -202,9 +193,17 @@ Annotation text is automatically fuzzy-matched against the document prose — yo
       const diffResult = generateJsonBlockPatch(content, language, applied.result as object)
       if (!diffResult.ok) return err(`Diff generation failed: ${diffResult.error}`)
 
-      if (!diffResult.patch) return ok(`${path}: No changes${rejectedNote}`)
+      const successOutput = diffResult.patch
+        ? `Patched \`${language}\` block in ${path}`
+        : `${path}: No changes`
 
-      return ok(`Patched \`${language}\` block in ${path}${rejectedNote}`, [{ type: "update_file", path, diff: diffResult.patch }])
+      const mutations = diffResult.patch
+        ? [{ type: "update_file" as const, path, diff: diffResult.patch }]
+        : []
+
+      return rejectedMessage
+        ? partial(successOutput, rejectedMessage, mutations)
+        : ok(successOutput, mutations)
     },
   })
 )

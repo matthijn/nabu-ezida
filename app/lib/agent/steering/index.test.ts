@@ -5,7 +5,6 @@ import type { Files } from "../derived"
 import type { Nudger } from "./nudge-tools"
 import { buildToolNudges } from "./nudges"
 import { baselineNudge } from "./nudges/baseline"
-import { identityNudge } from "./nudges/identity"
 import {
   orientateCall,
   reorientCall,
@@ -20,7 +19,7 @@ const orchestratorToolNames = ["orientate", "reorient", "run_local_shell"]
 const buildTestNudge = (files: Files = {}) => {
   const toolNudges = buildToolNudges(() => files)
   const nudgers: Nudger[] = orchestratorToolNames.flatMap((n) => toolNudges[n] ?? [])
-  nudgers.push(baselineNudge, identityNudge("test assistant"))
+  nudgers.push(baselineNudge)
   const nudge = collect(...nudgers)
   const excludeReasoning = (history: Block[]): Block[] =>
     history.filter((b) => b.type !== "reasoning")
@@ -38,7 +37,6 @@ type NudgeExpectation =
   | { type: "none" }
   | { type: "emptyNudge" }
   | { type: "contains"; text: string }
-  | { type: "contains_not"; text: string; not: string }
 
 type TestCase = {
   name: string
@@ -73,40 +71,37 @@ describe("nudge integration", () => {
       expect: { type: "contains", text: "STUCK" },
     },
     {
-      name: "orienting, >30 actions → orientation stops, identity nudge fires",
+      name: "orienting, >30 actions → orientation stops, baseline emptyNudge",
       history: [...orientateCall("Question"), ...manyActions(31)],
-      expect: { type: "contains", text: "users see titles and names" },
+      expect: { type: "emptyNudge" },
     },
     {
-      name: "orientation completed with answer, short history → identity fires (first time)",
+      name: "orientation completed with answer → baseline emptyNudge",
       history: [
         ...orientateCall("Question"),
         ...reorientCall("ctx:done", "Found it", "answer"),
       ],
-      expect: { type: "contains", text: "users see titles and names" },
+      expect: { type: "emptyNudge" },
     },
-
     {
-      name: "no orientation, first tool_result → identity fires (first time)",
+      name: "no orientation, first tool_result → baseline emptyNudge",
       history: [toolResult("1")],
-      expect: { type: "contains", text: "users see titles and names" },
+      expect: { type: "emptyNudge" },
     },
-
     {
       name: "shell error → reminder nudge",
       history: [toolCallBlock(), shellErrorResult()],
       expect: { type: "contains", text: "Shell error" },
     },
     {
-      name: "user message → identity fires (first time)",
+      name: "user message → baseline emptyNudge",
       history: [userMessage("Hello")],
-      expect: { type: "contains", text: "users see titles and names" },
+      expect: { type: "emptyNudge" },
     },
-
     {
-      name: "text block only → identity fires (first time)",
+      name: "text block only → no nudge (not a trigger)",
       history: [textBlock("Response")],
-      expect: { type: "contains", text: "users see titles and names" },
+      expect: { type: "none" },
     },
   ]
 
@@ -127,11 +122,6 @@ describe("nudge integration", () => {
         case "contains":
           expect(result.length).toBeGreaterThan(0)
           expect(nudge).toContain(expectation.text)
-          break
-        case "contains_not":
-          expect(result.length).toBeGreaterThan(0)
-          expect(nudge).toContain(expectation.text)
-          expect(nudge).not.toContain(expectation.not)
           break
       }
     })

@@ -13,8 +13,9 @@ describe("patch_json_block", () => {
     name: string
     files: Map<string, string>
     args: Record<string, unknown>
-    expectStatus: "ok" | "error"
+    expectStatus: "ok" | "partial" | "error"
     expectOutput: string | RegExp
+    expectMessage?: RegExp
     expectMutations?: number
   }
 
@@ -200,8 +201,9 @@ describe("patch_json_block", () => {
           { op: "replace", path: "/annotations/0/code", value: "y" },
         ],
       },
-      expectStatus: "ok",
-      expectOutput: /Patched.*\nRejected 1 op/,
+      expectStatus: "partial",
+      expectOutput: /Patched/,
+      expectMessage: /Rejected 1 op/,
       expectMutations: 1,
     },
     {
@@ -218,13 +220,16 @@ describe("patch_json_block", () => {
     },
   ]
 
-  it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMutations }) => {
+  it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMessage, expectMutations }) => {
     const result = await patchJsonBlock.handle(files, args)
     expect(result.status).toBe(expectStatus)
     if (expectOutput instanceof RegExp) {
       expect(result.output).toMatch(expectOutput)
     } else {
       expect(result.output).toBe(expectOutput)
+    }
+    if (expectMessage) {
+      expect(result.message).toMatch(expectMessage)
     }
     if (expectMutations !== undefined) {
       expect(result.mutations).toHaveLength(expectMutations)

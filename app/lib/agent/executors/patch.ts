@@ -34,15 +34,7 @@ const PatchArgs = z.object({
 export const applyLocalPatch = registerTool(
   tool({
     name: "apply_local_patch",
-    description: `Apply file operations to the local filesystem.
-
-Supports four operation types:
-- **create_file**: Create a new file with content
-- **update_file**: Apply a unified diff to an existing file
-- **delete_file**: Remove a file
-- **rename_file**: Move/rename a file
-
-For create_file and update_file, the diff should be in unified diff format or prefixed with '*** Add File:' for new files.`,
+    description: "Apply file operations to the local filesystem.",
     schema: PatchArgs,
     handler: async (files, { operation }) => {
       const validationError = validateOperation(files, operation)
@@ -58,7 +50,7 @@ export const patchHandler = applyLocalPatch.handle
 const validateOperation = (files: Map<string, string>, op: Operation): string | null => {
   switch (op.type) {
     case "create_file":
-      return files.has(op.path) ? `${op.path}: already exists` : null
+      return files.has(op.path) ? `${op.path}: already exists. Use update_file to modify it` : null
     case "update_file":
       return files.has(op.path) ? null : `${op.path}: No such file`
     case "delete_file":

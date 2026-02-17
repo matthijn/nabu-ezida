@@ -5,6 +5,7 @@ const ResolveArgs = z.object({
   outcome: z.string().describe("What was accomplished. Should be clear enough that the caller can determine if the task met the original outcome without inspecting the artifacts themselves."),
   unresolved: z.string().optional().describe("What couldn't be completed and why. Omit if everything is done. Be specific enough that the caller can decide to retry, delegate elsewhere, or ask the user. Include what would be needed to resolve the remaining items."),
   artifacts: z.array(z.string()).optional().describe("Files created or modified. The caller uses these to pass results to the next task or present to the user."),
+  memory: z.string().optional().describe("User preferences, corrections, or patterns worth remembering for future tasks. Only set when you learned something durable — not per-task details. Omit if nothing new was learned."),
 })
 
 export const resolve = registerTool(

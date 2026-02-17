@@ -103,12 +103,11 @@ const tokenToString = (token: ParseEntry | VarMarker): string | null =>
 
 const validateToken = (token: ParseEntry | VarMarker, next?: ParseEntry | VarMarker): string | null => {
   if (isVarMarker(token)) {
-    const isCommandSubst = token.__var === "" && next && isOp(next) && next.op === "("
-    return isCommandSubst ? notBashError("$(") : `Variables not supported: '$${token.__var}'`
+    const feature = token.__var === "" && next && isOp(next) && next.op === "(" ? "$(" : `$${token.__var}`
+    return notBashError(feature)
   }
   if (isOp(token)) {
-    if (redirectOps.has(token.op)) return `Redirects not supported: '${token.op}'`
-    if (unsupportedOps.has(token.op)) return notBashError(token.op)
+    if (redirectOps.has(token.op) || unsupportedOps.has(token.op)) return notBashError(token.op)
   }
   return null
 }

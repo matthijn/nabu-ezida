@@ -10,9 +10,7 @@ import { executeWithPlanTool, forEachTool } from "./delegation-tools"
 import { completeStep, completeSubstep, abortPlan } from "./reporting"
 import { baselineNudge } from "../steering/nudges/baseline"
 import { buildToolNudges } from "../steering/nudges"
-import { planNudge } from "../steering/nudges/plan"
 import { createMemoryNudge } from "../steering/nudges/memory"
-import { identityNudge } from "../steering/nudges/identity"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
@@ -54,21 +52,21 @@ const rawAgents: Record<string, AgentDef> = {
     description: "Qualitative coding specialist — applies codebook codes to content, revises codebook definitions based on resolved codings",
     chat: true,
     tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, executeWithPlanTool, forEachTool],
-    nudges: [baselineNudge, memoryNudge, identityNudge("Qualitative coding specialist — applies codebook codes to content, revises codebook definitions based on resolved codings")],
+    nudges: [baselineNudge, memoryNudge],
   },
   "qualitative-researcher/plan": {
     path: "/expert/qualitative-researcher/plan",
     description: "Qualitative coding (planning)",
     chat: true,
     tools: [runLocalShell, resolve, reject],
-    nudges: [baselineNudge, planNudge, identityNudge("Qualitative coding specialist — planning phase")],
+    nudges: [baselineNudge],
   },
   "qualitative-researcher/exec": {
     path: "/expert/qualitative-researcher/exec",
     description: "Qualitative coding (executing)",
     chat: true,
     tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, resolve, reject, executeWithPlanTool, forEachTool, completeStep, completeSubstep, abortPlan],
-    nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge, identityNudge("Qualitative coding specialist — plan execution phase")],
+    nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
   },
   "qualitative-researcher/merge": {
     path: "/expert/qualitative-researcher/merge",
@@ -76,6 +74,13 @@ const rawAgents: Record<string, AgentDef> = {
     chat: false,
     tools: [resolve, reject],
     nudges: [],
+  },
+  "qualitative-researcher/memory": {
+    path: "/expert/qualitative-researcher/memory",
+    description: "Memory update",
+    chat: false,
+    tools: [applyLocalPatch, resolve, reject],
+    nudges: [baselineNudge],
   },
 }
 
