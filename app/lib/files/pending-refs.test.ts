@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest"
 import {
-  stripPending,
-  findPending,
-  hasPending,
-  markPending,
-  resolvePending,
-  resolveAllPending,
+  stripPendingRefs,
+  findPendingRefs,
+  hasPendingRefs,
+  markPendingRefs,
+  resolvePendingRef,
+  resolveAllPendingRefs,
   getAllDefinitions,
   findDefinitionIds,
-} from "./pending"
+} from "./pending-refs"
 
-describe("pending", () => {
-  describe("stripPending", () => {
+describe("pending-refs", () => {
+  describe("stripPendingRefs", () => {
     const cases = [
       {
         name: "removes markers, keeps ids",
@@ -31,14 +31,14 @@ describe("pending", () => {
     ]
 
     cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(stripPending(input)).toBe(expected))
+      it(name, () => expect(stripPendingRefs(input)).toBe(expected))
     })
   })
 
-  describe("findPending", () => {
+  describe("findPendingRefs", () => {
     const cases = [
       {
-        name: "finds all pending markers",
+        name: "finds all pending ref markers",
         input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
         expected: ["code_1aaaaaaa", "code_2bbbbbbb"],
       },
@@ -50,18 +50,18 @@ describe("pending", () => {
     ]
 
     cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(findPending(input)).toEqual(expected))
+      it(name, () => expect(findPendingRefs(input)).toEqual(expected))
     })
   })
 
-  describe("hasPending", () => {
+  describe("hasPendingRefs", () => {
     const cases = [
       { name: "true for content with markers", input: '"code": "#[callout_1bc12345]"', expected: true },
       { name: "false for clean content", input: '"code": "callout_1bc12345"', expected: false },
     ]
 
     cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(hasPending(input)).toBe(expected))
+      it(name, () => expect(hasPendingRefs(input)).toBe(expected))
     })
   })
 
@@ -94,7 +94,7 @@ describe("pending", () => {
     })
   })
 
-  describe("markPending", () => {
+  describe("markPendingRefs", () => {
     const cases = [
       {
         name: "marks unresolved foreign keys",
@@ -123,11 +123,11 @@ describe("pending", () => {
     ]
 
     cases.forEach(({ name, input, definitions, expected }) => {
-      it(name, () => expect(markPending(input, definitions)).toBe(expected))
+      it(name, () => expect(markPendingRefs(input, definitions)).toBe(expected))
     })
   })
 
-  describe("resolvePending", () => {
+  describe("resolvePendingRef", () => {
     const cases = [
       {
         name: "resolves specific marker",
@@ -150,11 +150,11 @@ describe("pending", () => {
     ]
 
     cases.forEach(({ name, input, id, expected }) => {
-      it(name, () => expect(resolvePending(input, id)).toBe(expected))
+      it(name, () => expect(resolvePendingRef(input, id)).toBe(expected))
     })
   })
 
-  describe("resolveAllPending", () => {
+  describe("resolveAllPendingRefs", () => {
     const cases = [
       {
         name: "resolves all markers that exist in definitions",
@@ -171,7 +171,7 @@ describe("pending", () => {
     ]
 
     cases.forEach(({ name, input, definitions, expected }) => {
-      it(name, () => expect(resolveAllPending(input, definitions)).toBe(expected))
+      it(name, () => expect(resolveAllPendingRefs(input, definitions)).toBe(expected))
     })
   })
 
@@ -186,7 +186,7 @@ describe("pending", () => {
         expected: new Set(["code_1aaaaaaa", "code_2bbbbbbb"]),
       },
       {
-        name: "strips pending markers before finding definitions",
+        name: "strips pending ref markers before finding definitions",
         files: {
           "a.md": '{"id": "code_1aaaaaaa", "ref": "#[code_2bbbbbbb]"}',
         },

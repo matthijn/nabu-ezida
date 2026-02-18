@@ -117,7 +117,6 @@ const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): 
   color: resolveAnnotationColor(files, stored),
   reason: stored.reason,
   code: stored.code,
-  pending: stored.pending,
 })
 
 export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>

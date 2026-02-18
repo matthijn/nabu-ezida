@@ -25,7 +25,7 @@ const loadScenarios = (): Scenario[] =>
     .filter((name) => name.endsWith(".json"))
     .map((name) => readJson<Scenario>(join(__dirname, name)))
 
-describe("pending resolution scenarios", () => {
+describe("pending-ref resolution scenarios", () => {
   beforeEach(() => {
     setFiles({})
   })

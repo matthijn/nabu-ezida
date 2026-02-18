@@ -13,4 +13,9 @@ const afterUserMessage: Nudger = (history) => {
   return emptyNudge()
 }
 
-export const baselineNudge: Nudger = combine(afterToolResult, afterUserMessage)
+const afterSystemBlock: Nudger = (history) => {
+  if (lastBlock(history)?.type !== "system") return null
+  return emptyNudge()
+}
+
+export const baselineNudge: Nudger = combine(afterToolResult, afterUserMessage, afterSystemBlock)

@@ -9,6 +9,7 @@ import "./orientation"
 import "./shell"
 import "./json-patch"
 import "./remove-block"
+import "./file-ops"
 import "./reporting"
 
 export type { ToolDeps }

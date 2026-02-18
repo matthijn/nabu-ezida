@@ -298,7 +298,7 @@ const formatBlockSchema = (s: BlockSchemaDefinition): string => {
 const formatBlockSchemas = (schemas: BlockSchemaDefinition[]): InputItem => ({
   type: "message",
   role: "system",
-  content: `Document block schemas for patch_json_block and remove_block:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`,
+  content: `Document block schemas:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`,
 })
 
 const buildRequestBody = (options: CallLlmOptions): string => {

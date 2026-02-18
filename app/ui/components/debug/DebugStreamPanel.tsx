@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSyncExternalStore } from "react"
-import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck } from "@subframe/core"
+import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck, FeatherListX } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
@@ -14,6 +14,8 @@ import type { ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
   block: TaggedBlock
+  selected: boolean
+  onToggleSelect: () => void
 }
 
 const PREVIEW_LENGTH = 120
@@ -73,6 +75,16 @@ const formatBlock = (block: TaggedBlock): string => {
 const formatAllBlocks = (blocks: TaggedBlock[]): string =>
   blocks.map(formatBlock).join("\n\n---\n\n")
 
+const toggleIndex = (set: Set<number>, index: number): Set<number> => {
+  const next = new Set(set)
+  if (next.has(index)) next.delete(index)
+  else next.add(index)
+  return next
+}
+
+const filterByIndices = <T,>(items: T[], indices: Set<number>): T[] =>
+  items.filter((_, i) => indices.has(i))
+
 type CollapsibleBlockProps = {
   label: string
   content: string
@@ -84,9 +96,11 @@ type CollapsibleBlockProps = {
   mono?: boolean
   icon?: React.ReactNode
   suffix?: React.ReactNode
+  selected: boolean
+  onToggleSelect: () => void
 }
 
-const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix }: CollapsibleBlockProps) => {
+const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix, selected, onToggleSelect }: CollapsibleBlockProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
 
@@ -97,18 +111,32 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
     setTimeout(() => setCopied(false), 1500)
   }
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggleSelect()
+  }
+
   return (
     <div className={`border-l-2 ${borderColor} pl-2`}>
       <div className="flex items-center justify-between mb-1">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className={`flex items-center gap-1 text-xs ${labelColor} font-medium hover:opacity-80`}
-        >
-          {expanded ? <FeatherChevronDown className="w-3 h-3" /> : <FeatherChevronRight className="w-3 h-3" />}
-          {icon}
-          {label}
-          {suffix}
-        </button>
+        <div className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={selected}
+            onClick={handleToggle}
+            readOnly
+            className="w-3 h-3 accent-neutral-500 cursor-pointer"
+          />
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={`flex items-center gap-1 text-xs ${labelColor} font-medium hover:opacity-80`}
+          >
+            {expanded ? <FeatherChevronDown className="w-3 h-3" /> : <FeatherChevronRight className="w-3 h-3" />}
+            {icon}
+            {label}
+            {suffix}
+          </button>
+        </div>
         <button onClick={handleCopy} className="text-neutral-400 hover:text-neutral-600 p-1">
           {copied ? <FeatherCheck className="w-3 h-3 text-green-500" /> : <FeatherCopy className="w-3 h-3" />}
         </button>
@@ -126,9 +154,10 @@ const OriginBadge = ({ origin }: { origin: TaggedBlock["origin"] }) => (
   </span>
 )
 
-const BlockRenderer = ({ block }: BlockRendererProps) => {
+const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) => {
   const badge = <OriginBadge origin={block.origin} />
   const copy = formatBlock(block)
+  const sel = { selected, onToggleSelect }
 
   switch (block.type) {
     case "user":
@@ -140,6 +169,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           borderColor="border-blue-400"
           labelColor="text-blue-600"
           suffix={badge}
+          {...sel}
         />
       )
     case "text":
@@ -151,6 +181,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           borderColor="border-green-400"
           labelColor="text-green-600"
           suffix={badge}
+          {...sel}
         />
       )
     case "tool_call":
@@ -164,6 +195,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           bgColor="bg-orange-50"
           mono
           suffix={badge}
+          {...sel}
         />
       )
     case "tool_result":
@@ -179,6 +211,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           mono
           icon={isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined}
           suffix={badge}
+          {...sel}
         />
       )
     case "system":
@@ -191,6 +224,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           labelColor="text-gray-600"
           defaultExpanded={false}
           suffix={badge}
+          {...sel}
         />
       )
     case "reasoning":
@@ -204,6 +238,7 @@ const BlockRenderer = ({ block }: BlockRendererProps) => {
           bgColor="bg-yellow-50"
           defaultExpanded={true}
           suffix={badge}
+          {...sel}
         />
       )
     case "empty_nudge":
@@ -271,16 +306,25 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
   const allBlocks = useBlockStore()
   const [copiedAll, setCopiedAll] = useState(false)
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+
+  const hasSelection = selectedIndices.size > 0
 
   const handleCopyAll = () => {
-    const tools = `[tools]\n${formatToolDefinitions()}`
-    const schemas = `[block schemas]\n${formatBlockSchemaDefinitions()}`
-    const blocks = formatAllBlocks(allBlocks)
-    const content = [tools, schemas, blocks].filter(Boolean).join("\n\n---\n\n")
+    const blocksToFormat = hasSelection ? filterByIndices(allBlocks, selectedIndices) : allBlocks
+    const parts = hasSelection
+      ? [formatAllBlocks(blocksToFormat)]
+      : [`[tools]\n${formatToolDefinitions()}`, `[block schemas]\n${formatBlockSchemaDefinitions()}`, formatAllBlocks(blocksToFormat)]
+    const content = parts.filter(Boolean).join("\n\n---\n\n")
     navigator.clipboard.writeText(content)
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 1500)
   }
+
+  const handleDeselectAll = () => setSelectedIndices(new Set())
+
+  const handleToggleBlock = (index: number) =>
+    setSelectedIndices(prev => toggleIndex(prev, index))
 
   return (
     <div
@@ -291,12 +335,24 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         onMouseDown={handleMouseDown}
         className="flex w-full cursor-move items-center justify-between rounded-t-lg bg-neutral-100 px-4 py-2"
       >
-        <span className="text-sm font-medium text-neutral-700">Debug Stream</span>
+        <span className="text-sm font-medium text-neutral-700">
+          Debug Stream
+          {hasSelection && <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>}
+        </span>
         <div className="flex items-center gap-1">
+          {hasSelection && (
+            <button
+              onClick={handleDeselectAll}
+              className="p-1 text-neutral-400 hover:text-neutral-600"
+              title="Deselect all"
+            >
+              <FeatherListX className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={handleCopyAll}
             className="p-1 text-neutral-500 hover:text-neutral-700"
-            title="Copy all messages"
+            title={hasSelection ? `Copy ${selectedIndices.size} selected` : "Copy all messages"}
           >
             {copiedAll ? <FeatherCheck className="w-4 h-4 text-green-500" /> : <FeatherCopy className="w-4 h-4" />}
           </button>
@@ -316,7 +372,12 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
           </div>
         )}
         {allBlocks.map((block, i) => (
-          <BlockRenderer key={i} block={block} />
+          <BlockRenderer
+            key={i}
+            block={block}
+            selected={selectedIndices.has(i)}
+            onToggleSelect={() => handleToggleBlock(i)}
+          />
         ))}
         <StreamingIndicator
           streaming={streaming}

@@ -1,7 +1,7 @@
 import { applyDiff, generateDiff } from "~/lib/diff"
 import { resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { repairJsonNewlines, toExtraPretty, fromExtraPretty, PrettyJsonError } from "~/lib/json"
-import { stripPending } from "./pending"
+import { stripPendingRefs } from "./pending-refs"
 import { parseCodeBlocks } from "~/domain/blocks"
 import {
   fillMissingIds,
@@ -81,7 +81,7 @@ const applyMdPatch = (path: string, content: string, patch: string, options: App
     return { path, status: "error", error: `FUZZY patterns not found: ${unresolved.map(s => `"${s}"`).join(", ")}` }
   }
 
-  const prettyContent = toExtraPretty(stripPending(content))
+  const prettyContent = toExtraPretty(stripPendingRefs(content))
   const diffResult = applyDiff(prettyContent, resolvedPatch)
   if (!diffResult.ok) {
     return { path, status: "error", error: diffResult.error }

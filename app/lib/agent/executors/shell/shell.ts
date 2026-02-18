@@ -20,7 +20,6 @@ const categories: CommandCategory[] = [
   { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
   { name: "JSON", commands: ["blocks", "jq"] },
   { name: "Text Processing", commands: ["cut", "sort", "uniq", "tr", "sed", "echo"] },
-  { name: "File Operations", commands: ["cp", "mv", "rm", "touch"] },
 ]
 
 export const getCommandNames = (): string[] => categories.flatMap((c) => c.commands)
@@ -62,7 +61,7 @@ ${sections.join("\n\n")}
 ### Limitations
 
 - **Flat filesystem**: No subdirectories. Paths \`/\`, \`.\`, \`./\` all refer to root.
-- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content, use \`apply_local_patch\``
+- **Readonly**: No writes. If you do not have write tools, you were not meant to write.`
 }
 
 const helpText = (): string =>

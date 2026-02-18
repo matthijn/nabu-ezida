@@ -7,7 +7,10 @@ import {
   validateFieldChangesInternal,
   type FieldRejection,
 } from "./validate"
-import type { DocumentMeta } from "./schema"
+import type { DocumentMeta, Annotation } from "./schema"
+
+const testAnnotation = (overrides: Partial<Annotation> = {}): Annotation =>
+  ({ text: "test", reason: "note", color: "red", code: undefined, ambiguity: { confidence: "high" }, ...overrides }) as Annotation
 
 describe("validateDocumentMeta", () => {
   const cases = [
@@ -175,7 +178,7 @@ describe("validateField", () => {
     {
       name: "valid annotations",
       field: "annotations",
-      value: [{ text: "test", reason: "note", color: "red", code: undefined }],
+      value: [testAnnotation()],
       expectOk: true,
     },
     {
@@ -220,8 +223,8 @@ describe("validateFieldChanges", () => {
     {
       name: "annotations accepted",
       original: {},
-      patched: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
-      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
+      patched: { annotations: [testAnnotation()] },
+      expectAccepted: { annotations: [testAnnotation()] },
       expectRejectedFields: [],
       expectRejectedReasons: [],
     },
@@ -230,11 +233,11 @@ describe("validateFieldChanges", () => {
       original: {},
       patched: {
         tags: ["valid-tag"],
-        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
+        annotations: [testAnnotation()],
       },
       expectAccepted: {
         tags: ["valid-tag"],
-        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
+        annotations: [testAnnotation()],
       },
       expectRejectedFields: [],
       expectRejectedReasons: [],
@@ -244,9 +247,9 @@ describe("validateFieldChanges", () => {
       original: {},
       patched: {
         tags: ["Invalid Tag"],
-        annotations: [{ text: "test", reason: "note", color: "red", code: undefined }],
+        annotations: [testAnnotation()],
       },
-      expectAccepted: { annotations: [{ text: "test", reason: "note", color: "red", code: undefined }] },
+      expectAccepted: { annotations: [testAnnotation()] },
       expectRejectedFields: ["tags"],
       expectRejectedReasons: ["invalid"],
     },
@@ -280,7 +283,7 @@ describe("validateFieldChanges", () => {
 describe("validateFieldChangesInternal", () => {
   it("accepts valid annotations", () => {
     const patched = {
-      annotations: [{ text: "test", reason: "note", color: "red" as const, code: undefined }],
+      annotations: [testAnnotation()],
     }
     const result = validateFieldChangesInternal({}, patched)
     expect(result.rejected).toEqual([])

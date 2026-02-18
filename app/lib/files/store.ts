@@ -1,5 +1,5 @@
 import { getCodebook as computeCodebook, type Codebook } from "./selectors"
-import { stripPending, markPending, resolvePending, getAllDefinitions, findPending, findDefinitionIds } from "./pending"
+import { stripPendingRefs, markPendingRefs, resolvePendingRef, getAllDefinitions, findPendingRefs, findDefinitionIds } from "./pending-refs"
 import { debounce, createScopedDebounce } from "~/lib/utils"
 import { sendCommand } from "~/lib/sync/commands"
 
@@ -53,7 +53,7 @@ const persistRenameCommand = (oldPath: string, newPath: string): void => {
 export const getFiles = (): Files => files
 
 export const getFilesStripped = (): Files =>
-  Object.fromEntries(Object.entries(files).map(([k, v]) => [k, stripPending(v)]))
+  Object.fromEntries(Object.entries(files).map(([k, v]) => [k, stripPendingRefs(v)]))
 
 export const getCodebook = (): Codebook | undefined => {
   if (cachedFiles !== files) {
@@ -88,10 +88,10 @@ export const updateFileRaw = (filename: string, raw: string): void => {
   console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${raw.length} chars)`)
 
   const definitions = getAllDefinitions(files)
-  const marked = markPending(raw, definitions)
-  const pendingInNew = findPending(marked)
-  if (pendingInNew.length > 0) {
-    console.debug(`[store] marked ${pendingInNew.length} pending refs in "${filename}"`)
+  const marked = markPendingRefs(raw, definitions)
+  const pendingRefsInNew = findPendingRefs(marked)
+  if (pendingRefsInNew.length > 0) {
+    console.debug(`[store] marked ${pendingRefsInNew.length} pending refs in "${filename}"`)
   }
 
   const newDefinitions = findDefinitionIds(raw)
@@ -101,9 +101,9 @@ export const updateFileRaw = (filename: string, raw: string): void => {
   for (const defId of newDefinitions) {
     for (const [path, content] of Object.entries(updatedFiles)) {
       if (path === filename) continue
-      const pending = findPending(content)
-      if (pending.includes(defId)) {
-        const resolved = resolvePending(content, defId)
+      const pendingRefIds = findPendingRefs(content)
+      if (pendingRefIds.includes(defId)) {
+        const resolved = resolvePendingRef(content, defId)
         updatedFiles = { ...updatedFiles, [path]: resolved }
         resolvedPaths.push(path)
       }

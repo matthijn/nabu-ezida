@@ -129,7 +129,7 @@ export const registerTool = <TSchema extends z.ZodType, TOutput>(
 }
 
 export const getToolDefinitions = (): ToolDefinition[] =>
-  registry.map(toToolDefinition)
+  registry.map((t) => toToolDefinition(t))
 
 export const getToolHandlers = (): Record<string, Handler> =>
   Object.fromEntries(registry.map((t) => [t.name, t.handle]))

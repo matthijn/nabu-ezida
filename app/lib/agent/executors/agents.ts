@@ -3,6 +3,7 @@ import type { Nudger } from "../steering/nudge-tools"
 import { patchJsonBlock } from "./json-patch"
 import { applyLocalPatch } from "./patch"
 import { removeBlock } from "./remove-block"
+import { copyFile, renameFile, removeFile } from "./file-ops"
 import { runLocalShell } from "./shell/tool"
 import { orientate, reorient } from "./orientation"
 import { resolve, reject } from "./reporting"
@@ -51,7 +52,7 @@ const rawAgents: Record<string, AgentDef> = {
     path: "/expert/qualitative-researcher",
     description: "Qualitative coding specialist — applies codebook codes to content, revises codebook definitions based on resolved codings",
     chat: true,
-    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, executeWithPlanTool, forEachTool],
+    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, forEachTool],
     nudges: [baselineNudge, memoryNudge],
   },
   "qualitative-researcher/plan": {
@@ -59,13 +60,13 @@ const rawAgents: Record<string, AgentDef> = {
     description: "Qualitative coding (planning)",
     chat: true,
     tools: [runLocalShell, resolve, reject],
-    nudges: [baselineNudge],
+    nudges: [baselineNudge, memoryNudge],
   },
   "qualitative-researcher/exec": {
     path: "/expert/qualitative-researcher/exec",
     description: "Qualitative coding (executing)",
     chat: true,
-    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, resolve, reject, executeWithPlanTool, forEachTool, completeStep, completeSubstep, abortPlan],
+    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, resolve, reject, executeWithPlanTool, forEachTool, completeStep, completeSubstep, abortPlan],
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
   },
   "qualitative-researcher/merge": {
@@ -73,14 +74,14 @@ const rawAgents: Record<string, AgentDef> = {
     description: "Qualitative coding (merging)",
     chat: false,
     tools: [resolve, reject],
-    nudges: [],
+    nudges: [baselineNudge],
   },
   "qualitative-researcher/memory": {
     path: "/expert/qualitative-researcher/memory",
     description: "Memory update",
     chat: false,
     tools: [applyLocalPatch, resolve, reject],
-    nudges: [baselineNudge],
+    nudges: [baselineNudge, memoryNudge],
   },
 }
 

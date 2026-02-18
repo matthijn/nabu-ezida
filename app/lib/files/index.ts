@@ -31,14 +31,14 @@ export {
 } from "./selectors"
 
 export {
-  stripPending,
-  findPending,
-  hasPending,
-  markPending,
-  resolvePending,
-  resolveAllPending,
+  stripPendingRefs,
+  findPendingRefs,
+  hasPendingRefs,
+  markPendingRefs,
+  resolvePendingRef,
+  resolveAllPendingRefs,
   getAllDefinitions,
-} from "./pending"
+} from "./pending-refs"
 
 export {
   applyPatch,

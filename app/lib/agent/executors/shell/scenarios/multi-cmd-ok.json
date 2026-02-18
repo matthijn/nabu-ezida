@@ -1,16 +1,19 @@
 {
-  "files": {},
+  "files": {
+    "a.md": "hello",
+    "b.md": "world"
+  },
   "args": {
     "commands": [
-      "touch a.md",
-      "touch b.md"
+      "cat a.md",
+      "cat b.md"
     ]
   },
   "expected": {
     "status": "ok",
     "output": [
       {
-        "stdout": "touch a.md",
+        "stdout": "hello",
         "stderr": "",
         "outcome": {
           "type": "exit",
@@ -18,7 +21,7 @@
         }
       },
       {
-        "stdout": "touch b.md",
+        "stdout": "world",
         "stderr": "",
         "outcome": {
           "type": "exit",
@@ -27,17 +30,6 @@
       }
     ],
     "message": "All commands completed successfully.",
-    "mutations": [
-      {
-        "type": "create_file",
-        "path": "a.md",
-        "diff": "*** Add File: a.md"
-      },
-      {
-        "type": "create_file",
-        "path": "b.md",
-        "diff": "*** Add File: b.md"
-      }
-    ]
+    "mutations": []
   }
 }

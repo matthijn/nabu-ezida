@@ -4,8 +4,8 @@
   },
   "args": {
     "commands": [
-      "touch new.md",
-      "rm ghost.md",
+      "cat exists.md",
+      "cat ghost.md",
       "ls"
     ]
   },
@@ -13,7 +13,7 @@
     "status": "partial",
     "output": [
       {
-        "stdout": "touch new.md",
+        "stdout": "content",
         "stderr": "",
         "outcome": {
           "type": "exit",
@@ -22,14 +22,14 @@
       },
       {
         "stdout": "",
-        "stderr": "rm: ghost.md: No such file",
+        "stderr": "cat: ghost.md: No such file",
         "outcome": {
           "type": "exit",
           "exit_code": 1
         }
       },
       {
-        "stdout": "exists.md\nnew.md",
+        "stdout": "exists.md",
         "stderr": "",
         "outcome": {
           "type": "exit",
@@ -38,12 +38,6 @@
       }
     ],
     "message": "2/3 commands succeeded. Don't retry if you have the information you need.",
-    "mutations": [
-      {
-        "type": "create_file",
-        "path": "new.md",
-        "diff": "*** Add File: new.md"
-      }
-    ]
+    "mutations": []
   }
 }
