@@ -133,3 +133,12 @@ export const findDocumentForAnnotation = (files: Record<string, string>, id: str
 
 export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
+
+const stripExtension = (filename: string): string =>
+  filename.replace(/\.md$/, "")
+
+export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
+  id.startsWith("annotation_") ? findAnnotationById(files, id)?.text ?? null
+  : id.startsWith("callout_") ? findCalloutById(files, id)?.title ?? null
+  : id.endsWith(".md") && id in files ? stripExtension(id)
+  : null

@@ -31,6 +31,8 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
+import { linkifyEntityIds } from "~/domain/entity-link"
+import { resolveEntityName } from "~/lib/files/selectors"
 import { useNabu } from "./context"
 
 const encodeUrlForMarkdown = (url: string): string =>
@@ -58,7 +60,7 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
 
 const MessageContent = ({ content, files, projectId, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(content)}
+    {fixMarkdownUrls(linkifyEntityIds(content, (id) => resolveEntityName(files, id)))}
   </Markdown>
 )
 
