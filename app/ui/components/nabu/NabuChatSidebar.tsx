@@ -5,10 +5,8 @@ import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
-  FeatherArrowRight,
   FeatherCheck,
   FeatherCircle,
-  FeatherLightbulb,
   FeatherLoader2,
   FeatherMinus,
   FeatherRefreshCw,
@@ -24,7 +22,6 @@ import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
 import { derive, hasActivePlan } from "~/lib/agent"
-import type { DerivedOrientation, Finding } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
@@ -159,33 +156,6 @@ const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
   </span>
 )
 
-const findingToRows = (finding: Finding): React.ReactNode[] => [
-  <div key={`d-${finding.direction}`} className="flex w-full items-start gap-2">
-    <FeatherArrowRight className="text-body font-body text-neutral-400 mt-0.5 flex-none" />
-    <span className="text-body font-body text-default-font">{finding.direction}</span>
-  </div>,
-  <div key={`l-${finding.learned}`} className="flex w-full items-start gap-2">
-    <FeatherLightbulb className="text-body font-body text-brand-600 mt-0.5 flex-none" />
-    <span className="text-body font-body text-default-font">{finding.learned}</span>
-  </div>,
-]
-
-const ExploreContainer = ({ orientation, aborted }: { orientation: DerivedOrientation; aborted: boolean }) => (
-  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 bg-neutral-50 pl-3 pr-2 py-2 my-1">
-    <span className="text-body-bold font-body-bold text-default-font">
-      {orientation.question}
-    </span>
-    {orientation.findings.flatMap(findingToRows)}
-    {orientation.currentDirection && !aborted && (
-      <div className="flex w-full items-start gap-2">
-        <FeatherLoader2 className="text-body font-body text-brand-600 animate-spin mt-0.5 flex-none" />
-        <span className="text-body font-body text-brand-700">{orientation.currentDirection}</span>
-      </div>
-    )}
-    {aborted && <AbortBox />}
-  </div>
-)
-
 type LeafRendererProps = {
   message: LeafMessage
   files: Record<string, string>
@@ -194,38 +164,28 @@ type LeafRendererProps = {
 }
 
 const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps) => {
-  switch (message.type) {
-    case "text":
-      if (message.role === "user") {
-        return (
-          <UserBubble>
-            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
-          </UserBubble>
-        )
-      }
-      return (
-        <AssistantBubble>
-          <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
-        </AssistantBubble>
-      )
-    case "orientation":
-      return (
-        <ExploreContainer
-          orientation={message.orientation}
-          aborted={message.aborted}
-        />
-      )
+  if (message.role === "user") {
+    return (
+      <UserBubble>
+        <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+      </UserBubble>
+    )
   }
+  return (
+    <AssistantBubble>
+      <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+    </AssistantBubble>
+  )
 }
 
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isPlanSection = (child: PlanChild): child is PlanSection => child.type === "plan-section"
 const isPlanSectionGroup = (child: PlanChild): child is PlanSectionGroup => child.type === "plan-section-group"
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
-  child.type === "text" || child.type === "orientation"
+  child.type === "text"
 
 const PlanLeafInline = ({ message, files, projectId, navigate }: { message: LeafMessage; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
-  if (message.type === "text" && message.role === "user") {
+  if (message.role === "user") {
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
@@ -236,18 +196,15 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
       </div>
     )
   }
-  if (message.type === "text") {
-    return (
-      <div className="flex w-full items-start mt-1">
-        <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
-            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
-          </div>
+  return (
+    <div className="flex w-full items-start mt-1">
+      <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
+        <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
+          <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
         </div>
       </div>
-    )
-  }
-  return <LeafRenderer message={message} files={files} projectId={projectId} navigate={navigate} />
+    </div>
+  )
 }
 
 const SectionGroupRenderer = ({ group, files, projectId, navigate }: { group: PlanSectionGroup; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (

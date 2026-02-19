@@ -264,14 +264,14 @@ const allowed: StepGuard = { allowed: true }
 const denied = (reason: string): StepGuard => ({ allowed: false, reason })
 
 export const guardCompleteSubstep = (plan: DerivedPlan): StepGuard => {
-  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done. Call resolve instead.")
+  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done.")
   if (!isInPerSection(plan, plan.currentStep)) return denied("complete_substep is only valid inside a per_section block. The current step is a regular step — use complete_step to mark it done.")
   if (isLastInnerStep(plan, plan.currentStep)) return denied("You are on the last substep of this section. Use complete_step (with summary and internal) to finish the section and advance to the next one.")
   return allowed
 }
 
 export const guardCompleteStep = (plan: DerivedPlan): StepGuard => {
-  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done. Call resolve instead.")
+  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done.")
   if (!isInPerSection(plan, plan.currentStep)) return allowed
   if (!isLastInnerStep(plan, plan.currentStep)) {
     const { firstInnerStepIndex, innerStepCount } = plan.perSection!

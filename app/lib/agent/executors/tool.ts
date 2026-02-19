@@ -79,9 +79,8 @@ const THEN_PROPERTY: JsonSchemaProperty = {
 }
 
 const SKIP_THEN_TOOLS = new Set([
-  "orientate", "reorient",
-  "resolve", "reject",
-  "complete_step", "complete_substep", "abort",
+  "orientate", "resolve", "cancel",
+  "complete_step", "complete_substep",
   "delegate", "execute_with_plan", "for_each",
 ])
 

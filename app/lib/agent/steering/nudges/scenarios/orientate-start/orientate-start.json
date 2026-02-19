@@ -1,4 +1,0 @@
-[
-  { "type": "tool_call", "calls": [{ "id": "1", "name": "orientate", "args": { "question": "How does X work?", "direction": "Check docs" }}]},
-  { "type": "tool_result", "callId": "1", "result": {} }
-]

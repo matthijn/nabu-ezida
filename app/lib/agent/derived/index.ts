@@ -8,19 +8,12 @@ import {
   updateLastPlan,
   hasActivePlan,
 } from "./plan"
-import {
-  type DerivedOrientation,
-  createOrientationFromCall,
-  addFinding,
-  hasActiveOrientation,
-} from "./orientation"
 
 export type Derived = {
   plans: DerivedPlan[]
-  orientation: DerivedOrientation | null
 }
 
-export type Mode = "chat" | "plan" | "orientate"
+export type Mode = "chat" | "plan"
 
 type EnrichedToolCall = ToolCall & { succeeded: boolean }
 type EnrichedToolCallBlock = { type: "tool_call"; calls: EnrichedToolCall[] }
@@ -65,23 +58,19 @@ export const hasCall = (block: Block, name: string): boolean => findCall(block, 
 const isCreatePlan = (call: EnrichedToolCall): boolean => call.name === "create_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
 const isCompleteSubstep = (call: EnrichedToolCall): boolean => call.name === "complete_substep"
-const isAbort = (call: EnrichedToolCall): boolean => call.name === "abort"
-const isOrientate = (call: EnrichedToolCall): boolean => call.name === "orientate"
-const isReorient = (call: EnrichedToolCall): boolean => call.name === "reorient"
+const isCancel = (call: EnrichedToolCall): boolean => call.name === "cancel"
 
 const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files): Derived => {
   if (!call.succeeded) return derived
 
-  if (isAbort(call)) {
+  if (isCancel(call)) {
     return {
       plans: updateLastPlan(derived.plans, (p) => ({ ...p, aborted: true })),
-      orientation: null,
     }
   }
 
   if (isCreatePlan(call)) {
-    const clearOrientation = derived.orientation?.completed ? derived.orientation : null
-    return { plans: [...derived.plans, createPlanFromCall(call, files)], orientation: clearOrientation }
+    return { plans: [...derived.plans, createPlanFromCall(call, files)] }
   }
 
   if (isCompleteStep(call)) {
@@ -104,24 +93,6 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
     }
   }
 
-  if (isOrientate(call)) {
-    return { ...derived, orientation: createOrientationFromCall(call) }
-  }
-
-  if (isReorient(call) && derived.orientation && !derived.orientation.completed) {
-    const direction = derived.orientation.currentDirection || ""
-    const internal = (call.args.internal as string) || null
-    const learned = call.args.learned as string
-    const decision = call.args.decision as string
-    const next = call.args.next as string | undefined
-    const withFinding = addFinding(derived.orientation, direction, internal, learned)
-
-    if (decision === "answer" || decision === "plan") {
-      return { ...derived, orientation: { ...withFinding, currentDirection: null, completed: true } }
-    }
-    return { ...derived, orientation: { ...withFinding, currentDirection: next || null } }
-  }
-
   return derived
 }
 
@@ -131,19 +102,15 @@ const processBlock = (files: Files) => (derived: Derived, block: EnrichedBlock):
 }
 
 export const derive = (history: Block[], files: Files = {}): Derived =>
-  enrichWithResults(history).reduce(processBlock(files), { plans: [], orientation: null })
+  enrichWithResults(history).reduce(processBlock(files), { plans: [] })
 
 export const getMode = (d: Derived): Mode => {
-  if (hasActiveOrientation(d.orientation)) return "orientate"
   if (hasActivePlan(d.plans)) return "plan"
   return "chat"
 }
 
 const isStepBoundary = (block: Block): boolean =>
   hasCall(block, "create_plan") || hasCall(block, "complete_step") || hasCall(block, "complete_substep")
-
-const isOrientationBoundary = (block: Block): boolean =>
-  hasCall(block, "orientate") || hasCall(block, "reorient")
 
 const isAgentAction = (block: Block): boolean =>
   block.type === "text" || block.type === "tool_call"
@@ -171,10 +138,6 @@ export const isPlanPaused = (history: Block[]): boolean => {
 export const actionsSinceStepChange = (history: Block[]): number =>
   countActionsSinceBoundary(history, isStepBoundary)
 
-export const actionsSinceOrientationChange = (history: Block[]): number =>
-  countActionsSinceBoundary(history, isOrientationBoundary)
-
-// Re-export types and selectors from sub-modules
 export {
   type DerivedPlan,
   type Step,
@@ -192,9 +155,3 @@ export {
   guardCompleteStep,
   guardCompleteSubstep,
 } from "./plan"
-
-export {
-  type DerivedOrientation,
-  type Finding,
-  hasActiveOrientation,
-} from "./orientation"

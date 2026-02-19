@@ -2,15 +2,13 @@ import type { Block } from "~/lib/agent"
 import { type Derived, type DerivedPlan, type PerSectionConfig, type Step } from "~/lib/agent"
 import {
   type TextMessage,
-  type OrientationMessage,
   type Indexed,
   textMessagesIndexed,
-  orientationMessagesIndexed,
   findCreationIndices,
   byIndex,
 } from "./messages"
 
-export type LeafMessage = TextMessage | OrientationMessage
+export type LeafMessage = TextMessage
 
 export type StepStatus = "completed" | "active" | "pending" | "cancelled"
 
@@ -363,9 +361,7 @@ export const toGroupedMessages = (
 ): GroupedMessage[] => {
   const planRanges = buildPlanRanges(history, derived.plans)
 
-  const textLeaves: Indexed<LeafMessage>[] = textMessagesIndexed(history)
-  const orientLeaves: Indexed<LeafMessage>[] = orientationMessagesIndexed(history, derived.orientation)
-  const allLeaves = [...textLeaves, ...orientLeaves].sort(byIndex)
+  const allLeaves: Indexed<LeafMessage>[] = textMessagesIndexed(history).sort(byIndex)
 
   const planLeaves: Map<number, Indexed<LeafMessage>[]> = new Map()
   const outsideLeaves: Indexed<LeafMessage>[] = []

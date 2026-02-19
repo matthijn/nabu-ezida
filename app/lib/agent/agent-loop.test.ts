@@ -3,64 +3,70 @@ import type { Block } from "./types"
 import type { TaggedBlock } from "./block-store"
 import type { LoopAction } from "./agent-loop"
 import { processResponse, findTerminalResult, hasToolCalls, excludeReasoning } from "./agent-loop"
-import { formatTaskContext, formatBranchContext, formatMergeContext, siblingKey } from "./executors/delegation"
+import { formatTaskContext, formatBranchContext, formatCompactContext, siblingKey } from "./executors/delegation"
 import { textBlock, userBlock, systemBlock, toolCallBlock, terminalResult, toolResult, tagged } from "./test-helpers"
 
 describe("processResponse", () => {
-  const cases: { name: string; chat: boolean; blocks: Block[]; expected: LoopAction }[] = [
+  const cases: { name: string; interactive: boolean; blocks: Block[]; expected: LoopAction }[] = [
     {
       name: "resolve → terminal ok",
-      chat: false,
+      interactive: false,
       blocks: [terminalResult("resolve", "c1", { status: "ok", output: { outcome: "done" } })],
       expected: { type: "terminal", result: { status: "ok", output: { outcome: "done" } } },
     },
     {
-      name: "reject → terminal error",
-      chat: false,
-      blocks: [terminalResult("reject", "c1", { status: "ok", output: { reason: "bad input", need: "better data" } })],
-      expected: { type: "terminal", result: { status: "error", output: "Rejected: bad input. Need: better data" } },
+      name: "cancel → terminal error",
+      interactive: false,
+      blocks: [terminalResult("cancel", "c1", { status: "ok", output: { reason: "bad input", need: "better data" } })],
+      expected: { type: "terminal", result: { status: "error", output: "Cancelled: bad input. Need: better data" } },
     },
     {
-      name: "text only, chat=true → stop",
-      chat: true,
+      name: "text only, interactive=true → stop",
+      interactive: true,
       blocks: [textBlock("Hello")],
       expected: { type: "stop" },
     },
     {
-      name: "text only, chat=false → continue (nudge handles exit)",
-      chat: false,
+      name: "text only, interactive=false → terminal with text output",
+      interactive: false,
       blocks: [textBlock("Hello")],
+      expected: { type: "terminal", result: { status: "ok", output: "Hello" } },
+    },
+    {
+      name: "no text no tools, interactive=false → continue",
+      interactive: false,
+      blocks: [{ type: "system", content: "nudge" } as Block],
       expected: { type: "continue" },
     },
     {
-      name: "tool calls, chat=true → continue",
-      chat: true,
+      name: "tool calls, interactive=true → continue",
+      interactive: true,
       blocks: [toolCallBlock("search", "c1")],
       expected: { type: "continue" },
     },
     {
-      name: "tool calls, chat=false → continue",
-      chat: false,
+      name: "tool calls, interactive=false → continue",
+      interactive: false,
       blocks: [toolCallBlock("search", "c1")],
       expected: { type: "continue" },
     },
     {
       name: "mixed text+tools → continue",
-      chat: true,
+      interactive: true,
       blocks: [textBlock("thinking..."), toolCallBlock("search", "c1")],
       expected: { type: "continue" },
     },
     {
       name: "non-terminal tool result → continue",
-      chat: true,
+      interactive: true,
       blocks: [toolCallBlock("search", "c1"), toolResult("c1", { status: "ok", output: "found it" })],
       expected: { type: "continue" },
     },
   ]
 
-  cases.forEach(({ name, chat, blocks, expected }) => {
+  cases.forEach(({ name, interactive, blocks, expected }) => {
     it(name, () => {
-      expect(processResponse(chat, blocks)).toEqual(expected)
+      expect(processResponse(interactive, blocks)).toEqual(expected)
     })
   })
 })
@@ -78,9 +84,9 @@ describe("findTerminalResult", () => {
       expected: { status: "ok", output: { outcome: "done" } },
     },
     {
-      name: "reject → error result",
-      blocks: [terminalResult("reject", "c1", { status: "ok", output: { reason: "nope", need: "help" } })],
-      expected: { status: "error", output: "Rejected: nope. Need: help" },
+      name: "cancel → error result",
+      blocks: [terminalResult("cancel", "c1", { status: "ok", output: { reason: "nope", need: "help" } })],
+      expected: { status: "error", output: "Cancelled: nope. Need: help" },
     },
     {
       name: "tool_result without toolName → null",
@@ -331,22 +337,22 @@ describe("context formatting", () => {
     })
   })
 
-  describe("formatMergeContext", () => {
+  describe("formatCompactContext", () => {
     const cases: { name: string; task: string; results: { file: string; result: { status: "ok"; output: unknown } }[]; contains: string[] }[] = [
       {
-        name: "merge with results",
+        name: "compact with results",
         task: "Process all files",
         results: [
           { file: "a.ts", result: { status: "ok", output: "done a" } },
           { file: "b.ts", result: { status: "ok", output: "done b" } },
         ],
-        contains: ["Merge Results", "Process all files", "**Files processed:** 2", "a.ts", "b.ts"],
+        contains: ["Compact Results", "Process all files", "**Files processed:** 2", "a.ts", "b.ts"],
       },
     ]
 
     cases.forEach(({ name, task, results, contains }) => {
       it(name, () => {
-        const result = formatMergeContext(task, results)
+        const result = formatCompactContext(task, results)
         contains.forEach((s) => expect(result).toContain(s))
       })
     })

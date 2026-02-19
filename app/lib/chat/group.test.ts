@@ -5,7 +5,7 @@ import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem,
 import {
   createPlanCall,
   completeStepCall,
-  abortCall,
+  cancelCall,
   resetCallIdCounter,
   userBlock,
   textBlock,
@@ -90,10 +90,10 @@ describe("toGroupedMessages", () => {
         },
       },
       {
-        name: "aborted plan has aborted flag and cancelled step",
+        name: "cancelled plan has aborted flag and cancelled step",
         history: [
           ...createPlanCall("Task", ["Step 1", "Step 2"]),
-          ...abortCall(),
+          ...cancelCall(),
         ],
         check: (result: GroupedMessage[]) => {
           const header = result.find(isPlanHeader)!
@@ -179,7 +179,7 @@ describe("toGroupedMessages", () => {
         history: [
           ...createPlanCall("First task", ["Step A"]),
           textBlock("Working on first"),
-          ...abortCall(),
+          ...cancelCall(),
           ...createPlanCall("Second task", ["Step B"]),
           textBlock("Working on second"),
         ],

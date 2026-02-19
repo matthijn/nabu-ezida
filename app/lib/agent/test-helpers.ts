@@ -60,27 +60,11 @@ export const completeStepCall = (summary = "Done", internal?: string): Block[] =
   })
 }
 
-export const abortCall = (message = "Stopping"): Block[] => {
+export const cancelCall = (reason = "Stopping", need?: string): Block[] => {
   const id = nextCallId()
   return withResult(id, {
     type: "tool_call",
-    calls: [{ id, name: "abort", args: { message } }],
-  })
-}
-
-export const orientateCall = (question: string, direction?: string): Block[] => {
-  const id = nextCallId()
-  return withResult(id, {
-    type: "tool_call",
-    calls: [{ id, name: "orientate", args: { question, direction } }],
-  })
-}
-
-export const reorientCall = (internal: string, learned: string, decision: string, next?: string): Block[] => {
-  const id = nextCallId()
-  return withResult(id, {
-    type: "tool_call",
-    calls: [{ id, name: "reorient", args: { internal, learned, decision, next } }],
+    calls: [{ id, name: "cancel", args: { reason, need } }],
   })
 }
 

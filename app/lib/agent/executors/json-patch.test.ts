@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { patchJsonBlock, autoFuzzyAnnotationText, resolveSelectors, partitionNumericIndices } from "./json-patch"
+import { patchJsonBlock, autoFuzzyAnnotationText, resolveSelectors, partitionNumericIndices } from "./tools/patch-json-block"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 
 const makeFiles = (entries: Record<string, string>): Map<string, string> =>

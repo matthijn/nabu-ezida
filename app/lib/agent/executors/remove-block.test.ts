@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { removeBlock } from "./remove-block"
+import { removeBlock } from "./tools/remove-block"
 
 const makeFiles = (entries: Record<string, string>): Map<string, string> =>
   new Map(Object.entries(entries))

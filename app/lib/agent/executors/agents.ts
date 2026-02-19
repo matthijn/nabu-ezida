@@ -1,14 +1,12 @@
 import type { AnyTool } from "./tool"
 import type { Nudger } from "../steering/nudge-tools"
-import { patchJsonBlock } from "./json-patch"
-import { applyLocalPatch } from "./patch"
-import { removeBlock } from "./remove-block"
-import { copyFile, renameFile, removeFile } from "./file-ops"
-import { runLocalShell } from "./shell/tool"
-import { orientate, reorient } from "./orientation"
-import { resolve, reject } from "./reporting"
-import { executeWithPlanTool, forEachTool } from "./delegation-tools"
-import { completeStep, completeSubstep, abortPlan } from "./reporting"
+import {
+  patchJsonBlock, applyLocalPatch, removeBlock,
+  copyFile, renameFile, removeFile, runLocalShell,
+  orientate, resolve, cancel,
+  executeWithPlanTool, forEachTool,
+  completeStep, completeSubstep,
+} from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
 import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"
@@ -19,7 +17,7 @@ import { getFiles } from "~/lib/files/store"
 export type AgentDef = {
   path: string
   description: string
-  chat: boolean
+  interactive: boolean
   tools: AnyTool[]
   nudges: Nudger[]
   proxy?: string[]
@@ -29,7 +27,7 @@ export const BASE_AGENT = "qualitative-researcher"
 
 export const buildEndpoint = (agent: AgentDef, extra?: string): string => {
   const path = extra ? `${agent.path === "/" ? "" : agent.path}/${extra}` : agent.path
-  return agent.chat ? `${path}?chat=true` : path
+  return agent.interactive ? `${path}?chat=true` : path
 }
 
 const toolNudges = buildToolNudges(getFiles)
@@ -51,37 +49,37 @@ const rawAgents: Record<string, AgentDef> = {
   "qualitative-researcher": {
     path: "/expert/qualitative-researcher",
     description: "Qualitative coding specialist — applies codebook codes to content, revises codebook definitions based on resolved codings",
-    chat: true,
-    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, forEachTool],
+    interactive: true,
+    tools: [runLocalShell, orientate, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, forEachTool],
     nudges: [baselineNudge, memoryNudge],
   },
   "qualitative-researcher/plan": {
     path: "/expert/qualitative-researcher/plan",
     description: "Qualitative coding (planning)",
-    chat: true,
-    tools: [runLocalShell, resolve, reject],
+    interactive: true,
+    tools: [runLocalShell, resolve, cancel],
     nudges: [baselineNudge, memoryNudge],
+  },
+  "qualitative-researcher/orient": {
+    path: "/expert/qualitative-researcher/orient",
+    description: "Investigates questions by searching files",
+    interactive: false,
+    tools: [runLocalShell],
+    nudges: [baselineNudge],
   },
   "qualitative-researcher/exec": {
     path: "/expert/qualitative-researcher/exec",
     description: "Qualitative coding (executing)",
-    chat: true,
-    tools: [runLocalShell, orientate, reorient, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, resolve, reject, executeWithPlanTool, forEachTool, completeStep, completeSubstep, abortPlan],
+    interactive: true,
+    tools: [runLocalShell, orientate, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep],
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
   },
-  "qualitative-researcher/merge": {
-    path: "/expert/qualitative-researcher/merge",
-    description: "Qualitative coding (merging)",
-    chat: false,
-    tools: [resolve, reject],
+  "qualitative-researcher/compact": {
+    path: "/expert/qualitative-researcher/compact",
+    description: "Qualitative coding (compacting)",
+    interactive: false,
+    tools: [],
     nudges: [baselineNudge],
-  },
-  "qualitative-researcher/memory": {
-    path: "/expert/qualitative-researcher/memory",
-    description: "Memory update",
-    chat: false,
-    tools: [applyLocalPatch, resolve, reject],
-    nudges: [baselineNudge, memoryNudge],
   },
 }
 

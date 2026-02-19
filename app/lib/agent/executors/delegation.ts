@@ -1,6 +1,5 @@
 import { getToolHandlers } from "./tool"
 import { createExecutor } from "./execute"
-import { TaskArgs, ExecuteWithPlanArgs, ForEachArgs } from "./delegation-tools"
 import type { ToolCall, ToolResult, Block, BlockOrigin } from "../types"
 import type { ToolExecutor } from "../turn"
 import { createInstance } from "../types"
@@ -8,15 +7,22 @@ import { agents } from "./agents"
 import { pushBlocks, tagBlocks, getBlocksForInstances, subscribeBlocks, setActiveOrigin } from "../block-store"
 import { getStreamingCallbacks, getStreamingSignal, getSetLoading } from "../streaming-context"
 import { agentLoop } from "../agent-loop"
-import { getFileRaw, getStoredAnnotations } from "~/lib/files"
 import { getFiles } from "~/lib/files/store"
 import { derive, lastPlan, guardCompleteStep, guardCompleteSubstep } from "../derived"
-import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
-import { stripAttributesBlock } from "~/lib/text/markdown"
 
 export type TaskContext = {
   intent: string
   context?: string
+}
+
+export type BranchResult = { file: string; result: ToolResult<unknown> }
+
+export type DelegationHandler = (call: { args: unknown }, origin?: BlockOrigin) => Promise<ToolResult<unknown>>
+
+const delegationHandlers = new Map<string, DelegationHandler>()
+
+export const registerDelegationHandler = (name: string, handler: DelegationHandler): void => {
+  delegationHandlers.set(name, handler)
 }
 
 export const formatTaskContext = (args: TaskContext): string =>
@@ -25,14 +31,6 @@ export const formatTaskContext = (args: TaskContext): string =>
     `**Intent:** ${args.intent}`,
     args.context && `**Context:** ${args.context}`,
   ].filter(Boolean).join("\n")
-
-const synthesizeCreatePlan = (planData: Record<string, unknown>): Block[] => {
-  const callId = `synth-${Date.now()}`
-  return [
-    { type: "tool_call", calls: [{ id: callId, name: "create_plan", args: planData }] },
-    { type: "tool_result", callId, result: { status: "ok" } },
-  ]
-}
 
 const countInstanceBlocks = (instance: string): number =>
   getBlocksForInstances([instance]).length
@@ -67,35 +65,41 @@ const waitForUser = (origin: BlockOrigin, signal?: AbortSignal): Promise<void> =
 const buildExecutor = (origin: BlockOrigin): ToolExecutor =>
   withDelegation(createExecutor(getToolHandlers()), origin)
 
-const MEMORY_FILE = "memory.hidden.md"
-
-export const extractMemory = (result: ToolResult<unknown>): string | null => {
-  if (result.status !== "ok") return null
-  const output = result.output as Record<string, unknown> | null
-  if (!output || typeof output.memory !== "string") return null
-  return output.memory
+export const siblingKey = (agentKey: string, suffix: string): string => {
+  const lastSlash = agentKey.lastIndexOf("/")
+  const base = lastSlash === -1 ? agentKey : agentKey.slice(0, lastSlash)
+  return `${base}/${suffix}`
 }
 
-const formatMemoryContext = (insight: string, current: string): string =>
-  [
-    `# New insight\n${insight}`,
-    current ? `# Current memory\n${current}` : "# Current memory\n(empty — no memory file exists yet)",
-  ].join("\n\n")
-
-const triggerMemoryUpdate = (agentKey: string, insight: string): void => {
-  const memoryKey = siblingKey(agentKey, "memory")
-  if (!agents[memoryKey]) return
-
-  const current = getFiles()[MEMORY_FILE] ?? ""
-  const context = formatMemoryContext(insight, current)
-  startPhase(memoryKey, context).catch(() => {})
+type RunAgentOptions = {
+  interactive: boolean
+  canWait?: boolean
 }
 
-const runAgent = async (agentKey: string, origin: BlockOrigin, chat: boolean): Promise<ToolResult<unknown>> => {
+const isPlanComplete = (origin: BlockOrigin): boolean => {
+  const blocks = getBlocksForInstances([origin.instance])
+  const d = derive(blocks, getFiles())
+  const plan = lastPlan(d.plans)
+  return plan !== null && plan.currentStep === null && !plan.aborted
+}
+
+const compactAndReturn = async (agentKey: string, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
+  const compactKey = siblingKey(agentKey, "compact")
+  if (!agents[compactKey]) return { status: "ok", output: "Plan complete" }
+  const blocks = getBlocksForInstances([origin.instance])
+  const summary = blocks
+    .filter((b) => b.type === "text" || (b.type === "tool_result" && b.toolName === "complete_step"))
+    .map((b) => "content" in b ? b.content : JSON.stringify((b as { result: unknown }).result))
+    .join("\n")
+  return startPhase(compactKey, summary)
+}
+
+export const runAgent = async (agentKey: string, origin: BlockOrigin, options: RunAgentOptions): Promise<ToolResult<unknown>> => {
+  const { interactive, canWait = interactive } = options
   const agent = agents[agentKey]
   if (!agent) return { status: "error", output: `Unknown agent: ${agentKey}` }
 
-  const effectiveAgent = chat ? agent : { ...agent, chat: false }
+  const effectiveAgent = interactive ? agent : { ...agent, interactive: false }
   const executor = buildExecutor(origin)
   const signal = getStreamingSignal()
 
@@ -107,89 +111,40 @@ const runAgent = async (agentKey: string, origin: BlockOrigin, chat: boolean): P
       callbacks: getStreamingCallbacks(),
       signal,
     })
-    if (result) {
-      const memory = extractMemory(result)
-      if (memory) triggerMemoryUpdate(agentKey, memory)
-      return result
-    }
-    if (!effectiveAgent.chat) return { status: "error", output: "Agent ended without resolve/reject" }
+    if (result) return result
+    if (!interactive) return { status: "error", output: "Non-interactive agent ended without text" }
+    if (isPlanComplete(origin)) return compactAndReturn(agentKey, origin)
+    if (!canWait) return { status: "error", output: "Branch ended without completing plan" }
     getSetLoading()?.(false)
     await waitForUser(origin, signal)
     getSetLoading()?.(true)
   }
 }
 
-const startPhase = async (agentKey: string, context: string): Promise<ToolResult<unknown>> => {
+export const startPhase = async (agentKey: string, context: string): Promise<ToolResult<unknown>> => {
   const agent = agents[agentKey]
   if (!agent) return { status: "error", output: `Unknown agent: ${agentKey}` }
 
   const origin: BlockOrigin = { agent: agentKey, instance: createInstance(agentKey) }
   pushBlocks(tagBlocks(origin, [{ type: "system", content: context }]))
-  return runAgent(agentKey, origin, agent.chat)
+  return runAgent(agentKey, origin, { interactive: agent.interactive })
 }
 
-const startBranch = async (agentKey: string, frozenBlocks: Block[], context: string): Promise<ToolResult<unknown>> => {
+export const startBranch = async (agentKey: string, frozenBlocks: Block[], context: string): Promise<ToolResult<unknown>> => {
   const agent = agents[agentKey]
   if (!agent) return { status: "error", output: `Unknown agent: ${agentKey}` }
 
   const origin: BlockOrigin = { agent: agentKey, instance: createInstance(agentKey) }
   const history = tagBlocks(origin, frozenBlocks)
   pushBlocks([...history, ...tagBlocks(origin, [{ type: "system", content: context }])])
-  return runAgent(agentKey, origin, false)
+  return runAgent(agentKey, origin, { interactive: true, canWait: false })
 }
 
-const executeDelegation = async (call: ToolCall): Promise<ToolResult<unknown>> => {
-  const parsed = TaskArgs.safeParse(call.args)
-  if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
+export const formatPriorResults = (results: BranchResult[]): string =>
+  ["## Prior Results", ...results.map(formatBranchResult)].join("\n\n")
 
-  const { who, ...fields } = parsed.data
-  return startPhase(who, formatTaskContext(fields))
-}
-
-const executeWithPlan = async (call: ToolCall, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
-  const parsed = ExecuteWithPlanArgs.safeParse(call.args)
-  if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
-
-  const agentKey = origin.agent
-  const planKey = `${agentKey}/plan`
-  const execKey = `${agentKey}/exec`
-
-  if (!agents[planKey] || !agents[execKey]) {
-    return { status: "error", output: `Missing plan/exec agents for: ${agentKey}` }
-  }
-
-  const taskContext = formatTaskContext(parsed.data)
-
-  const planResult = await startPhase(planKey, taskContext)
-  if (planResult.status === "error") return planResult
-
-  const planOutput = planResult.output as { outcome: string; artifacts?: string[] }
-  const planData = JSON.parse(planOutput.outcome) as Record<string, unknown>
-
-  const execOrigin: BlockOrigin = { agent: execKey, instance: createInstance(execKey) }
-  const planBlocks = synthesizeCreatePlan(planData)
-  pushBlocks(tagBlocks(execOrigin, [
-    { type: "system", content: taskContext },
-    ...planBlocks,
-  ]))
-  return runAgent(execKey, execOrigin, agents[execKey].chat)
-}
-
-export type BranchResult = { file: string; result: ToolResult<unknown> }
-
-const readFileChunk = (file: string): string => {
-  const raw = getFileRaw(file)
-  return raw ? stripAttributesBlock(raw) : ""
-}
-
-const readFileAnnotations = (file: string): string => {
-  const raw = getFileRaw(file)
-  if (!raw) return ""
-  const prose = stripAttributesBlock(raw)
-  const annotations = filterMatchingAnnotations(getStoredAnnotations(raw), prose)
-  if (annotations.length === 0) return ""
-  return JSON.stringify(annotations)
-}
+const formatBranchResult = (r: BranchResult): string =>
+  `### ${r.file}\n${JSON.stringify(r.result.output)}`
 
 export const formatBranchContext = (task: string, file: string, content: string, annotations: string, priorResults: BranchResult[]): string =>
   [
@@ -199,56 +154,14 @@ export const formatBranchContext = (task: string, file: string, content: string,
     priorResults.length > 0 && formatPriorResults(priorResults),
   ].filter(Boolean).join("\n\n")
 
-export const formatPriorResults = (results: BranchResult[]): string =>
-  ["## Prior Results", ...results.map(formatBranchResult)].join("\n\n")
-
-const formatBranchResult = (r: BranchResult): string =>
-  `### ${r.file}\n${JSON.stringify(r.result.output)}`
-
-export const formatMergeContext = (task: string, results: BranchResult[]): string =>
+export const formatCompactContext = (task: string, results: BranchResult[]): string =>
   [
-    "# Merge Results",
+    "# Compact Results",
     `**Original task:** ${task}`,
     `**Files processed:** ${results.length}`,
     formatPriorResults(results),
-    "Summarize the results into a single resolve or reject.",
+    "Write a concise summary of what was accomplished, what was found, and what remains open.",
   ].join("\n\n")
-
-export const siblingKey = (agentKey: string, suffix: string): string => {
-  const lastSlash = agentKey.lastIndexOf("/")
-  const base = lastSlash === -1 ? agentKey : agentKey.slice(0, lastSlash)
-  return `${base}/${suffix}`
-}
-
-const executeForEach = async (call: ToolCall, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
-  const parsed = ForEachArgs.safeParse(call.args)
-  if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
-
-  const { files, task } = parsed.data
-  const mergeKey = siblingKey(origin.agent, "merge")
-
-  if (!agents[mergeKey]) {
-    return { status: "error", output: `Missing merge agent for: ${origin.agent}` }
-  }
-
-  const frozenBlocks: Block[] = getBlocksForInstances([origin.instance])
-  const results: BranchResult[] = []
-
-  for (const file of files) {
-    const content = readFileChunk(file)
-    if (!content) {
-      results.push({ file, result: { status: "error", output: `File not found or empty: ${file}` } })
-      continue
-    }
-    const annotations = readFileAnnotations(file)
-    const context = formatBranchContext(task, file, content, annotations, results)
-    const result = await startBranch(origin.agent, frozenBlocks, context)
-    results.push({ file, result })
-  }
-
-  const mergeContext = formatMergeContext(task, results)
-  return startBranch(mergeKey, frozenBlocks, mergeContext)
-}
 
 const isStepGuarded = (name: string): boolean =>
   name === "complete_step" || name === "complete_substep"
@@ -271,9 +184,8 @@ const checkStepGuard = (call: ToolCall, origin: BlockOrigin): ToolResult<unknown
 
 export const withDelegation = (base: ToolExecutor, origin?: BlockOrigin): ToolExecutor =>
   async (call) => {
-    if (call.name === "delegate") return executeDelegation(call)
-    if (call.name === "execute_with_plan" && origin) return executeWithPlan(call, origin)
-    if (call.name === "for_each" && origin) return executeForEach(call, origin)
+    const handler = delegationHandlers.get(call.name)
+    if (handler) return handler(call, origin)
     if (isStepGuarded(call.name) && origin) {
       const guardResult = checkStepGuard(call, origin)
       if (guardResult) return guardResult

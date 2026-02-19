@@ -1,5 +1,5 @@
 import type { Block, Files } from "~/lib/agent"
-import { derive, findCall, type DerivedPlan, type DerivedOrientation } from "~/lib/agent"
+import { derive, findCall, type DerivedPlan } from "~/lib/agent"
 
 export type TextMessage = {
   type: "text"
@@ -14,14 +14,7 @@ export type PlanMessage = {
   aborted: boolean
 }
 
-export type OrientationMessage = {
-  type: "orientation"
-  orientation: DerivedOrientation
-  completed: boolean
-  aborted: boolean
-}
-
-export type RenderMessage = TextMessage | PlanMessage | OrientationMessage
+export type RenderMessage = TextMessage | PlanMessage
 
 export type Indexed<T> = { index: number; message: T }
 
@@ -59,17 +52,6 @@ const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<Pl
   }))
 }
 
-export const orientationMessagesIndexed = (
-  history: Block[],
-  orientation: DerivedOrientation | null
-): Indexed<OrientationMessage>[] => {
-  if (!orientation) return []
-  const indices = findCreationIndices(history, "orientate")
-  const index = indices[indices.length - 1] ?? 0
-  const aborted = findCall(history[history.length - 1], "abort") !== undefined && !orientation.completed
-  return [{ index, message: { type: "orientation", orientation, completed: orientation.completed, aborted } }]
-}
-
 export const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
 
 export const toRenderMessages = (history: Block[], files: Files = {}): RenderMessage[] => {
@@ -77,7 +59,6 @@ export const toRenderMessages = (history: Block[], files: Files = {}): RenderMes
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),
     ...planMessagesIndexed(history, d.plans),
-    ...orientationMessagesIndexed(history, d.orientation),
   ]
   return indexed.sort(byIndex).map((item) => item.message)
 }

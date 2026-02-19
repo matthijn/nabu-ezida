@@ -1,1 +1,1 @@
-export { shellHandler } from "./tool"
+export { createShell, getShellDocs } from "./shell"

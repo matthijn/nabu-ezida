@@ -6,15 +6,13 @@ import type { Nudger } from "./nudge-tools"
 import { buildToolNudges } from "./nudges"
 import { baselineNudge } from "./nudges/baseline"
 import {
-  orientateCall,
-  reorientCall,
   toolResult,
   resetCallIdCounter,
 } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
 
-const orchestratorToolNames = ["orientate", "reorient", "run_local_shell"]
+const orchestratorToolNames = ["run_local_shell"]
 
 const buildTestNudge = (files: Files = {}) => {
   const toolNudges = buildToolNudges(() => files)
@@ -27,8 +25,6 @@ const buildTestNudge = (files: Files = {}) => {
 }
 
 const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
-const manyActions = (count: number): Block[] =>
-  Array.from({ length: count }, () => [toolCallBlock(), toolResult("1")]).flat()
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
 const shellErrorResult = (): Block => ({ type: "tool_result", callId: "1", toolName: "run_local_shell", result: { status: "error", output: "unknown command" } })
@@ -52,37 +48,6 @@ const joinNudges = (blocks: Block[]): string => extractContent(blocks).join("\n"
 
 describe("nudge integration", () => {
   const cases: TestCase[] = [
-    {
-      name: "orienting, <10 actions → orientation nudge",
-      history: [...orientateCall("Question", "Check A")],
-      expect: { type: "contains", text: "ORIENTING:" },
-    },
-    {
-      name: "orienting with findings, <10 actions → orientation nudge with findings",
-      history: [
-        ...orientateCall("Question", "Check A"),
-        ...reorientCall("ctx:a", "Found A", "continue", "Check B"),
-      ],
-      expect: { type: "contains", text: "Found A" },
-    },
-    {
-      name: "orienting, exactly 30 actions → stuck nudge",
-      history: [...orientateCall("Question"), ...manyActions(30)],
-      expect: { type: "contains", text: "STUCK" },
-    },
-    {
-      name: "orienting, >30 actions → orientation stops, baseline emptyNudge",
-      history: [...orientateCall("Question"), ...manyActions(31)],
-      expect: { type: "emptyNudge" },
-    },
-    {
-      name: "orientation completed with answer → baseline emptyNudge",
-      history: [
-        ...orientateCall("Question"),
-        ...reorientCall("ctx:done", "Found it", "answer"),
-      ],
-      expect: { type: "emptyNudge" },
-    },
     {
       name: "no orientation, first tool_result → baseline emptyNudge",
       history: [toolResult("1")],

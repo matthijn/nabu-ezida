@@ -1,7 +1,7 @@
-import { z } from "zod"
 import { tool, registerTool, ok, partial } from "../tool"
-import { createShell, getShellDocs } from "./shell"
-import { initJq } from "./commands/jq"
+import { runLocalShell as def } from "./run-local-shell.def"
+import { createShell } from "../shell/shell"
+import { initJq } from "../shell/commands/jq"
 
 export type ShellCommandOutput = {
   stdout: string
@@ -9,18 +9,9 @@ export type ShellCommandOutput = {
   outcome: { type: "exit"; exit_code: number }
 }
 
-const ShellArgs = z.object({
-  commands: z
-    .array(z.string().describe("A shell command to execute"))
-    .min(1)
-    .describe("Shell commands to run sequentially. Each command runs in the virtual shell environment."),
-})
-
 export const runLocalShell = registerTool(
   tool({
-    name: "run_local_shell",
-    description: getShellDocs(),
-    schema: ShellArgs,
+    ...def,
     handler: async (files, { commands }) => {
       await initJq()
       const shell = createShell(files)

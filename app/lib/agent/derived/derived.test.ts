@@ -1,13 +1,11 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, hasActiveOrientation, getMode, isPlanPaused, guardCompleteStep, guardCompleteSubstep, type Files } from "."
+import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep, guardCompleteSubstep, type Files } from "."
 import {
   createPlanCall,
   completeStepCall,
   completeSubstepCall,
-  abortCall,
-  orientateCall,
-  reorientCall,
+  cancelCall,
   textBlock,
   userBlock,
   resetCallIdCounter,
@@ -79,108 +77,12 @@ describe("derived", () => {
         },
       },
       {
-        name: "abort marks plan as aborted",
-        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...abortCall()],
+        name: "cancel marks plan as aborted",
+        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...cancelCall()],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(lastPlan(d.plans)?.aborted).toBe(true)
           expect(hasActivePlan(d.plans)).toBe(false)
-        },
-      },
-    ]
-
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(history))
-    })
-  })
-
-  describe("orientation", () => {
-    const cases = [
-      {
-        name: "no history returns null orientation",
-        history: [] as Block[],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation).toBe(null)
-          expect(hasActiveOrientation(d.orientation)).toBe(false)
-        },
-      },
-      {
-        name: "orientate creates orientation",
-        history: [...orientateCall("How does X work?", "Check the docs")],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation?.question).toBe("How does X work?")
-          expect(d.orientation?.findings).toHaveLength(0)
-          expect(d.orientation?.currentDirection).toBe("Check the docs")
-          expect(hasActiveOrientation(d.orientation)).toBe(true)
-        },
-      },
-      {
-        name: "reorient with continue adds finding",
-        history: [
-          ...orientateCall("Question", "Look at A"),
-          ...reorientCall("ctx:abc", "Found A details", "continue", "Now look at B"),
-        ],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation?.findings).toHaveLength(1)
-          expect(d.orientation?.findings[0].direction).toBe("Look at A")
-          expect(d.orientation?.findings[0].learned).toBe("Found A details")
-          expect(d.orientation?.currentDirection).toBe("Now look at B")
-          expect(hasActiveOrientation(d.orientation)).toBe(true)
-        },
-      },
-      {
-        name: "reorient stores internal context",
-        history: [
-          ...orientateCall("Question", "Look at A"),
-          ...reorientCall("fileId:abc", "Found it", "continue", "Next"),
-        ],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation?.findings[0].internal).toBe("fileId:abc")
-          expect(d.orientation?.findings[0].learned).toBe("Found it")
-        },
-      },
-      {
-        name: "reorient with answer marks completed",
-        history: [
-          ...orientateCall("Question"),
-          ...reorientCall("ctx:done", "Answer found", "answer"),
-        ],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation?.completed).toBe(true)
-          expect(hasActiveOrientation(d.orientation)).toBe(false)
-        },
-      },
-      {
-        name: "reorient with plan marks completed",
-        history: [
-          ...orientateCall("Question"),
-          ...reorientCall("ctx:ready", "Ready to plan", "plan"),
-        ],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation?.completed).toBe(true)
-        },
-      },
-      {
-        name: "abort clears orientation",
-        history: [...orientateCall("Question"), ...abortCall()],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation).toBe(null)
-        },
-      },
-      {
-        name: "create_plan clears orientation",
-        history: [...orientateCall("Question"), ...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
-        check: (history: Block[]) => {
-          const d = derive(history)
-          expect(d.orientation).toBe(null)
-          expect(lastPlan(d.plans)?.task).toBe("Task")
         },
       },
     ]
@@ -206,16 +108,6 @@ describe("derived", () => {
         name: "completed plan returns chat",
         history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...completeStepCall()],
         expected: "chat",
-      },
-      {
-        name: "active orientation returns orientate",
-        history: [...orientateCall("Question")],
-        expected: "orientate",
-      },
-      {
-        name: "orientation takes priority over plan",
-        history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...orientateCall("Question")],
-        expected: "orientate",
       },
     ]
 

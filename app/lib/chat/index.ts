@@ -11,7 +11,6 @@ export {
   toRenderMessages,
   type TextMessage,
   type PlanMessage,
-  type OrientationMessage,
   type RenderMessage,
 } from "./messages"
 

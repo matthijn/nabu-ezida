@@ -10,7 +10,7 @@ import { baselineNudge } from "../baseline"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const orchestratorToolNames = ["orientate", "reorient", "run_local_shell"]
+const orchestratorToolNames = ["run_local_shell"]
 
 type Files = Record<string, string>
 
