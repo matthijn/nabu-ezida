@@ -2,8 +2,10 @@ import type { Block } from "~/lib/agent"
 import { type Derived, type DerivedPlan, type PerSectionConfig, type Step } from "~/lib/agent"
 import {
   type TextMessage,
+  type AskMessage,
   type Indexed,
   textMessagesIndexed,
+  extractAskMessages,
   findCreationIndices,
   byIndex,
 } from "./messages"
@@ -49,7 +51,7 @@ export type PlanItem = {
   dimmed: boolean
 }
 
-export type GroupedMessage = LeafMessage | PlanHeader | PlanItem
+export type GroupedMessage = LeafMessage | AskMessage | PlanHeader | PlanItem
 
 type PlanRange = {
   plan: DerivedPlan
@@ -355,13 +357,19 @@ const buildPlanEntries = (
 const isInRange = (index: number, range: PlanRange): boolean =>
   index >= range.startIndex && index < range.endIndex
 
+const isConsumedLeaf = (leaf: Indexed<LeafMessage>, consumed: Set<number>): boolean =>
+  leaf.message.role === "user" && consumed.has(leaf.index)
+
 export const toGroupedMessages = (
   history: Block[],
   derived: Derived,
 ): GroupedMessage[] => {
   const planRanges = buildPlanRanges(history, derived.plans)
+  const { messages: askMessages, consumedUserIndices } = extractAskMessages(history)
 
-  const allLeaves: Indexed<LeafMessage>[] = textMessagesIndexed(history).sort(byIndex)
+  const allLeaves: Indexed<LeafMessage>[] = textMessagesIndexed(history)
+    .filter((l) => !isConsumedLeaf(l, consumedUserIndices))
+    .sort(byIndex)
 
   const planLeaves: Map<number, Indexed<LeafMessage>[]> = new Map()
   const outsideLeaves: Indexed<LeafMessage>[] = []
@@ -384,11 +392,16 @@ export const toGroupedMessages = (
     item: l.message,
   }))
 
+  const askEntries: OrderedEntry[] = askMessages.map((a) => ({
+    blockIndex: a.index,
+    item: a.message,
+  }))
+
   const planEntries: OrderedEntry[] = planRanges.flatMap((range, i) =>
     buildPlanEntries(range, planLeaves.get(i) ?? [], history)
   )
 
-  return [...outsideEntries, ...planEntries]
+  return [...outsideEntries, ...askEntries, ...planEntries]
     .sort((a, b) => a.blockIndex - b.blockIndex)
     .map((e) => e.item)
 }

@@ -19,26 +19,34 @@ const stop = () => updateChat({ ...STREAMING_RESET, loading: false })
 let active = false
 let controller: AbortController | null = null
 
-const buildCallbacks = () => ({
-  onChunk: (chunk: string) => {
-    const c = getChat()
-    if (c) updateChat({ streaming: c.streaming + chunk })
-  },
-  onToolArgsChunk: (chunk: string) => {
-    const c = getChat()
-    if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
-  },
-  onReasoningChunk: (chunk: string) => {
-    const c = getChat()
-    if (c) updateChat({ streamingReasoning: c.streamingReasoning + chunk })
-  },
-  onToolName: (name: string) => {
-    updateChat({ streamingToolArgs: "", streamingToolName: name })
-  },
-  onStreamEnd: () => {
-    updateChat(STREAMING_RESET)
-  },
-})
+const buildCallbacks = () => {
+  let reasoningStale = false
+
+  return {
+    onChunk: (chunk: string) => {
+      const c = getChat()
+      if (c) updateChat({ streaming: c.streaming + chunk })
+    },
+    onToolArgsChunk: (chunk: string) => {
+      const c = getChat()
+      if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
+    },
+    onReasoningChunk: (chunk: string) => {
+      const c = getChat()
+      if (!c) return
+      const base = reasoningStale ? "" : c.streamingReasoning
+      reasoningStale = false
+      updateChat({ streamingReasoning: base + chunk })
+    },
+    onToolName: (name: string) => {
+      updateChat({ streamingToolArgs: "", streamingToolName: name })
+    },
+    onStreamEnd: () => {
+      reasoningStale = true
+      updateChat({ streaming: "", streamingToolArgs: "", streamingToolName: null })
+    },
+  }
+}
 
 let baseOrigin: BlockOrigin | null = null
 

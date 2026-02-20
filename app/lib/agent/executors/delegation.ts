@@ -45,7 +45,10 @@ export const waitForUser = (origin: BlockOrigin, signal?: AbortSignal): Promise<
 }
 
 const handleExecuteWithPlan = (origin: BlockOrigin): ToolResult<unknown> => {
-  pushBlocks(tagBlocks(origin, [{ type: "system", content: "<!-- prompt: planning -->" }]))
+  pushBlocks(tagBlocks(origin, [
+    { type: "system", content: "<!-- prompt: planning -->" },
+    { type: "system", content: "<!-- reasoning: high -->" },
+  ]))
   return { status: "ok", output: buildModeResult("plan") }
 }
 
@@ -58,12 +61,16 @@ const guardCreatePlan = (origin: BlockOrigin): ToolResult<unknown> | null => {
 const handleCreatePlan = (origin: BlockOrigin): ToolResult<unknown> => {
   const guardResult = guardCreatePlan(origin)
   if (guardResult) return guardResult
-  pushBlocks(tagBlocks(origin, [{ type: "system", content: "<!-- prompt: execution -->" }]))
+  pushBlocks(tagBlocks(origin, [
+    { type: "system", content: "<!-- prompt: execution -->" },
+    { type: "system", content: "<!-- reasoning: medium -->" },
+  ]))
   return { status: "ok", output: buildModeResult("exec") }
 }
 
-const handleCancelInMode = (call: ToolCall, mode: ModeName): ToolResult<unknown> => {
+const handleCancelInMode = (call: ToolCall, mode: ModeName, origin: BlockOrigin): ToolResult<unknown> => {
   if (mode === "chat") return { status: "error", output: "Nothing to cancel." }
+  pushBlocks(tagBlocks(origin, [{ type: "system", content: "<!-- reasoning: low -->" }]))
   const reason = (call.args as { reason?: string }).reason ?? "Cancelled"
   return { status: "ok", output: `Cancelled: ${reason}. ${buildModeResult("chat")}` }
 }
@@ -98,7 +105,7 @@ export const withModeAwareness = (base: ToolExecutor, origin: BlockOrigin): Tool
 
       if (call.name === "execute_with_plan") return handleExecuteWithPlan(origin)
       if (call.name === "create_plan") return handleCreatePlan(origin)
-      if (call.name === "cancel") return handleCancelInMode(call, mode)
+      if (call.name === "cancel") return handleCancelInMode(call, mode, origin)
     }
 
     const handler = specialHandlers.get(call.name)

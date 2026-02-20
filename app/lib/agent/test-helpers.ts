@@ -68,6 +68,25 @@ export const cancelCall = (reason = "Stopping", need?: string): Block[] => {
   })
 }
 
+export type AskQuestion = { question: string; options: string[] }
+
+export const askCallPending = (questions: AskQuestion[]): Block[] => {
+  const id = nextCallId()
+  return [{
+    type: "tool_call",
+    calls: [{ id, name: "ask", args: { questions } }],
+  }]
+}
+
+export const askCall = (questions: AskQuestion[], answers: string[]): Block[] => {
+  const id = nextCallId()
+  return [
+    { type: "tool_call", calls: [{ id, name: "ask", args: { questions } }] },
+    ...answers.map((a) => ({ type: "user" as const, content: a })),
+    { type: "tool_result", callId: id, result: { status: "ok", output: JSON.stringify(answers) } },
+  ]
+}
+
 export const toolResult = (callId: string, result: unknown = { status: "ok" }): Block => ({
   type: "tool_result",
   callId,

@@ -1,10 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
-import { toRenderMessages, type RenderMessage } from "./messages"
+import { toRenderMessages, extractAskMessages, isWaitingForAsk, type RenderMessage, type AskMessage } from "./messages"
 import {
   createPlanCall,
   completeStepCall,
   cancelCall,
+  askCall,
+  askCallPending,
   resetCallIdCounter,
 } from "~/lib/agent/test-helpers"
 
@@ -179,6 +181,156 @@ describe("toRenderMessages", () => {
 
     cases.forEach(({ name, history, check }) => {
       it(name, () => check(toRenderMessages(history)))
+    })
+  })
+})
+
+describe("extractAskMessages", () => {
+  const cases = [
+    {
+      name: "no ask blocks returns empty",
+      history: [userBlock("Hello"), textBlock("Hi")],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toEqual([])
+        expect(result.consumedUserIndices.size).toBe(0)
+      },
+    },
+    {
+      name: "pending single question has selected null",
+      history: [...askCallPending([{ question: "Pick one", options: ["A", "B"] }])],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(1)
+        expect(result.messages[0].message.question).toBe("Pick one")
+        expect(result.messages[0].message.options).toEqual(["A", "B"])
+        expect(result.messages[0].message.selected).toBeNull()
+      },
+    },
+    {
+      name: "answered single question has selected from answers array",
+      history: [...askCall([{ question: "Pick one", options: ["A", "B"] }], ["A"])],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(1)
+        expect(result.messages[0].message.selected).toBe("A")
+      },
+    },
+    {
+      name: "consumed user blocks between ask and result are tracked",
+      history: [...askCall([{ question: "Pick", options: ["X", "Y"] }], ["X"])],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.consumedUserIndices.size).toBe(1)
+        expect(result.consumedUserIndices.has(1)).toBe(true)
+      },
+    },
+    {
+      name: "multiple separate ask calls all extracted",
+      history: [
+        ...askCall([{ question: "Q1", options: ["A", "B"] }], ["A"]),
+        ...askCall([{ question: "Q2", options: ["C", "D"] }], ["D"]),
+      ],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(2)
+        expect(result.messages[0].message.question).toBe("Q1")
+        expect(result.messages[0].message.selected).toBe("A")
+        expect(result.messages[1].message.question).toBe("Q2")
+        expect(result.messages[1].message.selected).toBe("D")
+      },
+    },
+    {
+      name: "multi-question call answered produces N messages with selections",
+      history: [...askCall(
+        [
+          { question: "Color?", options: ["Red", "Blue"] },
+          { question: "Size?", options: ["S", "M", "L"] },
+        ],
+        ["Red", "M"],
+      )],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(2)
+        expect(result.messages[0].message).toEqual({ type: "ask", question: "Color?", options: ["Red", "Blue"], selected: "Red" })
+        expect(result.messages[1].message).toEqual({ type: "ask", question: "Size?", options: ["S", "M", "L"], selected: "M" })
+        expect(result.consumedUserIndices.size).toBe(2)
+      },
+    },
+    {
+      name: "multi-question pending shows only first question",
+      history: [...askCallPending([
+        { question: "Color?", options: ["Red", "Blue"] },
+        { question: "Size?", options: ["S", "M", "L"] },
+      ])],
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(1)
+        expect(result.messages[0].message.question).toBe("Color?")
+        expect(result.messages[0].message.selected).toBeNull()
+      },
+    },
+    {
+      name: "multi-question partially answered shows answered + current",
+      history: (() => {
+        const id = "99"
+        return [
+          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { questions: [
+            { question: "Q1", options: ["A", "B"] },
+            { question: "Q2", options: ["C", "D"] },
+            { question: "Q3", options: ["E", "F"] },
+          ] } }] },
+          { type: "user" as const, content: "A" },
+        ]
+      })(),
+      check: (result: ReturnType<typeof extractAskMessages>) => {
+        expect(result.messages).toHaveLength(2)
+        expect(result.messages[0].message.question).toBe("Q1")
+        expect(result.messages[0].message.selected).toBeNull()
+        expect(result.messages[1].message.question).toBe("Q2")
+        expect(result.messages[1].message.selected).toBeNull()
+      },
+    },
+  ]
+
+  cases.forEach(({ name, history, check }) => {
+    it(name, () => check(extractAskMessages(history as Block[])))
+  })
+})
+
+describe("isWaitingForAsk", () => {
+  const cases = [
+    {
+      name: "no ask blocks returns false",
+      history: [userBlock("Hello"), textBlock("Hi")],
+      expected: false,
+    },
+    {
+      name: "pending ask returns true",
+      history: [...askCallPending([{ question: "Pick one", options: ["A", "B"] }])],
+      expected: true,
+    },
+    {
+      name: "answered ask returns false",
+      history: [...askCall([{ question: "Pick one", options: ["A", "B"] }], ["A"])],
+      expected: false,
+    },
+    {
+      name: "ask followed by text returns false",
+      history: [...askCallPending([{ question: "Pick", options: ["A", "B"] }]), textBlock("Continuing")],
+      expected: false,
+    },
+    {
+      name: "ask followed by user returns false",
+      history: [...askCallPending([{ question: "Pick", options: ["A", "B"] }]), userBlock("My answer")],
+      expected: false,
+    },
+    {
+      name: "answered ask then new pending ask returns true",
+      history: [
+        ...askCall([{ question: "Q1", options: ["A", "B"] }], ["A"]),
+        ...askCallPending([{ question: "Q2", options: ["C", "D"] }]),
+      ],
+      expected: true,
+    },
+  ]
+
+  cases.forEach(({ name, history, expected }) => {
+    it(name, () => {
+      expect(isWaitingForAsk(history)).toBe(expected)
     })
   })
 })

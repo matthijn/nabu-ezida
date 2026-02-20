@@ -8,6 +8,7 @@ import {
   executeWithPlanTool,
   completeStep, completeSubstep,
   forEachTool,
+  askTool,
 } from "./tools"
 import { createPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -38,12 +39,12 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, askTool],
     triggers: ["cancel", "resolve"],
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
-    tools: [runLocalShell, createPlanTool, cancel],
+    tools: [runLocalShell, createPlanTool, cancel, askTool],
     triggers: ["execute_with_plan"],
     prompt: "planning",
     nudges: [baselineNudge, memoryNudge],

@@ -1,5 +1,5 @@
-import type { Block, Files } from "~/lib/agent"
-import { derive, findCall, type DerivedPlan } from "~/lib/agent"
+import type { Block, Files, ToolCall } from "~/lib/agent"
+import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
 
 export type TextMessage = {
   type: "text"
@@ -61,4 +61,102 @@ export const toRenderMessages = (history: Block[], files: Files = {}): RenderMes
     ...planMessagesIndexed(history, d.plans),
   ]
   return indexed.sort(byIndex).map((item) => item.message)
+}
+
+export type AskMessage = {
+  type: "ask"
+  question: string
+  options: string[]
+  selected: string | null
+}
+
+type AskExtraction = {
+  messages: Indexed<AskMessage>[]
+  consumedUserIndices: Set<number>
+}
+
+const findAskCalls = (history: Block[]): { index: number; call: ToolCall }[] =>
+  history.flatMap((block, index) => {
+    const call = findCall(block, "ask")
+    return call ? [{ index, call }] : []
+  })
+
+const findToolResult = (history: Block[], callId: string): string | null => {
+  for (const block of history) {
+    if (block.type === "tool_result" && block.callId === callId) {
+      const result = block.result as { output?: string } | undefined
+      return result?.output ?? null
+    }
+  }
+  return null
+}
+
+const findConsumedUserIndices = (history: Block[], askIndex: number, callId: string): number[] => {
+  const indices: number[] = []
+  for (let i = askIndex + 1; i < history.length; i++) {
+    const block = history[i]
+    if (block.type === "tool_result" && block.callId === callId) break
+    if (block.type === "user") indices.push(i)
+  }
+  return indices
+}
+
+type AskQuestionArg = { question: string; options: string[] }
+
+const parseAnswers = (raw: string | null): string[] | null => {
+  if (raw === null) return null
+  try { return JSON.parse(raw) as string[] } catch { return null }
+}
+
+const extractSingleAsk = (
+  index: number,
+  call: ToolCall,
+  history: Block[],
+  consumed: Set<number>,
+): Indexed<AskMessage>[] => {
+  const args = call.args as { questions: AskQuestionArg[] }
+  const questions = args.questions ?? []
+  const userIndices = findConsumedUserIndices(history, index, call.id)
+  userIndices.forEach((i) => consumed.add(i))
+
+  const answers = parseAnswers(findToolResult(history, call.id))
+  const answeredCount = answers ? answers.length : userIndices.length
+
+  return questions
+    .slice(0, answeredCount + (answers ? 0 : 1))
+    .map((q, i) => ({
+      index,
+      message: {
+        type: "ask" as const,
+        question: q.question,
+        options: q.options,
+        selected: answers ? (answers[i] ?? null) : null,
+      },
+    }))
+}
+
+export const extractAskMessages = (history: Block[]): AskExtraction => {
+  const consumed = new Set<number>()
+  const messages = findAskCalls(history).flatMap(({ index, call }) =>
+    extractSingleAsk(index, call, history, consumed),
+  )
+  return { messages, consumedUserIndices: consumed }
+}
+
+const isAskToolCall = (block: Block): boolean =>
+  isToolCallBlock(block) && block.calls.some((c) => c.name === "ask")
+
+const hasMatchingResult = (history: Block[], callId: string): boolean =>
+  history.some((b) => b.type === "tool_result" && b.callId === callId)
+
+export const isWaitingForAsk = (history: Block[]): boolean => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (block.type === "text" || block.type === "user") return false
+    if (isAskToolCall(block)) {
+      const call = findCall(block, "ask")!
+      return !hasMatchingResult(history, call.id)
+    }
+  }
+  return false
 }

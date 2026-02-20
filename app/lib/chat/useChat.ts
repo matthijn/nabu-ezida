@@ -8,6 +8,7 @@ import { getEditorContext, contextToMessage, findLastContextMessage } from "./co
 type UseChatResult = {
   chat: ChatState | null
   send: (content: string, deps?: RunnerDeps) => void
+  respond: (content: string) => void
   run: (deps?: RunnerDeps) => void
   cancel: () => void
   loading: boolean
@@ -63,9 +64,18 @@ export const useChat = (): UseChatResult => {
     []
   )
 
+  const respond = useCallback(
+    (content: string) => {
+      const origin = getActiveOrigin() ?? getBaseOrigin()
+      const userBlock: Block = { type: "user", content }
+      pushBlocks(tagBlocks(origin, [userBlock]))
+    },
+    []
+  )
+
   const cancel = useCallback(() => {
     cancelRunner()
   }, [])
 
-  return { chat, send, run: runChat, cancel, loading, streaming, streamingToolArgs, streamingReasoning, streamingToolName, history, error }
+  return { chat, send, respond, run: runChat, cancel, loading, streaming, streamingToolArgs, streamingReasoning, streamingToolName, history, error }
 }

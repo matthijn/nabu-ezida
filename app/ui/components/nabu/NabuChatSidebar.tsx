@@ -6,6 +6,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
   FeatherCheck,
+  FeatherChevronRight,
   FeatherCircle,
   FeatherLoader2,
   FeatherMinus,
@@ -23,6 +24,8 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useChat } from "~/lib/chat"
 import { derive, hasActivePlan } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
+import type { AskMessage } from "~/lib/chat/messages"
+import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
@@ -180,6 +183,69 @@ const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps
   )
 }
 
+type OptionCardProps = {
+  label: string
+  selected: boolean
+  dimmed: boolean
+  onClick?: () => void
+}
+
+const OptionCard = ({ label, selected, dimmed, onClick }: OptionCardProps) => {
+  if (selected) {
+    return (
+      <div className="flex w-full items-center gap-2 rounded-lg border-2 border-brand-600 bg-brand-50 px-3 py-2">
+        <span className="grow text-body font-body text-default-font">{label}</span>
+        <FeatherCheck className="text-brand-600 flex-none" />
+      </div>
+    )
+  }
+  if (dimmed) {
+    return (
+      <div className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 opacity-50">
+        <span className="grow text-body font-body text-default-font">{label}</span>
+      </div>
+    )
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+    >
+      <FeatherChevronRight className="text-neutral-400 flex-none" />
+      <span className="grow text-left text-body font-body text-default-font">{label}</span>
+    </button>
+  )
+}
+
+type AskRendererProps = {
+  message: AskMessage
+  onSelect: (option: string) => void
+}
+
+const AskRenderer = ({ message, onSelect }: AskRendererProps) => {
+  const answered = message.selected !== null
+  return (
+    <div className="flex w-full items-start">
+      <div className="flex flex-col items-start gap-2 max-w-[80%]">
+        <span className="text-body font-body text-default-font">{message.question}</span>
+        <div className="flex w-full flex-col gap-1.5">
+          {message.options.map((option) => (
+            <OptionCard
+              key={option}
+              label={option}
+              selected={message.selected === option}
+              dimmed={answered && message.selected !== option}
+              onClick={answered ? undefined : () => onSelect(option)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const isAskMessage = (m: GroupedMessage): m is AskMessage => m.type === "ask"
+
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isPlanSection = (child: PlanChild): child is PlanSection => child.type === "plan-section"
 const isPlanSectionGroup = (child: PlanChild): child is PlanSectionGroup => child.type === "plan-section-group"
@@ -265,7 +331,7 @@ const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem
 type PlanMessage = PlanHeader | PlanItem
 
 type PlanSegment = { type: "plan-segment"; items: PlanMessage[] }
-type RenderSegment = LeafMessage | PlanSegment
+type RenderSegment = LeafMessage | AskMessage | PlanSegment
 
 const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
   m.type === "plan-header" || m.type === "plan-item"
@@ -340,10 +406,13 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
-const getFirstSentence = (text: string): string | null => {
+const getLatestReasoning = (text: string): string | null => {
   const trimmed = text.trim()
   if (!trimmed) return null
-  const match = trimmed.match(/^[^\n.!?]+/)
+  const lines = trimmed.split("\n")
+  const last = lines[lines.length - 1].trim()
+  if (!last) return null
+  const match = last.match(/^[^.!?]+/)
   return match?.[0].replace(/^\*\*|\*\*$/g, "").trim() || null
 }
 
@@ -369,7 +438,7 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chat, send, run, cancel, loading, streaming, streamingReasoning, streamingToolName, history, error } = useChat()
+  const { chat, send, respond, run, cancel, loading, streaming, streamingReasoning, streamingToolName, history, error } = useChat()
   const { files } = useFiles()
 
   const derived = useMemo(() => derive(history, files), [history, files])
@@ -379,6 +448,7 @@ export const NabuChatSidebar = () => {
   const segments = useMemo(() => toRenderSegments(messages), [messages])
   const activePlan = hasActivePlan(derived.plans)
   const lastPlanIdx = segments.reduce<number>((acc, s, i) => isPlanSegment(s) ? i : acc, -1)
+  const waitingForAsk = useMemo(() => isWaitingForAsk(history), [history])
 
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -398,10 +468,16 @@ export const NabuChatSidebar = () => {
   }, [chat])
 
   const handleSend = useCallback(() => {
-    if (loading || !inputValue.trim()) return
+    if (!inputValue.trim()) return
+    if (waitingForAsk) {
+      respond(inputValue.trim())
+      setInputValue("")
+      return
+    }
+    if (loading) return
     send(inputValue.trim(), getDeps())
     setInputValue("")
-  }, [loading, inputValue, send, getDeps])
+  }, [loading, waitingForAsk, inputValue, send, respond, getDeps])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -425,7 +501,7 @@ export const NabuChatSidebar = () => {
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const reasoningLabel = getFirstSentence(streamingReasoning)
+  const reasoningLabel = getLatestReasoning(streamingReasoning)
   const spinnerLabel = loading && !streamingText
     ? (reasoningLabel ?? getSpinnerLabel(history, streamingToolName))
     : null
@@ -475,16 +551,18 @@ export const NabuChatSidebar = () => {
               projectId={params.projectId ?? null}
               navigate={navigate}
             />
+          ) : isAskMessage(segment) ? (
+            <AskRenderer key={i} message={segment} onSelect={respond} />
           ) : (
             <LeafRenderer key={i} message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           )
         )}
-        {!activePlan && loading && streamingText && (
+        {!activePlan && !waitingForAsk && loading && streamingText && (
           <AssistantBubble>
             <MessageContent content={streamingText} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           </AssistantBubble>
         )}
-        {!activePlan && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+        {!activePlan && !waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
         {error && (
           <div className="flex flex-col items-center gap-2 py-4">
             <span className="text-body font-body text-subtext-color">{error}</span>
@@ -495,17 +573,17 @@ export const NabuChatSidebar = () => {
         )}
       </AutoScroll>
 
-      <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading ? "bg-neutral-50" : ""}`}>
+      <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>
         <TextFieldUnstyled className="grow min-h-5">
           <TextFieldUnstyled.Textarea
             ref={inputRef}
-            placeholder={`Message ${recipient.name}...`}
+            placeholder={waitingForAsk ? "Or type your own answer..." : `Message ${recipient.name}...`}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
           />
         </TextFieldUnstyled>
-        {loading ? (
+        {loading && !waitingForAsk ? (
           <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
             Cancel
           </Button>
