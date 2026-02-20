@@ -3,12 +3,14 @@ import { createInstance } from "~/lib/agent/types"
 import { createToolExecutor } from "~/lib/agent"
 import { setActiveOrigin } from "~/lib/agent/block-store"
 import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
-import { agents, BASE_AGENT } from "~/lib/agent/executors/agents"
 import { agentLoop } from "~/lib/agent/agent-loop"
+import { waitForUser } from "~/lib/agent/executors/delegation"
 import { getChat, updateChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 
 export type RunnerDeps = ToolDeps
+
+const BASE_AGENT = "qualitative-researcher"
 
 const STREAMING_RESET = { streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null } as const
 
@@ -61,21 +63,16 @@ const runAgent = async (deps: RunnerDeps): Promise<void> => {
 
   updateChat({ loading: true, error: null, streamingToolName: null })
 
-  try {
+  while (true) {
     await agentLoop({
       origin,
-      agent: agents[BASE_AGENT],
       executor,
       callbacks,
       signal: controller.signal,
     })
     stop()
-  } catch (e) {
-    if (isAbortError(e)) {
-      stop()
-      return
-    }
-    updateChat({ error: "Something went wrong", ...STREAMING_RESET, loading: false })
+    await waitForUser(origin, controller.signal)
+    updateChat({ loading: true, error: null, streamingToolName: null })
   }
 }
 
@@ -84,10 +81,15 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   active = true
   try {
     await runAgent(deps)
+  } catch (e) {
+    if (!isAbortError(e)) {
+      updateChat({ error: "Something went wrong", ...STREAMING_RESET, loading: false })
+    }
   } finally {
     active = false
     controller = null
     clearStreamingContext()
+    stop()
     setActiveOrigin(getBaseOrigin())
   }
 }

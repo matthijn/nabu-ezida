@@ -1,11 +1,10 @@
 import type { Block } from "~/lib/agent"
 
 const toolLabels: Record<string, string> = {
-  orientate: "Investigating",
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
-  delegate: "Delegating",
   execute_with_plan: "Planning",
+  create_plan: "Starting execution",
   for_each: "Processing",
   resolve: "Completing",
   cancel: "Cancelling",

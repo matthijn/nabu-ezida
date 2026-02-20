@@ -100,9 +100,9 @@ describe("derived", () => {
         expected: "chat",
       },
       {
-        name: "active plan returns plan",
+        name: "active plan returns exec",
         history: [...createPlanCall("Task", [{ title: "Step 1", expected: "Complete" }])],
-        expected: "plan",
+        expected: "exec",
       },
       {
         name: "completed plan returns chat",

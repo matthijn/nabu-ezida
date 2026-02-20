@@ -1,18 +1,16 @@
 import type { Block, BlockOrigin, ToolResult } from "./types"
 import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
-import type { AgentDef } from "./executors/agents"
-import { buildEndpoint } from "./executors/agents"
 import { toToolDefinition, type ToolDefinitionOptions } from "./executors/tool"
 import { buildCaller } from "./caller"
 import { pushBlocks, tagBlocks, getAllBlocks } from "./block-store"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { TERMINAL_TOOLS } from "./executors/tools"
+import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 
 export type AgentLoopConfig = {
   origin: BlockOrigin
-  agent: AgentDef
   executor: ToolExecutor
   callbacks?: ParseCallbacks
   signal?: AbortSignal
@@ -33,12 +31,7 @@ export const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null 
   for (const block of blocks) {
     if (block.type !== "tool_result") continue
     if (!block.toolName || !TERMINAL_TOOLS.has(block.toolName)) continue
-    const result = block.result as ToolResult<unknown>
-    if (block.toolName === "cancel") {
-      const args = result.output as { reason: string; need: string }
-      return { status: "error", output: `Cancelled: ${args.reason}. Need: ${args.need}` }
-    }
-    return { status: "ok", output: result.output }
+    return { status: "ok", output: (block.result as ToolResult<unknown>).output }
   }
   return null
 }
@@ -46,13 +39,12 @@ export const findTerminalResult = (blocks: Block[]): ToolResult<unknown> | null 
 export const extractLastText = (blocks: Block[]): string =>
   blocks.filter((b) => b.type === "text").map((b) => b.content).join("\n") || ""
 
-export const processResponse = (interactive: boolean, newBlocks: Block[]): LoopAction => {
+export const processResponse = (newBlocks: Block[]): LoopAction => {
   const terminal = findTerminalResult(newBlocks)
   if (terminal) return { type: "terminal", result: terminal }
   if (hasToolCalls(newBlocks)) return { type: "continue" }
-  if (interactive) return { type: "stop" }
   const text = extractLastText(newBlocks)
-  if (text) return { type: "terminal", result: { status: "ok", output: text } }
+  if (text) return { type: "stop" }
   return { type: "continue" }
 }
 
@@ -67,25 +59,20 @@ const readThenEnabled = (): boolean => {
 }
 
 export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unknown> | null> => {
-  const { origin, agent, executor, callbacks, signal } = config
+  const { origin, executor, callbacks, signal } = config
 
   const readBlocks = (): Block[] =>
     getAllBlocks().filter((b) => b.origin.instance === origin.instance)
-  const nudge = collect(...agent.nudges)
   const toolOptions: ToolDefinitionOptions = { includeThen: readThenEnabled() }
-  const tools = agent.tools.map(t => toToolDefinition(t, toolOptions))
-
-  const caller = buildCaller(origin, {
-    endpoint: buildEndpoint(agent),
-    tools,
-    blockSchemas: getBlockSchemaDefinitions(),
-    execute: executor,
-    callbacks,
-    readBlocks,
-  })
 
   while (true) {
-    const nudges = await nudge(excludeReasoning(readBlocks()))
+    const blocks = readBlocks()
+    const mode = deriveMode(blocks)
+    const modeConfig = modes[mode]
+    const tools = modeConfig.tools.map((t) => toToolDefinition(t, toolOptions))
+    const nudge = collect(...modeConfig.nudges)
+
+    const nudges = await nudge(excludeReasoning(blocks))
     if (nudges.length === 0) return null
 
     const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))
@@ -93,9 +80,18 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unk
       pushBlocks(tagBlocks(origin, nonEmpty))
     }
 
+    const caller = buildCaller(origin, {
+      endpoint: ENDPOINT,
+      tools,
+      blockSchemas: getBlockSchemaDefinitions(),
+      execute: executor,
+      callbacks,
+      readBlocks,
+    })
+
     const newBlocks = await caller(signal)
 
-    const action = processResponse(agent.interactive, newBlocks)
+    const action = processResponse(newBlocks)
     if (action.type === "terminal") return action.result
     if (action.type === "stop") return null
   }

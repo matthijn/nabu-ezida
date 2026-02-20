@@ -13,7 +13,7 @@ export type Derived = {
   plans: DerivedPlan[]
 }
 
-export type Mode = "chat" | "plan"
+export type Mode = "chat" | "plan" | "exec"
 
 type EnrichedToolCall = ToolCall & { succeeded: boolean }
 type EnrichedToolCallBlock = { type: "tool_call"; calls: EnrichedToolCall[] }
@@ -105,7 +105,7 @@ export const derive = (history: Block[], files: Files = {}): Derived =>
   enrichWithResults(history).reduce(processBlock(files), { plans: [] })
 
 export const getMode = (d: Derived): Mode => {
-  if (hasActivePlan(d.plans)) return "plan"
+  if (hasActivePlan(d.plans)) return "exec"
   return "chat"
 }
 

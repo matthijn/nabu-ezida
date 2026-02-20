@@ -79,9 +79,9 @@ const THEN_PROPERTY: JsonSchemaProperty = {
 }
 
 const SKIP_THEN_TOOLS = new Set([
-  "orientate", "resolve", "cancel",
+  "resolve", "cancel",
   "complete_step", "complete_substep",
-  "delegate", "execute_with_plan", "for_each",
+  "execute_with_plan", "create_plan", "for_each",
 ])
 
 export type ToolDefinitionOptions = { includeThen?: boolean }
