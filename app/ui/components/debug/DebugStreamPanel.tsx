@@ -69,6 +69,8 @@ const formatBlock = (block: TaggedBlock): string => {
       return `[system] (${agent})\n${block.content}`
     case "empty_nudge":
       return `[empty_nudge] (${agent})`
+    case "error":
+      return `[error] (${agent})\n${block.content}`
   }
 }
 
@@ -258,56 +260,73 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
       )
     case "empty_nudge":
       return null
+    case "error":
+      return (
+        <CollapsibleBlock
+          label="error"
+          content={block.content}
+          copyContent={copy}
+          borderColor="border-red-400"
+          labelColor="text-red-600"
+          bgColor="bg-red-50"
+          icon={<FeatherAlertCircle className="w-3 h-3" />}
+          suffix={badge}
+          {...sel}
+        />
+      )
   }
 }
 
 type StreamingIndicatorProps = {
-  streaming: string
-  streamingToolArgs: string
-  streamingReasoning: string
-  streamingToolName: string | null
+  draft: TaggedBlock | null
 }
 
-const StreamingIndicator = ({ streaming, streamingToolArgs, streamingReasoning, streamingToolName }: StreamingIndicatorProps) => {
-  if (!streaming && !streamingToolName && !streamingReasoning) return null
+const StreamingIndicator = ({ draft }: StreamingIndicatorProps) => {
+  if (!draft) return null
 
-  return (
-    <>
-      {streamingReasoning && (
+  switch (draft.type) {
+    case "reasoning":
+      return (
         <div className="border-l-2 border-yellow-400 pl-2">
           <div className="text-xs text-yellow-600 font-medium mb-1 flex items-center gap-2">
             <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
             thinking
           </div>
           <div className="text-sm font-mono whitespace-pre-wrap bg-yellow-50 p-2 rounded">
-            {streamingReasoning}
+            {draft.content}
           </div>
         </div>
-      )}
-      {streamingToolName && (
+      )
+    case "tool_call": {
+      const call = draft.calls[0]
+      const argsStr = call ? String(call.args) : ""
+      return (
         <div className="border-l-2 border-orange-400 pl-2">
           <div className="text-xs text-orange-600 font-medium mb-1 flex items-center gap-2">
             <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-            tool_call: {streamingToolName}
+            tool_call: {call?.name}
           </div>
-          {streamingToolArgs && (
+          {argsStr && (
             <div className="text-sm font-mono whitespace-pre-wrap bg-orange-50 p-2 rounded">
-              {streamingToolArgs}
+              {argsStr}
             </div>
           )}
         </div>
-      )}
-      {streaming && !streamingToolName && (
+      )
+    }
+    case "text":
+      return (
         <div className="border-l-2 border-green-400 pl-2">
           <div className="text-xs text-green-600 font-medium mb-1 flex items-center gap-2">
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             assistant
           </div>
-          <div className="text-sm whitespace-pre-wrap">{streaming}</div>
+          <div className="text-sm whitespace-pre-wrap">{draft.content}</div>
         </div>
-      )}
-    </>
-  )
+      )
+    default:
+      return null
+  }
 }
 
 type DebugStreamPanelProps = {
@@ -318,7 +337,7 @@ const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocks, 
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
-  const { history, streaming, streamingToolArgs, streamingReasoning, streamingToolName } = useChat()
+  const { draft } = useChat()
   const allBlocks = useBlockStore()
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
@@ -394,12 +413,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
             onToggleSelect={() => handleToggleBlock(i)}
           />
         ))}
-        <StreamingIndicator
-          streaming={streaming}
-          streamingToolArgs={streamingToolArgs}
-          streamingReasoning={streamingReasoning}
-          streamingToolName={streamingToolName}
-        />
+        <StreamingIndicator draft={draft} />
       </AutoScroll>
     </div>
   )

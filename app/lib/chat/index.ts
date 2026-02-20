@@ -1,7 +1,6 @@
 export {
   openChat,
   getChat,
-  updateChat,
   closeChat,
   subscribe,
   type ChatState,

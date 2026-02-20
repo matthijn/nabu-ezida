@@ -3,12 +3,6 @@ import type { Participant } from "~/domain/participant"
 export type ChatState = {
   initiator: Participant
   recipient: Participant
-  streaming: string
-  streamingToolArgs: string
-  streamingReasoning: string
-  streamingToolName: string | null
-  error: string | null
-  loading: boolean
 }
 
 let chat: ChatState | null = null
@@ -22,26 +16,11 @@ export const openChat = (
   initiator: Participant,
   recipient: Participant
 ): void => {
-  chat = {
-    initiator,
-    recipient,
-    streaming: "",
-    streamingToolArgs: "",
-    streamingReasoning: "",
-    streamingToolName: null,
-    error: null,
-    loading: false,
-  }
+  chat = { initiator, recipient }
   notify()
 }
 
 export const getChat = (): ChatState | null => chat
-
-export const updateChat = (updates: Partial<ChatState>): void => {
-  if (!chat) return
-  chat = { ...chat, ...updates }
-  notify()
-}
 
 export const closeChat = (): void => {
   chat = null

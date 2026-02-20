@@ -279,7 +279,7 @@ describe("extractAskMessages", () => {
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.messages).toHaveLength(2)
         expect(result.messages[0].message.question).toBe("Q1")
-        expect(result.messages[0].message.selected).toBeNull()
+        expect(result.messages[0].message.selected).toBe("A")
         expect(result.messages[1].message.question).toBe("Q2")
         expect(result.messages[1].message.selected).toBeNull()
       },

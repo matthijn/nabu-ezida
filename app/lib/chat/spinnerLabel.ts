@@ -1,4 +1,5 @@
 import type { Block } from "~/lib/agent"
+import type { TaggedBlock } from "~/lib/agent/block-store"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
@@ -25,7 +26,13 @@ const toLabel = (toolName: string | null): string => {
   return toolLabels[toolName] ?? "Thinking"
 }
 
-export const getSpinnerLabel = (history: Block[], streamingToolName?: string | null): string => {
-  if (streamingToolName) return toLabel(streamingToolName)
+const getDraftToolName = (draft: TaggedBlock | null): string | null => {
+  if (!draft || draft.type !== "tool_call") return null
+  return draft.calls[0]?.name ?? null
+}
+
+export const getSpinnerLabel = (history: Block[], draft: TaggedBlock | null): string => {
+  const draftTool = getDraftToolName(draft)
+  if (draftTool) return toLabel(draftTool)
   return toLabel(findLastToolCallName(history))
 }

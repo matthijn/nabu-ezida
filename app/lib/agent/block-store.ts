@@ -4,13 +4,54 @@ export type TaggedBlock = Block & { origin: BlockOrigin }
 
 let blocks: TaggedBlock[] = []
 let listeners: (() => void)[] = []
+let draft: TaggedBlock | null = null
+let draftListeners: (() => void)[] = []
+let loading = false
+let loadingListeners: (() => void)[] = []
 
 const notify = (): void => listeners.forEach((l) => l())
+const notifyDraft = (): void => draftListeners.forEach((l) => l())
+const notifyLoading = (): void => loadingListeners.forEach((l) => l())
 
 export const pushBlocks = (newBlocks: TaggedBlock[]): void => {
   blocks = [...blocks, ...newBlocks]
+  draft = null
   recomputeInstances()
   notify()
+  notifyDraft()
+}
+
+export const setDraft = (tagged: TaggedBlock): void => {
+  draft = tagged
+  notifyDraft()
+}
+
+export const getDraft = (): TaggedBlock | null => draft
+
+export const clearDraft = (): void => {
+  draft = null
+  notifyDraft()
+}
+
+export const subscribeDraft = (listener: () => void): (() => void) => {
+  draftListeners = [...draftListeners, listener]
+  return () => {
+    draftListeners = draftListeners.filter((l) => l !== listener)
+  }
+}
+
+export const setLoading = (value: boolean): void => {
+  loading = value
+  notifyLoading()
+}
+
+export const getLoading = (): boolean => loading
+
+export const subscribeLoading = (listener: () => void): (() => void) => {
+  loadingListeners = [...loadingListeners, listener]
+  return () => {
+    loadingListeners = loadingListeners.filter((l) => l !== listener)
+  }
 }
 
 export const tagBlocks = (origin: BlockOrigin, raw: Block[]): TaggedBlock[] =>

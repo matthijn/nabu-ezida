@@ -42,12 +42,17 @@ export type EmptyNudgeBlock = {
   type: "empty_nudge"
 }
 
+export type ErrorBlock = {
+  type: "error"
+  content: string
+}
+
 export type BlockOrigin = {
   agent: string
   instance: string
 }
 
-export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock
+export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock
 
 let instanceCounter = 0
 

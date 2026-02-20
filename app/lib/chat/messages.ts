@@ -20,14 +20,14 @@ export type Indexed<T> = { index: number; message: T }
 
 const hasContent = (s: string): boolean => s.trim().length > 0
 
-const isTextBlock = (b: Block): b is { type: "user" | "text"; content: string } =>
-  b.type === "user" || b.type === "text"
+const isContentBlock = (b: Block): b is { type: "user" | "text" | "error"; content: string } =>
+  b.type === "user" || b.type === "text" || b.type === "error"
 
 export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
-    .filter((item): item is { block: { type: "user" | "text"; content: string }; index: number } =>
-      isTextBlock(item.block) && hasContent(item.block.content)
+    .filter((item): item is { block: { type: "user" | "text" | "error"; content: string }; index: number } =>
+      isContentBlock(item.block) && hasContent(item.block.content)
     )
     .map(({ block, index }) => ({
       index,
@@ -130,7 +130,11 @@ const extractSingleAsk = (
         type: "ask" as const,
         question: q.question,
         options: q.options,
-        selected: answers ? (answers[i] ?? null) : null,
+        selected: answers
+          ? (answers[i] ?? null)
+          : i < userIndices.length
+            ? (history[userIndices[i]] as { content: string }).content
+            : null,
       },
     }))
 }

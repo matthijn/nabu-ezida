@@ -1,52 +1,56 @@
 import type { BlockOrigin, ToolDeps } from "~/lib/agent"
 import { createInstance } from "~/lib/agent/types"
 import { createToolExecutor } from "~/lib/agent"
-import { setActiveOrigin } from "~/lib/agent/block-store"
-import { setStreamingContext, clearStreamingContext } from "~/lib/agent/streaming-context"
+import { setActiveOrigin, setDraft, getDraft, clearDraft, pushBlocks, tagBlocks, setLoading } from "~/lib/agent/block-store"
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
-import { getChat, updateChat } from "./store"
+import { getChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 
 export type RunnerDeps = ToolDeps
 
 const BASE_AGENT = "qualitative-researcher"
 
-const STREAMING_RESET = { streaming: "", streamingToolArgs: "", streamingReasoning: "", streamingToolName: null } as const
-
-const stop = () => updateChat({ ...STREAMING_RESET, loading: false })
+const stop = () => {
+  setLoading(false)
+  clearDraft()
+}
 
 let active = false
 let controller: AbortController | null = null
 
-const buildCallbacks = () => {
-  let reasoningStale = false
-
-  return {
-    onChunk: (chunk: string) => {
-      const c = getChat()
-      if (c) updateChat({ streaming: c.streaming + chunk })
-    },
-    onToolArgsChunk: (chunk: string) => {
-      const c = getChat()
-      if (c) updateChat({ streamingToolArgs: c.streamingToolArgs + chunk })
-    },
-    onReasoningChunk: (chunk: string) => {
-      const c = getChat()
-      if (!c) return
-      const base = reasoningStale ? "" : c.streamingReasoning
-      reasoningStale = false
-      updateChat({ streamingReasoning: base + chunk })
-    },
-    onToolName: (name: string) => {
-      updateChat({ streamingToolArgs: "", streamingToolName: name })
-    },
-    onStreamEnd: () => {
-      reasoningStale = true
-      updateChat({ streaming: "", streamingToolArgs: "", streamingToolName: null })
-    },
-  }
+const appendToTextDraft = (origin: BlockOrigin, chunk: string): void => {
+  const current = getDraft()
+  const content = current?.type === "text" ? current.content + chunk : chunk
+  setDraft({ type: "text", content, origin })
 }
+
+const appendToReasoningDraft = (origin: BlockOrigin, chunk: string): void => {
+  const current = getDraft()
+  const content = current?.type === "reasoning" ? current.content + chunk : chunk
+  setDraft({ type: "reasoning", content, origin })
+}
+
+const appendToToolArgsDraft = (origin: BlockOrigin, chunk: string): void => {
+  const current = getDraft()
+  if (current?.type === "tool_call") {
+    const call = current.calls[0]
+    const argsStr = (call.args as unknown as string) + chunk
+    setDraft({ type: "tool_call", calls: [{ ...call, args: argsStr as unknown as Record<string, unknown> }], origin })
+    return
+  }
+  setDraft({ type: "tool_call", calls: [{ id: "", name: "", args: chunk as unknown as Record<string, unknown> }], origin })
+}
+
+const buildCallbacks = (origin: BlockOrigin) => ({
+  onChunk: (chunk: string) => appendToTextDraft(origin, chunk),
+  onReasoningChunk: (chunk: string) => appendToReasoningDraft(origin, chunk),
+  onToolName: (name: string) => {
+    setDraft({ type: "tool_call", calls: [{ id: "", name, args: "" as unknown as Record<string, unknown> }], origin })
+  },
+  onToolArgsChunk: (chunk: string) => appendToToolArgsDraft(origin, chunk),
+  onStreamEnd: () => {},
+})
 
 let baseOrigin: BlockOrigin | null = null
 
@@ -65,11 +69,8 @@ const runAgent = async (deps: RunnerDeps): Promise<void> => {
   const origin = getBaseOrigin()
   controller = new AbortController()
   const executor = createToolExecutor(deps, origin)
-  const callbacks = buildCallbacks()
-  const setLoading = (loading: boolean) => updateChat({ loading })
-  setStreamingContext({ callbacks, reset: () => updateChat(STREAMING_RESET), signal: controller.signal, callerOrigin: origin, setLoading })
-
-  updateChat({ loading: true, error: null, streamingToolName: null })
+  const callbacks = buildCallbacks(origin)
+  setLoading(true)
 
   while (true) {
     await agentLoop({
@@ -80,7 +81,7 @@ const runAgent = async (deps: RunnerDeps): Promise<void> => {
     })
     stop()
     await waitForUser(origin, controller.signal)
-    updateChat({ loading: true, error: null, streamingToolName: null })
+    setLoading(true)
   }
 }
 
@@ -91,12 +92,12 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
     await runAgent(deps)
   } catch (e) {
     if (!isAbortError(e)) {
-      updateChat({ error: "Something went wrong", ...STREAMING_RESET, loading: false })
+      const origin = getBaseOrigin()
+      pushBlocks(tagBlocks(origin, [{ type: "error", content: "Something went wrong" }]))
     }
   } finally {
     active = false
     controller = null
-    clearStreamingContext()
     stop()
     setActiveOrigin(getBaseOrigin())
   }

@@ -10,7 +10,6 @@ import {
   FeatherCircle,
   FeatherLoader2,
   FeatherMinus,
-  FeatherRefreshCw,
   FeatherSend,
   FeatherSparkles,
   FeatherX,
@@ -185,64 +184,39 @@ const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps
 
 type OptionCardProps = {
   label: string
-  selected: boolean
-  dimmed: boolean
-  onClick?: () => void
+  onClick: () => void
 }
 
-const OptionCard = ({ label, selected, dimmed, onClick }: OptionCardProps) => {
-  if (selected) {
-    return (
-      <div className="flex w-full items-center gap-2 rounded-lg border-2 border-brand-600 bg-brand-50 px-3 py-2">
-        <span className="grow text-body font-body text-default-font">{label}</span>
-        <FeatherCheck className="text-brand-600 flex-none" />
-      </div>
-    )
-  }
-  if (dimmed) {
-    return (
-      <div className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 opacity-50">
-        <span className="grow text-body font-body text-default-font">{label}</span>
-      </div>
-    )
-  }
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 cursor-pointer"
-    >
-      <FeatherChevronRight className="text-neutral-400 flex-none" />
-      <span className="grow text-left text-body font-body text-default-font">{label}</span>
-    </button>
-  )
-}
+const OptionCard = ({ label, onClick }: OptionCardProps) => (
+  <button
+    onClick={onClick}
+    className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 cursor-pointer hover:border-2 hover:border-brand-600 hover:bg-brand-50 [&:hover_.option-icon]:hidden [&:hover_.option-check]:block"
+  >
+    <FeatherChevronRight className="option-icon text-neutral-400 flex-none" />
+    <FeatherCheck className="option-check hidden text-brand-600 flex-none" />
+    <span className="grow text-left text-body font-body text-default-font">{label}</span>
+  </button>
+)
 
 type AskRendererProps = {
   message: AskMessage
   onSelect: (option: string) => void
 }
 
-const AskRenderer = ({ message, onSelect }: AskRendererProps) => {
-  const answered = message.selected !== null
-  return (
-    <div className="flex w-full items-start">
-      <div className="flex flex-col items-start gap-2 max-w-[80%]">
-        <span className="text-body font-body text-default-font">{message.question}</span>
-        <div className="flex w-full flex-col gap-1.5">
-          {message.options.map((option) => (
-            <OptionCard
-              key={option}
-              label={option}
-              selected={message.selected === option}
-              dimmed={answered && message.selected !== option}
-              onClick={answered ? undefined : () => onSelect(option)}
-            />
-          ))}
-        </div>
+const AskRenderer = ({ message, onSelect }: AskRendererProps) => (
+  <div className="flex w-full flex-col items-start gap-2">
+    <AssistantBubble>{message.question}</AssistantBubble>
+    {message.selected ? (
+      <UserBubble>{message.selected}</UserBubble>
+    ) : (
+      <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
+        {message.options.map((option) => (
+          <OptionCard key={option} label={option} onClick={() => onSelect(option)} />
+        ))}
       </div>
-    </div>
-  )
-}
+    )}
+  </div>
+)
 
 const isAskMessage = (m: GroupedMessage): m is AskMessage => m.type === "ask"
 
@@ -438,12 +412,12 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chat, send, respond, run, cancel, loading, streaming, streamingReasoning, streamingToolName, history, error } = useChat()
+  const { chat, send, respond, cancel, loading, draft, history } = useChat()
   const { files } = useFiles()
 
   const derived = useMemo(() => derive(history, files), [history, files])
-  const isStreamingText = streaming && !streamingToolName
-  const streamingText = isStreamingText ? preprocessStreaming(streaming) : null
+  const isStreamingText = draft?.type === "text"
+  const streamingText = isStreamingText ? preprocessStreaming(draft.content) : null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const segments = useMemo(() => toRenderSegments(messages), [messages])
   const activePlan = hasActivePlan(derived.plans)
@@ -493,17 +467,13 @@ export const NabuChatSidebar = () => {
     minimizeChat()
   }, [minimizeChat])
 
-  const handleRetry = useCallback(() => {
-    run(getDeps())
-  }, [run, getDeps])
-
   const showFloatingButton = !chat || minimized
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const reasoningLabel = getLatestReasoning(streamingReasoning)
+  const reasoningLabel = draft?.type === "reasoning" ? getLatestReasoning(draft.content) : null
   const spinnerLabel = loading && !streamingText
-    ? (reasoningLabel ?? getSpinnerLabel(history, streamingToolName))
+    ? (reasoningLabel ?? getSpinnerLabel(history, draft))
     : null
 
   return (
@@ -563,14 +533,6 @@ export const NabuChatSidebar = () => {
           </AssistantBubble>
         )}
         {!activePlan && !waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
-        {error && (
-          <div className="flex flex-col items-center gap-2 py-4">
-            <span className="text-body font-body text-subtext-color">{error}</span>
-            <Button variant="neutral-secondary" size="small" icon={<FeatherRefreshCw />} onClick={handleRetry}>
-              Try again
-            </Button>
-          </div>
-        )}
       </AutoScroll>
 
       <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>
