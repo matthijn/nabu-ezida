@@ -7,7 +7,6 @@ const toolLabels: Record<string, string> = {
   execute_with_plan: "Planning",
   create_plan: "Starting execution",
   for_each: "Processing",
-  resolve: "Completing",
   cancel: "Cancelling",
 }
 

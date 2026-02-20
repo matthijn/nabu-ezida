@@ -4,7 +4,7 @@ import type { Block } from "../types"
 import {
   patchJsonBlock, applyLocalPatch, removeBlock,
   copyFile, renameFile, removeFile, runLocalShell,
-  resolve, cancel,
+  cancel,
   executeWithPlanTool,
   completeStep, completeSubstep,
   forEachTool,
@@ -40,7 +40,7 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, askTool],
-    triggers: ["cancel", "resolve"],
+    triggers: ["cancel"],
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
@@ -50,7 +50,7 @@ const raw: Record<ModeName, ModeConfig> = {
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep, resolve],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep],
     triggers: ["create_plan"],
     prompt: "execution",
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],

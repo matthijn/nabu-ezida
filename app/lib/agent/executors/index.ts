@@ -5,7 +5,6 @@ import { createExecutor } from "./execute"
 import { withModeAwareness } from "./delegation"
 
 import "./tools/apply-local-patch"
-import "./tools/resolve"
 import "./tools/cancel"
 import "./tools/complete-step"
 import "./tools/complete-substep"

@@ -1,83 +1,41 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "./types"
-import type { LoopAction } from "./agent-loop"
-import { processResponse, findTerminalResult, hasToolCalls, excludeReasoning } from "./agent-loop"
+import { shouldContinue, hasToolCalls, excludeReasoning } from "./agent-loop"
 import { deriveMode, buildModeResult, hasUserSincePlanEntry } from "./executors/modes"
 import { textBlock, userBlock, toolCallBlock, terminalResult, toolResult } from "./test-helpers"
 
-describe("processResponse", () => {
-  const cases: { name: string; blocks: Block[]; expected: LoopAction }[] = [
+describe("shouldContinue", () => {
+  const cases: { name: string; blocks: Block[]; expected: boolean }[] = [
     {
-      name: "resolve → terminal ok",
-      blocks: [terminalResult("resolve", "c1", { status: "ok", output: { outcome: "done" } })],
-      expected: { type: "terminal", result: { status: "ok", output: { outcome: "done" } } },
-    },
-    {
-      name: "cancel → not terminal (mode transition)",
-      blocks: [terminalResult("cancel", "c1", { status: "ok", output: { reason: "bad input" } })],
-      expected: { type: "continue" },
-    },
-    {
-      name: "text only → stop",
+      name: "text only → false (stop)",
       blocks: [textBlock("Hello")],
-      expected: { type: "stop" },
+      expected: false,
     },
     {
-      name: "no text no tools → continue",
+      name: "no text no tools → true (continue)",
       blocks: [{ type: "system", content: "nudge" } as Block],
-      expected: { type: "continue" },
+      expected: true,
     },
     {
-      name: "tool calls → continue",
+      name: "tool calls → true (continue)",
       blocks: [toolCallBlock("search", "c1")],
-      expected: { type: "continue" },
+      expected: true,
     },
     {
-      name: "mixed text+tools → continue",
+      name: "mixed text+tools → true (continue)",
       blocks: [textBlock("thinking..."), toolCallBlock("search", "c1")],
-      expected: { type: "continue" },
+      expected: true,
     },
     {
-      name: "non-terminal tool result → continue",
+      name: "non-terminal tool result → true (continue)",
       blocks: [toolCallBlock("search", "c1"), toolResult("c1", { status: "ok", output: "found it" })],
-      expected: { type: "continue" },
+      expected: true,
     },
   ]
 
   cases.forEach(({ name, blocks, expected }) => {
     it(name, () => {
-      expect(processResponse(blocks)).toEqual(expected)
-    })
-  })
-})
-
-describe("findTerminalResult", () => {
-  const cases: { name: string; blocks: Block[]; expected: ReturnType<typeof findTerminalResult> }[] = [
-    {
-      name: "no terminal tools → null",
-      blocks: [textBlock("Hello"), toolCallBlock("search", "c1")],
-      expected: null,
-    },
-    {
-      name: "resolve → ok result",
-      blocks: [terminalResult("resolve", "c1", { status: "ok", output: { outcome: "done" } })],
-      expected: { status: "ok", output: { outcome: "done" } },
-    },
-    {
-      name: "cancel → not terminal (null)",
-      blocks: [terminalResult("cancel", "c1", { status: "ok", output: { reason: "nope" } })],
-      expected: null,
-    },
-    {
-      name: "tool_result without toolName → null",
-      blocks: [toolResult("c1")],
-      expected: null,
-    },
-  ]
-
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(findTerminalResult(blocks)).toEqual(expected)
+      expect(shouldContinue(blocks)).toBe(expected)
     })
   })
 })
@@ -140,14 +98,6 @@ describe("deriveMode", () => {
       expected: "exec",
     },
     {
-      name: "resolve result → chat",
-      blocks: [
-        terminalResult("create_plan", "c1", { status: "ok", output: "exec" }),
-        terminalResult("resolve", "c2", { status: "ok", output: { outcome: "done" } }),
-      ],
-      expected: "chat",
-    },
-    {
       name: "cancel result → chat",
       blocks: [
         terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
@@ -198,7 +148,7 @@ describe("buildModeResult", () => {
     {
       name: "exec mode lists tools",
       mode: "exec",
-      contains: ["Mode: exec", "complete_step", "resolve"],
+      contains: ["Mode: exec", "complete_step"],
     },
   ]
 
