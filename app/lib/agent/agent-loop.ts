@@ -48,15 +48,20 @@ export const processResponse = (newBlocks: Block[]): LoopAction => {
   return { type: "continue" }
 }
 
-const readThenEnabled = (): boolean => {
-  if (typeof window === "undefined") return true
+const readDebugOption = <T,>(key: string, fallback: T): T => {
+  if (typeof window === "undefined") return fallback
   try {
     const stored = localStorage.getItem("nabu-debug-options")
-    return stored ? (JSON.parse(stored).thenEnabled ?? false) : false
+    return stored ? (JSON.parse(stored)[key] ?? fallback) : fallback
   } catch {
-    return false
+    return fallback
   }
 }
+
+const readThenEnabled = (): boolean => readDebugOption("thenEnabled", false)
+
+const readReasoningSummary = (): string =>
+  readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
 export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unknown> | null> => {
   const { origin, executor, callbacks, signal } = config
@@ -81,7 +86,7 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<ToolResult<unk
     }
 
     const caller = buildCaller(origin, {
-      endpoint: ENDPOINT,
+      endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}`,
       tools,
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,

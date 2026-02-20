@@ -34,6 +34,8 @@ export type SystemBlock = {
 export type ReasoningBlock = {
   type: "reasoning"
   content: string
+  id?: string
+  encryptedContent?: string
 }
 
 export type EmptyNudgeBlock = {

@@ -36,9 +36,8 @@ const processLines = (lines: string[], callbacks: ParseCallbacks = {}) => {
 
 const flushBlocks = (lines: string[], callbacks: ParseCallbacks = {}): Block[] => {
   const state = processLines(lines, callbacks)
-  // Manually flush remaining state (same as stateToBlocks does)
   const blocks = [...state.blocks]
-  if (state.reasoningContent) blocks.push({ type: "reasoning", content: state.reasoningContent })
+  if (state.reasoningContent) blocks.push({ type: "reasoning", content: state.reasoningContent, id: state.reasoningId, encryptedContent: state.reasoningEncryptedContent })
   if (state.textContent) blocks.push({ type: "text", content: state.textContent })
   if (state.pendingToolCalls.length > 0) blocks.push({ type: "tool_call", calls: state.pendingToolCalls })
   return blocks
@@ -171,6 +170,22 @@ describe("parser", () => {
       const toolBlock = blocks.find((b) => b.type === "tool_call")
       expect(textBlock?.type === "text" ? textBlock.content : "").toBe("Let me help")
       expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([{ id: "call_1", name: "create_plan", args: {} }])
+    })
+
+    it("captures encrypted reasoning content from output_item.done", () => {
+      const blocks = flushBlocks([
+        "event: response.reasoning_summary_text.delta",
+        'data: {"delta":"Deep thought"}',
+        "event: response.output_item.done",
+        'data: {"item":{"type":"reasoning","id":"rs_abc","encrypted_content":"gAAAA_encrypted_blob"}}',
+        "event: response.output_text.delta",
+        'data: {"delta":"Result"}',
+      ])
+
+      expect(blocks).toEqual([
+        { type: "reasoning", content: "Deep thought", id: "rs_abc", encryptedContent: "gAAAA_encrypted_blob" },
+        { type: "text", content: "Result" },
+      ])
     })
 
     it("interleaves reasoning and tool calls into separate blocks", () => {
@@ -386,6 +401,16 @@ describe("blocksToMessages", () => {
       name: "converts tool_result block to function_call_output",
       blocks: [{ type: "tool_result" as const, callId: "1", toolName: "execute_sql", result: { ok: true } }],
       expected: [{ type: "function_call_output", call_id: "1", status: "completed", output: '{"ok":true}' }],
+    },
+    {
+      name: "converts reasoning with encrypted content to reasoning input item",
+      blocks: [{ type: "reasoning" as const, content: "thought", id: "rs_1", encryptedContent: "gAAAA_blob" }],
+      expected: [{ type: "reasoning", id: "rs_1", summary: [{ type: "summary_text", text: "thought" }], encrypted_content: "gAAAA_blob" }],
+    },
+    {
+      name: "skips reasoning without encrypted content",
+      blocks: [{ type: "reasoning" as const, content: "thought" }],
+      expected: [],
     },
     {
       name: "converts mixed blocks in order",

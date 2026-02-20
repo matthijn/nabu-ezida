@@ -9,6 +9,7 @@ type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
   | { type: "function_call"; call_id: string; status: string; name: string; arguments: string }
   | { type: "function_call_output"; call_id: string; status: string; output: string }
+  | { type: "reasoning"; id: string; summary: { type: "summary_text"; text: string }[]; encrypted_content: string }
 
 type ParseCallbacks = {
   onChunk?: (text: string) => void
@@ -32,6 +33,8 @@ type ParseState = {
   currentEvent: string
   textContent: string
   reasoningContent: string
+  reasoningId: string | undefined
+  reasoningEncryptedContent: string | undefined
   pendingToolCalls: ToolCall[]
   streamingToolName: string | null
   blocks: Block[]
@@ -41,6 +44,8 @@ export const initialParseState = (): ParseState => ({
   currentEvent: "",
   textContent: "",
   reasoningContent: "",
+  reasoningId: undefined,
+  reasoningEncryptedContent: undefined,
   pendingToolCalls: [],
   streamingToolName: null,
   blocks: [],
@@ -48,7 +53,18 @@ export const initialParseState = (): ParseState => ({
 
 const flushReasoning = (state: ParseState): ParseState =>
   state.reasoningContent
-    ? { ...state, reasoningContent: "", blocks: [...state.blocks, { type: "reasoning", content: state.reasoningContent }] }
+    ? {
+        ...state,
+        reasoningContent: "",
+        reasoningId: undefined,
+        reasoningEncryptedContent: undefined,
+        blocks: [...state.blocks, {
+          type: "reasoning",
+          content: state.reasoningContent,
+          id: state.reasoningId,
+          encryptedContent: state.reasoningEncryptedContent,
+        }],
+      }
     : state
 
 const flushText = (state: ParseState): ParseState =>
@@ -122,6 +138,9 @@ export const processLine = (
         }
         callbacks.onToolCall?.(toolCall)
         return { ...state, pendingToolCalls: [...state.pendingToolCalls, toolCall] }
+      }
+      if (item.type === "reasoning") {
+        return { ...state, reasoningId: item.id, reasoningEncryptedContent: item.encrypted_content }
       }
     }
 
@@ -352,7 +371,18 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
       output: JSON.stringify(block.result),
     }
   }
-  if (block.type === "reasoning" || block.type === "empty_nudge") {
+  if (block.type === "reasoning") {
+    if (block.id && block.encryptedContent) {
+      return {
+        type: "reasoning",
+        id: block.id,
+        summary: [{ type: "summary_text" as const, text: block.content }],
+        encrypted_content: block.encryptedContent,
+      }
+    }
+    return []
+  }
+  if (block.type === "empty_nudge") {
     return []
   }
   return []

@@ -5,7 +5,7 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherBug, FeatherClipboard, FeatherCode, FeatherCloud, FeatherGitBranch, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity } from "@subframe/core"
+import { FeatherBug, FeatherClipboard, FeatherCode, FeatherCloud, FeatherGitBranch, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity, FeatherSparkles } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -26,6 +26,7 @@ type DebugOptions = {
   renderAsJson: boolean
   showStreamPanel: boolean
   thenEnabled: boolean
+  reasoningSummaryAuto: boolean
 }
 
 type FileHeaderProps = {
@@ -40,6 +41,7 @@ type FileHeaderProps = {
   onToggleRenderJson?: () => void
   onToggleStreamPanel?: () => void
   onToggleThen?: () => void
+  onToggleReasoningSummary?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
@@ -58,6 +60,7 @@ export const FileHeader = ({
   onToggleRenderJson,
   onToggleStreamPanel,
   onToggleThen,
+  onToggleReasoningSummary,
   onCopyRaw,
   menuItems = [],
   onAddTag,
@@ -131,6 +134,14 @@ export const FileHeader = ({
             size="small"
             icon={<FeatherGitBranch />}
             onClick={onToggleThen}
+          />
+        )}
+        {debugExpanded && onToggleReasoningSummary && (
+          <IconButton
+            variant={debugOptions?.reasoningSummaryAuto ? "brand-primary" : "neutral-tertiary"}
+            size="small"
+            icon={<FeatherSparkles />}
+            onClick={onToggleReasoningSummary}
           />
         )}
         {debugExpanded && onCopyRaw && (

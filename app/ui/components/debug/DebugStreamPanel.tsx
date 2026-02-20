@@ -229,17 +229,32 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
       )
     case "reasoning":
       return (
-        <CollapsibleBlock
-          label="thinking"
-          content={block.content}
-          copyContent={copy}
-          borderColor="border-yellow-400"
-          labelColor="text-yellow-600"
-          bgColor="bg-yellow-50"
-          defaultExpanded={true}
-          suffix={badge}
-          {...sel}
-        />
+        <>
+          <CollapsibleBlock
+            label="thinking"
+            content={block.content}
+            copyContent={copy}
+            borderColor="border-yellow-400"
+            labelColor="text-yellow-600"
+            bgColor="bg-yellow-50"
+            defaultExpanded={true}
+            suffix={badge}
+            {...sel}
+          />
+          {block.encryptedContent && (
+            <CollapsibleBlock
+              label="encrypted"
+              content={block.encryptedContent}
+              borderColor="border-yellow-300"
+              labelColor="text-yellow-500"
+              bgColor="bg-yellow-50"
+              defaultExpanded={false}
+              mono
+              selected={false}
+              onToggleSelect={() => {}}
+            />
+          )}
+        </>
       )
     case "empty_nudge":
       return null
