@@ -18,10 +18,13 @@ import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
 
+export type ReasoningLevel = "low" | "medium" | "high"
+
 export type ModeConfig = {
   tools: AnyTool[]
   triggers: string[]
   prompt?: string
+  reasoning: ReasoningLevel
   nudges: Nudger[]
 }
 
@@ -41,18 +44,21 @@ const raw: Record<ModeName, ModeConfig> = {
   chat: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, executeWithPlanTool, askTool],
     triggers: ["cancel"],
+    reasoning: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
     tools: [runLocalShell, createPlanTool, cancel, askTool],
     triggers: ["execute_with_plan"],
     prompt: "planning",
+    reasoning: "high",
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, removeBlock, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep],
     triggers: ["create_plan"],
     prompt: "execution",
+    reasoning: "medium",
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
   },
 }
@@ -80,6 +86,14 @@ export const deriveMode = (blocks: Block[]): ModeName => {
     }
   }
   return DEFAULT_MODE
+}
+
+export const modeSystemBlocks = (mode: ModeName): Block[] => {
+  const config = modes[mode]
+  const blocks: Block[] = []
+  if (config.prompt) blocks.push({ type: "system", content: `<!-- prompt: ${config.prompt} -->` })
+  blocks.push({ type: "system", content: `<!-- reasoning: ${config.reasoning} -->` })
+  return blocks
 }
 
 export const buildModeResult = (mode: ModeName): string => {

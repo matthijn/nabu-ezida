@@ -3,7 +3,7 @@ import type { ToolExecutor } from "../turn"
 import { pushBlocks, tagBlocks, getBlocksForInstances, subscribeBlocks, setActiveOrigin } from "../block-store"
 import { getFiles } from "~/lib/files/store"
 import { derive, lastPlan, guardCompleteStep, guardCompleteSubstep } from "../derived"
-import { deriveMode, buildModeResult, hasUserSincePlanEntry } from "./modes"
+import { deriveMode, buildModeResult, modeSystemBlocks, hasUserSincePlanEntry } from "./modes"
 import type { ModeName } from "./modes"
 
 export type SpecialHandler = (call: { args: unknown }, origin: BlockOrigin) => Promise<ToolResult<unknown>>
@@ -45,10 +45,7 @@ export const waitForUser = (origin: BlockOrigin, signal?: AbortSignal): Promise<
 }
 
 const handleExecuteWithPlan = (origin: BlockOrigin): ToolResult<unknown> => {
-  pushBlocks(tagBlocks(origin, [
-    { type: "system", content: "<!-- prompt: planning -->" },
-    { type: "system", content: "<!-- reasoning: high -->" },
-  ]))
+  pushBlocks(tagBlocks(origin, modeSystemBlocks("plan")))
   return { status: "ok", output: buildModeResult("plan") }
 }
 
@@ -61,16 +58,13 @@ const guardCreatePlan = (origin: BlockOrigin): ToolResult<unknown> | null => {
 const handleCreatePlan = (origin: BlockOrigin): ToolResult<unknown> => {
   const guardResult = guardCreatePlan(origin)
   if (guardResult) return guardResult
-  pushBlocks(tagBlocks(origin, [
-    { type: "system", content: "<!-- prompt: execution -->" },
-    { type: "system", content: "<!-- reasoning: medium -->" },
-  ]))
+  pushBlocks(tagBlocks(origin, modeSystemBlocks("exec")))
   return { status: "ok", output: buildModeResult("exec") }
 }
 
 const handleCancelInMode = (call: ToolCall, mode: ModeName, origin: BlockOrigin): ToolResult<unknown> => {
   if (mode === "chat") return { status: "error", output: "Nothing to cancel." }
-  pushBlocks(tagBlocks(origin, [{ type: "system", content: "<!-- reasoning: low -->" }]))
+  pushBlocks(tagBlocks(origin, modeSystemBlocks("chat")))
   const reason = (call.args as { reason?: string }).reason ?? "Cancelled"
   return { status: "ok", output: `Cancelled: ${reason}. ${buildModeResult("chat")}` }
 }
