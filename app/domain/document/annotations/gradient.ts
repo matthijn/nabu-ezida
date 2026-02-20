@@ -9,7 +9,7 @@ const createStripeStops = (colors: string[]): string =>
     })
     .join(", ")
 
-export const createBarberPoleGradient = (colors: string[]): string =>
+const createBarberPoleGradient = (colors: string[]): string =>
   `repeating-linear-gradient(45deg, ${createStripeStops(colors)})`
 
 export const createBackground = (colors: string[]): string =>

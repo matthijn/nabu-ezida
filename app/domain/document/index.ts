@@ -8,6 +8,5 @@ export {
   findTextPosition,
   resolveTextAnnotations,
   segmentByOverlap,
-  createBarberPoleGradient,
   createBackground,
 } from "./annotations"
