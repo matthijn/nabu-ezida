@@ -380,16 +380,6 @@ const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
   )
 }
 
-const getLatestReasoning = (text: string): string | null => {
-  const trimmed = text.trim()
-  if (!trimmed) return null
-  const lines = trimmed.split("\n")
-  const last = lines[lines.length - 1].trim()
-  if (!last) return null
-  const match = last.match(/^[^.!?]+/)
-  return match?.[0].replace(/^\*\*|\*\*$/g, "").trim() || null
-}
-
 type LoadingBubbleProps = {
   label: string
 }
@@ -471,10 +461,7 @@ export const NabuChatSidebar = () => {
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const reasoningLabel = draft?.type === "reasoning" ? getLatestReasoning(draft.content) : null
-  const spinnerLabel = loading && !streamingText
-    ? (reasoningLabel ?? getSpinnerLabel(history, draft))
-    : null
+  const spinnerLabel = loading && !streamingText ? getSpinnerLabel(history, draft) : null
 
   return (
     <div
