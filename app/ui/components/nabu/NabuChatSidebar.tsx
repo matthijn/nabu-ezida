@@ -5,6 +5,8 @@ import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
+  FeatherBookmark,
+  FeatherBookmarkCheck,
   FeatherCheck,
   FeatherChevronRight,
   FeatherCircle,
@@ -14,6 +16,7 @@ import {
   FeatherSparkles,
   FeatherX,
 } from "@subframe/core"
+import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
@@ -35,6 +38,9 @@ import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
+import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
+import { updateFileRaw, getFileRaw } from "~/lib/files"
+import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { useNabu } from "./context"
 
 const encodeUrlForMarkdown = (url: string): string =>
@@ -184,37 +190,84 @@ const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps
 
 type OptionCardProps = {
   label: string
-  onClick: () => void
+  selected: boolean
+  dimmed: boolean
+  saved: boolean
+  onClick?: () => void
+  onToggleSave?: () => void
 }
 
-const OptionCard = ({ label, onClick }: OptionCardProps) => (
-  <button
-    onClick={onClick}
-    className="flex w-full items-center gap-2 rounded-lg border border-neutral-border bg-white px-3 py-2 cursor-pointer hover:border-2 hover:border-brand-600 hover:bg-brand-50 [&:hover_.option-icon]:hidden [&:hover_.option-check]:block"
-  >
-    <FeatherChevronRight className="option-icon text-neutral-400 flex-none" />
-    <FeatherCheck className="option-check hidden text-brand-600 flex-none" />
-    <span className="grow text-left text-body font-body text-default-font">{label}</span>
+const SaveBadge = ({ saved, onToggle }: { saved: boolean; onToggle: () => void }) => (
+  <button onClick={(e) => { e.stopPropagation(); onToggle() }} className="flex-none cursor-pointer">
+    {saved ? (
+      <Badge variant="success" icon={<FeatherBookmarkCheck />}>Saved</Badge>
+    ) : (
+      <Badge variant="neutral" icon={<FeatherBookmark />}>Save</Badge>
+    )}
   </button>
 )
 
-type AskRendererProps = {
-  message: AskMessage
-  onSelect: (option: string) => void
+const OptionCard = ({ label, selected, dimmed, saved, onClick, onToggleSave }: OptionCardProps) => {
+  const className = [
+    "flex w-full items-center gap-2 rounded-lg border px-3 py-2",
+    selected
+      ? "border-2 border-brand-600 bg-brand-50"
+      : dimmed
+        ? "border-neutral-border bg-white opacity-50"
+        : "border-neutral-border bg-white cursor-pointer hover:border-2 hover:border-brand-600 hover:bg-brand-50 [&:hover_.option-icon]:hidden [&:hover_.option-check]:block",
+  ].join(" ")
+
+  const icon = selected
+    ? <FeatherCheck className="text-brand-600 flex-none" />
+    : <>
+        <FeatherChevronRight className="option-icon text-neutral-400 flex-none" />
+        <FeatherCheck className="option-check hidden text-brand-600 flex-none" />
+      </>
+
+  const text = <span className="grow text-left text-body font-body text-default-font">{label}</span>
+
+  if (selected) return (
+    <div className={className}>
+      {icon}
+      {text}
+      {onToggleSave && <SaveBadge saved={saved} onToggle={onToggleSave} />}
+    </div>
+  )
+
+  return (
+    <button onClick={onClick} disabled={dimmed} className={className}>
+      {icon}
+      {text}
+    </button>
+  )
 }
 
-const AskRenderer = ({ message, onSelect }: AskRendererProps) => (
+type AskRendererProps = {
+  message: AskMessage
+  memoryContent: string | undefined
+  onSelect: (option: string) => void
+  onToggleSave: (question: string, answer: string) => void
+}
+
+const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRendererProps) => (
   <div className="flex w-full flex-col items-start gap-2">
     <AssistantBubble>{message.question}</AssistantBubble>
-    {message.selected ? (
-      <UserBubble>{message.selected}</UserBubble>
-    ) : (
-      <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
-        {message.options.map((option) => (
-          <OptionCard key={option} label={option} onClick={() => onSelect(option)} />
-        ))}
-      </div>
-    )}
+    <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
+      {message.options.map((option) => {
+        const selected = message.selected === option
+        return (
+          <OptionCard
+            key={option}
+            label={option}
+            selected={selected}
+            dimmed={message.selected !== null && !selected}
+            saved={selected && isAnswerSaved(memoryContent, message.question, option)}
+            onClick={message.selected === null ? () => onSelect(option) : undefined}
+            onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
+          />
+        )
+      })}
+    </div>
   </div>
 )
 
@@ -414,6 +467,13 @@ export const NabuChatSidebar = () => {
   const lastPlanIdx = segments.reduce<number>((acc, s, i) => isPlanSegment(s) ? i : acc, -1)
   const waitingForAsk = useMemo(() => isWaitingForAsk(history), [history])
 
+  const memoryContent = files[PREFERENCES_FILE]
+
+  const handleToggleSave = useCallback((question: string, answer: string) => {
+    const current = getFileRaw(PREFERENCES_FILE)
+    updateFileRaw(PREFERENCES_FILE, toggleAnswer(current || undefined, question, answer))
+  }, [])
+
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
@@ -509,7 +569,7 @@ export const NabuChatSidebar = () => {
               navigate={navigate}
             />
           ) : isAskMessage(segment) ? (
-            <AskRenderer key={i} message={segment} onSelect={respond} />
+            <AskRenderer key={i} message={segment} memoryContent={memoryContent} onSelect={respond} onToggleSave={handleToggleSave} />
           ) : (
             <LeafRenderer key={i} message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           )

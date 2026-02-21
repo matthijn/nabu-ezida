@@ -1,8 +1,8 @@
 import { z } from "zod"
-import type { Block, BlockOrigin, ToolCall, ToolResultBlock } from "./types"
+import type { Block, ToolCall, ToolResultBlock } from "./types"
 import type { ParseCallbacks, ResponseFormat } from "./stream"
 import { callLlm, blocksToMessages, toResponseFormat, extractText } from "./stream"
-import { pushBlocks, tagBlocks } from "./block-store"
+import { pushBlocks } from "./block-store"
 import { executeTool, type ToolExecutor } from "./turn"
 import type { ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
@@ -33,7 +33,7 @@ const executeToolCalls = async (
   return results
 }
 
-export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =>
+export const buildCaller = (config: CallerConfig): Caller =>
   async (signal) => {
     const history = config.readBlocks()
     const blocks = await callLlm({
@@ -46,13 +46,13 @@ export const buildCaller = (origin: BlockOrigin, config: CallerConfig): Caller =
       signal,
     })
 
-    pushBlocks(tagBlocks(origin, blocks))
+    pushBlocks(blocks)
 
     const toolResults: Block[] = []
     for (const block of blocks) {
       if (isToolCallBlock(block) && config.execute) {
         const results = await executeToolCalls(block.calls, config.execute)
-        pushBlocks(tagBlocks(origin, results))
+        pushBlocks(results)
         toolResults.push(...results)
       }
     }
@@ -74,8 +74,8 @@ export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller
     }
   }
 
-export const buildTypedCaller = <T>(origin: BlockOrigin, config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
+export const buildTypedCaller = <T>(config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
   withSchema(
-    buildCaller(origin, { ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
+    buildCaller({ ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
     schema
   )

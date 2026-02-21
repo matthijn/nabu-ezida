@@ -33,7 +33,7 @@ describe("executor scenarios", () => {
   })
 
   const scenarios = loadScenarios()
-  const executor = createToolExecutor({}, { agent: "test", instance: "test-1" })
+  const executor = createToolExecutor({})
 
   it.each(scenarios)("$name", async ({ files, call, expected }) => {
     setFiles(files)

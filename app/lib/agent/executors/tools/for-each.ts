@@ -1,7 +1,7 @@
-import type { Block, BlockOrigin, ToolResult } from "../../types"
+import type { Block, ToolResult } from "../../types"
 import { ForEachArgs } from "./for-each.def"
 import { registerSpecialHandler } from "../delegation"
-import { pushBlocks, tagBlocks } from "../../block-store"
+import { pushBlocks } from "../../block-store"
 import { getFileRaw, getStoredAnnotations } from "~/lib/files"
 import { filterMatchingAnnotations } from "~/domain/attributes/annotations"
 import { stripAttributesBlock } from "~/lib/text/markdown"
@@ -24,7 +24,7 @@ const formatFileSection = (file: string, content: string, annotations: string): 
     annotations && `### Annotations\n${annotations}`,
   ].filter(Boolean).join("\n\n")
 
-const executeForEach = async (call: { args: unknown }, origin: BlockOrigin): Promise<ToolResult<unknown>> => {
+const executeForEach = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = ForEachArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
@@ -43,7 +43,7 @@ const executeForEach = async (call: { args: unknown }, origin: BlockOrigin): Pro
   ].join("\n\n")
 
   const systemBlock: Block = { type: "system", content: systemContent }
-  pushBlocks(tagBlocks(origin, [systemBlock]))
+  pushBlocks([systemBlock])
   return { status: "ok", output: `Loaded ${files.length} files into context. Process them sequentially.` }
 }
 

@@ -1,5 +1,4 @@
-import type { Block, BlockOrigin } from "./types"
-import type { TaggedBlock } from "./block-store"
+import type { Block } from "./types"
 import type { StepDef, StepDefObject } from "./derived"
 
 let callIdCounter = 0
@@ -119,8 +118,3 @@ export const terminalResult = (toolName: string, callId: string, result: unknown
   toolName,
   result,
 })
-
-export const origin = (agent: string, instance: string): BlockOrigin => ({ agent, instance })
-
-export const tagged = (instance: string, blocks: Block[]): TaggedBlock[] =>
-  blocks.map((block) => ({ ...block, origin: { agent: instance.replace(/-\d+$/, ""), instance } }))

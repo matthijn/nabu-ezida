@@ -9,11 +9,11 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocks, subscribeBlocks, type TaggedBlock } from "~/lib/agent/block-store"
-import type { ToolCall } from "~/lib/agent"
+import { getAllBlocks, subscribeBlocks } from "~/lib/agent/block-store"
+import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
-  block: TaggedBlock
+  block: Block
   selected: boolean
   onToggleSelect: () => void
 }
@@ -49,32 +49,28 @@ const formatBlockSchemaDefinitions = (): string =>
 const isErrorResult = (result: unknown): boolean =>
   typeof result === "object" && result !== null && "status" in result && (result.status === "error" || result.status === "partial")
 
-const formatOrigin = (origin: TaggedBlock["origin"]): string =>
-  `${origin.agent} #${origin.instance.split("-").pop()}`
-
-const formatBlock = (block: TaggedBlock): string => {
-  const agent = formatOrigin(block.origin)
+const formatBlock = (block: Block): string => {
   switch (block.type) {
     case "user":
-      return `[user] (${agent})\n${block.content}`
+      return `[user]\n${block.content}`
     case "text":
-      return `[assistant] (${agent})\n${block.content}`
+      return `[assistant]\n${block.content}`
     case "reasoning":
-      return `[thinking] (${agent})\n${block.content}`
+      return `[thinking]\n${block.content}`
     case "tool_call":
-      return `[tool_call] (${agent})\n${block.calls.map(formatToolCall).join("\n\n")}`
+      return `[tool_call]\n${block.calls.map(formatToolCall).join("\n\n")}`
     case "tool_result":
-      return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}] (${agent})\n${formatResult(block.result)}`
+      return `[tool_result${block.toolName ? ` (${block.toolName})` : ""}]\n${formatResult(block.result)}`
     case "system":
-      return `[system] (${agent})\n${block.content}`
+      return `[system]\n${block.content}`
     case "empty_nudge":
-      return `[empty_nudge] (${agent})`
+      return `[empty_nudge]`
     case "error":
-      return `[error] (${agent})\n${block.content}`
+      return `[error]\n${block.content}`
   }
 }
 
-const formatAllBlocks = (blocks: TaggedBlock[]): string =>
+const formatAllBlocks = (blocks: Block[]): string =>
   blocks.map(formatBlock).join("\n\n---\n\n")
 
 const toggleIndex = (set: Set<number>, index: number): Set<number> => {
@@ -97,12 +93,11 @@ type CollapsibleBlockProps = {
   defaultExpanded?: boolean
   mono?: boolean
   icon?: React.ReactNode
-  suffix?: React.ReactNode
   selected: boolean
   onToggleSelect: () => void
 }
 
-const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, suffix, selected, onToggleSelect }: CollapsibleBlockProps) => {
+const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, selected, onToggleSelect }: CollapsibleBlockProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
 
@@ -136,7 +131,6 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
             {expanded ? <FeatherChevronDown className="w-3 h-3" /> : <FeatherChevronRight className="w-3 h-3" />}
             {icon}
             {label}
-            {suffix}
           </button>
         </div>
         <button onClick={handleCopy} className="text-neutral-400 hover:text-neutral-600 p-1">
@@ -150,14 +144,7 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
   )
 }
 
-const OriginBadge = ({ origin }: { origin: TaggedBlock["origin"] }) => (
-  <span className="text-xs text-neutral-600 font-mono bg-neutral-100 px-1.5 py-0.5 rounded ml-2">
-    {origin.agent} #{origin.instance.split("-").pop()}
-  </span>
-)
-
 const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) => {
-  const badge = <OriginBadge origin={block.origin} />
   const copy = formatBlock(block)
   const sel = { selected, onToggleSelect }
 
@@ -170,7 +157,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           copyContent={copy}
           borderColor="border-blue-400"
           labelColor="text-blue-600"
-          suffix={badge}
           {...sel}
         />
       )
@@ -182,7 +168,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           copyContent={copy}
           borderColor="border-green-400"
           labelColor="text-green-600"
-          suffix={badge}
           {...sel}
         />
       )
@@ -196,7 +181,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           labelColor="text-orange-600"
           bgColor="bg-orange-50"
           mono
-          suffix={badge}
           {...sel}
         />
       )
@@ -212,7 +196,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           defaultExpanded={isErrorResult(block.result)}
           mono
           icon={isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined}
-          suffix={badge}
           {...sel}
         />
       )
@@ -225,7 +208,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           borderColor="border-gray-400"
           labelColor="text-gray-600"
           defaultExpanded={false}
-          suffix={badge}
           {...sel}
         />
       )
@@ -240,7 +222,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
             labelColor="text-yellow-600"
             bgColor="bg-yellow-50"
             defaultExpanded={true}
-            suffix={badge}
             {...sel}
           />
           {block.encryptedContent && (
@@ -270,7 +251,6 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           labelColor="text-red-600"
           bgColor="bg-red-50"
           icon={<FeatherAlertCircle className="w-3 h-3" />}
-          suffix={badge}
           {...sel}
         />
       )
@@ -278,7 +258,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
 }
 
 type StreamingIndicatorProps = {
-  draft: TaggedBlock | null
+  draft: Block | null
 }
 
 const StreamingIndicator = ({ draft }: StreamingIndicatorProps) => {

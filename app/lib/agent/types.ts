@@ -47,21 +47,7 @@ export type ErrorBlock = {
   content: string
 }
 
-export type BlockOrigin = {
-  agent: string
-  instance: string
-}
-
 export type Block = TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock
-
-let instanceCounter = 0
-
-export const createInstance = (agent: string): string =>
-  `${agent}-${++instanceCounter}`
-
-export const resetInstanceCounter = (): void => {
-  instanceCounter = 0
-}
 
 export type ToolDeps = {
   project?: { id: string }

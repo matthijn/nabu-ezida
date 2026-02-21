@@ -13,6 +13,7 @@ import { buildSpotlightUrl } from "~/domain/spotlight/url"
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId } from "~/lib/files"
 import { getAnnotationCount } from "~/lib/files/selectors"
+import { toDisplayName } from "~/lib/files/filename"
 
 type SidebarDocument = {
   id: string
@@ -37,7 +38,7 @@ const filesToSidebarDocuments = (
     .filter((filename) => debugMode || !isHiddenFile(filename))
     .map((filename) => ({
     id: filename,
-    title: filename,
+    title: toDisplayName(filename),
     editedAt: "just now",
     tags: getFileTags(filename).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" as const : "neutral" as const })),
     pinned: false,

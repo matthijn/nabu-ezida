@@ -90,6 +90,21 @@ describe("linkifyEntityIds", () => {
       expected: "[User Frustration](file://callout_7xk2m9p1)",
     },
     {
+      name: "strips bold-decorated name before ID",
+      input: "the move as **User Frustration** (callout_7xk2m9p1)",
+      expected: "the move as [User Frustration](file://callout_7xk2m9p1)",
+    },
+    {
+      name: "strips bold-decorated name after ID",
+      input: "callout_7xk2m9p1 — **User Frustration**",
+      expected: "[User Frustration](file://callout_7xk2m9p1)",
+    },
+    {
+      name: "strips italic-decorated name before ID",
+      input: "coded as *User Frustration* (callout_7xk2m9p1)",
+      expected: "coded as [User Frustration](file://callout_7xk2m9p1)",
+    },
+    {
       name: "does not strip partial name match",
       input: "callout_7xk2m9p1 — User Frustrations",
       expected: "[User Frustration](file://callout_7xk2m9p1) — User Frustrations",

@@ -1,5 +1,4 @@
 import type { ToolDeps } from "../types"
-import type { BlockOrigin } from "../types"
 import { getToolHandlers, getToolDefinitions } from "./tool"
 import { createExecutor } from "./execute"
 import { withModeAwareness } from "./delegation"
@@ -20,5 +19,5 @@ import "./tools/ask"
 export type { ToolDeps }
 export { getToolDefinitions }
 
-export const createToolExecutor = (_deps: ToolDeps, origin: BlockOrigin) =>
-  withModeAwareness(createExecutor(getToolHandlers()), origin)
+export const createToolExecutor = (_deps: ToolDeps) =>
+  withModeAwareness(createExecutor(getToolHandlers()))

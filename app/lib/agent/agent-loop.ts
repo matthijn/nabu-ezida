@@ -1,15 +1,14 @@
-import type { Block, BlockOrigin } from "./types"
+import type { Block } from "./types"
 import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
 import { toToolDefinition, type ToolDefinitionOptions } from "./executors/tool"
 import { buildCaller } from "./caller"
-import { pushBlocks, tagBlocks, getAllBlocks } from "./block-store"
+import { pushBlocks, getAllBlocks } from "./block-store"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 
 export type AgentLoopConfig = {
-  origin: BlockOrigin
   executor: ToolExecutor
   callbacks?: ParseCallbacks
   signal?: AbortSignal
@@ -43,14 +42,11 @@ const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
 export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
-  const { origin, executor, callbacks, signal } = config
-
-  const readBlocks = (): Block[] =>
-    getAllBlocks().filter((b) => b.origin.instance === origin.instance)
+  const { executor, callbacks, signal } = config
   const toolOptions: ToolDefinitionOptions = { includeThen: readThenEnabled() }
 
   while (true) {
-    const blocks = readBlocks()
+    const blocks = getAllBlocks()
     const mode = deriveMode(blocks)
     const modeConfig = modes[mode]
     const tools = modeConfig.tools.map((t) => toToolDefinition(t, toolOptions))
@@ -61,16 +57,16 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
 
     const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))
     if (nonEmpty.length > 0) {
-      pushBlocks(tagBlocks(origin, nonEmpty))
+      pushBlocks(nonEmpty)
     }
 
-    const caller = buildCaller(origin, {
+    const caller = buildCaller({
       endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}`,
       tools,
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,
       callbacks,
-      readBlocks,
+      readBlocks: getAllBlocks,
     })
 
     const newBlocks = await caller(signal)

@@ -101,13 +101,3 @@ export const buildModeResult = (mode: ModeName): string => {
   const available = config.tools.map((t) => t.name).join(", ")
   return `Mode: ${mode}. Available tools: ${available}.`
 }
-
-export const hasUserSincePlanEntry = (blocks: Block[]): boolean => {
-  let foundUser = false
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const block = blocks[i]
-    if (block.type === "user") foundUser = true
-    if (block.type === "tool_result" && block.toolName === "execute_with_plan") return foundUser
-  }
-  return false
-}

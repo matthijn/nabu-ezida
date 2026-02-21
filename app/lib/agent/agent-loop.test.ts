@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "./types"
 import { shouldContinue, hasToolCalls, excludeReasoning } from "./agent-loop"
-import { deriveMode, buildModeResult, hasUserSincePlanEntry } from "./executors/modes"
+import { deriveMode, buildModeResult } from "./executors/modes"
 import { textBlock, userBlock, toolCallBlock, terminalResult, toolResult } from "./test-helpers"
 
 describe("shouldContinue", () => {
@@ -160,44 +160,3 @@ describe("buildModeResult", () => {
   })
 })
 
-describe("hasUserSincePlanEntry", () => {
-  const cases: { name: string; blocks: Block[]; expected: boolean }[] = [
-    {
-      name: "no plan entry → false",
-      blocks: [textBlock("hi"), userBlock("hello")],
-      expected: false,
-    },
-    {
-      name: "plan entry, no user after → false",
-      blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
-        textBlock("What would you like?"),
-      ],
-      expected: false,
-    },
-    {
-      name: "plan entry, user after → true",
-      blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
-        textBlock("What approach?"),
-        userBlock("Let's do option A"),
-      ],
-      expected: true,
-    },
-    {
-      name: "user before plan entry doesn't count",
-      blocks: [
-        userBlock("Start planning"),
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
-        textBlock("analyzing..."),
-      ],
-      expected: false,
-    },
-  ]
-
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(hasUserSincePlanEntry(blocks)).toBe(expected)
-    })
-  })
-})

@@ -1,5 +1,4 @@
 import type { Block } from "~/lib/agent"
-import type { TaggedBlock } from "~/lib/agent/block-store"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
@@ -49,7 +48,7 @@ const findLastReasoningContent = (history: Block[], from: number): string | null
   return null
 }
 
-const getDraftToolName = (draft: TaggedBlock | null): string | null => {
+const getDraftToolName = (draft: Block | null): string | null => {
   if (!draft || draft.type !== "tool_call") return null
   return draft.calls[0]?.name ?? null
 }
@@ -64,7 +63,7 @@ const findLastToolCallName = (history: Block[], from: number): string | null => 
   return null
 }
 
-export const getSpinnerLabel = (history: Block[], draft: TaggedBlock | null): string => {
+export const getSpinnerLabel = (history: Block[], draft: Block | null): string => {
   const turnStart = findTurnStart(history)
 
   if (draft?.type === "reasoning") return extractReasoningLabel(draft.content) ?? "Thinking"

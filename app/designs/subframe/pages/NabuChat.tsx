@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import { Badge } from "~/ui/components/Badge";
+import { Button } from "~/ui/components/Button";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout";
-import { FeatherArrowRight, FeatherArrowUp, FeatherCheck, FeatherChevronRight, FeatherCircle, FeatherLightbulb, FeatherLoader2, FeatherMinus, FeatherPlus } from "@subframe/core";
+import { FeatherArrowRight, FeatherArrowUp, FeatherBookmark, FeatherBookmarkCheck, FeatherCheck, FeatherChevronRight, FeatherCircle, FeatherLightbulb, FeatherLoader2, FeatherMinus, FeatherPlus } from "@subframe/core";
 
 function NabuChat() {
   return (
@@ -82,34 +84,96 @@ function NabuChat() {
                 </span>
               </div>
             </div>
+            <div className="flex w-full flex-col items-start gap-1.5">
+              <div className="flex w-full items-center gap-2 rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
+                <FeatherCircle className="text-body font-body text-neutral-400" />
+                <span className="text-body font-body text-default-font grow">
+                  Community engagement strategies
+                </span>
+              </div>
+              <div className="flex w-full flex-col items-start gap-2">
+                <div className="flex w-full items-center gap-2 rounded-lg border-2 border-solid border-brand-600 bg-brand-50 px-3 py-2">
+                  <FeatherCheck className="text-body font-body text-brand-600" />
+                  <span className="text-body-bold font-body-bold text-brand-700 grow">
+                    Sustainable funding mechanisms
+                  </span>
+                </div>
+                <div className="flex w-full items-center justify-end gap-2 px-2">
+                  <Button
+                    variant="neutral-tertiary"
+                    size="small"
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  >
+                    Continue
+                  </Button>
+                  <Button
+                    variant="brand-primary"
+                    size="small"
+                    icon={<FeatherBookmark />}
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+                  >
+                    Save for future
+                  </Button>
+                </div>
+              </div>
+              <div className="flex w-full items-center gap-2 rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
+                <FeatherCircle className="text-body font-body text-neutral-400" />
+                <span className="text-body font-body text-default-font grow">
+                  Biodiversity monitoring
+                </span>
+              </div>
+            </div>
             <div className="flex w-full items-start">
               <div className="flex flex-col items-start gap-2 max-w-[80%]">
                 <div className="flex w-full flex-col items-start gap-1.5">
                   <div className="flex w-full items-center justify-between rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
-                    <span className="text-body font-body text-default-font">
+                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
+                    <span className="text-body font-body text-default-font grow">
                       Community engagement strategies
                     </span>
-                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
                   </div>
                   <div className="flex w-full items-center justify-between rounded-lg border-2 border-solid border-brand-600 bg-brand-50 px-3 py-2">
-                    <span className="text-body-bold font-body-bold text-brand-700">
+                    <FeatherCheck className="text-body font-body text-brand-600" />
+                    <span className="text-body-bold font-body-bold text-brand-700 grow">
                       Sustainable funding mechanisms
                     </span>
-                    <FeatherCheck className="text-body font-body text-brand-600" />
                   </div>
                   <div className="flex w-full items-center justify-between rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
-                    <span className="text-body font-body text-default-font">
+                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
+                    <span className="text-body font-body text-default-font grow">
                       Biodiversity monitoring
                     </span>
-                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
                   </div>
                   <div className="flex w-full items-center justify-between rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
-                    <span className="text-body font-body text-default-font">
+                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
+                    <span className="text-body font-body text-default-font grow">
                       All of the above
                     </span>
-                    <FeatherChevronRight className="text-body font-body text-neutral-400" />
                   </div>
                 </div>
+              </div>
+            </div>
+            <div className="flex w-full flex-col items-start gap-1.5">
+              <div className="flex w-full items-center gap-2 rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
+                <FeatherCircle className="text-body font-body text-neutral-400" />
+                <span className="text-body font-body text-default-font grow">
+                  Community engagement strategies
+                </span>
+              </div>
+              <div className="flex w-full items-center gap-2 rounded-lg border-2 border-solid border-brand-600 bg-brand-50 px-3 py-2">
+                <FeatherCheck className="text-body font-body text-brand-600" />
+                <span className="text-body-bold font-body-bold text-brand-700 grow">
+                  Sustainable funding mechanisms
+                </span>
+                <Badge variant="success" icon={<FeatherBookmarkCheck />}>
+                  Saved
+                </Badge>
+              </div>
+              <div className="flex w-full items-center gap-2 rounded-lg border border-solid border-neutral-border bg-white px-3 py-2 hover:bg-neutral-50 transition-colors">
+                <FeatherCircle className="text-body font-body text-neutral-400" />
+                <span className="text-body font-body text-default-font grow">
+                  Biodiversity monitoring
+                </span>
               </div>
             </div>
             <div className="flex h-2 w-full flex-none items-start" />

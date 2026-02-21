@@ -1,7 +1,7 @@
 type NameResolver = (id: string) => string | null
 
 const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)_\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
-const WRAPPERS = new Set(["(", ")", "`"])
+const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const MAX_GLUE = 8
 
 const expandWrappers = (text: string, start: number, end: number, floor: number): [number, number] => {
