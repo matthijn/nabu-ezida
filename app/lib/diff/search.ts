@@ -37,8 +37,11 @@ const toBigrams = (s: string): Map<string, number> => {
   return grams
 }
 
+const isBlankLine = (s: string): boolean => s.trim() === ""
+
 const bigramSimilarity = (a: string, b: string): number => {
   if (a === b) return 1
+  if (isBlankLine(a) && isBlankLine(b)) return 1
   if (a.length < 2 || b.length < 2) return 0
   const gramsA = toBigrams(a)
   const gramsB = toBigrams(b)

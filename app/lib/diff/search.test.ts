@@ -46,4 +46,43 @@ describe("findMatches", () => {
     expect(matches.length).toBe(1)
     expect(matches[0]).toEqual({ start: 0, end: 0, fuzzy: false })
   })
+
+  const blankLineCases = [
+    {
+      name: "empty needle line matches whitespace-only content line",
+      content: "heading\n   \ntext after gap",
+      needle: "heading\n\ntext after gap",
+      expected: { start: 0, end: 2, fuzzy: true },
+    },
+    {
+      name: "whitespace-only needle line matches empty content line",
+      content: "heading\n\ntext after gap",
+      needle: "heading\n   \ntext after gap",
+      expected: { start: 0, end: 2, fuzzy: true },
+    },
+    {
+      name: "tab-only line matches empty line",
+      content: "heading\n\t\t\ntext after gap",
+      needle: "heading\n\ntext after gap",
+      expected: { start: 0, end: 2, fuzzy: true },
+    },
+    {
+      name: "mixed whitespace lines match each other",
+      content: "heading\n  \t \ntext after gap",
+      needle: "heading\n \ntext after gap",
+      expected: { start: 0, end: 2, fuzzy: true },
+    },
+    {
+      name: "blank line mismatch in multi-line block still matches",
+      content: "Sarah is a senior nurse\n   \nin the emergency department",
+      needle: "Sarah is a senior nurse\n\nin the emergency department",
+      expected: { start: 0, end: 2, fuzzy: true },
+    },
+  ]
+
+  it.each(blankLineCases)("$name", ({ content: c, needle, expected }) => {
+    const matches = findMatches(c, needle)
+    expect(matches.length).toBe(1)
+    expect(matches[0]).toEqual(expected)
+  })
 })

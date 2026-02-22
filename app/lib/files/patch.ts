@@ -1,4 +1,5 @@
 import { applyDiff, generateDiff } from "~/lib/diff"
+import { expandRangeRefs, type FileReader } from "~/lib/diff/range-ref"
 import { resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { repairJsonNewlines, toExtraPretty, fromExtraPretty, PrettyJsonError } from "~/lib/json"
 import { stripPendingRefs } from "./pending-refs"
@@ -70,13 +71,18 @@ type ApplyMdPatchOptions = {
   actor?: "ai" | "user"
 }
 
+const buildFileReader = (currentPath: string, currentContent: string): FileReader =>
+  (p) => p === currentPath ? currentContent : getFiles()[p]
+
 const applyMdPatch = (path: string, content: string, patch: string, options: ApplyMdPatchOptions = {}): FileResult => {
   if (content === "" && patch === "") {
     return { path, status: "ok", content: "" }
   }
 
-  // Resolve FUZZY[[text]] patterns before applying diff
-  const { patch: resolvedPatch, unresolved } = resolveFuzzyPatterns(patch, content)
+  const rangeResult = expandRangeRefs(patch, buildFileReader(path, content), path)
+  if (!rangeResult.ok) return { path, status: "error", error: rangeResult.error }
+
+  const { patch: resolvedPatch, unresolved } = resolveFuzzyPatterns(rangeResult.patch, content)
   if (unresolved.length > 0) {
     return { path, status: "error", error: `FUZZY patterns not found: ${unresolved.map(s => `"${s}"`).join(", ")}` }
   }
