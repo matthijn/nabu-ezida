@@ -5,12 +5,12 @@ import {
   patchJsonBlock, applyLocalPatch,
   copyFile, renameFile, removeFile, runLocalShell,
   cancel,
-  executeWithPlanTool,
+  planTool,
   completeStep, completeSubstep,
   forEachTool,
   askTool,
 } from "./tools"
-import { createPlanTool } from "./tools"
+import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
 import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"
@@ -42,21 +42,21 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, executeWithPlanTool, askTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, planTool, askTool],
     triggers: ["cancel"],
     reasoning: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
-    tools: [runLocalShell, createPlanTool, cancel, askTool],
-    triggers: ["execute_with_plan"],
+    tools: [runLocalShell, submitPlanTool, cancel, askTool],
+    triggers: ["plan"],
     prompt: "planning",
     reasoning: "high",
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep],
-    triggers: ["create_plan"],
+    triggers: ["submit_plan"],
     prompt: "execution",
     reasoning: "medium",
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],

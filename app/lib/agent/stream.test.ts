@@ -163,13 +163,13 @@ describe("parser", () => {
         "event: response.output_text.delta",
         'data: {"delta":"Let me help"}',
         "event: response.output_item.done",
-        'data: {"item":{"type":"function_call","call_id":"call_1","name":"create_plan","arguments":"{}"}}',
+        'data: {"item":{"type":"function_call","call_id":"call_1","name":"submit_plan","arguments":"{}"}}',
       ])
 
       const textBlock = blocks.find((b) => b.type === "text")
       const toolBlock = blocks.find((b) => b.type === "tool_call")
       expect(textBlock?.type === "text" ? textBlock.content : "").toBe("Let me help")
-      expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([{ id: "call_1", name: "create_plan", args: {} }])
+      expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([{ id: "call_1", name: "submit_plan", args: {} }])
     })
 
     it("captures encrypted reasoning content from output_item.done", () => {

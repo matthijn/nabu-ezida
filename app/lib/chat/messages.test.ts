@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { toRenderMessages, extractAskMessages, isWaitingForAsk, type RenderMessage, type AskMessage } from "./messages"
 import {
-  createPlanCall,
+  submitPlanCall,
   completeStepCall,
   cancelCall,
   askCall,
@@ -58,8 +58,8 @@ describe("toRenderMessages", () => {
   describe("plan messages", () => {
     const cases = [
       {
-        name: "create_plan renders as plan message with all steps pending",
-        history: [...createPlanCall("Build feature", ["Design", "Implement", "Test"])],
+        name: "submit_plan renders as plan message with all steps pending",
+        history: [...submitPlanCall("Build feature", ["Design", "Implement", "Test"])],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -74,7 +74,7 @@ describe("toRenderMessages", () => {
       {
         name: "completed steps are marked done",
         history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
+          ...submitPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
           ...completeStepCall("Done first"),
           ...completeStepCall("Done second"),
         ],
@@ -93,7 +93,7 @@ describe("toRenderMessages", () => {
       {
         name: "all steps complete sets currentStep to null",
         history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
           ...completeStepCall(),
           ...completeStepCall(),
         ],
@@ -108,7 +108,7 @@ describe("toRenderMessages", () => {
       {
         name: "aborted plan shows aborted state",
         history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
+          ...submitPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
           ...completeStepCall("Done"),
           ...cancelCall(),
         ],
@@ -123,7 +123,7 @@ describe("toRenderMessages", () => {
       },
       {
         name: "complete_step does not render as separate message",
-        history: [...createPlanCall("Task", ["Step 1"]), ...completeStepCall()],
+        history: [...submitPlanCall("Task", ["Step 1"]), ...completeStepCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -131,7 +131,7 @@ describe("toRenderMessages", () => {
       },
       {
         name: "cancel does not render as separate message",
-        history: [...createPlanCall("Task", ["Step 1"]), ...cancelCall()],
+        history: [...submitPlanCall("Task", ["Step 1"]), ...cancelCall()],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           expect(messages[0].type).toBe("plan")
@@ -140,9 +140,9 @@ describe("toRenderMessages", () => {
       {
         name: "new plan after cancel shows only new plan",
         history: [
-          ...createPlanCall("First task", ["Step A"]),
+          ...submitPlanCall("First task", ["Step A"]),
           ...cancelCall(),
-          ...createPlanCall("Second task", ["Step B"]),
+          ...submitPlanCall("Second task", ["Step B"]),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(2)
@@ -167,7 +167,7 @@ describe("toRenderMessages", () => {
         name: "user message then plan then text response",
         history: [
           userBlock("Help me build a feature"),
-          ...createPlanCall("Build feature", ["Step 1", "Step 2"]),
+          ...submitPlanCall("Build feature", ["Step 1", "Step 2"]),
           textBlock("I'll help you with that"),
         ],
         check: (messages: RenderMessage[]) => {

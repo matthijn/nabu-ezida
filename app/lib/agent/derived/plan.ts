@@ -3,7 +3,7 @@ import { splitByLines } from "~/lib/text"
 
 export type Files = Record<string, string>
 
-// Input type from create_plan args
+// Input type from submit_plan args
 export type StepDefObject = { title: string; expected: string }
 export type StepDefPerSection = { per_section: StepDefObject[]; files: string[] }
 export type StepDef = StepDefObject | StepDefPerSection
@@ -125,7 +125,7 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: Per
   return { steps, perSectionInfo }
 }
 
-export const createPlanFromCall = (call: ToolCall, files: Files): DerivedPlan => {
+export const planFromCall = (call: ToolCall, files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
   const askExpertArg = call.args.ask_expert as AskExpertConfig | undefined
   const { steps, perSectionInfo } = flattenSteps(stepDefs)

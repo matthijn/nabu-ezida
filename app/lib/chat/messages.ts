@@ -49,7 +49,7 @@ export const findCreationIndices = (history: Block[], toolName: string): number[
     .map(({ index }) => index)
 
 const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<PlanMessage>[] => {
-  const indices = findCreationIndices(history, "create_plan")
+  const indices = findCreationIndices(history, "submit_plan")
   return plans.map((plan, i) => ({
     index: indices[i] ?? 0,
     message: { type: "plan", plan, currentStep: plan.currentStep, aborted: plan.aborted },

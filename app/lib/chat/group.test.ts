@@ -3,7 +3,7 @@ import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanStep, type PlanSectionGroup } from "./group"
 import {
-  createPlanCall,
+  submitPlanCall,
   completeStepCall,
   cancelCall,
   resetCallIdCounter,
@@ -57,7 +57,7 @@ describe("toGroupedMessages", () => {
         name: "plan header and items contain steps and messages interleaved",
         history: [
           userBlock("Help me"),
-          ...createPlanCall("Build feature", ["Design", "Implement"]),
+          ...submitPlanCall("Build feature", ["Design", "Implement"]),
           textBlock("Starting design"),
           ...completeStepCall("Designed"),
           textBlock("Now implementing"),
@@ -78,7 +78,7 @@ describe("toGroupedMessages", () => {
       {
         name: "completed plan has completed flag and all steps completed",
         history: [
-          ...createPlanCall("Task", ["Step 1"]),
+          ...submitPlanCall("Task", ["Step 1"]),
           ...completeStepCall("Done"),
         ],
         check: (result: GroupedMessage[]) => {
@@ -92,7 +92,7 @@ describe("toGroupedMessages", () => {
       {
         name: "cancelled plan has aborted flag and cancelled step",
         history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
           ...cancelCall(),
         ],
         check: (result: GroupedMessage[]) => {
@@ -107,7 +107,7 @@ describe("toGroupedMessages", () => {
       {
         name: "all plan items have section=false and dimmed=false for simple plans",
         history: [
-          ...createPlanCall("Task", ["Step 1", "Step 2"]),
+          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
           textBlock("Working"),
         ],
         check: (result: GroupedMessage[]) => {
@@ -133,7 +133,7 @@ describe("toGroupedMessages", () => {
         history: [
           userBlock("Before plan"),
           textBlock("Response before"),
-          ...createPlanCall("Task", ["Step 1"]),
+          ...submitPlanCall("Task", ["Step 1"]),
           textBlock("Inside plan"),
           ...completeStepCall("Done"),
           userBlock("After completion"),
@@ -149,10 +149,10 @@ describe("toGroupedMessages", () => {
       {
         name: "messages between two plans belong to the earlier plan",
         history: [
-          ...createPlanCall("First", ["Step 1"]),
+          ...submitPlanCall("First", ["Step 1"]),
           ...completeStepCall("Done"),
           textBlock("Between plans"),
-          ...createPlanCall("Second", ["Step 2"]),
+          ...submitPlanCall("Second", ["Step 2"]),
         ],
         check: (result: GroupedMessage[]) => {
           const headers = result.filter(isPlanHeader)
@@ -177,10 +177,10 @@ describe("toGroupedMessages", () => {
       {
         name: "each plan gets its own PlanHeader",
         history: [
-          ...createPlanCall("First task", ["Step A"]),
+          ...submitPlanCall("First task", ["Step A"]),
           textBlock("Working on first"),
           ...cancelCall(),
-          ...createPlanCall("Second task", ["Step B"]),
+          ...submitPlanCall("Second task", ["Step B"]),
           textBlock("Working on second"),
         ],
         check: (result: GroupedMessage[]) => {
@@ -204,7 +204,7 @@ describe("toGroupedMessages", () => {
       {
         name: "per-section plan has section labels and inner steps with section flag",
         history: [
-          ...createPlanCall(
+          ...submitPlanCall(
             "Process files",
             ["Setup", { per_section: ["Analyze", "Transform"], files: ["file1.txt", "file2.txt"] }, "Finalize"],
           ),
@@ -231,7 +231,7 @@ describe("toGroupedMessages", () => {
       {
         name: "untouched sections show as dimmed section groups",
         history: [
-          ...createPlanCall(
+          ...submitPlanCall(
             "Process",
             ["Setup", { per_section: ["Do it"], files: ["a.txt", "b.txt"] }, "Finalize"],
           ),
@@ -258,7 +258,7 @@ describe("toGroupedMessages", () => {
       {
         name: "toGroupedMessages does not accept streaming param",
         history: [
-          ...createPlanCall("Task", ["Step 1"]),
+          ...submitPlanCall("Task", ["Step 1"]),
           textBlock("Working"),
         ],
         check: (result: GroupedMessage[]) => {

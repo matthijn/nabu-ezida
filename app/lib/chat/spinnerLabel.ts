@@ -4,8 +4,8 @@ import { sampleAndHold } from "~/lib/utils"
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
   apply_local_patch: "Writing",
-  execute_with_plan: "Planning",
-  create_plan: "Starting execution",
+  plan: "Planning",
+  submit_plan: "Starting execution",
   for_each: "Processing",
   cancel: "Cancelling",
 }
@@ -27,19 +27,8 @@ const findLastBoldBlock = (text: string): string | null => {
   return matches.length > 0 ? matches[matches.length - 1][1].trim() : null
 }
 
-const extractLastSentenceFragment = (text: string): string | null => {
-  const lines = text.trim().split("\n")
-  const last = lines[lines.length - 1].trim()
-  if (!last) return null
-  const match = last.match(/^[^.!?]+/)
-  return match?.[0].trim() || null
-}
-
-const extractReasoningLabel = (text: string): string | null => {
-  const trimmed = text.trim()
-  if (!trimmed) return null
-  return findLastBoldBlock(trimmed) ?? extractLastSentenceFragment(trimmed)
-}
+const extractReasoningLabel = (text: string): string | null =>
+  findLastBoldBlock(text.trim())
 
 const findLastReasoningContent = (history: Block[], from: number): string | null => {
   for (let i = history.length - 1; i >= from; i--) {

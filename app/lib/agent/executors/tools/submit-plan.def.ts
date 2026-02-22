@@ -13,7 +13,7 @@ const PerSectionStep = z.object({
 
 const StepDef = z.union([StepObject, PerSectionStep])
 
-export const CreatePlanArgs = z.object({
+export const SubmitPlanArgs = z.object({
   task: z.string().describe("High-level description of the task."),
   steps: z.array(StepDef).describe("3-7 top-level steps. Say WHAT, not HOW."),
   decisions: z.array(z.string()).optional().describe("Judgment calls made during planning."),
@@ -25,8 +25,8 @@ export const CreatePlanArgs = z.object({
   }).optional(),
 })
 
-export const createPlanTool: AnyTool = {
-  name: "create_plan",
+export const submitPlanTool: AnyTool = {
+  name: "submit_plan",
   description: "Submit the agreed plan for execution. Only call after discussing the approach with the user.",
-  schema: CreatePlanArgs,
+  schema: SubmitPlanArgs,
 }

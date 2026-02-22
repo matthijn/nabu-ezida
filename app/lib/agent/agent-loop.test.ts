@@ -81,26 +81,26 @@ describe("deriveMode", () => {
       expected: "chat",
     },
     {
-      name: "execute_with_plan result → plan",
+      name: "plan result → plan",
       blocks: [
-        toolCallBlock("execute_with_plan", "c1"),
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "mode: plan" }),
+        toolCallBlock("plan", "c1"),
+        terminalResult("plan", "c1", { status: "ok", output: "mode: plan" }),
       ],
       expected: "plan",
     },
     {
-      name: "create_plan result → exec",
+      name: "submit_plan result → exec",
       blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan mode" }),
-        toolCallBlock("create_plan", "c2", { task: "do stuff", steps: [] }),
-        terminalResult("create_plan", "c2", { status: "ok", output: "exec mode" }),
+        terminalResult("plan", "c1", { status: "ok", output: "plan mode" }),
+        toolCallBlock("submit_plan", "c2", { task: "do stuff", steps: [] }),
+        terminalResult("submit_plan", "c2", { status: "ok", output: "exec mode" }),
       ],
       expected: "exec",
     },
     {
       name: "cancel result → chat",
       blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
+        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
         terminalResult("cancel", "c2", { status: "ok", output: { reason: "nah" } }),
       ],
       expected: "chat",
@@ -108,16 +108,16 @@ describe("deriveMode", () => {
     {
       name: "uses last trigger (plan then exec)",
       blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
+        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
         textBlock("here's the plan"),
-        terminalResult("create_plan", "c2", { status: "ok", output: "exec" }),
+        terminalResult("submit_plan", "c2", { status: "ok", output: "exec" }),
       ],
       expected: "exec",
     },
     {
       name: "non-trigger results between triggers ignored",
       blocks: [
-        terminalResult("execute_with_plan", "c1", { status: "ok", output: "plan" }),
+        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
         toolCallBlock("run_local_shell", "c2"),
         toolResult("c2", { status: "ok", output: "file content" }),
         textBlock("analyzing..."),
@@ -138,12 +138,12 @@ describe("buildModeResult", () => {
     {
       name: "chat mode lists tools",
       mode: "chat",
-      contains: ["Mode: chat", "execute_with_plan"],
+      contains: ["Mode: chat", "plan"],
     },
     {
       name: "plan mode lists tools",
       mode: "plan",
-      contains: ["Mode: plan", "create_plan", "cancel"],
+      contains: ["Mode: plan", "submit_plan", "cancel"],
     },
     {
       name: "exec mode lists tools",

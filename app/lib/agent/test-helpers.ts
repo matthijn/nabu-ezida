@@ -27,11 +27,11 @@ const withResult = (callId: string, call: Block): Block[] => [
   { type: "tool_result", callId, result: { status: "ok" } },
 ]
 
-type CreatePlanOptions = {
+type SubmitPlanOptions = {
   askExpert?: { expert: string; task?: string; using: string }
 }
 
-export const createPlanCall = (task: string, steps: StepInput[], options?: CreatePlanOptions): Block[] => {
+export const submitPlanCall = (task: string, steps: StepInput[], options?: SubmitPlanOptions): Block[] => {
   const id = nextCallId()
   const args: Record<string, unknown> = { task, steps: steps.map(toStepDef) }
 
@@ -39,7 +39,7 @@ export const createPlanCall = (task: string, steps: StepInput[], options?: Creat
 
   return withResult(id, {
     type: "tool_call",
-    calls: [{ id, name: "create_plan", args }],
+    calls: [{ id, name: "submit_plan", args }],
   })
 }
 

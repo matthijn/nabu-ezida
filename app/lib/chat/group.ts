@@ -80,7 +80,7 @@ const isSuccessfulCompleteStep = (block: Block, statuses: Map<string, string>): 
 }
 
 const buildPlanRanges = (history: Block[], plans: DerivedPlan[]): PlanRange[] => {
-  const indices = findCreationIndices(history, "create_plan")
+  const indices = findCreationIndices(history, "submit_plan")
   return plans.map((plan, i) => ({
     plan,
     startIndex: indices[i] ?? 0,

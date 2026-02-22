@@ -40,12 +40,12 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
   })
 }
 
-const handleExecuteWithPlan = (): ToolResult<unknown> => {
+const handlePlan = (): ToolResult<unknown> => {
   pushBlocks(modeSystemBlocks("plan"))
   return { status: "ok", output: buildModeResult("plan") }
 }
 
-const handleCreatePlan = (): ToolResult<unknown> => {
+const handleSubmitPlan = (): ToolResult<unknown> => {
   pushBlocks(modeSystemBlocks("exec"))
   return { status: "ok", output: buildModeResult("exec") }
 }
@@ -77,7 +77,7 @@ const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
 }
 
 const isModeTransition = (name: string): boolean =>
-  name === "execute_with_plan" || name === "create_plan" || name === "cancel"
+  name === "plan" || name === "submit_plan" || name === "cancel"
 
 export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
   async (call) => {
@@ -85,8 +85,8 @@ export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
       const blocks = getAllBlocks()
       const mode = deriveMode(blocks)
 
-      if (call.name === "execute_with_plan") return handleExecuteWithPlan()
-      if (call.name === "create_plan") return handleCreatePlan()
+      if (call.name === "plan") return handlePlan()
+      if (call.name === "submit_plan") return handleSubmitPlan()
       if (call.name === "cancel") return handleCancelInMode(call, mode)
     }
 

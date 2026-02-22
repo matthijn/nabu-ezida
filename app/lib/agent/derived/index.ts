@@ -2,7 +2,7 @@ import type { Block, ToolCall, ToolCallBlock } from "../types"
 import {
   type DerivedPlan,
   type Files,
-  createPlanFromCall,
+  planFromCall,
   processCompleteStep,
   processCompleteSubstep,
   updateLastPlan,
@@ -55,7 +55,7 @@ export const findCall = (block: Block, name: string): ToolCall | undefined =>
 
 export const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
 
-const isCreatePlan = (call: EnrichedToolCall): boolean => call.name === "create_plan"
+const isSubmitPlan = (call: EnrichedToolCall): boolean => call.name === "submit_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
 const isCompleteSubstep = (call: EnrichedToolCall): boolean => call.name === "complete_substep"
 const isCancel = (call: EnrichedToolCall): boolean => call.name === "cancel"
@@ -69,8 +69,8 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
     }
   }
 
-  if (isCreatePlan(call)) {
-    return { plans: [...derived.plans, createPlanFromCall(call, files)] }
+  if (isSubmitPlan(call)) {
+    return { plans: [...derived.plans, planFromCall(call, files)] }
   }
 
   if (isCompleteStep(call)) {
@@ -110,7 +110,7 @@ export const getMode = (d: Derived): Mode => {
 }
 
 const isStepBoundary = (block: Block): boolean =>
-  hasCall(block, "create_plan") || hasCall(block, "complete_step") || hasCall(block, "complete_substep")
+  hasCall(block, "submit_plan") || hasCall(block, "complete_step") || hasCall(block, "complete_substep")
 
 const isAgentAction = (block: Block): boolean =>
   block.type === "text" || block.type === "tool_call"
