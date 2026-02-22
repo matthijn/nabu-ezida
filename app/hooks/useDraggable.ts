@@ -20,8 +20,11 @@ export const useDraggable = (initialPosition: Position, anchor: Anchor = {}) => 
   const xSign = anchorSign(anchor.x ?? "right")
   const ySign = anchorSign(anchor.y ?? "bottom")
 
+  const [isDragging, setIsDragging] = useState(false)
+
   const handleMouseDown = useCallback((e: MouseEvent) => {
     e.preventDefault()
+    setIsDragging(true)
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -41,6 +44,7 @@ export const useDraggable = (initialPosition: Position, anchor: Anchor = {}) => 
 
     const handleMouseUp = () => {
       dragRef.current = null
+      setIsDragging(false)
       document.removeEventListener("mousemove", handleMouseMove)
       document.removeEventListener("mouseup", handleMouseUp)
     }
@@ -49,5 +53,5 @@ export const useDraggable = (initialPosition: Position, anchor: Anchor = {}) => 
     document.addEventListener("mouseup", handleMouseUp)
   }, [position, xSign, ySign])
 
-  return { position, handleMouseDown }
+  return { position, isDragging, handleMouseDown }
 }

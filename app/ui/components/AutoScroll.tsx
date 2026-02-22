@@ -2,7 +2,7 @@
 
 import { useRef, useLayoutEffect, useCallback, type ReactNode } from "react"
 
-const SCROLL_THRESHOLD = 50
+const SCROLL_THRESHOLD = 100
 
 const isNearBottom = (el: HTMLElement): boolean =>
   el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD

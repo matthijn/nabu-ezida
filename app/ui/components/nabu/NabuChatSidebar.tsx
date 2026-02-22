@@ -484,7 +484,7 @@ export const NabuChatSidebar = () => {
 
   const [inputValue, setInputValue] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 })
+  const { position, isDragging, handleMouseDown } = useDraggable({ x: 16, y: 16 })
   const { size, handleResizeMouseDown } = useResizable(
     { width: chatWidth, height: chatHeight },
   )
@@ -566,7 +566,7 @@ export const NabuChatSidebar = () => {
         )}
         <AnimatePresence initial={false}>
           {segments.map((segment, i) =>
-            <AnimatedListItem key={i}>
+            <AnimatedListItem key={i} layout={isDragging ? false : "position"}>
               {isPlanSegment(segment) ? (
                 <PlanSegmentRenderer
                   items={segment.items}

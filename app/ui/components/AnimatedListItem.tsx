@@ -6,11 +6,12 @@ import type { ReactNode } from "react"
 type AnimatedListItemProps = {
   children: ReactNode
   className?: string
+  layout?: boolean | "position" | "size"
 }
 
-export const AnimatedListItem = ({ children, className }: AnimatedListItemProps) => (
+export const AnimatedListItem = ({ children, className, layout = true }: AnimatedListItemProps) => (
   <motion.div
-    layout
+    layout={layout}
     className={`w-full ${className ?? ""}`}
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
