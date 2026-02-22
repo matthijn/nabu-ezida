@@ -1,6 +1,6 @@
 import { useSyncExternalStore, useCallback } from "react"
 import type { Block, SystemBlock } from "~/lib/agent"
-import { getAllBlocks, subscribeBlocks, pushBlocks, subscribeDraft, getDraft, subscribeLoading, getLoading } from "~/lib/agent/block-store"
+import { getAllBlocksWithDraft, getDraft, subscribeBlocks, pushBlocks, subscribeLoading, getLoading } from "~/lib/agent/block-store"
 import { getChat, subscribe, type ChatState } from "./store"
 import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
@@ -18,8 +18,8 @@ export type UseChatResult = {
 
 export const useChat = (): UseChatResult => {
   const chat = useSyncExternalStore(subscribe, getChat)
-  const history = useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
-  const draft = useSyncExternalStore(subscribeDraft, getDraft, getDraft)
+  const history = useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
+  const draft = useSyncExternalStore(subscribeBlocks, getDraft, getDraft)
   const loading = useSyncExternalStore(subscribeLoading, getLoading, getLoading)
 
   const send = useCallback(
@@ -33,7 +33,7 @@ export const useChat = (): UseChatResult => {
       const ctx = getEditorContext()
       if (ctx) {
         const formatted = contextToMessage(ctx)
-        const lastSent = findLastContextMessage(getAllBlocks())
+        const lastSent = findLastContextMessage(getAllBlocksWithDraft())
         if (formatted !== lastSent) {
           const contextBlock: SystemBlock = { type: "system", content: formatted }
           blocksToAdd.push(contextBlock)

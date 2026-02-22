@@ -16,6 +16,7 @@ export type CallerConfig = {
   responseFormat?: ResponseFormat
   callbacks?: ParseCallbacks
   readBlocks: () => Block[]
+  transformBlocks?: (blocks: Block[]) => Block[]
 }
 
 export type Caller = (signal?: AbortSignal) => Promise<Block[]>
@@ -36,7 +37,7 @@ const executeToolCalls = async (
 export const buildCaller = (config: CallerConfig): Caller =>
   async (signal) => {
     const history = config.readBlocks()
-    const blocks = await callLlm({
+    const raw = await callLlm({
       endpoint: config.endpoint,
       messages: blocksToMessages(history),
       tools: config.tools,
@@ -46,6 +47,7 @@ export const buildCaller = (config: CallerConfig): Caller =>
       signal,
     })
 
+    const blocks = config.transformBlocks ? config.transformBlocks(raw) : raw
     pushBlocks(blocks)
 
     const toolResults: Block[] = []

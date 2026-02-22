@@ -2,7 +2,7 @@
 
 import type { Components } from "react-markdown"
 import { createElement } from "react"
-import { FeatherMessageCircle, FeatherFileText } from "@subframe/core"
+import { FeatherFileText } from "@subframe/core"
 import { resolveEntityLink, type EntityIcons } from "~/lib/entity-link"
 import { EntityLink } from "./EntityLink"
 
@@ -13,8 +13,6 @@ export type EntityLinkContext = {
 }
 
 const entityIcons: EntityIcons = {
-  annotation: FeatherMessageCircle,
-  callout: FeatherFileText,
   text: FeatherFileText,
 }
 

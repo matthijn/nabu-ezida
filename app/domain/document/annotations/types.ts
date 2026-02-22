@@ -5,6 +5,7 @@ export type Annotation = {
   reason?: string
   code?: string
   actor?: "ai" | "user"
+  review?: string
 }
 
 export type ResolvedAnnotation = {

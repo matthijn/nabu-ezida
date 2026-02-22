@@ -307,10 +307,10 @@ describe("autoFuzzyAnnotationText", () => {
 
 describe("resolveSelectors", () => {
   const annotations = [
-    { id: "ann_1", code: "code_a", ambiguity: { confidence: "high" } },
-    { id: "ann_2", code: "code_b", ambiguity: { confidence: "medium" } },
-    { id: "ann_3", code: "code_a", ambiguity: { confidence: "medium" } },
-    { id: "ann_4", code: "code_c", ambiguity: { confidence: "low" } },
+    { id: "ann_1", code: "code_a", color: "red" },
+    { id: "ann_2", code: "code_b", color: "blue", review: "might be code_c" },
+    { id: "ann_3", code: "code_a", color: "blue" },
+    { id: "ann_4", code: "code_c", color: "green", review: "weak fit" },
   ]
   const docJson = { annotations }
 
@@ -342,13 +342,13 @@ describe("resolveSelectors", () => {
     },
     {
       name: "nested key selector",
-      ops: [{ op: "remove", path: "/annotations[ambiguity.confidence=low]" }],
+      ops: [{ op: "remove", path: "/annotations[color=green]" }],
       doc: docJson,
       expected: { ok: true, ops: [{ op: "remove", path: "/annotations/3" }] },
     },
     {
       name: "multi-match remove — descending indices",
-      ops: [{ op: "remove", path: "/annotations[ambiguity.confidence=medium]" }],
+      ops: [{ op: "remove", path: "/annotations[color=blue]" }],
       doc: docJson,
       expected: { ok: true, ops: [
         { op: "remove", path: "/annotations/2" },
@@ -389,12 +389,54 @@ describe("resolveSelectors", () => {
       expected: { ok: false, error: /No items match/ },
     },
     {
-      name: "deeply nested rest path",
-      ops: [{ op: "replace", path: "/annotations[id=ann_2]/ambiguity/confidence", value: "high" }],
+      name: "rest path after selector",
+      ops: [{ op: "replace", path: "/annotations[id=ann_2]/color", value: "red" }],
       doc: docJson,
       expected: { ok: true, ops: [
-        { op: "replace", path: "/annotations/1/ambiguity/confidence", value: "high" },
+        { op: "replace", path: "/annotations/1/color", value: "red" },
       ]},
+    },
+    {
+      name: "exists — matches items with truthy field",
+      ops: [{ op: "remove", path: "/annotations[review]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "remove", path: "/annotations/3" },
+        { op: "remove", path: "/annotations/1" },
+      ]},
+    },
+    {
+      name: "not_exists — matches items without field",
+      ops: [{ op: "remove", path: "/annotations[!review]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "remove", path: "/annotations/2" },
+        { op: "remove", path: "/annotations/0" },
+      ]},
+    },
+    {
+      name: "neq — matches items where field differs",
+      ops: [{ op: "remove", path: "/annotations[code!=code_a]" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "remove", path: "/annotations/3" },
+        { op: "remove", path: "/annotations/1" },
+      ]},
+    },
+    {
+      name: "exists with rest path",
+      ops: [{ op: "replace", path: "/annotations[review]/color", value: "yellow" }],
+      doc: docJson,
+      expected: { ok: true, ops: [
+        { op: "replace", path: "/annotations/1/color", value: "yellow" },
+        { op: "replace", path: "/annotations/3/color", value: "yellow" },
+      ]},
+    },
+    {
+      name: "exists — no matches when no items have field",
+      ops: [{ op: "remove", path: "/annotations[missing]" }],
+      doc: docJson,
+      expected: { ok: false, error: /No items match/ },
     },
   ]
 

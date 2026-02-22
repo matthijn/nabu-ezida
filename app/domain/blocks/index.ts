@@ -11,5 +11,5 @@ export {
   type FillIdsResult,
 } from "./uuid"
 export { validateMarkdownBlocks, wouldViolateSingleton, extractProse, type ValidationError, type ValidationResult, type ValidateOptions } from "./validate"
-export { CalloutSchema, parseCallout, type CalloutBlock, type CalloutType } from "./callout"
+export { CalloutSchema, parseCallout, calloutTypeIcons, type CalloutBlock, type CalloutType } from "./callout"
 export { stampActors } from "./actor"

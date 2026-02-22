@@ -1,12 +1,15 @@
 import type { Block } from "./types"
 import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
-import { toToolDefinition, type ToolDefinitionOptions } from "./executors/tool"
+import { toToolDefinition } from "./executors/tool"
 import { buildCaller } from "./caller"
-import { pushBlocks, getAllBlocks } from "./block-store"
+import { pushBlocks, getAllBlocks, isDraft } from "./block-store"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
+import { extractEntityIdCandidates } from "~/domain/entity-link"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
+import { getFiles } from "~/lib/files/store"
+import { resolveEntityName } from "~/lib/files/selectors"
 
 export type AgentLoopConfig = {
   executor: ToolExecutor
@@ -36,20 +39,37 @@ const readDebugOption = <T,>(key: string, fallback: T): T => {
   }
 }
 
-const readThenEnabled = (): boolean => readDebugOption("thenEnabled", false)
-
 const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
+const findDanglingIds = (text: string): string[] => {
+  const candidates = extractEntityIdCandidates(text)
+  if (candidates.length === 0) return []
+  const files = getFiles()
+  return candidates.filter((id) => resolveEntityName(files, id) === null)
+}
+
+const rejectDanglingBlock = (block: Block): Block => {
+  if (block.type !== "text" || isDraft(block)) return block
+  const dangling = findDanglingIds(block.content)
+  if (dangling.length === 0) return block
+  return {
+    type: "system",
+    content: `Your response was rejected. These entity IDs do not exist: ${dangling.join(", ")}\nYour message was:\n${block.content}\nOnly reference entity IDs that exist in the current documents.`,
+  }
+}
+
+const rejectDanglingEntityIds = (blocks: Block[]): Block[] =>
+  hasToolCalls(blocks) ? blocks : blocks.map(rejectDanglingBlock)
+
 export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
   const { executor, callbacks, signal } = config
-  const toolOptions: ToolDefinitionOptions = { includeThen: readThenEnabled() }
 
   while (true) {
     const blocks = getAllBlocks()
     const mode = deriveMode(blocks)
     const modeConfig = modes[mode]
-    const tools = modeConfig.tools.map((t) => toToolDefinition(t, toolOptions))
+    const tools = modeConfig.tools.map(toToolDefinition)
     const nudge = collect(...modeConfig.nudges)
 
     const nudges = await nudge(excludeReasoning(blocks))
@@ -67,6 +87,7 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
       execute: executor,
       callbacks,
       readBlocks: getAllBlocks,
+      transformBlocks: rejectDanglingEntityIds,
     })
 
     const newBlocks = await caller(signal)

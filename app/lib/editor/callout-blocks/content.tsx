@@ -1,14 +1,9 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { createElement } from "react"
 import * as SubframeCore from "@subframe/core"
-import { FeatherCode } from "@subframe/core"
-import type { CalloutBlock, CalloutType } from "~/domain/blocks/callout"
+import { calloutTypeIcons, type CalloutBlock } from "~/domain/blocks/callout"
 import { MarkdownContent } from "~/ui/components/editor/MarkdownContent"
-
-const CALLOUT_ICONS: Record<CalloutType, ReactNode> = {
-  "codebook-code": <FeatherCode />,
-}
 
 type CalloutContentProps = {
   data: CalloutBlock
@@ -24,7 +19,7 @@ export const CalloutContent = ({ data }: CalloutContentProps) => {
         style={{ color: `var(--${color}-11)` }}
       >
         <SubframeCore.IconWrapper className="text-heading-3 font-heading-3">
-          {CALLOUT_ICONS[type]}
+          {createElement(calloutTypeIcons[type])}
         </SubframeCore.IconWrapper>
       </div>
       {!collapsed && (

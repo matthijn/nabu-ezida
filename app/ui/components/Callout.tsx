@@ -1,30 +1,25 @@
 "use client"
 
-import { forwardRef, type HTMLAttributes, type ReactNode } from "react"
+import { forwardRef, createElement, type HTMLAttributes } from "react"
 import * as SubframeCore from "@subframe/core"
 import {
-  FeatherBook,
   FeatherChevronDown,
   FeatherChevronRight,
 } from "@subframe/core"
+import { calloutTypeIcons, type CalloutType } from "~/domain/blocks/callout"
 import { cn } from "~/ui/utils"
 import { type RadixColor, solidBackground } from "~/lib/colors/radix"
 import { DropdownMenu } from "./DropdownMenu"
 import { IconButton } from "./IconButton"
 import { ColorPicker } from "./ColorPicker"
 
-export type CalloutType = "codebook-code"
-
 type CalloutTypeConfig = {
-  icon: ReactNode
   label: string
 }
 
 const CALLOUT_TYPES: Record<CalloutType, CalloutTypeConfig> = {
-  "codebook-code": { icon: <FeatherBook />, label: "Code" },
+  "codebook-code": { label: "Code" },
 }
-
-const getCalloutIcon = (type: CalloutType): ReactNode => CALLOUT_TYPES[type].icon
 
 type TypeSelectorProps = {
   type: CalloutType
@@ -49,7 +44,7 @@ const TypeSelector = ({ type, color, onChange }: TypeSelectorProps) => (
         }}
       >
         <SubframeCore.IconWrapper className="text-heading-3 font-heading-3">
-          {getCalloutIcon(type)}
+          {createElement(calloutTypeIcons[type])}
         </SubframeCore.IconWrapper>
       </button>
     </SubframeCore.DropdownMenu.Trigger>
@@ -65,7 +60,7 @@ const TypeSelector = ({ type, color, onChange }: TypeSelectorProps) => (
             ([key, config]) => (
               <DropdownMenu.DropdownItem
                 key={key}
-                icon={config.icon}
+                icon={createElement(calloutTypeIcons[key])}
                 onClick={() => onChange(key)}
               >
                 {config.label}

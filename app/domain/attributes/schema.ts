@@ -1,18 +1,15 @@
+import type { ComponentType } from "react"
 import { z } from "zod"
+import { FeatherMessageCircle } from "@subframe/core"
 import { BLOCK_COLORS } from "~/lib/colors/radix"
+
+export const annotationIcon: ComponentType<{ className?: string }> = FeatherMessageCircle
 
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
 const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
   z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>
-
-const AmbiguitySchema = z.object({
-  confidence: z.enum(["low", "medium", "high"]).describe("How confident the coding is"),
-  description: z.string().optional().describe("Why the interpretation is uncertain — required when confidence is not high"),
-  user_feedback: z.string().optional().describe("User's note on resolution"),
-  merged: z.boolean().optional().describe("Whether the resolution was absorbed into the codebook"),
-})
 
 const colorOrCodeRefinement = (a: { color?: unknown; code?: unknown }) =>
   (a.color !== undefined) !== (a.code !== undefined)
@@ -24,7 +21,7 @@ const AnnotationBase = z.object({
   reason: z.string().describe("Why this text was annotated"),
   color: emptyToUndefined(radixColor).describe("Color for the annotation (if no code)"),
   code: emptyToUndefined(z.string()).describe("Code ID from codebook (if no color)"),
-  ambiguity: AmbiguitySchema.default({ confidence: "high" }),
+  review: z.string().optional().describe("Flags the annotation for human review — explain what needs attention"),
 })
 
 export const AnnotationSchema = AnnotationBase

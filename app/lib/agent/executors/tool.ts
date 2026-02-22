@@ -62,44 +62,12 @@ export type ToolDefinition = {
   }
 }
 
-const THEN_PROPERTY: JsonSchemaProperty = {
-  type: "object",
-  description: "State your next action BEFORE executing this call.",
-  properties: {
-    success: {
-      type: "string",
-      description: "What you do next with the result. Name the specific action, not the goal.",
-    },
-    empty: {
-      type: "string",
-      description: "Concrete next action if result is empty or has no matches. Name what you try differently, or what you tell the user. 'Try again' and 'investigate further' are not actions.",
-    },
-  },
-  required: ["success", "empty"],
-}
-
-const SKIP_THEN_TOOLS = new Set([
-  "cancel",
-  "complete_step", "complete_substep",
-  "execute_with_plan", "create_plan", "for_each", "ask",
-])
-
-export type ToolDefinitionOptions = { includeThen?: boolean }
-
-const shouldIncludeThen = (name: string, options?: ToolDefinitionOptions): boolean =>
-  (options?.includeThen ?? false) && !SKIP_THEN_TOOLS.has(name)
-
-export const toToolDefinition = (
-  t: AnyTool,
-  options?: ToolDefinitionOptions
-): ToolDefinition => {
+export const toToolDefinition = (t: AnyTool): ToolDefinition => {
   const jsonSchema = t.schema.toJSONSchema() as {
     type?: string
     properties?: Record<string, JsonSchemaProperty>
     required?: string[]
   }
-
-  const addThen = shouldIncludeThen(t.name, options)
 
   return {
     type: "function",
@@ -107,12 +75,8 @@ export const toToolDefinition = (
     description: t.description,
     parameters: {
       type: "object",
-      properties: addThen
-        ? { then: THEN_PROPERTY, ...(jsonSchema.properties ?? {}) }
-        : { ...(jsonSchema.properties ?? {}) },
-      required: addThen
-        ? ["then", ...(jsonSchema.required ?? [])]
-        : [...(jsonSchema.required ?? [])],
+      properties: { ...(jsonSchema.properties ?? {}) },
+      required: [...(jsonSchema.required ?? [])],
     },
   }
 }

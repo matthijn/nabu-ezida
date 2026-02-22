@@ -166,6 +166,9 @@ const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
   </span>
 )
 
+const displayContent = (message: LeafMessage): string | null =>
+  message.draft ? preprocessStreaming(message.content) : message.content
+
 type LeafRendererProps = {
   message: LeafMessage
   files: Record<string, string>
@@ -174,16 +177,18 @@ type LeafRendererProps = {
 }
 
 const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps) => {
+  const content = displayContent(message)
+  if (!content) return null
   if (message.role === "user") {
     return (
       <UserBubble>
-        <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+        <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
       </UserBubble>
     )
   }
   return (
     <AssistantBubble>
-      <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+      <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
     </AssistantBubble>
   )
 }
@@ -249,6 +254,9 @@ type AskRendererProps = {
   onToggleSave: (question: string, answer: string) => void
 }
 
+const isTypedAnswer = (message: AskMessage): boolean =>
+  message.selected !== null && !message.options.includes(message.selected)
+
 const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRendererProps) => (
   <div className="flex w-full flex-col items-start gap-2">
     <AssistantBubble>{message.question}</AssistantBubble>
@@ -268,6 +276,7 @@ const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRend
         )
       })}
     </div>
+    {isTypedAnswer(message) && <UserBubble>{message.selected}</UserBubble>}
   </div>
 )
 
@@ -280,12 +289,14 @@ const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text"
 
 const PlanLeafInline = ({ message, files, projectId, navigate }: { message: LeafMessage; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
+  const content = displayContent(message)
+  if (!content) return null
   if (message.role === "user") {
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
           <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
-            <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+            <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
       </div>
@@ -295,7 +306,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
     <div className="flex w-full items-start mt-1">
       <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
         <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
-          <MessageContent content={message.content} files={files} projectId={projectId} navigate={navigate} />
+          <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
         </div>
       </div>
     </div>
@@ -395,21 +406,17 @@ const PlanSegmentItemRenderer = ({ item, files, projectId, navigate }: PlanSegme
 type PlanSegmentRendererProps = {
   items: PlanMessage[]
   active: boolean
-  streamingText: string | null
   spinnerLabel: string | null
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentRenderer = ({ items, active, streamingText, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => (
+const PlanSegmentRenderer = ({ items, active, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => (
     <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
       {items.map((item, i) => (
         <PlanSegmentItemRenderer key={i} item={item} files={files} projectId={projectId} navigate={navigate} />
       ))}
-      {active && streamingText && (
-        <PlanLeafInline message={{ type: "text", role: "assistant", content: streamingText }} files={files} projectId={projectId} navigate={navigate} />
-      )}
       {active && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
     </div>
 )
@@ -460,7 +467,6 @@ export const NabuChatSidebar = () => {
 
   const derived = useMemo(() => derive(history, files), [history, files])
   const isStreamingText = draft?.type === "text"
-  const streamingText = isStreamingText ? preprocessStreaming(draft.content) : null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const segments = useMemo(() => toRenderSegments(messages), [messages])
   const activePlan = hasActivePlan(derived.plans)
@@ -521,7 +527,7 @@ export const NabuChatSidebar = () => {
   if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
 
   const { recipient } = chat
-  const spinnerLabel = loading && !streamingText ? getSpinnerLabel(history, draft) : null
+  const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
 
   return (
     <div
@@ -562,7 +568,6 @@ export const NabuChatSidebar = () => {
               key={i}
               items={segment.items}
               active={i === lastPlanIdx && activePlan}
-              streamingText={i === lastPlanIdx && activePlan && loading ? streamingText : null}
               spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
               files={files}
               projectId={params.projectId ?? null}
@@ -574,12 +579,7 @@ export const NabuChatSidebar = () => {
             <LeafRenderer key={i} message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
           )
         )}
-        {!activePlan && !waitingForAsk && loading && streamingText && (
-          <AssistantBubble>
-            <MessageContent content={streamingText} files={files} projectId={params.projectId ?? null} navigate={navigate} />
-          </AssistantBubble>
-        )}
-        {!activePlan && !waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+        {!waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
       </AutoScroll>
 
       <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>

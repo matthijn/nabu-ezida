@@ -51,7 +51,6 @@ export type DebugOptions = {
   persistToServer: boolean
   renderAsJson: boolean
   showStreamPanel: boolean
-  thenEnabled: boolean
   reasoningSummaryAuto: boolean
 }
 
@@ -62,7 +61,6 @@ const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
   persistToServer: true,
   renderAsJson: false,
   showStreamPanel: false,
-  thenEnabled: false,
   reasoningSummaryAuto: false,
 }
 
@@ -91,7 +89,6 @@ export type ProjectContextValue = {
   togglePersistToServer: () => void
   toggleRenderAsJson: () => void
   toggleStreamPanel: () => void
-  toggleThenEnabled: () => void
   toggleReasoningSummaryAuto: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
@@ -110,20 +107,18 @@ export default function ProjectLayout() {
   const [persistToServer, setPersistToServer] = useState(() => loadDebugOptions().persistToServer)
   const [renderAsJson, setRenderAsJson] = useState(() => loadDebugOptions().renderAsJson)
   const [showStreamPanel, setShowStreamPanel] = useState(() => loadDebugOptions().showStreamPanel)
-  const [thenEnabled, setThenEnabled] = useState(() => loadDebugOptions().thenEnabled)
   const [reasoningSummaryAuto, setReasoningSummaryAuto] = useState(() => loadDebugOptions().reasoningSummaryAuto)
 
-  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel, thenEnabled, reasoningSummaryAuto }
+  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel, reasoningSummaryAuto }
 
   useEffect(() => {
     saveDebugOptions(debugOptions)
-  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, thenEnabled, reasoningSummaryAuto])
+  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, reasoningSummaryAuto])
 
   const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
   const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
   const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
   const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
-  const toggleThenEnabled = useCallback(() => setThenEnabled((prev) => !prev), [])
   const toggleReasoningSummaryAuto = useCallback(() => setReasoningSummaryAuto((prev) => !prev), [])
 
   useEffect(() => {
@@ -215,7 +210,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleThenEnabled, toggleReasoningSummaryAuto, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleReasoningSummaryAuto, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />

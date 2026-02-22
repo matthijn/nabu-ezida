@@ -40,6 +40,6 @@ const PatchJsonBlockArgs = z.object({
 
 export const patchJsonBlock = {
   name: "patch_json_block" as const,
-  description: "Apply RFC 6902 JSON Patch operations to a fenced JSON code block within a document. Array items must be targeted by selector, not numeric index.",
+  description: "Apply RFC 6902 JSON Patch operations to a fenced JSON code block within a document. Array items must be targeted by selector ([key=value], [key!=value], [key], [!key]), not numeric index.",
   schema: PatchJsonBlockArgs,
 }

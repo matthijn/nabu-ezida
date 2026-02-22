@@ -4,6 +4,7 @@ import type { Annotation } from "~/domain/document/annotations"
 import { blockTypes } from "~/domain/blocks/registry"
 import { findSingletonBlock, findBlocksByLanguage, type CalloutBlock } from "~/domain/blocks"
 import { createCappedCache } from "~/lib/utils"
+import { toDisplayName } from "./filename"
 
 type BlockTypeMap = {
   "json-attributes": DocumentMeta
@@ -117,6 +118,7 @@ const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): 
   color: resolveAnnotationColor(files, stored),
   reason: stored.reason,
   code: stored.code,
+  review: stored.review,
 })
 
 export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>
@@ -134,11 +136,8 @@ export const findDocumentForAnnotation = (files: Record<string, string>, id: str
 export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
 
-const stripExtension = (filename: string): string =>
-  filename.replace(/\.md$/, "")
-
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
   id.startsWith("annotation_") ? findAnnotationById(files, id)?.text ?? null
   : id.startsWith("callout_") ? findCalloutById(files, id)?.title ?? null
-  : id.endsWith(".md") && id in files ? stripExtension(id)
+  : id.endsWith(".md") && id in files ? toDisplayName(id)
   : null

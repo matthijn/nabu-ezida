@@ -1,40 +1,44 @@
 import type { Block } from "./types"
 
+export const isDraft = (block: Block): boolean =>
+  "draft" in block && block.draft === true
+
 let blocks: Block[] = []
 let listeners: (() => void)[] = []
-let draft: Block | null = null
-let draftListeners: (() => void)[] = []
 let loading = false
 let loadingListeners: (() => void)[] = []
 
 const notify = (): void => listeners.forEach((l) => l())
-const notifyDraft = (): void => draftListeners.forEach((l) => l())
 const notifyLoading = (): void => loadingListeners.forEach((l) => l())
 
+const lastIsDraft = (): boolean =>
+  blocks.length > 0 && isDraft(blocks[blocks.length - 1])
+
+const stripDraft = (bs: Block[]): Block[] =>
+  bs.length > 0 && isDraft(bs[bs.length - 1]) ? bs.slice(0, -1) : bs
+
 export const pushBlocks = (newBlocks: Block[]): void => {
-  blocks = [...blocks, ...newBlocks]
-  draft = null
+  blocks = [...stripDraft(blocks), ...newBlocks]
   notify()
-  notifyDraft()
 }
 
 export const setDraft = (block: Block): void => {
-  draft = block
-  notifyDraft()
+  const tagged = { ...block, draft: true as const }
+  blocks = lastIsDraft()
+    ? [...blocks.slice(0, -1), tagged]
+    : [...blocks, tagged]
+  notify()
 }
 
-export const getDraft = (): Block | null => draft
+export const getDraft = (): Block | null => {
+  const last = blocks[blocks.length - 1]
+  return last && isDraft(last) ? last : null
+}
 
 export const clearDraft = (): void => {
-  draft = null
-  notifyDraft()
-}
-
-export const subscribeDraft = (listener: () => void): (() => void) => {
-  draftListeners = [...draftListeners, listener]
-  return () => {
-    draftListeners = draftListeners.filter((l) => l !== listener)
-  }
+  if (!lastIsDraft()) return
+  blocks = blocks.slice(0, -1)
+  notify()
 }
 
 export const setLoading = (value: boolean): void => {
@@ -51,7 +55,9 @@ export const subscribeLoading = (listener: () => void): (() => void) => {
   }
 }
 
-export const getAllBlocks = (): Block[] => blocks
+export const getAllBlocks = (): Block[] => blocks.filter((b) => !isDraft(b))
+
+export const getAllBlocksWithDraft = (): Block[] => blocks
 
 export const clearBlocks = (): void => {
   blocks = []

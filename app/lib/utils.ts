@@ -121,6 +121,20 @@ export function timeAgo(date: Date): string {
   return ""
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const sampleAndHold = <A extends any[], R>(fn: (...args: A) => R, holdMs: number): (...args: A) => R => {
+  let heldValue: R | undefined
+  let heldUntil = 0
+
+  return (...args: A): R => {
+    const now = Date.now()
+    if (now < heldUntil) return heldValue as R
+    heldValue = fn(...args)
+    heldUntil = now + holdMs
+    return heldValue
+  }
+}
+
 type ScopedEntry = {
   timer: ReturnType<typeof setTimeout>
   controller: AbortController | null

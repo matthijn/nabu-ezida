@@ -3,6 +3,8 @@ import type { RadixColor } from "~/lib/colors/radix"
 import type { EntityKind, EntityRef } from "~/domain/entity-link"
 import { parseEntityLink } from "~/domain/entity-link"
 import { serializeSpotlight } from "~/domain/spotlight"
+import { calloutTypeIcons } from "~/domain/blocks/callout"
+import { annotationIcon } from "~/domain/attributes/schema"
 import { lowContrastText, solidBackground, elementBackground, hoveredElementBackground } from "~/lib/colors/radix"
 import {
   findAnnotationById,
@@ -54,7 +56,6 @@ const resolveAnnotationRef = (
   ref: Extract<EntityRef, { kind: "annotation" }>,
   files: Record<string, string>,
   projectId: string,
-  annotationIcon: ComponentType<{ className?: string }>,
 ): ResolvedLink | null => {
   const annotation = findAnnotationById(files, ref.id)
   if (!annotation) return null
@@ -73,7 +74,6 @@ const resolveCalloutRef = (
   ref: Extract<EntityRef, { kind: "callout" }>,
   files: Record<string, string>,
   projectId: string,
-  calloutIcon: ComponentType<{ className?: string }>,
 ): ResolvedLink | null => {
   const callout = findCalloutById(files, ref.id)
   if (!callout) return null
@@ -82,7 +82,7 @@ const resolveCalloutRef = (
   return {
     kind: "callout",
     colors: radixColors(callout.color),
-    icon: calloutIcon,
+    icon: calloutTypeIcons[callout.type],
     url: buildEntityUrl(projectId, documentId, ref.id),
     label: callout.title,
   }
@@ -101,8 +101,6 @@ const resolveTextRef = (
 })
 
 export type EntityIcons = {
-  annotation: ComponentType<{ className?: string }>
-  callout: ComponentType<{ className?: string }>
   text: ComponentType<{ className?: string }>
 }
 
@@ -117,9 +115,9 @@ export const resolveEntityLink = (
 
   switch (ref.kind) {
     case "annotation":
-      return resolveAnnotationRef(ref, files, projectId, icons.annotation)
+      return resolveAnnotationRef(ref, files, projectId)
     case "callout":
-      return resolveCalloutRef(ref, files, projectId, icons.callout)
+      return resolveCalloutRef(ref, files, projectId)
     case "text":
       return resolveTextRef(ref, projectId, icons.text)
     default: {

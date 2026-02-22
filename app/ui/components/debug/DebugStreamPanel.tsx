@@ -6,10 +6,9 @@ import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, 
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
-import { useChat } from "~/lib/chat"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocks, subscribeBlocks } from "~/lib/agent/block-store"
+import { getAllBlocksWithDraft, subscribeBlocks, isDraft } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
 
 type BlockRendererProps = {
@@ -33,6 +32,14 @@ const formatToolCall = (call: ToolCall): string => {
     })
     .join("\n")
   return `${call.name}\n${args}`
+}
+
+const formatToolCallDraft = (calls: ToolCall[]): string => {
+  const call = calls[0]
+  if (!call) return ""
+  return call.name
+    ? `${call.name}\n  ${String(call.args)}`
+    : String(call.args)
 }
 
 const formatResult = (result: unknown): string => {
@@ -171,11 +178,14 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           {...sel}
         />
       )
-    case "tool_call":
+    case "tool_call": {
+      const content = isDraft(block)
+        ? formatToolCallDraft(block.calls)
+        : block.calls.map(formatToolCall).join("\n\n")
       return (
         <CollapsibleBlock
           label="tool_call"
-          content={block.calls.map(formatToolCall).join("\n\n")}
+          content={content}
           copyContent={copy}
           borderColor="border-orange-400"
           labelColor="text-orange-600"
@@ -184,6 +194,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
           {...sel}
         />
       )
+    }
     case "tool_result":
       return (
         <CollapsibleBlock
@@ -225,17 +236,9 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
             {...sel}
           />
           {block.encryptedContent && (
-            <CollapsibleBlock
-              label="encrypted"
-              content={block.encryptedContent}
-              borderColor="border-yellow-300"
-              labelColor="text-yellow-500"
-              bgColor="bg-yellow-50"
-              defaultExpanded={false}
-              mono
-              selected={false}
-              onToggleSelect={() => {}}
-            />
+            <div className="border-l-2 border-yellow-300 pl-2 select-none">
+              <span className="text-xs text-yellow-500 font-medium">&lt;encrypted&gt;</span>
+            </div>
           )}
         </>
       )
@@ -257,67 +260,14 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
   }
 }
 
-type StreamingIndicatorProps = {
-  draft: Block | null
-}
-
-const StreamingIndicator = ({ draft }: StreamingIndicatorProps) => {
-  if (!draft) return null
-
-  switch (draft.type) {
-    case "reasoning":
-      return (
-        <div className="border-l-2 border-yellow-400 pl-2">
-          <div className="text-xs text-yellow-600 font-medium mb-1 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-            thinking
-          </div>
-          <div className="text-sm font-mono whitespace-pre-wrap bg-yellow-50 p-2 rounded">
-            {draft.content}
-          </div>
-        </div>
-      )
-    case "tool_call": {
-      const call = draft.calls[0]
-      const argsStr = call ? String(call.args) : ""
-      return (
-        <div className="border-l-2 border-orange-400 pl-2">
-          <div className="text-xs text-orange-600 font-medium mb-1 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-            tool_call: {call?.name}
-          </div>
-          {argsStr && (
-            <div className="text-sm font-mono whitespace-pre-wrap bg-orange-50 p-2 rounded">
-              {argsStr}
-            </div>
-          )}
-        </div>
-      )
-    }
-    case "text":
-      return (
-        <div className="border-l-2 border-green-400 pl-2">
-          <div className="text-xs text-green-600 font-medium mb-1 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            assistant
-          </div>
-          <div className="text-sm whitespace-pre-wrap">{draft.content}</div>
-        </div>
-      )
-    default:
-      return null
-  }
-}
-
 type DebugStreamPanelProps = {
   onClose: () => void
 }
 
-const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocks, getAllBlocks)
+const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
-  const { draft } = useChat()
   const allBlocks = useBlockStore()
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
@@ -393,7 +343,6 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
             onToggleSelect={() => handleToggleBlock(i)}
           />
         ))}
-        <StreamingIndicator draft={draft} />
       </AutoScroll>
     </div>
   )

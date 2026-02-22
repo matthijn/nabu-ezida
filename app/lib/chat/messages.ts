@@ -5,6 +5,7 @@ export type TextMessage = {
   type: "text"
   role: "user" | "assistant"
   content: string
+  draft?: true
 }
 
 export type PlanMessage = {
@@ -23,6 +24,8 @@ const hasContent = (s: string): boolean => s.trim().length > 0
 const isContentBlock = (b: Block): b is { type: "user" | "text" | "error"; content: string } =>
   b.type === "user" || b.type === "text" || b.type === "error"
 
+const hasDraft = (b: Block): boolean => "draft" in b && b.draft === true
+
 export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
@@ -35,6 +38,7 @@ export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
         type: "text" as const,
         role: block.type === "user" ? "user" : "assistant",
         content: block.content,
+        ...(hasDraft(history[index]) && { draft: true as const }),
       },
     }))
 

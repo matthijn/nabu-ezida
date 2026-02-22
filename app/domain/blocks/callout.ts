@@ -1,4 +1,6 @@
+import type { ComponentType } from "react"
 import { z } from "zod"
+import { FeatherBook } from "@subframe/core"
 import { BLOCK_COLORS } from "~/lib/colors/radix"
 
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
@@ -22,6 +24,10 @@ export const CalloutSchema = z.object({
 
 export type CalloutBlock = z.infer<typeof CalloutSchema>
 export type CalloutType = z.infer<typeof calloutType>
+
+export const calloutTypeIcons: Record<CalloutType, ComponentType<{ className?: string }>> = {
+  "codebook-code": FeatherBook,
+}
 
 export const parseCallout = (content: string): CalloutBlock | null => {
   try {

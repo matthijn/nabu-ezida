@@ -10,7 +10,7 @@ import {
 import type { DocumentMeta, Annotation } from "./schema"
 
 const testAnnotation = (overrides: Partial<Annotation> = {}): Annotation =>
-  ({ text: "test", reason: "note", color: "red", code: undefined, ambiguity: { confidence: "high" }, ...overrides }) as Annotation
+  ({ text: "test", reason: "note", color: "red", code: undefined, ...overrides }) as Annotation
 
 describe("validateDocumentMeta", () => {
   const cases = [

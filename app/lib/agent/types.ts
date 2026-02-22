@@ -7,11 +7,13 @@ export type ToolCall = {
 export type TextBlock = {
   type: "text"
   content: string
+  draft?: true
 }
 
 export type ToolCallBlock = {
   type: "tool_call"
   calls: ToolCall[]
+  draft?: true
 }
 
 export type ToolResultBlock = {
@@ -36,6 +38,7 @@ export type ReasoningBlock = {
   content: string
   id?: string
   encryptedContent?: string
+  draft?: true
 }
 
 export type EmptyNudgeBlock = {

@@ -6,7 +6,9 @@ import { Button } from "~/ui/components/Button";
 import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { IconButton } from "~/ui/components/IconButton";
 import { TextField } from "~/ui/components/TextField";
+import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout";
+import { FeatherAlertTriangle } from "@subframe/core";
 import { FeatherChevronsLeft } from "@subframe/core";
 import { FeatherCopy } from "@subframe/core";
 import { FeatherFileText } from "@subframe/core";
@@ -404,6 +406,116 @@ function NabuCodes2() {
                           ) => {}}
                         />
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex w-full items-start gap-4">
+                <span className="text-body font-body text-default-font rounded-sm px-1 bg-[repeating-linear-gradient(45deg,#fef3c7,#fef3c7_6px,#dcfce7_6px,#dcfce7_12px,#fce7f3_12px,#fce7f3_18px)] border border-solid border-[#fcd34d]">
+                  community-led conservation
+                </span>
+                <div className="flex w-80 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
+                  <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#fcd34d] via-[#86efac] to-[#f9a8d4]" />
+                  <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
+                    <div className="flex w-full items-start gap-2">
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
+                        <div className="flex w-full items-center gap-2">
+                          <span className="text-body-bold font-body-bold text-default-font">
+                            Key Concept
+                          </span>
+                          <div className="flex h-5 items-center gap-1 rounded-full bg-success-100 px-2 py-0.5">
+                            <div className="flex h-1.5 w-1.5 flex-none items-start rounded-full bg-success-600" />
+                            <span className="text-caption font-caption text-success-700">
+                              High
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          Core theme throughout the research framework
+                        </span>
+                      </div>
+                      <IconButton
+                        variant="neutral-tertiary"
+                        size="small"
+                        icon={<FeatherX />}
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>
+                        ) => {}}
+                      />
+                    </div>
+                    <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
+                    <div className="flex w-full items-start gap-2">
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
+                        <div className="flex w-full items-center gap-2">
+                          <span className="text-body-bold font-body-bold text-default-font">
+                            Success Factor
+                          </span>
+                          <div className="flex h-5 items-center gap-1 rounded-full bg-success-100 px-2 py-0.5">
+                            <div className="flex h-1.5 w-1.5 flex-none items-start rounded-full bg-success-600" />
+                            <span className="text-caption font-caption text-success-700">
+                              High
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          73% success rate when properly implemented
+                        </span>
+                      </div>
+                      <IconButton
+                        variant="neutral-tertiary"
+                        size="small"
+                        icon={<FeatherX />}
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>
+                        ) => {}}
+                      />
+                    </div>
+                    <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
+                    <div className="flex w-full items-start gap-2">
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4ff] mt-0.5" />
+                      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
+                        <div className="flex w-full items-center gap-2">
+                          <span className="text-body-bold font-body-bold text-default-font">
+                            Define Further
+                          </span>
+                          <div className="flex h-5 items-center gap-1 rounded-full bg-error-100 px-2 py-0.5">
+                            <div className="flex h-1.5 w-1.5 flex-none items-start rounded-full bg-error-600" />
+                            <span className="text-caption font-caption text-error-700">
+                              Low
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-caption font-caption text-subtext-color">
+                          Add specific examples of community-led initiatives
+                        </span>
+                        <div className="flex w-full items-start gap-2 rounded-md bg-warning-50 px-2 py-2">
+                          <FeatherAlertTriangle className="text-caption font-caption text-warning-600 mt-0.5" />
+                          <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
+                            <span className="text-caption-bold font-caption-bold text-warning-900">
+                              Ambiguous
+                            </span>
+                            <TextFieldUnstyled className="h-auto w-full flex-none">
+                              <TextFieldUnstyled.Input
+                                placeholder="Note why this is kept despite low confidence..."
+                                value=""
+                                onChange={(
+                                  event: React.ChangeEvent<HTMLInputElement>
+                                ) => {}}
+                              />
+                            </TextFieldUnstyled>
+                          </div>
+                        </div>
+                      </div>
+                      <IconButton
+                        variant="neutral-tertiary"
+                        size="small"
+                        icon={<FeatherX />}
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>
+                        ) => {}}
+                      />
                     </div>
                   </div>
                 </div>

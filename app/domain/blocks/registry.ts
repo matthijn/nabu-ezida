@@ -127,8 +127,6 @@ const jsonAttributes = defineBlock({
   constraints: [
     "annotations: each entry requires either 'color' or 'code', not both",
     "annotations.text: must be text from the document prose (fuzzy-matched automatically)",
-    "annotations.ambiguity.confidence: always present, defaults to 'high' if omitted",
-    "annotations.ambiguity.description: required when confidence is not 'high'",
   ],
   renderer: "hidden",
   singleton: true,

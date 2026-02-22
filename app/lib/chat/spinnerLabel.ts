@@ -1,4 +1,5 @@
 import type { Block } from "~/lib/agent"
+import { sampleAndHold } from "~/lib/utils"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
@@ -63,7 +64,9 @@ const findLastToolCallName = (history: Block[], from: number): string | null => 
   return null
 }
 
-export const getSpinnerLabel = (history: Block[], draft: Block | null): string => {
+const HOLD_MS = 400
+
+const computeSpinnerLabel = (history: Block[], draft: Block | null): string => {
   const turnStart = findTurnStart(history)
 
   if (draft?.type === "reasoning") return extractReasoningLabel(draft.content) ?? "Thinking"
@@ -76,3 +79,5 @@ export const getSpinnerLabel = (history: Block[], draft: Block | null): string =
 
   return toLabel(findLastToolCallName(history, turnStart))
 }
+
+export const getSpinnerLabel = sampleAndHold(computeSpinnerLabel, HOLD_MS)

@@ -4,8 +4,6 @@ import { resolveEntityLink, type ResolvedLink, type EntityIcons } from "./resolv
 const StubIcon = () => null
 
 const icons: EntityIcons = {
-  annotation: StubIcon,
-  callout: StubIcon,
   text: StubIcon,
 }
 

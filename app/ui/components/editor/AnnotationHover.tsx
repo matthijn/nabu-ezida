@@ -30,6 +30,7 @@ const annotationToEntry = (files: Record<string, string>) => (annotation: Annota
   color: elementBorder(annotation.color),
   title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
   description: annotation.reason,
+  review: annotation.review,
 })
 
 export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps) => {

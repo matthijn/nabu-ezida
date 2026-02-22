@@ -6,14 +6,20 @@ import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
 import { generateJsonBlockPatch } from "~/lib/diff/json-block/patch"
 import { hasFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 
-type Selector = { arrayPath: string; key: string; value: string; rest: string }
+type SelectorOp = "eq" | "neq" | "exists" | "not_exists"
+type Selector = { arrayPath: string; key: string; op: SelectorOp; value: string; rest: string }
 
-const SELECTOR_REGEX = /^(\/[^[]+)\[([^\]=]+)=([^\]]+)\](\/.*)?$/
+const SELECTOR_REGEX = /^(\/[^[]+)\[(!?)([^\]!=]+)(?:(!=|=)([^\]]+))?\](\/.*)?$/
 
 const parseSelector = (path: string): Selector | null => {
   const match = path.match(SELECTOR_REGEX)
   if (!match) return null
-  return { arrayPath: match[1], key: match[2], value: match[3], rest: match[4] ?? "" }
+  const [, arrayPath, negation, key, operator, value, rest] = match
+  const op: SelectorOp = operator === "!=" ? "neq"
+    : operator === "=" ? "eq"
+    : negation === "!" ? "not_exists"
+    : "exists"
+  return { arrayPath, key, op, value: value ?? "", rest: rest ?? "" }
 }
 
 const NUMERIC_INDEX_REGEX = /\/\d+(\/|$)/
@@ -50,17 +56,35 @@ const getNestedValue = (obj: unknown, path: string): unknown => {
   return current
 }
 
-const findMatchingIndices = (doc: unknown, selector: Selector): number[] => {
-  const segments = selector.arrayPath.split("/").filter(Boolean)
+const isTruthy = (v: unknown): boolean =>
+  v !== undefined && v !== null && v !== "" && v !== false
+
+const matchesSelectorOp = (resolved: unknown, op: SelectorOp, value: string): boolean => {
+  switch (op) {
+    case "eq": return String(resolved) === value
+    case "neq": return String(resolved) !== value
+    case "exists": return isTruthy(resolved)
+    case "not_exists": return !isTruthy(resolved)
+    default: throw new Error(`unknown selector op: ${op}`)
+  }
+}
+
+const resolveArray = (doc: unknown, arrayPath: string): unknown[] | null => {
+  const segments = arrayPath.split("/").filter(Boolean)
   let current: unknown = doc
   for (const seg of segments) {
-    if (current === null || typeof current !== "object") return []
+    if (current === null || typeof current !== "object") return null
     current = (current as Record<string, unknown>)[seg]
   }
-  if (!Array.isArray(current)) return []
+  return Array.isArray(current) ? current : null
+}
+
+const findMatchingIndices = (doc: unknown, selector: Selector): number[] => {
+  const arr = resolveArray(doc, selector.arrayPath)
+  if (!arr) return []
   const indices: number[] = []
-  for (let i = 0; i < current.length; i++) {
-    if (String(getNestedValue(current[i], selector.key)) === selector.value) {
+  for (let i = 0; i < arr.length; i++) {
+    if (matchesSelectorOp(getNestedValue(arr[i], selector.key), selector.op, selector.value)) {
       indices.push(i)
     }
   }
