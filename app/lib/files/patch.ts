@@ -71,8 +71,13 @@ type ApplyMdPatchOptions = {
   actor?: "ai" | "user"
 }
 
+const toPretty = (raw: string): string => toExtraPretty(stripPendingRefs(raw))
+
 const buildFileReader = (currentPath: string, currentContent: string): FileReader =>
-  (p) => p === currentPath ? currentContent : getFiles()[p]
+  (p) => {
+    const raw = p === currentPath ? currentContent : getFiles()[p]
+    return raw !== undefined ? toPretty(raw) : undefined
+  }
 
 const applyMdPatch = (path: string, content: string, patch: string, options: ApplyMdPatchOptions = {}): FileResult => {
   if (content === "" && patch === "") {

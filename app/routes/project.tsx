@@ -9,10 +9,10 @@ import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
-import { buildSpotlightUrl } from "~/domain/spotlight/url"
+
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId } from "~/lib/files"
-import { getAnnotationCount } from "~/lib/files/selectors"
+import { getAnnotationCount, findDocumentForCallout } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 
 type SidebarDocument = {
@@ -166,7 +166,9 @@ export default function ProjectLayout() {
 
   const handleEditCode = (code: Code) => {
     if (!params.projectId) return
-    navigate(buildSpotlightUrl(params.projectId, "codebook", [code.name]))
+    const documentId = findDocumentForCallout(files, code.id)
+    if (!documentId) return
+    navigate(`/project/${params.projectId}/file/${encodeURIComponent(documentId)}?entity=${code.id}`)
   }
 
   const renderSidebar = () => {

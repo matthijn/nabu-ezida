@@ -3,11 +3,18 @@ import { sampleAndHold } from "~/lib/utils"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
+  patch_json_block: "Writing",
   apply_local_patch: "Writing",
+  copy_file: "Writing",
+  rename_file: "Writing",
+  remove_file: "Writing",
   plan: "Planning",
   submit_plan: "Starting execution",
   for_each: "Processing",
+  complete_step: "Working",
+  complete_substep: "Working",
   cancel: "Cancelling",
+  ask: "Asking",
 }
 
 const toLabel = (toolName: string | null): string => {

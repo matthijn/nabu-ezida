@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, afterEach } from "vitest"
 import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { applyFilePatch } from "./patch"
+import { setFiles } from "./store"
 
 const scenariosDir = join(__dirname, "scenarios")
 
@@ -35,6 +36,79 @@ describe("valid", () => {
 
   it.each(scenarios)("$name", ({ path, content, patch, expected }) => {
     const result = applyFilePatch(path, content, patch)
+    expect(result.status).toBe("ok")
+    if (result.status === "ok") {
+      expect(result.content).toBe(expected)
+    }
+  })
+})
+
+describe("range ref resolves against pretty content", () => {
+  afterEach(() => setFiles({}))
+
+  const j = (...lines: string[]) => lines.join("\n")
+
+  const SOURCE_RAW = j(
+    "# Source Notes",
+    "",
+    "## Section A",
+    "",
+    "Some prose here.",
+    "",
+    '```json-attributes',
+    '{',
+    '  "summary": "Line one.\\nLine two continues.\\nLine three wraps up."',
+    '}',
+    '```',
+    "",
+    "## Section B",
+    "",
+    "More prose.",
+  )
+
+  type Case = {
+    name: string
+    store: Record<string, string>
+    targetPath: string
+    targetContent: string
+    patch: string
+    expected: string
+  }
+
+  const cases: Case[] = [
+    {
+      name: "anchors use triple-quote format from pretty expansion",
+      store: { "source.md": SOURCE_RAW },
+      targetPath: "target.md",
+      targetContent: "# Target\n",
+      patch: j(
+        "*** Update File: target.md",
+        "@@",
+        "+<< source.md",
+        "+  ## Section A",
+        "+  ...",
+        '+  """',
+        "+  }",
+        "+  ```",
+      ),
+      expected: j(
+        "# Target",
+        "## Section A",
+        "",
+        "Some prose here.",
+        "",
+        '```json-attributes',
+        '{',
+        '  "summary": "Line one.\\nLine two continues.\\nLine three wraps up."',
+        '}',
+        '```',
+      ),
+    },
+  ]
+
+  it.each(cases)("$name", ({ store, targetPath, targetContent, patch, expected }) => {
+    setFiles({ ...store, [targetPath]: targetContent })
+    const result = applyFilePatch(targetPath, targetContent, patch)
     expect(result.status).toBe("ok")
     if (result.status === "ok") {
       expect(result.content).toBe(expected)

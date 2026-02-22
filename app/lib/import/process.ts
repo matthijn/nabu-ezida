@@ -2,6 +2,7 @@ import { generateDiff } from "~/lib/diff"
 import { applyFilePatch, updateFileRaw, getFiles } from "~/lib/files"
 import { deduplicateName } from "./dedupe"
 import { readFileContent, isMarkdownFile } from "./read"
+import { normalizeFilename } from "~/lib/files/filename"
 import type { ImportFile, ImportStatus } from "./types"
 
 export type ProcessResult = {
@@ -43,7 +44,7 @@ const processMarkdownFile = (
   tags: string[]
 ): ProcessResult => {
   const existingNames = getExistingNames()
-  const finalPath = deduplicateName(file.name, existingNames)
+  const finalPath = deduplicateName(normalizeFilename(file.name), existingNames)
   const contentWithTags = injectTags(content, tags)
   const diff = generateDiff("", contentWithTags)
 

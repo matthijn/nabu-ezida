@@ -7,6 +7,7 @@ import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
+import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { getAllBlocksWithDraft, subscribeBlocks, isDraft } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
@@ -269,6 +270,8 @@ const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocksWi
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
   const allBlocks = useBlockStore()
+  const mode = deriveMode(allBlocks)
+  const reasoning = modes[mode].reasoning
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
 
@@ -301,6 +304,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
       >
         <span className="text-sm font-medium text-neutral-700">
           Debug Stream
+          <span className="text-xs text-neutral-400 ml-2">{mode} · {reasoning}</span>
           {hasSelection && <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>}
         </span>
         <div className="flex items-center gap-1">

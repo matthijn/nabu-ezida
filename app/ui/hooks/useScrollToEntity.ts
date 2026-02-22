@@ -7,7 +7,7 @@ const findEntityElement = (container: HTMLElement, entityId: string): HTMLElemen
   container.querySelector(`[data-id="${entityId}"]`)
 
 const scrollToElement = (element: HTMLElement): void => {
-  element.scrollIntoView({ behavior: "smooth", block: "center" })
+  element.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
 export const useScrollToEntity = (containerRef: RefObject<HTMLElement | null>): void => {

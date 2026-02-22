@@ -26,7 +26,7 @@ import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/lib/chat"
-import { derive, hasActivePlan } from "~/lib/agent"
+import { derive } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
 import type { AskMessage } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
@@ -252,6 +252,9 @@ const OptionCard = ({ label, selected, dimmed, saved, onClick, onToggleSave }: O
 type AskRendererProps = {
   message: AskMessage
   memoryContent: string | undefined
+  files: Record<string, string>
+  projectId: string | null
+  navigate?: (url: string) => void
   onSelect: (option: string) => void
   onToggleSave: (question: string, answer: string) => void
 }
@@ -259,9 +262,9 @@ type AskRendererProps = {
 const isTypedAnswer = (message: AskMessage): boolean =>
   message.selected !== null && !message.options.includes(message.selected)
 
-const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRendererProps) => (
+const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSelect, onToggleSave }: AskRendererProps) => (
   <div className="flex w-full flex-col items-start gap-2 mb-3">
-    <AssistantBubble>{message.question}</AssistantBubble>
+    <AssistantBubble><MessageContent content={message.question} files={files} projectId={projectId} navigate={navigate} /></AssistantBubble>
     <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
       {message.options.map((option) => {
         const selected = message.selected === option
@@ -278,7 +281,7 @@ const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRend
         )
       })}
     </div>
-    {isTypedAnswer(message) && <UserBubble>{message.selected}</UserBubble>}
+    {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} navigate={navigate} /></UserBubble>}
   </div>
 )
 
@@ -407,19 +410,16 @@ const PlanSegmentItemRenderer = ({ item, files, projectId, navigate }: PlanSegme
 
 type PlanSegmentRendererProps = {
   items: PlanMessage[]
-  active: boolean
-  spinnerLabel: string | null
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentRenderer = ({ items, active, spinnerLabel, files, projectId, navigate }: PlanSegmentRendererProps) => (
+const PlanSegmentRenderer = ({ items, files, projectId, navigate }: PlanSegmentRendererProps) => (
     <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
       {items.map((item, i) => (
         <PlanSegmentItemRenderer key={i} item={item} files={files} projectId={projectId} navigate={navigate} />
       ))}
-      {active && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
     </div>
 )
 
@@ -468,11 +468,9 @@ export const NabuChatSidebar = () => {
   const { files } = useFiles()
 
   const derived = useMemo(() => derive(history, files), [history, files])
-  const isStreamingText = draft?.type === "text"
+  const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const segments = useMemo(() => toRenderSegments(messages), [messages])
-  const activePlan = hasActivePlan(derived.plans)
-  const lastPlanIdx = segments.reduce<number>((acc, s, i) => isPlanSegment(s) ? i : acc, -1)
   const waitingForAsk = useMemo(() => isWaitingForAsk(history), [history])
 
   const memoryContent = files[PREFERENCES_FILE]
@@ -483,6 +481,8 @@ export const NabuChatSidebar = () => {
   }, [])
 
   const [inputValue, setInputValue] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { position, isDragging, handleMouseDown } = useDraggable({ x: 16, y: 16 })
   const { size, handleResizeMouseDown } = useResizable(
@@ -511,14 +511,21 @@ export const NabuChatSidebar = () => {
     setInputValue("")
   }, [loading, waitingForAsk, inputValue, send, respond, getDeps])
 
+  const markTyping = useCallback(() => {
+    setIsTyping(true)
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+    typingTimerRef.current = setTimeout(() => setIsTyping(false), 300)
+  }, [])
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      markTyping()
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault()
         handleSend()
       }
     },
-    [handleSend]
+    [handleSend, markTyping]
   )
 
   const handleMinimize = useCallback(() => {
@@ -565,19 +572,18 @@ export const NabuChatSidebar = () => {
           </div>
         )}
         <AnimatePresence initial={false}>
+          {/* DO NOT TOUCH — layout animation is intentional and tuned. Do not remove, refactor, or "fix". */}
           {segments.map((segment, i) =>
-            <AnimatedListItem key={i} layout={isDragging ? false : "position"}>
+            <AnimatedListItem key={i} layout={isDragging || isTyping ? false : "position"}>
               {isPlanSegment(segment) ? (
                 <PlanSegmentRenderer
                   items={segment.items}
-                  active={i === lastPlanIdx && activePlan}
-                  spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
                   files={files}
                   projectId={params.projectId ?? null}
                   navigate={navigate}
                 />
               ) : isAskMessage(segment) ? (
-                <AskRenderer message={segment} memoryContent={memoryContent} onSelect={respond} onToggleSave={handleToggleSave} />
+                <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
               ) : (
                 <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
               )}
