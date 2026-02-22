@@ -22,7 +22,9 @@ import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
+import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
+import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/lib/chat"
 import { derive, hasActivePlan } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
@@ -214,12 +216,12 @@ const SaveBadge = ({ saved, onToggle }: { saved: boolean; onToggle: () => void }
 
 const OptionCard = ({ label, selected, dimmed, saved, onClick, onToggleSave }: OptionCardProps) => {
   const className = [
-    "flex w-full items-center gap-2 rounded-lg border px-3 py-2",
+    "flex w-full items-center gap-2 rounded-lg border-2 px-3 py-2",
     selected
-      ? "border-2 border-brand-600 bg-brand-50"
+      ? "border-brand-600 bg-brand-50"
       : dimmed
         ? "border-neutral-border bg-white opacity-50"
-        : "border-neutral-border bg-white cursor-pointer hover:border-2 hover:border-brand-600 hover:bg-brand-50 [&:hover_.option-icon]:hidden [&:hover_.option-check]:block",
+        : "border-neutral-border bg-white cursor-pointer hover:border-brand-600 hover:bg-brand-50 [&:hover_.option-icon]:hidden [&:hover_.option-check]:block",
   ].join(" ")
 
   const icon = selected
@@ -258,7 +260,7 @@ const isTypedAnswer = (message: AskMessage): boolean =>
   message.selected !== null && !message.options.includes(message.selected)
 
 const AskRenderer = ({ message, memoryContent, onSelect, onToggleSave }: AskRendererProps) => (
-  <div className="flex w-full flex-col items-start gap-2">
+  <div className="flex w-full flex-col items-start gap-2 mb-3">
     <AssistantBubble>{message.question}</AssistantBubble>
     <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
       {message.options.map((option) => {
@@ -562,23 +564,26 @@ export const NabuChatSidebar = () => {
             <span className="text-body font-body text-subtext-color">How can I help you today?</span>
           </div>
         )}
-        {segments.map((segment, i) =>
-          isPlanSegment(segment) ? (
-            <PlanSegmentRenderer
-              key={i}
-              items={segment.items}
-              active={i === lastPlanIdx && activePlan}
-              spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
-              files={files}
-              projectId={params.projectId ?? null}
-              navigate={navigate}
-            />
-          ) : isAskMessage(segment) ? (
-            <AskRenderer key={i} message={segment} memoryContent={memoryContent} onSelect={respond} onToggleSave={handleToggleSave} />
-          ) : (
-            <LeafRenderer key={i} message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
-          )
-        )}
+        <AnimatePresence initial={false}>
+          {segments.map((segment, i) =>
+            <AnimatedListItem key={i}>
+              {isPlanSegment(segment) ? (
+                <PlanSegmentRenderer
+                  items={segment.items}
+                  active={i === lastPlanIdx && activePlan}
+                  spinnerLabel={i === lastPlanIdx && activePlan ? spinnerLabel : null}
+                  files={files}
+                  projectId={params.projectId ?? null}
+                  navigate={navigate}
+                />
+              ) : isAskMessage(segment) ? (
+                <AskRenderer message={segment} memoryContent={memoryContent} onSelect={respond} onToggleSave={handleToggleSave} />
+              ) : (
+                <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
+              )}
+            </AnimatedListItem>
+          )}
+        </AnimatePresence>
         {!waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
       </AutoScroll>
 
