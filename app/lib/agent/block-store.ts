@@ -17,13 +17,15 @@ const lastIsDraft = (): boolean =>
 const stripDraft = (bs: Block[]): Block[] =>
   bs.length > 0 && isDraft(bs[bs.length - 1]) ? bs.slice(0, -1) : bs
 
+const stamp = (block: Block): Block => ({ ...block, timestamp: Date.now() })
+
 export const pushBlocks = (newBlocks: Block[]): void => {
-  blocks = [...stripDraft(blocks), ...newBlocks]
+  blocks = [...stripDraft(blocks), ...newBlocks.map(stamp)]
   notify()
 }
 
 export const setDraft = (block: Block): void => {
-  const tagged = { ...block, draft: true as const }
+  const tagged = { ...stamp(block), draft: true as const }
   blocks = lastIsDraft()
     ? [...blocks.slice(0, -1), tagged]
     : [...blocks, tagged]
