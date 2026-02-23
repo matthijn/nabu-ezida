@@ -129,21 +129,50 @@ describe("toGroupedMessages", () => {
   describe("messages before and after plan", () => {
     const cases = [
       {
-        name: "messages before plan are leaves, messages after plan start are items",
+        name: "messages before plan are leaves, messages during plan are items",
         history: [
           userBlock("Before plan"),
           textBlock("Response before"),
           ...submitPlanCall("Task", ["Step 1"]),
           textBlock("Inside plan"),
-          ...completeStepCall("Done"),
-          userBlock("After completion"),
         ],
         check: (result: GroupedMessage[]) => {
           expect(result[0].type).toBe("text")
           expect(result[1].type).toBe("text")
           expect(result[2].type).toBe("plan-header")
           const textItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
-          expect(textItems).toHaveLength(2)
+          expect(textItems).toHaveLength(1)
+        },
+      },
+      {
+        name: "messages after completed plan are leaves, not plan items",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          textBlock("Inside plan"),
+          ...completeStepCall("Done"),
+          userBlock("After completion"),
+          textBlock("Back to chat"),
+        ],
+        check: (result: GroupedMessage[]) => {
+          const planItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
+          expect(planItems).toHaveLength(1)
+          const leaves = result.filter((m) => m.type === "text")
+          expect(leaves).toHaveLength(2)
+          expect(leaves[0]).toEqual({ type: "text", role: "user", content: "After completion" })
+          expect(leaves[1]).toEqual({ type: "text", role: "assistant", content: "Back to chat" })
+        },
+      },
+      {
+        name: "messages after cancelled plan are leaves",
+        history: [
+          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
+          ...cancelCall(),
+          textBlock("Back to normal"),
+        ],
+        check: (result: GroupedMessage[]) => {
+          const leaves = result.filter((m) => m.type === "text")
+          expect(leaves).toHaveLength(1)
+          expect(leaves[0]).toEqual({ type: "text", role: "assistant", content: "Back to normal" })
         },
       },
       {
@@ -159,10 +188,9 @@ describe("toGroupedMessages", () => {
           expect(headers).toHaveLength(2)
           expect(headers[0].task).toBe("First")
           expect(headers[1].task).toBe("Second")
-          const textItems = result.filter((m) =>
-            m.type === "plan-item" && m.child.type === "text"
-          ) as PlanItem[]
-          expect(textItems).toHaveLength(1)
+          const leaves = result.filter((m) => m.type === "text")
+          expect(leaves).toHaveLength(1)
+          expect(leaves[0]).toEqual({ type: "text", role: "assistant", content: "Between plans" })
         },
       },
     ]

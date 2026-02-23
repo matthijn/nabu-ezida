@@ -79,13 +79,28 @@ const isSuccessfulCompleteStep = (block: Block, statuses: Map<string, string>): 
   )
 }
 
+const isTerminatingResult = (block: Block, plan: DerivedPlan): boolean => {
+  if (block.type !== "tool_result") return false
+  if (plan.aborted) return block.toolName === "cancel"
+  if (isPlanCompleted(plan)) return block.toolName === "complete_step"
+  return false
+}
+
+const findTerminationIndex = (history: Block[], plan: DerivedPlan, start: number, bound: number): number => {
+  if (!plan.aborted && !isPlanCompleted(plan)) return bound
+  for (let i = bound - 1; i >= start; i--) {
+    if (isTerminatingResult(history[i], plan)) return i + 1
+  }
+  return bound
+}
+
 const buildPlanRanges = (history: Block[], plans: DerivedPlan[]): PlanRange[] => {
   const indices = findCreationIndices(history, "submit_plan")
-  return plans.map((plan, i) => ({
-    plan,
-    startIndex: indices[i] ?? 0,
-    endIndex: indices[i + 1] ?? history.length,
-  }))
+  return plans.map((plan, i) => {
+    const startIndex = indices[i] ?? 0
+    const rawEnd = indices[i + 1] ?? history.length
+    return { plan, startIndex, endIndex: findTerminationIndex(history, plan, startIndex, rawEnd) }
+  })
 }
 
 const isPlanCompleted = (plan: DerivedPlan): boolean =>

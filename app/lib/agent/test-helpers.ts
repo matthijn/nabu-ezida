@@ -22,9 +22,12 @@ const toStepDef = (input: StepInput): StepDef => {
   return input
 }
 
+const toolName = (call: Block): string | undefined =>
+  call.type === "tool_call" ? call.calls[0]?.name : undefined
+
 const withResult = (callId: string, call: Block): Block[] => [
   call,
-  { type: "tool_result", callId, result: { status: "ok" } },
+  { type: "tool_result", callId, toolName: toolName(call), result: { status: "ok" } },
 ]
 
 type SubmitPlanOptions = {
