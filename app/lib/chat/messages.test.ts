@@ -326,6 +326,13 @@ describe("isWaitingForAsk", () => {
       ],
       expected: true,
     },
+    {
+      name: "draft ask tool call returns false",
+      history: [
+        { type: "tool_call" as const, calls: [{ id: "", name: "ask", args: {} }], draft: true as const },
+      ],
+      expected: false,
+    },
   ]
 
   cases.forEach(({ name, history, expected }) => {

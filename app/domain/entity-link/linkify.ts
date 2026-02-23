@@ -2,7 +2,15 @@ type NameResolver = (id: string) => string | null
 
 const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)_\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
+const QUOTES = new Set(['"', "'"])
+const FILE_PROTOCOL = "file://"
 const MAX_GLUE = 8
+
+const isQuoted = (text: string, start: number, end: number): boolean =>
+  start > 0 && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]
+
+const isPartOfFileUrl = (text: string, start: number): boolean =>
+  start >= FILE_PROTOCOL.length && text.slice(start - FILE_PROTOCOL.length, start) === FILE_PROTOCOL
 
 const expandWrappers = (text: string, start: number, end: number, floor: number): [number, number] => {
   while (start > floor && WRAPPERS.has(text[start - 1])) start--
@@ -62,6 +70,13 @@ export const linkifyEntityIds = (text: string, resolveName: NameResolver): strin
     }
 
     const [consumeStart, consumeEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
+
+    if (isQuoted(text, consumeStart, consumeEnd) || isPartOfFileUrl(text, match.index)) {
+      result += text.slice(lastIndex, match.index + match[0].length)
+      lastIndex = match.index + match[0].length
+      continue
+    }
+
     const link = `[${name}](file://${bareId})`
 
     const stripAfter = tryStripAfter(text, consumeEnd, name)

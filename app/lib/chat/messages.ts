@@ -1,5 +1,6 @@
 import type { Block, Files, ToolCall } from "~/lib/agent"
 import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
+import { isDraft } from "~/lib/agent/block-store"
 
 export type TextMessage = {
   type: "text"
@@ -160,6 +161,7 @@ const hasMatchingResult = (history: Block[], callId: string): boolean =>
 export const isWaitingForAsk = (history: Block[]): boolean => {
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
+    if (isDraft(block)) continue
     if (block.type === "text" || block.type === "user") return false
     if (isAskToolCall(block)) {
       const call = findCall(block, "ask")!

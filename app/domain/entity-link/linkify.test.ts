@@ -149,6 +149,31 @@ describe("linkifyEntityIds", () => {
       input: "",
       expected: "",
     },
+    {
+      name: "skips double-quoted ID",
+      input: 'key is "callout_7xk2m9p1" here',
+      expected: 'key is "callout_7xk2m9p1" here',
+    },
+    {
+      name: "skips single-quoted ID",
+      input: "key is 'callout_7xk2m9p1' here",
+      expected: "key is 'callout_7xk2m9p1' here",
+    },
+    {
+      name: "links ID inside longer quoted prose",
+      input: '"See callout_7xk2m9p1 for details"',
+      expected: '"See [User Frustration](file://callout_7xk2m9p1) for details"',
+    },
+    {
+      name: "skips ID inside file:// URL",
+      input: "href is file://callout_7xk2m9p1 here",
+      expected: "href is file://callout_7xk2m9p1 here",
+    },
+    {
+      name: "skips double-quoted ID with wrapper parens inside",
+      input: '"(callout_7xk2m9p1)" used as key',
+      expected: '"(callout_7xk2m9p1)" used as key',
+    },
   ]
 
   test.each(cases)("$name", ({ input, expected }) => {

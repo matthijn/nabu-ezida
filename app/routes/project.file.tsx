@@ -1,6 +1,8 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { useProject } from "./project"
+import { linkifyEntityIds } from "~/domain/entity-link/linkify"
+import { resolveEntityName } from "~/lib/files/selectors"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
@@ -41,10 +43,15 @@ export default function ProjectFile() {
   const editorContainerRef = useRef<HTMLDivElement>(null)
   useScrollToEntity(editorContainerRef)
 
-  const content = currentFile ? getFileRaw(files, currentFile) : undefined
+  const rawContent = currentFile ? getFileRaw(files, currentFile) : undefined
+  const content = useMemo(() => {
+    if (!rawContent || !currentFile) return rawContent
+    if (debugOptions.renderAsJson || isJsonFile(currentFile)) return rawContent
+    return linkifyEntityIds(rawContent, (id) => resolveEntityName(files, id))
+  }, [rawContent, currentFile, debugOptions.renderAsJson, files])
   const copyRawMarkdown = useCallback(() => {
-    if (content) navigator.clipboard.writeText(content)
-  }, [content])
+    if (rawContent) navigator.clipboard.writeText(rawContent)
+  }, [rawContent])
   const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
 
   const handleScrollTo = useCallback((percent: number) => {
