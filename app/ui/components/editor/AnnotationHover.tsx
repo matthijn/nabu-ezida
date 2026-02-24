@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react"
 import { createPortal } from "react-dom"
 import type { Annotation } from "~/domain/document/annotations"
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
@@ -82,6 +82,19 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
   const files = getFiles()
   const entries = matchingAnnotations.map(annotationToEntry(files))
 
+  const [tooltipTop, setTooltipTop] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    if (!tooltipRef.current || !hover) {
+      setTooltipTop(null)
+      return
+    }
+    const tooltipHeight = tooltipRef.current.offsetHeight
+    const belowTop = hover.rect.bottom + TOOLTIP_GAP
+    const fitsBelow = belowTop + tooltipHeight <= window.innerHeight
+    setTooltipTop(fitsBelow ? belowTop : hover.rect.top - TOOLTIP_GAP - tooltipHeight)
+  }, [hover])
+
   return (
     <div ref={containerRef} className="relative">
       {children}
@@ -92,8 +105,9 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
           style={{
             position: "fixed",
             left: hover.rect.left,
-            top: hover.rect.bottom + TOOLTIP_GAP,
+            top: tooltipTop ?? hover.rect.bottom + TOOLTIP_GAP,
             zIndex: 50,
+            visibility: tooltipTop !== null ? "visible" : "hidden",
           }}
         >
           <HighlightTooltip entries={entries} />

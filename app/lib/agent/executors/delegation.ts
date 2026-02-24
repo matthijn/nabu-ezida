@@ -2,7 +2,7 @@ import type { ToolCall, ToolResult, Block } from "../types"
 import type { ToolExecutor } from "../turn"
 import { pushBlocks, getAllBlocks, subscribeBlocks } from "../block-store"
 import { getFiles } from "~/lib/files/store"
-import { derive, lastPlan, guardCompleteStep, guardCompleteSubstep } from "../derived"
+import { derive, lastPlan, guardCompleteStep } from "../derived"
 import { deriveMode, buildModeResult, modeSystemBlocks } from "./modes"
 import type { ModeName } from "./modes"
 
@@ -58,9 +58,9 @@ const handleCancelInMode = (call: ToolCall, mode: ModeName): ToolResult<unknown>
 }
 
 const isStepGuarded = (name: string): boolean =>
-  name === "complete_step" || name === "complete_substep"
+  name === "complete_step"
 
-const guardMap = { complete_step: guardCompleteStep, complete_substep: guardCompleteSubstep } as const
+const guardMap = { complete_step: guardCompleteStep } as const
 
 const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
   const guardFn = guardMap[call.name as keyof typeof guardMap]

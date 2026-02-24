@@ -104,19 +104,20 @@ export type ResolveResult =
   | { ok: true; ops: JsonPatchOp[] }
   | { ok: false; error: string }
 
+const resolveSelectorOp = (op: JsonPatchOp, doc: unknown): ResolveResult => {
+  const selector = parseSelector(op.path)
+  if (!selector) return { ok: true, ops: [op] }
+  const indices = findMatchingIndices(doc, selector)
+  if (indices.length === 0) return { ok: false, error: `No items match ${op.path}` }
+  return { ok: true, ops: expandOpWithSelector(op, indices, selector) }
+}
+
 export const resolveSelectors = (ops: JsonPatchOp[], doc: unknown): ResolveResult => {
   const resolved: JsonPatchOp[] = []
   for (const op of ops) {
-    const selector = parseSelector(op.path)
-    if (!selector) {
-      resolved.push(op)
-      continue
-    }
-    const indices = findMatchingIndices(doc, selector)
-    if (indices.length === 0) {
-      return { ok: false, error: `No items match ${op.path}` }
-    }
-    resolved.push(...expandOpWithSelector(op, indices, selector))
+    const result = resolveSelectorOp(op, doc)
+    if (!result.ok) return result
+    resolved.push(...result.ops)
   }
   return { ok: true, ops: resolved }
 }
@@ -146,6 +147,34 @@ export const autoFuzzyAnnotationText = (op: JsonPatchOp): JsonPatchOp => {
   return op
 }
 
+type ApplyResult = { doc: unknown; failures: string[]; applied: number }
+
+const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown): ApplyResult => {
+  let currentDoc = doc
+  const failures: string[] = []
+  let applied = 0
+
+  for (const op of ops) {
+    const resolved = resolveSelectorOp(op, currentDoc)
+    if (!resolved.ok) {
+      failures.push(resolved.error)
+      continue
+    }
+
+    const fuzzyOps = resolved.ops.map(autoFuzzyAnnotationText)
+    const result = applyJsonPatchOps(currentDoc, fuzzyOps)
+    if (!result.ok) {
+      failures.push(`${op.path}: ${result.error}`)
+      continue
+    }
+
+    currentDoc = result.result
+    applied++
+  }
+
+  return { doc: currentDoc, failures, applied }
+}
+
 export const patchJsonBlock = registerTool(
   tool({
     ...def,
@@ -168,14 +197,13 @@ export const patchJsonBlock = registerTool(
         return err(`All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`)
       }
 
-      const selectorResult = resolveSelectors(accepted, json)
-      if (!selectorResult.ok) return err(`Selector failed: ${selectorResult.error}`)
+      const { doc: patchedDoc, failures, applied } = applyOpsIndividually(accepted, json)
 
-      const fuzzyOps = selectorResult.ops.map(autoFuzzyAnnotationText)
-      const applied = applyJsonPatchOps(json, fuzzyOps)
-      if (!applied.ok) return err(`Patch failed: ${applied.error}`)
+      if (applied === 0) {
+        return err([rejectedMessage, ...failures].filter(Boolean).join("\n"))
+      }
 
-      const deduped = dedupArraysIn(applied.result) as object
+      const deduped = dedupArraysIn(patchedDoc) as object
       const diffResult = generateJsonBlockPatch(content, language, deduped)
       if (!diffResult.ok) return err(`Diff generation failed: ${diffResult.error}`)
 
@@ -187,8 +215,10 @@ export const patchJsonBlock = registerTool(
         ? [{ type: "update_file" as const, path, diff: diffResult.patch }]
         : []
 
-      return rejectedMessage
-        ? partial(successOutput, rejectedMessage, mutations)
+      const allFailures = [rejectedMessage, ...failures].filter(Boolean)
+
+      return allFailures.length > 0
+        ? partial(successOutput, allFailures.join("\n"), mutations)
         : ok(successOutput, mutations)
     },
   })

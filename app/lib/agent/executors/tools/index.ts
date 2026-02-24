@@ -1,7 +1,6 @@
 export { applyLocalPatch } from "./apply-local-patch.def"
 export { cancel } from "./cancel.def"
 export { completeStep } from "./complete-step.def"
-export { completeSubstep } from "./complete-substep.def"
 export { copyFile } from "./copy-file.def"
 export { renameFile } from "./rename-file.def"
 export { removeFile } from "./remove-file.def"

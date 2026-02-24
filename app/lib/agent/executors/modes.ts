@@ -6,7 +6,7 @@ import {
   copyFile, renameFile, removeFile, runLocalShell,
   cancel,
   planTool,
-  completeStep, completeSubstep,
+  completeStep,
   forEachTool,
   askTool,
 } from "./tools"
@@ -55,7 +55,7 @@ const raw: Record<ModeName, ModeConfig> = {
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep, completeSubstep],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep],
     triggers: ["submit_plan"],
     prompt: "execution",
     reasoning: "medium",

@@ -46,14 +46,6 @@ export const submitPlanCall = (task: string, steps: StepInput[], options?: Submi
   })
 }
 
-export const completeSubstepCall = (): Block[] => {
-  const id = nextCallId()
-  return withResult(id, {
-    type: "tool_call",
-    calls: [{ id, name: "complete_substep", args: {} }],
-  })
-}
-
 export const completeStepCall = (summary = "Done", internal?: string): Block[] => {
   const id = nextCallId()
   return withResult(id, {

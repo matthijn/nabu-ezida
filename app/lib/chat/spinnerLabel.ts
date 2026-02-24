@@ -12,7 +12,6 @@ const toolLabels: Record<string, string> = {
   submit_plan: "Starting execution",
   for_each: "Processing",
   complete_step: "Working",
-  complete_substep: "Working",
   cancel: "Cancelling",
   ask: "Asking",
 }

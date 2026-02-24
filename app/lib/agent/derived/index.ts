@@ -4,7 +4,6 @@ import {
   type Files,
   planFromCall,
   processCompleteStep,
-  processCompleteSubstep,
   updateLastPlan,
   hasActivePlan,
 } from "./plan"
@@ -57,7 +56,6 @@ export const hasCall = (block: Block, name: string): boolean => findCall(block, 
 
 const isSubmitPlan = (call: EnrichedToolCall): boolean => call.name === "submit_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
-const isCompleteSubstep = (call: EnrichedToolCall): boolean => call.name === "complete_substep"
 const isCancel = (call: EnrichedToolCall): boolean => call.name === "cancel"
 
 const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files): Derived => {
@@ -77,19 +75,10 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
     const lastPlan = derived.plans.at(-1)
     if (!lastPlan || lastPlan.currentStep === null) return derived
     const internal = (call.args.internal as string) || null
-    const summary = (call.args.summary as string) || ""
+    const summary = (call.args.summary as string) || null
     return {
       ...derived,
       plans: updateLastPlan(derived.plans, (p) => processCompleteStep(p, internal, summary)),
-    }
-  }
-
-  if (isCompleteSubstep(call)) {
-    const lastPlan = derived.plans.at(-1)
-    if (!lastPlan || lastPlan.currentStep === null) return derived
-    return {
-      ...derived,
-      plans: updateLastPlan(derived.plans, processCompleteSubstep),
     }
   }
 
@@ -110,7 +99,7 @@ export const getMode = (d: Derived): Mode => {
 }
 
 const isStepBoundary = (block: Block): boolean =>
-  hasCall(block, "submit_plan") || hasCall(block, "complete_step") || hasCall(block, "complete_substep")
+  hasCall(block, "submit_plan") || hasCall(block, "complete_step")
 
 const isAgentAction = (block: Block): boolean =>
   block.type === "text" || block.type === "tool_call"
@@ -153,5 +142,4 @@ export {
   lastPlan,
   hasActivePlan,
   guardCompleteStep,
-  guardCompleteSubstep,
 } from "./plan"

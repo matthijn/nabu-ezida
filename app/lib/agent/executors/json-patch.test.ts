@@ -99,7 +99,7 @@ describe("patch_json_block", () => {
         operations: [{ op: "replace", path: "/nonexistent/deep", value: "x" }],
       },
       expectStatus: "error",
-      expectOutput: /Patch failed/,
+      expectOutput: /\/nonexistent\/deep/,
     },
     {
       name: "different block language",
@@ -216,6 +216,79 @@ describe("patch_json_block", () => {
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
+      name: "partial: one op fails selector, other succeeds",
+      files: makeFiles({
+        "doc.md": doc({
+          color: "red",
+          annotations: [{ id: "ann_1", code: "x" }],
+        }),
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [
+          { op: "replace", path: "/color", value: "blue" },
+          { op: "remove", path: "/annotations[id=nonexistent]" },
+        ],
+      },
+      expectStatus: "partial",
+      expectOutput: /Patched/,
+      expectMessage: /No items match/,
+      expectMutations: 1,
+    },
+    {
+      name: "partial: one op fails application, other succeeds",
+      files: makeFiles({ "doc.md": doc({ a: 1, b: 2 }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [
+          { op: "replace", path: "/a", value: 99 },
+          { op: "replace", path: "/nonexistent/deep", value: "x" },
+        ],
+      },
+      expectStatus: "partial",
+      expectOutput: /Patched/,
+      expectMessage: /\/nonexistent\/deep/,
+      expectMutations: 1,
+    },
+    {
+      name: "error: all ops fail",
+      files: makeFiles({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [
+          { op: "remove", path: "/annotations[id=nope]" },
+          { op: "replace", path: "/missing/deep", value: 1 },
+        ],
+      },
+      expectStatus: "error",
+      expectOutput: /No items match/,
+    },
+    {
+      name: "partial: numeric rejection + op failure + success",
+      files: makeFiles({
+        "doc.md": doc({
+          color: "red",
+          annotations: [{ id: "ann_1", code: "x" }],
+        }),
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [
+          { op: "replace", path: "/color", value: "blue" },
+          { op: "replace", path: "/annotations/0/code", value: "y" },
+          { op: "remove", path: "/annotations[id=ghost]" },
+        ],
+      },
+      expectStatus: "partial",
+      expectOutput: /Patched/,
+      expectMessage: /Rejected 1 op.*No items match/s,
       expectMutations: 1,
     },
   ]

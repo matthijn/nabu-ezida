@@ -1,10 +1,9 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep, guardCompleteSubstep, type Files } from "."
+import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep, type Files } from "."
 import {
   submitPlanCall,
   completeStepCall,
-  completeSubstepCall,
   cancelCall,
   textBlock,
   userBlock,
@@ -329,7 +328,7 @@ Actual content here.`,
     })
   })
 
-  describe("complete_substep", () => {
+  describe("per_section inner step advancement via complete_step", () => {
     const smallFiles: Files = { "a.md": "Content A", "b.md": "Content B" }
 
     const perSectionPlan = (steps: { title: string; expected: string }[]) =>
@@ -345,22 +344,21 @@ Actual content here.`,
         history: () => [
           ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
           ...completeStepCall("Pre done"),
-          ...completeSubstepCall(),
+          ...completeStepCall("Analyzed"),
         ],
         check: (history: Block[]) => {
           const plan = lastPlan(derive(history, smallFiles).plans)
           expect(plan?.steps[1].done).toBe(true)
-          expect(plan?.steps[1].summary).toBe("")
-          expect(plan?.steps[1].internal).toBe(null)
+          expect(plan?.steps[1].summary).toBe("Analyzed")
           expect(plan?.currentStep).toBe(2)
         },
       },
       {
-        name: "does not cycle sections on substep",
+        name: "does not cycle sections on non-last inner step",
         history: () => [
           ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
           ...completeStepCall("Pre done"),
-          ...completeSubstepCall(),
+          ...completeStepCall("Analyzed"),
         ],
         check: (history: Block[]) => {
           const plan = lastPlan(derive(history, smallFiles).plans)
@@ -369,11 +367,11 @@ Actual content here.`,
         },
       },
       {
-        name: "substep then complete_step cycles section",
+        name: "completing last inner step cycles section",
         history: () => [
           ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
           ...completeStepCall("Pre done"),
-          ...completeSubstepCall(),
+          ...completeStepCall("Analyzed"),
           ...completeStepCall("Section done", "ctx:1"),
         ],
         check: (history: Block[]) => {
@@ -395,52 +393,6 @@ Actual content here.`,
 
     const cases = [
       {
-        name: "guardCompleteSubstep: allowed on non-last inner step",
-        plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
-          ]
-          return lastPlan(derive(history, smallFiles).plans)!
-        },
-        guard: guardCompleteSubstep,
-        expected: true,
-      },
-      {
-        name: "guardCompleteSubstep: denied on last inner step",
-        plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
-            ...completeSubstepCall(),
-          ]
-          return lastPlan(derive(history, smallFiles).plans)!
-        },
-        guard: guardCompleteSubstep,
-        expected: false,
-      },
-      {
-        name: "guardCompleteSubstep: denied on regular step",
-        plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ title: "Regular", expected: "Done" }]),
-          ]
-          return lastPlan(derive(history).plans)!
-        },
-        guard: guardCompleteSubstep,
-        expected: false,
-      },
-      {
-        name: "guardCompleteSubstep: denied when plan complete",
-        plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ title: "Step", expected: "Done" }]),
-            ...completeStepCall("Done"),
-          ]
-          return lastPlan(derive(history).plans)!
-        },
-        guard: guardCompleteSubstep,
-        expected: false,
-      },
-      {
         name: "guardCompleteStep: allowed on regular step",
         plan: () => {
           const history = [
@@ -452,11 +404,10 @@ Actual content here.`,
         expected: true,
       },
       {
-        name: "guardCompleteStep: allowed on last inner step",
+        name: "guardCompleteStep: allowed on first inner step",
         plan: () => {
           const history = [
             ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
-            ...completeSubstepCall(),
           ]
           return lastPlan(derive(history, smallFiles).plans)!
         },
@@ -464,15 +415,16 @@ Actual content here.`,
         expected: true,
       },
       {
-        name: "guardCompleteStep: denied when substeps remain",
+        name: "guardCompleteStep: allowed on last inner step",
         plan: () => {
           const history = [
             ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
+            ...completeStepCall("A done"),
           ]
           return lastPlan(derive(history, smallFiles).plans)!
         },
         guard: guardCompleteStep,
-        expected: false,
+        expected: true,
       },
       {
         name: "guardCompleteStep: denied when plan complete",

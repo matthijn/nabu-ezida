@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 const CompleteStepArgs = z.object({
-  summary: z.string().describe("What was accomplished — visible to the user."),
+  summary: z.string().optional().describe("Observations, uncertainties, or judgment calls — the user sees the document, don't inventory it."),
   internal: z.string().optional().describe("Context, IDs, or findings to carry forward to later steps. Not shown to user."),
 })
 

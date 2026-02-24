@@ -3,7 +3,7 @@ import { DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
 import type { Annotation, ResolvedAnnotation } from "~/domain/document/annotations"
 import { segmentByOverlap } from "~/domain/document/annotations"
-import { createDecorationSet, createMarkerDecorations } from "./decorations"
+import { createDecorationSet, createMarkerDecorations, createReviewDecorations } from "./decorations"
 
 const pluginKey = new PluginKey("annotations")
 
@@ -75,6 +75,7 @@ const toResolvedAnnotations = (a: Annotation, doc: Node, startIndex: number): Re
   findAllTextRanges(doc, a.text).map((range, i) => {
     const resolved: ResolvedAnnotation = { index: startIndex + i, from: range.from, to: range.to, color: a.color }
     if (a.id) resolved.id = a.id
+    if (a.review) resolved.hasReview = true
     return resolved
   })
 
@@ -96,7 +97,8 @@ const computeDecorations = (doc: Node, annotations: Annotation[]): DecorationSet
   const resolved = resolveAnnotations(doc, annotations)
   const segments = segmentByOverlap(resolved)
   const markers = createMarkerDecorations(resolved)
-  return createDecorationSet(doc, segments, markers)
+  const reviews = createReviewDecorations(resolved)
+  return createDecorationSet(doc, segments, markers, reviews)
 }
 
 export const createAnnotationsPlugin = (): Plugin =>

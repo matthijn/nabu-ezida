@@ -68,7 +68,7 @@ const findCurrentStep = (steps: Step[]): number | null => {
   return index === -1 ? null : index
 }
 
-const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string): Step[] =>
+const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string | null): Step[] =>
   steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
 
 const computeSections = (fileNames: string[], files: Files): Section[] => {
@@ -178,15 +178,19 @@ const resetInnerSteps = (steps: Step[], firstIndex: number, count: number): Step
       : s
   )
 
-export const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary: string): DerivedPlan => {
+export const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary: string | null): DerivedPlan => {
   if (plan.currentStep === null) return plan
 
   const stepIndex = plan.currentStep
   const inPerSection = isInPerSection(plan, stepIndex)
   const lastInner = isLastInnerStep(plan, stepIndex)
-  const moreSections = hasMoreSections(plan)
 
-  // Mark current step done
+  if (inPerSection && !lastInner) {
+    const newSteps = markStepDone(plan.steps, stepIndex, internal, summary)
+    return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
+  }
+
+  const moreSections = hasMoreSections(plan)
   let newSteps = markStepDone(plan.steps, stepIndex, internal, summary)
   let newPerSection = plan.perSection
 
@@ -248,39 +252,13 @@ export const processCompleteStep = (plan: DerivedPlan, internal: string | null, 
   }
 }
 
-const markSubstepDone = (steps: Step[], index: number): Step[] =>
-  steps.map((s, i) => (i === index ? { ...s, done: true, internal: null, summary: "" } : s))
-
-export const processCompleteSubstep = (plan: DerivedPlan): DerivedPlan => {
-  if (plan.currentStep === null) return plan
-
-  const newSteps = markSubstepDone(plan.steps, plan.currentStep)
-  return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
-}
-
 export type StepGuard = { allowed: true } | { allowed: false; reason: string }
 
 const allowed: StepGuard = { allowed: true }
 const denied = (reason: string): StepGuard => ({ allowed: false, reason })
 
-export const guardCompleteSubstep = (plan: DerivedPlan): StepGuard => {
-  if (plan.currentStep === null) return denied("Plan is already complete — all steps are done.")
-  if (!isInPerSection(plan, plan.currentStep)) return denied("complete_substep is only valid inside a per_section block. The current step is a regular step — use complete_step to mark it done.")
-  if (isLastInnerStep(plan, plan.currentStep)) return denied("You are on the last substep of this section. Use complete_step (with summary and internal) to finish the section and advance to the next one.")
-  return allowed
-}
-
 export const guardCompleteStep = (plan: DerivedPlan): StepGuard => {
   if (plan.currentStep === null) return denied("Plan is already complete — all steps are done.")
-  if (!isInPerSection(plan, plan.currentStep)) return allowed
-  if (!isLastInnerStep(plan, plan.currentStep)) {
-    const { firstInnerStepIndex, innerStepCount } = plan.perSection!
-    const remaining = plan.steps
-      .slice(firstInnerStepIndex, firstInnerStepIndex + innerStepCount)
-      .filter((s) => !s.done)
-      .map((s) => s.description)
-    return denied(`You still have substeps to complete before calling complete_step: ${remaining.join(", ")}. Use complete_substep for each one first.`)
-  }
   return allowed
 }
 

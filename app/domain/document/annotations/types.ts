@@ -14,6 +14,7 @@ export type ResolvedAnnotation = {
   from: number
   to: number
   color: string
+  hasReview?: boolean
 }
 
 export type OverlapSegment = {
