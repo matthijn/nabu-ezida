@@ -1,6 +1,7 @@
 import type { Operation } from "../../types"
-import { tool, registerTool, ok, err } from "../tool"
+import { tool, registerTool, ok, err, withHint } from "../tool"
 import { applyLocalPatch as def } from "./apply-local-patch.def"
+import { detectHint } from "./apply-local-patch.hints"
 
 export const applyLocalPatch = registerTool(
   tool({
@@ -9,7 +10,11 @@ export const applyLocalPatch = registerTool(
       const validationError = validateOperation(files, operation)
       if (validationError) return err(validationError)
 
-      return ok(formatSuccess(operation), [operation])
+      const result = ok(formatSuccess(operation), [operation])
+      const hint = operation.type === "update_file"
+        ? detectHint({ fileContent: files.get(operation.path) ?? "", diff: operation.diff })
+        : null
+      return withHint(result, hint)
     },
   })
 )

@@ -4,13 +4,14 @@ import type { ParseCallbacks, ResponseFormat } from "./stream"
 import { callLlm, blocksToMessages, toResponseFormat, extractText } from "./stream"
 import { pushBlocks } from "./block-store"
 import { executeTool, type ToolExecutor } from "./turn"
-import type { ToolDefinition } from "./executors/tool"
+import { formatZodError, type ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 import { isToolCallBlock } from "./derived"
 
 export type CallerConfig = {
   endpoint: string
   tools?: ToolDefinition[]
+  toolSchemas?: Record<string, z.ZodType>
   blockSchemas?: BlockSchemaDefinition[]
   execute?: ToolExecutor
   responseFormat?: ResponseFormat
@@ -34,6 +35,46 @@ const executeToolCalls = async (
   return results
 }
 
+const validateCallArgs = (call: ToolCall, schemas: Record<string, z.ZodType>): string | null => {
+  const schema = schemas[call.name]
+  if (!schema) return null
+  const parsed = schema.safeParse(call.args)
+  return parsed.success ? null : formatZodError(parsed.error)
+}
+
+const toValidationError = (call: ToolCall, message: string): ToolResultBlock => ({
+  type: "tool_result",
+  callId: call.id,
+  toolName: call.name,
+  result: { status: "error", output: `Invalid arguments: ${message}` },
+})
+
+type PartitionedCalls = { valid: ToolCall[]; errors: ToolResultBlock[] }
+
+const partitionCalls = (calls: ToolCall[], schemas: Record<string, z.ZodType>): PartitionedCalls => {
+  const tagged = calls.map((call) => ({ call, error: validateCallArgs(call, schemas) }))
+  return {
+    valid: tagged.filter((t) => t.error === null).map((t) => t.call),
+    errors: tagged
+      .filter((t): t is { call: ToolCall; error: string } => t.error !== null)
+      .map(({ call, error }) => toValidationError(call, error)),
+  }
+}
+
+type ValidatedBlocks = { committed: Block[]; validCalls: ToolCall[] }
+
+const validateAndInterleave = (blocks: Block[], schemas: Record<string, z.ZodType>): ValidatedBlocks => {
+  const partitions = blocks.map((block) =>
+    isToolCallBlock(block)
+      ? { block, ...partitionCalls(block.calls, schemas) }
+      : { block, valid: [] as ToolCall[], errors: [] as ToolResultBlock[] }
+  )
+  return {
+    committed: partitions.flatMap(({ block, errors }) => [block, ...errors]),
+    validCalls: partitions.flatMap(({ valid }) => valid),
+  }
+}
+
 export const buildCaller = (config: CallerConfig): Caller =>
   async (signal) => {
     const history = config.readBlocks()
@@ -48,18 +89,19 @@ export const buildCaller = (config: CallerConfig): Caller =>
     })
 
     const blocks = config.transformBlocks ? config.transformBlocks(raw) : raw
-    pushBlocks(blocks)
+    const schemas = config.toolSchemas ?? {}
+    const { committed, validCalls } = validateAndInterleave(blocks, schemas)
+    pushBlocks(committed)
 
-    const toolResults: Block[] = []
-    for (const block of blocks) {
-      if (isToolCallBlock(block) && config.execute) {
-        const results = await executeToolCalls(block.calls, config.execute)
-        pushBlocks(results)
-        toolResults.push(...results)
-      }
+    const validationErrors = committed.filter((b): b is ToolResultBlock => b.type === "tool_result")
+
+    if (validCalls.length > 0 && config.execute) {
+      const results = await executeToolCalls(validCalls, config.execute)
+      pushBlocks(results)
+      return [...blocks, ...validationErrors, ...results]
     }
 
-    return [...blocks, ...toolResults]
+    return [...blocks, ...validationErrors]
   }
 
 export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>

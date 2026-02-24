@@ -1,12 +1,12 @@
 import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
 
-type HunkPart =
+export type HunkPart =
   | { type: "context"; content: string }
   | { type: "remove"; content: string }
   | { type: "add"; content: string }
 
-type Hunk = {
+export type Hunk = {
   parts: HunkPart[]
 }
 
@@ -33,7 +33,7 @@ const isRemoveLine = (line: string): boolean =>
 const stripTrailingSplitArtifact = (lines: string[]): string[] =>
   lines.length > 0 && lines[lines.length - 1] === "" ? lines.slice(0, -1) : lines
 
-const parseV4ADiff = (patch: string): Hunk[] => {
+export const parseV4ADiff = (patch: string): Hunk[] => {
   const lines = stripTrailingSplitArtifact(patch.split("\n"))
   const hunks: Hunk[] = []
   let currentParts: HunkPart[] = []
@@ -97,7 +97,7 @@ const parseV4ADiff = (patch: string): Hunk[] => {
   return hunks
 }
 
-const buildMatchText = (parts: HunkPart[]): string =>
+export const buildMatchText = (parts: HunkPart[]): string =>
   parts
     .filter((p) => p.type === "context" || p.type === "remove")
     .map((p) => p.content)

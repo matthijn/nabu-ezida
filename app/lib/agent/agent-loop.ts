@@ -1,7 +1,7 @@
 import type { Block } from "./types"
 import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
-import { toToolDefinition } from "./executors/tool"
+import { toToolDefinition, toSchemaMap } from "./executors/tool"
 import { buildCaller } from "./caller"
 import { pushBlocks, getAllBlocks, isDraft } from "./block-store"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
@@ -83,6 +83,7 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
     const caller = buildCaller({
       endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}`,
       tools,
+      toolSchemas: toSchemaMap(modeConfig.tools),
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,
       callbacks,

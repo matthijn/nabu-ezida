@@ -1,6 +1,7 @@
 import type { Block, Files, ToolCall } from "~/lib/agent"
 import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
 import { isDraft } from "~/lib/agent/block-store"
+import { AskArgs } from "~/lib/agent/executors/tools/ask.def"
 
 export type TextMessage = {
   type: "text"
@@ -106,13 +107,20 @@ const findConsumedUserIndices = (history: Block[], askIndex: number, callId: str
   return indices
 }
 
+const parseAskArgs = (args: Record<string, unknown>): { question: string; options: string[] } | null => {
+  const parsed = AskArgs.safeParse(args)
+  return parsed.success ? parsed.data : null
+}
+
 const extractSingleAsk = (
   index: number,
   call: ToolCall,
   history: Block[],
   consumed: Set<number>,
 ): Indexed<AskMessage>[] => {
-  const args = call.args as { question: string; options: string[] }
+  const args = parseAskArgs(call.args)
+  if (!args) return []
+
   const userIndices = findConsumedUserIndices(history, index, call.id)
   userIndices.forEach((i) => consumed.add(i))
 

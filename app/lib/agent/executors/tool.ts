@@ -36,7 +36,7 @@ export const tool = <TSchema extends z.ZodType, TOutput>(
   return { ...def, handle }
 }
 
-const formatZodError = (error: z.ZodError): string =>
+export const formatZodError = (error: z.ZodError): string =>
   error.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message)).join(", ")
 
 // JSON Schema generation for LLM tool definitions
@@ -97,6 +97,9 @@ export const getToolDefinitions = (): ToolDefinition[] =>
 export const getToolHandlers = (): Record<string, Handler> =>
   Object.fromEntries(registry.map((t) => [t.name, t.handle]))
 
+export const toSchemaMap = (tools: AnyTool[]): Record<string, z.ZodType> =>
+  Object.fromEntries(tools.map((t) => [t.name, t.schema]))
+
 // Result helpers
 export const ok = <T>(output: T, mutations: Operation[] = []): HandlerResult<T> => ({
   status: "ok",
@@ -116,3 +119,6 @@ export const err = (output: string): HandlerResult<never> => ({
   output,
   mutations: [],
 })
+
+export const withHint = <T>(result: HandlerResult<T>, hint: string | null): HandlerResult<T> =>
+  hint ? { ...result, hint } : result

@@ -95,11 +95,11 @@ export const createExecutor = (handlers: Record<string, Handler>): ToolExecutor 
     if (!handler) return { status: "error", output: `Unknown tool: ${call.name}` }
 
     const files = extractFiles()
-    const { status, output, message, mutations } = await handler(files, call.args)
+    const { status, output, message, hint, mutations } = await handler(files, call.args)
 
     const mutResult = applyMutations(mutations)
-    if (mutResult && isMutationError(mutResult)) return { status: "error", output: mutResult.error }
+    if (mutResult && isMutationError(mutResult)) return { status: "error", output: mutResult.error, hint }
 
     const finalOutput = appendIds(output, mutResult?.ids ?? null)
-    return { status, output: finalOutput, message } as ToolResult<unknown>
+    return { status, output: finalOutput, message, hint } as ToolResult<unknown>
   }
