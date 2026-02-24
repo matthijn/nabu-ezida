@@ -10,7 +10,9 @@ import {
   FeatherCheck,
   FeatherChevronRight,
   FeatherCircle,
+  FeatherEdit3,
   FeatherLoader2,
+  FeatherMessageSquare,
   FeatherMinus,
   FeatherSend,
   FeatherSparkles,
@@ -21,6 +23,7 @@ import { Button } from "~/ui/components/Button"
 import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
+import { Tabs } from "~/ui/components/Tabs"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
@@ -40,10 +43,14 @@ import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
+import { truncateLabel } from "~/lib/mutation-history"
 import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
 import { updateFileRaw, getFileRaw } from "~/lib/files"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { useNabu } from "./context"
+import { HistoryTab } from "./HistoryTab"
+
+type ChatTab = "chat" | "history"
 
 const encodeUrlForMarkdown = (url: string): string =>
   url.replace(/"/g, "%22")
@@ -60,6 +67,11 @@ type MessageContentProps = {
   navigate?: (url: string) => void
 }
 
+const resolveAndTruncateName = (files: Record<string, string>, id: string): string | null => {
+  const name = resolveEntityName(files, id)
+  return name ? truncateLabel(name) : null
+}
+
 const remarkPlugins = [remarkGfm]
 
 const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { node?: unknown }) => (
@@ -70,7 +82,7 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
 
 const MessageContent = ({ content, files, projectId, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(linkifyEntityIds(content, (id) => resolveEntityName(files, id)))}
+    {fixMarkdownUrls(linkifyEntityIds(content, (id) => resolveAndTruncateName(files, id)))}
   </Markdown>
 )
 
@@ -480,6 +492,7 @@ export const NabuChatSidebar = () => {
     updateFileRaw(PREFERENCES_FILE, toggleAnswer(current || undefined, question, answer))
   }, [])
 
+  const [activeTab, setActiveTab] = useState<ChatTab>("chat")
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
@@ -547,76 +560,94 @@ export const NabuChatSidebar = () => {
         onMouseDown={handleResizeMouseDown}
         className="absolute -left-1 -top-1 z-10 h-4 w-4 cursor-nwse-resize"
       />
-      <div
-        onMouseDown={handleMouseDown}
-        className="flex w-full cursor-move items-center justify-between border-b border-solid border-neutral-border bg-white px-4 py-3"
-      >
-        <div className="flex items-center gap-2">
-          <ParticipantAvatar participant={recipient} size="small" />
-          <span className="text-body-bold font-body-bold text-default-font">
-            {recipient.name}
-          </span>
-        </div>
-        <IconButton
-          variant="neutral-tertiary"
-          size="small"
-          icon={<FeatherMinus />}
-          onClick={handleMinimize}
-        />
-      </div>
-
-      <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
-        {messages.length === 0 && !loading && (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="text-body font-body text-subtext-color">How can I help you today?</span>
+      <div className="flex w-full flex-col items-start border-b border-solid border-neutral-border bg-white">
+        <div
+          onMouseDown={handleMouseDown}
+          className="flex w-full cursor-move items-center justify-between px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <ParticipantAvatar participant={recipient} size="small" />
+            <span className="text-body-bold font-body-bold text-default-font">
+              {recipient.name}
+            </span>
           </div>
-        )}
-        <AnimatePresence initial={false}>
-          {/* DO NOT TOUCH — layout animation is intentional and tuned. Do not remove, refactor, or "fix". */}
-          {segments.map((segment, i) =>
-            <AnimatedListItem key={i} layout={isDragging || isTyping ? false : "position"}>
-              {isPlanSegment(segment) ? (
-                <PlanSegmentRenderer
-                  items={segment.items}
-                  files={files}
-                  projectId={params.projectId ?? null}
-                  navigate={navigate}
-                />
-              ) : isAskMessage(segment) ? (
-                <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
-              ) : (
-                <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
-              )}
-            </AnimatedListItem>
-          )}
-        </AnimatePresence>
-        {!waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
-      </AutoScroll>
-
-      <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>
-        <TextFieldUnstyled className="grow min-h-5">
-          <TextFieldUnstyled.Textarea
-            ref={inputRef}
-            placeholder={waitingForAsk ? "Or type your own answer..." : `Message ${recipient.name}...`}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-        </TextFieldUnstyled>
-        {loading && !waitingForAsk ? (
-          <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
-            Cancel
-          </Button>
-        ) : (
           <IconButton
-            variant="brand-primary"
+            variant="neutral-tertiary"
             size="small"
-            icon={<FeatherSend />}
-            onClick={handleSend}
-            disabled={!inputValue.trim()}
+            icon={<FeatherMinus />}
+            onClick={handleMinimize}
           />
-        )}
+        </div>
+        <div className="flex w-full items-start px-4">
+          <Tabs>
+            <Tabs.Item active={activeTab === "chat"} icon={<FeatherMessageSquare />} onClick={() => setActiveTab("chat")}>
+              Chat
+            </Tabs.Item>
+            <Tabs.Item active={activeTab === "history"} icon={<FeatherEdit3 />} onClick={() => setActiveTab("history")}>
+              History
+            </Tabs.Item>
+          </Tabs>
+        </div>
       </div>
+
+      {activeTab === "history" ? (
+        <HistoryTab files={files} projectId={params.projectId ?? null} navigate={navigate} />
+      ) : (
+        <>
+          <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
+            {messages.length === 0 && !loading && (
+              <div className="flex h-full w-full items-center justify-center">
+                <span className="text-body font-body text-subtext-color">How can I help you today?</span>
+              </div>
+            )}
+            <AnimatePresence initial={false}>
+              {/* DO NOT TOUCH — layout animation is intentional and tuned. Do not remove, refactor, or "fix". */}
+              {segments.map((segment, i) =>
+                <AnimatedListItem key={i} layout={isDragging || isTyping ? false : "position"}>
+                  {isPlanSegment(segment) ? (
+                    <PlanSegmentRenderer
+                      items={segment.items}
+                      files={files}
+                      projectId={params.projectId ?? null}
+                      navigate={navigate}
+                    />
+                  ) : isAskMessage(segment) ? (
+                    <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
+                  ) : (
+                    <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
+                  )}
+                </AnimatedListItem>
+              )}
+            </AnimatePresence>
+            {!waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+          </AutoScroll>
+
+          <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>
+            <TextFieldUnstyled className="grow min-h-5">
+              <TextFieldUnstyled.Textarea
+                ref={inputRef}
+                placeholder={waitingForAsk ? "Or type your own answer..." : `Message ${recipient.name}...`}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </TextFieldUnstyled>
+            {loading && !waitingForAsk ? (
+              <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
+                Cancel
+              </Button>
+            ) : (
+              <IconButton
+                variant="brand-primary"
+                size="small"
+                icon={<FeatherSend />}
+                onClick={handleSend}
+                disabled={!inputValue.trim()}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

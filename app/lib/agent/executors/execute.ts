@@ -3,6 +3,7 @@ import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, ap
 import { replaceUuidPlaceholders } from "~/domain/blocks"
 import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
+import { pushEntries, diffFileContent, fileCreatedEntry, fileDeletedEntry, fileRenamedEntry } from "~/lib/mutation-history"
 
 export const extractFiles = (): Map<string, string> =>
   new Map(Object.entries(getFilesStripped()).map(([k, v]) => [k, toExtraPretty(v)]))
@@ -32,21 +33,34 @@ const applyPatchAndStore = (path: string, content: string, diff: string, options
 }
 
 export const applyMutation = (op: Operation, placeholderIds: Record<string, string>): MutationResult => {
+  const ts = Date.now()
   switch (op.type) {
     case "create_file": {
       if (getFileRaw(op.path)) return { error: `${op.path}: already exists. Use update_file to modify it` }
-      return applyPatchAndStore(op.path, "", op.diff, { placeholderIds })
+      const result = applyPatchAndStore(op.path, "", op.diff, { placeholderIds })
+      if (!isMutationError(result)) {
+        const newContent = getFileRaw(op.path) ?? ""
+        pushEntries([fileCreatedEntry(op.path, ts), ...diffFileContent("", newContent, op.path, ts)])
+      }
+      return result
     }
     case "update_file": {
-      const content = getFileRaw(op.path)
-      if (!content) return { error: `${op.path}: No such file` }
-      return applyPatchAndStore(op.path, content, op.diff, {
+      const oldContent = getFileRaw(op.path)
+      if (!oldContent) return { error: `${op.path}: No such file` }
+      const result = applyPatchAndStore(op.path, oldContent, op.diff, {
         skipImmutableCheck: op.skipImmutableCheck,
         placeholderIds,
       })
+      if (!isMutationError(result)) {
+        const newContent = getFileRaw(op.path) ?? ""
+        pushEntries(diffFileContent(oldContent, newContent, op.path, ts))
+      }
+      return result
     }
     case "delete_file": {
-      if (!getFileRaw(op.path)) return { error: `${op.path}: No such file` }
+      const oldContent = getFileRaw(op.path)
+      if (!oldContent) return { error: `${op.path}: No such file` }
+      pushEntries([...diffFileContent(oldContent, "", op.path, ts), fileDeletedEntry(op.path, ts)])
       deleteFile(op.path)
       return { ids: null }
     }
@@ -54,6 +68,7 @@ export const applyMutation = (op: Operation, placeholderIds: Record<string, stri
       if (!getFileRaw(op.path)) return { error: `${op.path}: No such file` }
       if (getFileRaw(op.newPath)) return { error: `${op.newPath}: already exists` }
       renameFile(op.path, op.newPath)
+      pushEntries([fileRenamedEntry(op.path, op.newPath, ts)])
       return { ids: null }
     }
   }

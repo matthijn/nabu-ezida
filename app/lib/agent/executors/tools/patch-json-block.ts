@@ -5,6 +5,7 @@ import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
 import { generateJsonBlockPatch } from "~/lib/diff/json-block/patch"
 import { hasFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
+import { dedupArraysIn } from "~/lib/diff/json-block/dedup"
 
 type SelectorOp = "eq" | "neq" | "exists" | "not_exists"
 type Selector = { arrayPath: string; key: string; op: SelectorOp; value: string; rest: string }
@@ -174,7 +175,8 @@ export const patchJsonBlock = registerTool(
       const applied = applyJsonPatchOps(json, fuzzyOps)
       if (!applied.ok) return err(`Patch failed: ${applied.error}`)
 
-      const diffResult = generateJsonBlockPatch(content, language, applied.result as object)
+      const deduped = dedupArraysIn(applied.result) as object
+      const diffResult = generateJsonBlockPatch(content, language, deduped)
       if (!diffResult.ok) return err(`Diff generation failed: ${diffResult.error}`)
 
       const successOutput = diffResult.patch

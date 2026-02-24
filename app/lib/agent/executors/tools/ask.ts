@@ -12,27 +12,16 @@ const findLastUserContent = (): string => {
   return ""
 }
 
-const collectAnswers = async (
-  questions: unknown[],
-  waitForUser: () => Promise<void>,
-): Promise<string[]> => {
-  const answers: string[] = []
-  for (let i = 0; i < questions.length; i++) {
-    await waitForUser()
-    answers.push(findLastUserContent())
-  }
-  return answers
-}
-
 const executeAsk = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = AskArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
   const { waitForUser } = await import("../delegation")
   setLoading(false)
-  const answers = await collectAnswers(parsed.data.questions, waitForUser)
+  await waitForUser()
+  const answer = findLastUserContent()
   setLoading(true)
-  return { status: "ok", output: JSON.stringify(answers) }
+  return { status: "ok", output: answer }
 }
 
 registerSpecialHandler("ask", executeAsk)

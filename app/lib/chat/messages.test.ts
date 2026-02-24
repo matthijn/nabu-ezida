@@ -196,8 +196,8 @@ describe("extractAskMessages", () => {
       },
     },
     {
-      name: "pending single question has selected null",
-      history: [...askCallPending([{ question: "Pick one", options: ["A", "B"] }])],
+      name: "pending question has selected null",
+      history: [...askCallPending("Pick one", ["A", "B"])],
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.messages).toHaveLength(1)
         expect(result.messages[0].message.question).toBe("Pick one")
@@ -206,26 +206,26 @@ describe("extractAskMessages", () => {
       },
     },
     {
-      name: "answered single question has selected from answers array",
-      history: [...askCall([{ question: "Pick one", options: ["A", "B"] }], ["A"])],
+      name: "answered question has selected from result output",
+      history: [...askCall("Pick one", ["A", "B"], "A")],
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.messages).toHaveLength(1)
         expect(result.messages[0].message.selected).toBe("A")
       },
     },
     {
-      name: "consumed user blocks between ask and result are tracked",
-      history: [...askCall([{ question: "Pick", options: ["X", "Y"] }], ["X"])],
+      name: "consumed user block between ask and result is tracked",
+      history: [...askCall("Pick", ["X", "Y"], "X")],
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.consumedUserIndices.size).toBe(1)
         expect(result.consumedUserIndices.has(1)).toBe(true)
       },
     },
     {
-      name: "multiple separate ask calls all extracted",
+      name: "multiple sequential ask calls all extracted",
       history: [
-        ...askCall([{ question: "Q1", options: ["A", "B"] }], ["A"]),
-        ...askCall([{ question: "Q2", options: ["C", "D"] }], ["D"]),
+        ...askCall("Q1", ["A", "B"], "A"),
+        ...askCall("Q2", ["C", "D"], "D"),
       ],
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.messages).toHaveLength(2)
@@ -236,52 +236,18 @@ describe("extractAskMessages", () => {
       },
     },
     {
-      name: "multi-question call answered produces N messages with selections",
-      history: [...askCall(
-        [
-          { question: "Color?", options: ["Red", "Blue"] },
-          { question: "Size?", options: ["S", "M", "L"] },
-        ],
-        ["Red", "M"],
-      )],
-      check: (result: ReturnType<typeof extractAskMessages>) => {
-        expect(result.messages).toHaveLength(2)
-        expect(result.messages[0].message).toEqual({ type: "ask", question: "Color?", options: ["Red", "Blue"], selected: "Red" })
-        expect(result.messages[1].message).toEqual({ type: "ask", question: "Size?", options: ["S", "M", "L"], selected: "M" })
-        expect(result.consumedUserIndices.size).toBe(2)
-      },
-    },
-    {
-      name: "multi-question pending shows only first question",
-      history: [...askCallPending([
-        { question: "Color?", options: ["Red", "Blue"] },
-        { question: "Size?", options: ["S", "M", "L"] },
-      ])],
-      check: (result: ReturnType<typeof extractAskMessages>) => {
-        expect(result.messages).toHaveLength(1)
-        expect(result.messages[0].message.question).toBe("Color?")
-        expect(result.messages[0].message.selected).toBeNull()
-      },
-    },
-    {
-      name: "multi-question partially answered shows answered + current",
+      name: "pending ask with user answer shows selection before result",
       history: (() => {
         const id = "99"
         return [
-          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { questions: [
-            { question: "Q1", options: ["A", "B"] },
-            { question: "Q2", options: ["C", "D"] },
-            { question: "Q3", options: ["E", "F"] },
-          ] } }] },
+          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { question: "Pick", options: ["A", "B"] } }] },
           { type: "user" as const, content: "A" },
         ]
       })(),
       check: (result: ReturnType<typeof extractAskMessages>) => {
-        expect(result.messages).toHaveLength(2)
-        expect(result.messages[0].message.question).toBe("Q1")
+        expect(result.messages).toHaveLength(1)
+        expect(result.messages[0].message.question).toBe("Pick")
         expect(result.messages[0].message.selected).toBe("A")
-        expect(result.messages[1].message.question).toBe("Q2")
-        expect(result.messages[1].message.selected).toBeNull()
       },
     },
   ]
@@ -300,29 +266,29 @@ describe("isWaitingForAsk", () => {
     },
     {
       name: "pending ask returns true",
-      history: [...askCallPending([{ question: "Pick one", options: ["A", "B"] }])],
+      history: [...askCallPending("Pick one", ["A", "B"])],
       expected: true,
     },
     {
       name: "answered ask returns false",
-      history: [...askCall([{ question: "Pick one", options: ["A", "B"] }], ["A"])],
+      history: [...askCall("Pick one", ["A", "B"], "A")],
       expected: false,
     },
     {
       name: "ask followed by text returns false",
-      history: [...askCallPending([{ question: "Pick", options: ["A", "B"] }]), textBlock("Continuing")],
+      history: [...askCallPending("Pick", ["A", "B"]), textBlock("Continuing")],
       expected: false,
     },
     {
       name: "ask followed by user returns false",
-      history: [...askCallPending([{ question: "Pick", options: ["A", "B"] }]), userBlock("My answer")],
+      history: [...askCallPending("Pick", ["A", "B"]), userBlock("My answer")],
       expected: false,
     },
     {
       name: "answered ask then new pending ask returns true",
       history: [
-        ...askCall([{ question: "Q1", options: ["A", "B"] }], ["A"]),
-        ...askCallPending([{ question: "Q2", options: ["C", "D"] }]),
+        ...askCall("Q1", ["A", "B"], "A"),
+        ...askCallPending("Q2", ["C", "D"]),
       ],
       expected: true,
     },

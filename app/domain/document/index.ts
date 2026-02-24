@@ -6,6 +6,7 @@ export type {
 } from "./annotations"
 export {
   findTextPosition,
+  findAllTextPositions,
   resolveTextAnnotations,
   segmentByOverlap,
   createBackground,

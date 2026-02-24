@@ -56,28 +56,36 @@ export const textOffsetToPos = (doc: Node, offset: number): number => {
   return result
 }
 
-const findTextRange = (doc: Node, searchText: string): TextRange | null => {
+const findAllTextRanges = (doc: Node, searchText: string): TextRange[] => {
   const docText = proseTextContent(doc)
-  const offset = docText.indexOf(searchText)
-  if (offset === -1) return null
-
-  const from = textOffsetToPos(doc, offset)
-  const to = textOffsetToPos(doc, offset + searchText.length)
-  return { from, to }
+  const ranges: TextRange[] = []
+  let start = 0
+  while (true) {
+    const offset = docText.indexOf(searchText, start)
+    if (offset === -1) return ranges
+    ranges.push({
+      from: textOffsetToPos(doc, offset),
+      to: textOffsetToPos(doc, offset + searchText.length),
+    })
+    start = offset + 1
+  }
 }
 
-const toResolvedAnnotation = (a: Annotation, i: number, doc: Node): ResolvedAnnotation | null => {
-  const range = findTextRange(doc, a.text)
-  if (!range) return null
-  const resolved: ResolvedAnnotation = { index: i, from: range.from, to: range.to, color: a.color }
-  if (a.id) resolved.id = a.id
-  return resolved
-}
+const toResolvedAnnotations = (a: Annotation, doc: Node, startIndex: number): ResolvedAnnotation[] =>
+  findAllTextRanges(doc, a.text).map((range, i) => {
+    const resolved: ResolvedAnnotation = { index: startIndex + i, from: range.from, to: range.to, color: a.color }
+    if (a.id) resolved.id = a.id
+    return resolved
+  })
 
-const resolveAnnotations = (doc: Node, annotations: Annotation[]): ResolvedAnnotation[] =>
-  annotations
-    .map((a, i) => toResolvedAnnotation(a, i, doc))
-    .filter((a): a is ResolvedAnnotation => a !== null)
+const resolveAnnotations = (doc: Node, annotations: Annotation[]): ResolvedAnnotation[] => {
+  let index = 0
+  return annotations.flatMap((a) => {
+    const resolved = toResolvedAnnotations(a, doc, index)
+    index += Math.max(resolved.length, 1)
+    return resolved
+  })
+}
 
 type PluginState = {
   annotations: Annotation[]

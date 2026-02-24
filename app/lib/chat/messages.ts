@@ -106,42 +106,29 @@ const findConsumedUserIndices = (history: Block[], askIndex: number, callId: str
   return indices
 }
 
-type AskQuestionArg = { question: string; options: string[] }
-
-const parseAnswers = (raw: string | null): string[] | null => {
-  if (raw === null) return null
-  try { return JSON.parse(raw) as string[] } catch { return null }
-}
-
 const extractSingleAsk = (
   index: number,
   call: ToolCall,
   history: Block[],
   consumed: Set<number>,
 ): Indexed<AskMessage>[] => {
-  const args = call.args as { questions: AskQuestionArg[] }
-  const questions = args.questions ?? []
+  const args = call.args as { question: string; options: string[] }
   const userIndices = findConsumedUserIndices(history, index, call.id)
   userIndices.forEach((i) => consumed.add(i))
 
-  const answers = parseAnswers(findToolResult(history, call.id))
-  const answeredCount = answers ? answers.length : userIndices.length
+  const resultOutput = findToolResult(history, call.id)
+  const userAnswer = userIndices.length > 0 ? (history[userIndices[0]] as { content: string }).content : null
+  const selected = resultOutput ?? userAnswer
 
-  return questions
-    .slice(0, answeredCount + (answers ? 0 : 1))
-    .map((q, i) => ({
-      index,
-      message: {
-        type: "ask" as const,
-        question: q.question,
-        options: q.options,
-        selected: answers
-          ? (answers[i] ?? null)
-          : i < userIndices.length
-            ? (history[userIndices[i]] as { content: string }).content
-            : null,
-      },
-    }))
+  return [{
+    index,
+    message: {
+      type: "ask" as const,
+      question: args.question,
+      options: args.options,
+      selected,
+    },
+  }]
 }
 
 export const extractAskMessages = (history: Block[]): AskExtraction => {
