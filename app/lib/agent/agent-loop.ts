@@ -10,6 +10,7 @@ import { extractEntityIdCandidates } from "~/domain/entity-link"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 import { getFiles } from "~/lib/files/store"
 import { resolveEntityName } from "~/lib/files/selectors"
+import { compactHistory } from "./compact"
 
 export type AgentLoopConfig = {
   executor: ToolExecutor
@@ -41,6 +42,22 @@ const readDebugOption = <T,>(key: string, fallback: T): T => {
 
 const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
+
+const writeDebugOption = (key: string, value: unknown): void => {
+  if (typeof window === "undefined") return
+  try {
+    const stored = localStorage.getItem("nabu-debug-options")
+    const options = stored ? JSON.parse(stored) : {}
+    localStorage.setItem("nabu-debug-options", JSON.stringify({ ...options, [key]: value }))
+  } catch {}
+}
+
+const consumeForceCompaction = (): boolean => {
+  const value = readDebugOption("forceCompaction", false)
+  if (!value) return false
+  writeDebugOption("forceCompaction", false)
+  return true
+}
 
 const findDanglingIds = (text: string): string[] => {
   const candidates = extractEntityIdCandidates(text)
@@ -81,13 +98,13 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
     }
 
     const caller = buildCaller({
-      endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}`,
+      endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}${consumeForceCompaction() ? "&compact=true" : ""}`,
       tools,
       toolSchemas: toSchemaMap(modeConfig.tools),
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,
       callbacks,
-      readBlocks: getAllBlocks,
+      readBlocks: () => compactHistory(getAllBlocks(), getFiles()),
       transformBlocks: rejectDanglingEntityIds,
     })
 

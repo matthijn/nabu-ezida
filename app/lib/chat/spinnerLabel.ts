@@ -14,6 +14,7 @@ const toolLabels: Record<string, string> = {
   complete_step: "Working",
   cancel: "Cancelling",
   ask: "Asking",
+  compacted: "Summarizing conversation",
 }
 
 const toLabel = (toolName: string | null): string => {

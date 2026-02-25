@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent, type ReactNode } from "react"
 import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -44,6 +44,7 @@ import { createEntityLinkComponents } from "~/ui/components/markdown/createEntit
 import { linkifyEntityIds } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
+import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
 import { updateFileRaw, getFileRaw } from "~/lib/files"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
@@ -106,7 +107,7 @@ const ParticipantAvatar = ({ participant, size = "x-small" }: ParticipantAvatarP
 
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">
-    <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-4 py-2 shadow-sm max-w-[80%]">
+    <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-4 py-2 shadow-sm max-w-[95%]">
       <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:no-underline">
         {children}
       </div>
@@ -116,7 +117,7 @@ const UserBubble = ({ children }: { children: React.ReactNode }) => (
 
 const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-start">
-    <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-4 py-2 max-w-[80%]">
+    <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-4 py-2 max-w-[95%]">
       <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
         {children}
       </div>
@@ -208,7 +209,7 @@ const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps
 }
 
 type OptionCardProps = {
-  label: string
+  children: ReactNode
   selected: boolean
   dimmed: boolean
   saved: boolean
@@ -226,7 +227,7 @@ const SaveBadge = ({ saved, onToggle }: { saved: boolean; onToggle: () => void }
   </button>
 )
 
-const OptionCard = ({ label, selected, dimmed, saved, onClick, onToggleSave }: OptionCardProps) => {
+const OptionCard = ({ children, selected, dimmed, saved, onClick, onToggleSave }: OptionCardProps) => {
   const className = [
     "flex w-full items-center gap-2 rounded-lg border-2 px-3 py-2",
     selected
@@ -243,7 +244,7 @@ const OptionCard = ({ label, selected, dimmed, saved, onClick, onToggleSave }: O
         <FeatherCheck className="option-check hidden text-brand-600 flex-none" />
       </>
 
-  const text = <span className="grow text-left text-body font-body text-default-font">{label}</span>
+  const text = <span className="grow text-left text-body font-body text-default-font pointer-events-none">{children}</span>
 
   if (selected) return (
     <div className={className}>
@@ -277,19 +278,20 @@ const isTypedAnswer = (message: AskMessage): boolean =>
 const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSelect, onToggleSave }: AskRendererProps) => (
   <div className="flex w-full flex-col items-start gap-2 mb-3">
     <AssistantBubble><MessageContent content={message.question} files={files} projectId={projectId} navigate={navigate} /></AssistantBubble>
-    <div className="flex w-full flex-col gap-1.5 max-w-[80%]">
+    <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
       {message.options.map((option) => {
         const selected = message.selected === option
         return (
           <OptionCard
             key={option}
-            label={option}
             selected={selected}
             dimmed={message.selected !== null && !selected}
             saved={selected && isAnswerSaved(memoryContent, message.question, option)}
             onClick={message.selected === null ? () => onSelect(option) : undefined}
             onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
-          />
+          >
+            <InlineMarkdown files={files} projectId={projectId}>{option}</InlineMarkdown>
+          </OptionCard>
         )
       })}
     </div>

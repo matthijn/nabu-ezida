@@ -17,10 +17,12 @@ const notify = (): void => listeners.forEach((l) => l())
 const debouncedNotify = debounce(notify, 80, { maxWait: 400 })
 
 let projectId: string | null = null
+let persistEnabled = true
 let persistSuppressed = false
 const persistDebounce = createScopedDebounce(500)
 
 export const setProjectId = (id: string | null): void => { projectId = id }
+export const setPersistEnabled = (enabled: boolean): void => { persistEnabled = enabled }
 
 export const withoutPersist = <T>(fn: () => T): T => {
   persistSuppressed = true
@@ -29,7 +31,7 @@ export const withoutPersist = <T>(fn: () => T): T => {
 }
 
 const persistWrite = (path: string): void => {
-  if (!projectId || persistSuppressed) return
+  if (!projectId || !persistEnabled || persistSuppressed) return
   const pid = projectId
   persistDebounce.call(path, async () => {
     const content = files[path]
@@ -39,13 +41,13 @@ const persistWrite = (path: string): void => {
 }
 
 const persistDeleteCommand = (path: string): void => {
-  if (!projectId || persistSuppressed) return
+  if (!projectId || !persistEnabled || persistSuppressed) return
   persistDebounce.cancel(path)
   sendCommand(projectId, { action: "DeleteFile", path }).catch(() => {})
 }
 
 const persistRenameCommand = (oldPath: string, newPath: string): void => {
-  if (!projectId || persistSuppressed) return
+  if (!projectId || !persistEnabled || persistSuppressed) return
   persistDebounce.cancel(oldPath)
   sendCommand(projectId, { action: "RenameFile", path: oldPath, newPath }).catch(() => {})
 }

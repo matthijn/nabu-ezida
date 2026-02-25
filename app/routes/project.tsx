@@ -11,7 +11,7 @@ import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
-import { setProjectId } from "~/lib/files"
+import { setProjectId, setPersistEnabled } from "~/lib/files"
 import { getAnnotationCount, findDocumentForCallout } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 
@@ -64,6 +64,15 @@ const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
   reasoningSummaryAuto: false,
 }
 
+const requestCompaction = (): void => {
+  if (typeof window === "undefined") return
+  try {
+    const stored = localStorage.getItem(DEBUG_STORAGE_KEY)
+    const options = stored ? JSON.parse(stored) : {}
+    localStorage.setItem(DEBUG_STORAGE_KEY, JSON.stringify({ ...options, forceCompaction: true }))
+  } catch {}
+}
+
 const loadDebugOptions = (): DebugOptions => {
   if (typeof window === "undefined") return DEFAULT_DEBUG_OPTIONS
   try {
@@ -90,6 +99,7 @@ export type ProjectContextValue = {
   toggleRenderAsJson: () => void
   toggleStreamPanel: () => void
   toggleReasoningSummaryAuto: () => void
+  toggleForceCompaction: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -115,11 +125,16 @@ export default function ProjectLayout() {
     saveDebugOptions(debugOptions)
   }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, reasoningSummaryAuto])
 
+  useEffect(() => {
+    setPersistEnabled(persistToServer)
+  }, [persistToServer])
+
   const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
   const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
   const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
   const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
   const toggleReasoningSummaryAuto = useCallback(() => setReasoningSummaryAuto((prev) => !prev), [])
+  const toggleForceCompaction = useCallback(() => requestCompaction(), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -147,13 +162,16 @@ export default function ProjectLayout() {
   useEffect(() => {
     if (params.fileId) {
       const decoded = decodeURIComponent(params.fileId)
-      if (decoded !== currentFile) setCurrentFile(decoded)
-      return
+      const fileExists = decoded in files
+      if (fileExists) {
+        if (decoded !== currentFile) setCurrentFile(decoded)
+        return
+      }
     }
     if (fileNames.length > 0 && params.projectId) {
       const first = fileNames[0]
       setCurrentFile(first)
-      navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`)
+      navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
     }
   }, [params.fileId, fileNames.length, params.projectId])
 
@@ -212,7 +230,7 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleReasoningSummaryAuto, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleReasoningSummaryAuto, toggleForceCompaction, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />

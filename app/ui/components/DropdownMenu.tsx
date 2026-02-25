@@ -86,7 +86,7 @@ const DropdownMenuRoot = forwardRef<
   return children ? (
     <div
       className={cn(
-        "flex min-w-[192px] flex-col items-start rounded-md border border-solid border-neutral-border bg-default-background px-1 py-1 shadow-lg",
+        "z-50 flex min-w-[192px] flex-col items-start rounded-md border border-solid border-neutral-border bg-default-background px-1 py-1 shadow-lg",
         className
       )}
       ref={ref}

@@ -13,6 +13,7 @@ import "./tools/patch-json-block"
 import "./tools/run-local-shell"
 import "./tools/for-each"
 import "./tools/ask"
+import "./tools/compact"
 
 export type { ToolDeps }
 export { getToolDefinitions }

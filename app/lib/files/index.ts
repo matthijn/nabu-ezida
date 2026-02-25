@@ -13,6 +13,7 @@ export {
   renameFile,
   subscribe,
   setProjectId,
+  setPersistEnabled,
   withoutPersist,
 } from "./store"
 

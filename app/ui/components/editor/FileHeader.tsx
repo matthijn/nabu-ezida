@@ -5,7 +5,7 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherBug, FeatherClipboard, FeatherCode, FeatherCloud, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity, FeatherSparkles } from "@subframe/core"
+import { FeatherBug, FeatherCheck, FeatherClipboard, FeatherCode, FeatherCloud, FeatherMinimize, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity, FeatherSparkles } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -40,6 +40,7 @@ type FileHeaderProps = {
   onToggleRenderJson?: () => void
   onToggleStreamPanel?: () => void
   onToggleReasoningSummary?: () => void
+  onToggleForceCompaction?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
@@ -58,6 +59,7 @@ export const FileHeader = ({
   onToggleRenderJson,
   onToggleStreamPanel,
   onToggleReasoningSummary,
+  onToggleForceCompaction,
   onCopyRaw,
   menuItems = [],
   onAddTag,
@@ -94,52 +96,83 @@ export const FileHeader = ({
           />
         )}
         {onToggleDebug && (
-          <IconButton
-            variant={debugExpanded ? "brand-primary" : "neutral-tertiary"}
-            size="small"
-            icon={<FeatherBug />}
-            onClick={onToggleDebug}
-          />
-        )}
-        {debugExpanded && onTogglePersist && (
-          <IconButton
-            variant={debugOptions?.persistToServer ? "brand-primary" : "neutral-tertiary"}
-            size="small"
-            icon={<FeatherCloud />}
-            onClick={onTogglePersist}
-          />
-        )}
-        {debugExpanded && onToggleRenderJson && (
-          <IconButton
-            variant={debugOptions?.renderAsJson ? "brand-primary" : "neutral-tertiary"}
-            size="small"
-            icon={<FeatherCode />}
-            onClick={onToggleRenderJson}
-          />
-        )}
-        {debugExpanded && onToggleStreamPanel && (
-          <IconButton
-            variant={debugOptions?.showStreamPanel ? "brand-primary" : "neutral-tertiary"}
-            size="small"
-            icon={<FeatherActivity />}
-            onClick={onToggleStreamPanel}
-          />
-        )}
-        {debugExpanded && onToggleReasoningSummary && (
-          <IconButton
-            variant={debugOptions?.reasoningSummaryAuto ? "brand-primary" : "neutral-tertiary"}
-            size="small"
-            icon={<FeatherSparkles />}
-            onClick={onToggleReasoningSummary}
-          />
-        )}
-        {debugExpanded && onCopyRaw && (
-          <IconButton
-            variant="neutral-tertiary"
-            size="small"
-            icon={<FeatherClipboard />}
-            onClick={onCopyRaw}
-          />
+          <SubframeCore.DropdownMenu.Root>
+            <SubframeCore.DropdownMenu.Trigger asChild>
+              <IconButton
+                variant={debugExpanded ? "brand-primary" : "neutral-tertiary"}
+                size="small"
+                icon={<FeatherBug />}
+              />
+            </SubframeCore.DropdownMenu.Trigger>
+            <SubframeCore.DropdownMenu.Portal>
+              <SubframeCore.DropdownMenu.Content
+                side="bottom"
+                align="end"
+                sideOffset={4}
+                asChild
+              >
+                <DropdownMenu>
+                  <DropdownMenu.DropdownItem
+                    icon={debugExpanded ? <FeatherCheck /> : <FeatherBug />}
+                    onClick={onToggleDebug}
+                  >
+                    Hidden files
+                  </DropdownMenu.DropdownItem>
+                  {onTogglePersist && (
+                    <DropdownMenu.DropdownItem
+                      icon={debugOptions?.persistToServer ? <FeatherCheck /> : <FeatherCloud />}
+                      onClick={onTogglePersist}
+                    >
+                      Server persistence
+                    </DropdownMenu.DropdownItem>
+                  )}
+                  {onToggleRenderJson && (
+                    <DropdownMenu.DropdownItem
+                      icon={debugOptions?.renderAsJson ? <FeatherCheck /> : <FeatherCode />}
+                      onClick={onToggleRenderJson}
+                    >
+                      JSON rendering
+                    </DropdownMenu.DropdownItem>
+                  )}
+                  {onToggleStreamPanel && (
+                    <DropdownMenu.DropdownItem
+                      icon={debugOptions?.showStreamPanel ? <FeatherCheck /> : <FeatherActivity />}
+                      onClick={onToggleStreamPanel}
+                    >
+                      Stream panel
+                    </DropdownMenu.DropdownItem>
+                  )}
+                  {onToggleReasoningSummary && (
+                    <DropdownMenu.DropdownItem
+                      icon={debugOptions?.reasoningSummaryAuto ? <FeatherCheck /> : <FeatherSparkles />}
+                      onClick={onToggleReasoningSummary}
+                    >
+                      Reasoning summary
+                    </DropdownMenu.DropdownItem>
+                  )}
+                  {onToggleForceCompaction && (
+                    <DropdownMenu.DropdownItem
+                      icon={<FeatherMinimize />}
+                      onClick={onToggleForceCompaction}
+                    >
+                      Force compaction
+                    </DropdownMenu.DropdownItem>
+                  )}
+                  {onCopyRaw && (
+                    <>
+                      <DropdownMenu.DropdownDivider />
+                      <DropdownMenu.DropdownItem
+                        icon={<FeatherClipboard />}
+                        onClick={onCopyRaw}
+                      >
+                        Copy raw
+                      </DropdownMenu.DropdownItem>
+                    </>
+                  )}
+                </DropdownMenu>
+              </SubframeCore.DropdownMenu.Content>
+            </SubframeCore.DropdownMenu.Portal>
+          </SubframeCore.DropdownMenu.Root>
         )}
         {menuItems.length > 0 && (
           <SubframeCore.DropdownMenu.Root>
