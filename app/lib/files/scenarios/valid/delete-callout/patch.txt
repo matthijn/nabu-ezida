@@ -3,6 +3,7 @@
 -More content.
 -
 -```json-callout
+-// start json-callout second
 -{
 -  "id": "second",
 -  "type": "codebook-code",
@@ -11,5 +12,6 @@
 -  "content": "Another description",
 -  "collapsed": false
 -}
+-// end json-callout second
 -```
 +More content.

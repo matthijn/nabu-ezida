@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef } from "react"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { useProject } from "./project"
 import { linkifyEntityIds } from "~/domain/entity-link/linkify"
+import { toExtraPretty } from "~/lib/json"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -46,7 +47,8 @@ export default function ProjectFile() {
   const rawContent = currentFile ? getFileRaw(files, currentFile) : undefined
   const content = useMemo(() => {
     if (!rawContent || !currentFile) return rawContent
-    if (debugOptions.renderAsJson || isJsonFile(currentFile)) return rawContent
+    if (isJsonFile(currentFile)) return rawContent
+    if (debugOptions.renderAsJson) return toExtraPretty(rawContent)
     return linkifyEntityIds(rawContent, (id) => resolveEntityName(files, id))
   }, [rawContent, currentFile, debugOptions.renderAsJson, files])
   const copyRawMarkdown = useCallback(() => {

@@ -1,6 +1,7 @@
 *** Update File: docs/document.md
 @@
 -```json-callout
+-// start json-callout abc123
 -{
 -  "id": "abc123",
 -  "type": "codebook-code",
@@ -9,6 +10,7 @@
 -  "content": "Description",
 -  "collapsed": false
 -}
+-// end json-callout abc123
 -```
 +```json-callout
 +{

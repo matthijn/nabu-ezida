@@ -3,6 +3,7 @@
 Some text here.
 
 ```json-callout
+// start json-callout code_abc12345
 {
   "id": "code_abc12345",
   "type": "codebook-code",
@@ -17,4 +18,5 @@ Inclusion criteria:
   "color": "red",
   "collapsed": false
 }
+// end json-callout code_abc12345
 ```

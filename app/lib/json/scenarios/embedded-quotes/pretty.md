@@ -1,6 +1,7 @@
 # Document
 
 ```json-callout
+// start json-callout code_quotes123
 {
   "id": "code_quotes123",
   "type": "codebook-code",
@@ -13,4 +14,5 @@ Also exclude "we hope to" phrases.
   "color": "red",
   "collapsed": false
 }
+// end json-callout code_quotes123
 ```

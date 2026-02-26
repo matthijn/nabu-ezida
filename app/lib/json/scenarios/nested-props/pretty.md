@@ -1,6 +1,7 @@
 # Document
 
 ```json-attributes
+// start json-attributes
 {
   "tags": ["analysis"],
   "annotations": [
@@ -18,4 +19,5 @@ This is important because:
     }
   ]
 }
+// end json-attributes
 ```

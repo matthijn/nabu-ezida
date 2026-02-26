@@ -1,6 +1,7 @@
 # Document
 
 ```json-callout
+// start json-callout code_xyz98765
 {
   "id": "code_xyz98765",
   "type": "codebook-code",
@@ -9,4 +10,5 @@
   "color": "blue",
   "collapsed": true
 }
+// end json-callout code_xyz98765
 ```

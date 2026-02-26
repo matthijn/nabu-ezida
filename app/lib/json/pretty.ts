@@ -15,6 +15,23 @@ const hasNewline = (s: string): boolean => s.includes("\n")
 
 const isJsonBlock = (language: string): boolean => language.startsWith("json-")
 
+const isCommentLine = (line: string): boolean => line.trimStart().startsWith("//")
+
+const stripCommentLines = (content: string): string =>
+  content.split("\n").filter((line) => !isCommentLine(line)).join("\n")
+
+const extractId = (parsed: JsonValue): string | undefined =>
+  parsed !== null &&
+  typeof parsed === "object" &&
+  !Array.isArray(parsed) &&
+  "id" in parsed &&
+  typeof parsed.id === "string"
+    ? parsed.id
+    : undefined
+
+const buildBoundaryComment = (language: string, id: string | undefined, edge: "start" | "end"): string =>
+  id ? `// ${edge} ${language} ${id}` : `// ${edge} ${language}`
+
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 type MultilineMarker = { __multiline__: string }
@@ -106,7 +123,7 @@ export const collapseTripleQuotes = (content: string): string =>
 
 export const parsePrettyJson = <T>(content: string): T | null => {
   try {
-    return JSON.parse(collapseTripleQuotes(content)) as T
+    return JSON.parse(collapseTripleQuotes(stripCommentLines(content))) as T
   } catch {
     return null
   }
@@ -182,10 +199,14 @@ const transformJsonBlocks = (
 }
 
 export const toExtraPretty = (markdown: string): string =>
-  transformJsonBlocks(markdown, (content) =>
+  transformJsonBlocks(markdown, (content, language) =>
     transformBlock(content, (parsed) => {
       const expanded = expandValue(parsed)
-      return serializeJson(expanded, 0, true)
+      const json = serializeJson(expanded, 0, true)
+      const id = extractId(parsed)
+      const start = buildBoundaryComment(language, id, "start")
+      const end = buildBoundaryComment(language, id, "end")
+      return start + "\n" + json + "\n" + end
     })
   )
 
@@ -201,11 +222,12 @@ const validateBalancedFences = (markdown: string): void => {
 
 export const fromExtraPretty = (markdown: string): string => {
   const result = transformJsonBlocks(markdown, (content, language) => {
-    if (!hasTripleQuote(content)) {
-      return content
+    const stripped = stripCommentLines(content)
+    if (!hasTripleQuote(stripped)) {
+      return stripped
     }
     try {
-      return transformPrettyBlock(content, (parsed) => {
+      return transformPrettyBlock(stripped, (parsed) => {
         const collapsed = collapseValue(parsed)
         return serializeJson(collapsed, 0, false)
       })

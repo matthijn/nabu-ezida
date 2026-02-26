@@ -87,8 +87,7 @@ describe("range ref resolves against pretty content", () => {
         "+<< source.md",
         "+  ## Section A",
         "+  ...",
-        '+  """',
-        "+  }",
+        "+  // end json-attributes",
         "+  ```",
       ),
       expected: j(

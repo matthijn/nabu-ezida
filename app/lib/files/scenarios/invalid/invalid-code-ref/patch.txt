@@ -1,9 +1,11 @@
 *** Update File: docs/interview.md
 @@
 -```json-attributes
+-// start json-attributes
 -{
 -  "tags": ["interview"]
 -}
+-// end json-attributes
 -```
 +```json-attributes
 +{
