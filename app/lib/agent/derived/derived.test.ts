@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep, type Files } from "."
+import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep } from "."
 import {
   submitPlanCall,
   completeStepCall,
@@ -11,11 +11,6 @@ import {
 } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
-
-const mockFiles: Files = {
-  "doc1.md": "# Doc 1\n\nParagraph 1.\n\n## Section\n\nParagraph 2.",
-  "doc2.md": "# Doc 2\n\nShort content.",
-}
 
 describe("derived", () => {
   describe("plan", () => {
@@ -180,205 +175,74 @@ describe("derived", () => {
     })
   })
 
-  describe("per_section", () => {
-    it("creates plan with per_section and flattened steps", () => {
-      const history = [
-        ...submitPlanCall(
-          "Analyze docs",
-          [
-            { title: "Research", expected: "Research done" },
-            { per_section: [{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }], files: ["doc1.md", "doc2.md"] },
-            { title: "Summary", expected: "Summarized" },
-          ],
-        ),
-      ]
-      const d = derive(history, mockFiles)
-      const plan = lastPlan(d.plans)
-
-      expect(plan?.steps).toHaveLength(4) // Research + 2 inner + Summary
-      expect(plan?.steps.map((s) => s.id)).toEqual(["1", "2.1", "2.2", "3"])
-      expect(plan?.perSection).not.toBeNull()
-      expect(plan?.perSection?.sections.length).toBeGreaterThan(0)
-      expect(plan?.perSection?.currentSection).toBe(0)
-    })
-
-    it("advances through inner steps within same section", () => {
-      const history = [
-        ...submitPlanCall(
-          "Task",
-          [
-            { title: "Pre", expected: "Pre done" },
-            { per_section: [{ title: "Inner 1", expected: "Inner 1 done" }, { title: "Inner 2", expected: "Inner 2 done" }], files: ["doc1.md"] },
-            { title: "Post", expected: "Post done" },
-          ],
-        ),
-        ...completeStepCall("Pre done"),
-        ...completeStepCall("Inner 1 done"),
-      ]
-      const d = derive(history, mockFiles)
-      const plan = lastPlan(d.plans)
-
-      expect(plan?.currentStep).toBe(2) // Inner 2 (index 2)
-      expect(plan?.perSection?.currentSection).toBe(0) // Still on section 0
-    })
-
-    it("loops back to first inner step on section boundary", () => {
-      const history = [
-        ...submitPlanCall(
-          "Task",
-          [{ per_section: [{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }], files: ["doc1.md", "doc2.md"] }],
-        ),
-        ...completeStepCall("Analyze 1"),
-        ...completeStepCall("Code 1"), // Completes section 0, should loop
-      ]
-      const d = derive(history, mockFiles)
-      const plan = lastPlan(d.plans)
-
-      // Should be back at first inner step, section advanced
-      expect(plan?.currentStep).toBe(0) // Back to Analyze
-      expect(plan?.perSection?.currentSection).toBe(1) // Section 1
-      expect(plan?.perSection?.completedSections).toHaveLength(1)
-      expect(plan?.perSection?.completedSections[0].innerResults).toHaveLength(2)
-    })
-
-    it("completes plan when all sections processed", () => {
-      // Small files that produce 1 section each
-      const smallFiles: Files = {
-        "a.md": "Content A",
-        "b.md": "Content B",
-      }
-      const history = [
-        ...submitPlanCall(
-          "Task",
-          [{ per_section: [{ title: "Process", expected: "Processed" }], files: ["a.md", "b.md"] }],
-        ),
-        ...completeStepCall("Section 1 done"),
-        ...completeStepCall("Section 2 done"),
-      ]
-      const d = derive(history, smallFiles)
-      const plan = lastPlan(d.plans)
-
-      expect(plan?.currentStep).toBe(null) // Plan complete
-      expect(plan?.perSection?.completedSections).toHaveLength(2)
-      expect(hasActivePlan(d.plans)).toBe(false)
-    })
-
-    it("tracks section results with internal context", () => {
-      const smallFiles: Files = { "doc.md": "Short" }
-      const history = [
-        ...submitPlanCall(
-          "Task",
-          [{ per_section: [{ title: "Step A", expected: "A done" }, { title: "Step B", expected: "B done" }], files: ["doc.md"] }],
-        ),
-        ...completeStepCall("A done", "internal:123"),
-        ...completeStepCall("B done", "internal:456"),
-      ]
-      const d = derive(history, smallFiles)
-      const plan = lastPlan(d.plans)
-
-      const results = plan?.perSection?.completedSections[0].innerResults
-      expect(results).toHaveLength(2)
-      expect(results?.[0].internal).toBe("internal:123")
-      expect(results?.[0].summary).toBe("A done")
-      expect(results?.[1].internal).toBe("internal:456")
-    })
-
-    it("steps after per_section execute normally", () => {
-      const smallFiles: Files = { "doc.md": "Content" }
-      const history = [
-        ...submitPlanCall(
-          "Task",
-          [
-            { per_section: [{ title: "Process", expected: "Processed" }], files: ["doc.md"] },
-            { title: "Final step", expected: "Final done" },
-          ],
-        ),
-        ...completeStepCall("Processed"),
-        ...completeStepCall("Final done"),
-      ]
-      const d = derive(history, smallFiles)
-      const plan = lastPlan(d.plans)
-
-      expect(plan?.currentStep).toBe(null)
-      expect(plan?.steps[1].done).toBe(true)
-      expect(plan?.steps[1].summary).toBe("Final done")
-    })
-
-    it("strips attributes block from section content", () => {
-      const filesWithAttributes: Files = {
-        "doc.md": `# Title
-
-\`\`\`json-attributes
-{"tags": ["interview"], "annotations": []}
-\`\`\`
-
-Actual content here.`,
-      }
-      const history = [
-        ...submitPlanCall("Task", [{ per_section: [{ title: "Process", expected: "Processed" }], files: ["doc.md"] }]),
-      ]
-      const d = derive(history, filesWithAttributes)
-      const plan = lastPlan(d.plans)
-
-      const sectionContent = plan?.perSection?.sections[0].content ?? ""
-      expect(sectionContent).toContain("# Title")
-      expect(sectionContent).toContain("Actual content here.")
-      expect(sectionContent).not.toContain("json-attributes")
-      expect(sectionContent).not.toContain("tags")
-    })
-  })
-
-  describe("per_section inner step advancement via complete_step", () => {
-    const smallFiles: Files = { "a.md": "Content A", "b.md": "Content B" }
-
-    const perSectionPlan = (steps: { title: string; expected: string }[]) =>
-      submitPlanCall("Task", [
-        { title: "Pre", expected: "Pre done" },
-        { per_section: steps, files: ["a.md", "b.md"] },
-        { title: "Post", expected: "Post done" },
-      ])
-
+  describe("nested steps", () => {
     const cases = [
       {
-        name: "advances to next inner step within section",
+        name: "creates plan with nested steps flattened",
         history: () => [
-          ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
-          ...completeStepCall("Pre done"),
-          ...completeStepCall("Analyzed"),
+          ...submitPlanCall("Analyze docs", [
+            { title: "Research", expected: "Research done" },
+            { nested: ["Analyze", "Code"] },
+            { title: "Summary", expected: "Summarized" },
+          ]),
         ],
         check: (history: Block[]) => {
-          const plan = lastPlan(derive(history, smallFiles).plans)
-          expect(plan?.steps[1].done).toBe(true)
-          expect(plan?.steps[1].summary).toBe("Analyzed")
+          const d = derive(history)
+          const plan = lastPlan(d.plans)
+          expect(plan?.steps).toHaveLength(4)
+          expect(plan?.steps.map((s) => s.id)).toEqual(["1", "2.1", "2.2", "3"])
+        },
+      },
+      {
+        name: "nested steps advance linearly",
+        history: () => [
+          ...submitPlanCall("Task", [
+            { title: "Pre", expected: "Pre done" },
+            { nested: ["Inner 1", "Inner 2"] },
+            { title: "Post", expected: "Post done" },
+          ]),
+          ...completeStepCall("Pre done"),
+          ...completeStepCall("Inner 1 done"),
+        ],
+        check: (history: Block[]) => {
+          const plan = lastPlan(derive(history).plans)
           expect(plan?.currentStep).toBe(2)
+          expect(plan?.steps[1].done).toBe(true)
+          expect(plan?.steps[2].done).toBe(false)
         },
       },
       {
-        name: "does not cycle sections on non-last inner step",
+        name: "completing all nested steps advances to next top-level",
         history: () => [
-          ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
-          ...completeStepCall("Pre done"),
+          ...submitPlanCall("Task", [
+            { nested: ["Analyze", "Code"] },
+            { title: "Summary", expected: "Summarized" },
+          ]),
           ...completeStepCall("Analyzed"),
+          ...completeStepCall("Coded"),
         ],
         check: (history: Block[]) => {
-          const plan = lastPlan(derive(history, smallFiles).plans)
-          expect(plan?.perSection?.currentSection).toBe(0)
-          expect(plan?.perSection?.completedSections).toHaveLength(0)
+          const plan = lastPlan(derive(history).plans)
+          expect(plan?.currentStep).toBe(2)
+          expect(plan?.steps[0].done).toBe(true)
+          expect(plan?.steps[1].done).toBe(true)
+          expect(plan?.steps[2].done).toBe(false)
         },
       },
       {
-        name: "completing last inner step cycles section",
+        name: "all steps complete including nested",
         history: () => [
-          ...perSectionPlan([{ title: "Analyze", expected: "Analyzed" }, { title: "Code", expected: "Coded" }]),
-          ...completeStepCall("Pre done"),
-          ...completeStepCall("Analyzed"),
-          ...completeStepCall("Section done", "ctx:1"),
+          ...submitPlanCall("Task", [
+            { nested: ["Process"] },
+            { title: "Final", expected: "Final done" },
+          ]),
+          ...completeStepCall("Processed"),
+          ...completeStepCall("Final done"),
         ],
         check: (history: Block[]) => {
-          const plan = lastPlan(derive(history, smallFiles).plans)
-          expect(plan?.perSection?.currentSection).toBe(1)
-          expect(plan?.perSection?.completedSections).toHaveLength(1)
-          expect(plan?.currentStep).toBe(1)
+          const plan = lastPlan(derive(history).plans)
+          expect(plan?.currentStep).toBe(null)
+          expect(hasActivePlan(derive(history).plans)).toBe(false)
         },
       },
     ]
@@ -389,8 +253,6 @@ Actual content here.`,
   })
 
   describe("guards", () => {
-    const smallFiles: Files = { "doc.md": "Content" }
-
     const cases = [
       {
         name: "guardCompleteStep: allowed on regular step",
@@ -404,24 +266,12 @@ Actual content here.`,
         expected: true,
       },
       {
-        name: "guardCompleteStep: allowed on first inner step",
+        name: "guardCompleteStep: allowed on nested step",
         plan: () => {
           const history = [
-            ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
+            ...submitPlanCall("Task", [{ nested: ["A", "B"] }]),
           ]
-          return lastPlan(derive(history, smallFiles).plans)!
-        },
-        guard: guardCompleteStep,
-        expected: true,
-      },
-      {
-        name: "guardCompleteStep: allowed on last inner step",
-        plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ per_section: [{ title: "A", expected: "A" }, { title: "B", expected: "B" }], files: ["doc.md"] }]),
-            ...completeStepCall("A done"),
-          ]
-          return lastPlan(derive(history, smallFiles).plans)!
+          return lastPlan(derive(history).plans)!
         },
         guard: guardCompleteStep,
         expected: true,

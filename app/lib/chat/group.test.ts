@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanStep, type PlanSectionGroup } from "./group"
+import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanStep } from "./group"
 import {
   submitPlanCall,
   completeStepCall,
@@ -20,8 +20,6 @@ const isPlanHeader = (m: GroupedMessage): m is PlanHeader => m.type === "plan-he
 const isPlanItem = (m: GroupedMessage): m is PlanItem => m.type === "plan-item"
 const isPlanStepItem = (m: GroupedMessage): m is PlanItem =>
   m.type === "plan-item" && m.child.type === "plan-step"
-const isSectionGroupItem = (m: GroupedMessage): m is PlanItem & { child: PlanSectionGroup } =>
-  m.type === "plan-item" && m.child.type === "plan-section-group"
 const planSteps = (result: GroupedMessage[]): PlanStep[] =>
   result.filter(isPlanStepItem).map((m) => m.child as PlanStep)
 
@@ -51,7 +49,7 @@ describe("toGroupedMessages", () => {
     })
   })
 
-  describe("simple plan (no sections)", () => {
+  describe("simple plan", () => {
     const cases = [
       {
         name: "plan header and items contain steps and messages interleaved",
@@ -105,7 +103,7 @@ describe("toGroupedMessages", () => {
         },
       },
       {
-        name: "all plan items have section=false and dimmed=false for simple plans",
+        name: "all plan items have dimmed=false for simple plans",
         history: [
           ...submitPlanCall("Task", ["Step 1", "Step 2"]),
           textBlock("Working"),
@@ -114,9 +112,32 @@ describe("toGroupedMessages", () => {
           const items = result.filter(isPlanItem)
           expect(items.length).toBeGreaterThan(0)
           items.forEach((item) => {
-            expect(item.section).toBe(false)
             expect(item.dimmed).toBe(false)
           })
+        },
+      },
+    ]
+
+    cases.forEach(({ name, history, check }) => {
+      it(name, () => check(group(history)))
+    })
+  })
+
+  describe("nested steps", () => {
+    const cases = [
+      {
+        name: "nested steps are flattened as plan items",
+        history: [
+          ...submitPlanCall("Process", [
+            { title: "Setup", expected: "Setup done" },
+            { nested: ["Analyze", "Code"] },
+            { title: "Wrap up", expected: "Wrapped up" },
+          ]),
+        ],
+        check: (result: GroupedMessage[]) => {
+          const steps = planSteps(result)
+          expect(steps).toHaveLength(4)
+          expect(steps.map((s) => s.description)).toEqual(["Setup", "Analyze", "Code", "Wrap up"])
         },
       },
     ]
@@ -224,60 +245,6 @@ describe("toGroupedMessages", () => {
 
     cases.forEach(({ name, history, check }) => {
       it(name, () => check(group(history)))
-    })
-  })
-
-  describe("plan with sections", () => {
-    const cases = [
-      {
-        name: "per-section plan has section labels and inner steps with section flag",
-        history: [
-          ...submitPlanCall(
-            "Process files",
-            ["Setup", { per_section: ["Analyze", "Transform"], files: ["file1.txt", "file2.txt"] }, "Finalize"],
-          ),
-          textBlock("Setting up"),
-          ...completeStepCall("Setup done"),
-          textBlock("Analyzing file1"),
-          ...completeStepCall("Analyzed"),
-          textBlock("Transforming file1"),
-          ...completeStepCall("Transformed"),
-          textBlock("Analyzing file2"),
-        ],
-        files: { "file1.txt": "content1", "file2.txt": "content2" } as Record<string, string>,
-        check: (result: GroupedMessage[]) => {
-          expect(result.find(isPlanHeader)).toBeTruthy()
-          const sectionGroups = result.filter(isSectionGroupItem)
-          expect(sectionGroups.length).toBeGreaterThanOrEqual(1)
-          sectionGroups.forEach((item) => expect(item.section).toBe(true))
-          const innerSteps = sectionGroups.flatMap((sg) =>
-            (sg.child as PlanSectionGroup).children.filter((c) => c.type === "plan-step")
-          )
-          expect(innerSteps.length).toBeGreaterThanOrEqual(2)
-        },
-      },
-      {
-        name: "untouched sections show as dimmed section groups",
-        history: [
-          ...submitPlanCall(
-            "Process",
-            ["Setup", { per_section: ["Do it"], files: ["a.txt", "b.txt"] }, "Finalize"],
-          ),
-          ...completeStepCall("Setup done"),
-          textBlock("Working on first"),
-        ],
-        files: { "a.txt": "a", "b.txt": "b" } as Record<string, string>,
-        check: (result: GroupedMessage[]) => {
-          const sectionGroups = result.filter(isSectionGroupItem)
-          expect(sectionGroups.length).toBe(2)
-          expect(sectionGroups[0].dimmed).toBe(false)
-          expect(sectionGroups[1].dimmed).toBe(true)
-        },
-      },
-    ]
-
-    cases.forEach(({ name, history, files, check }) => {
-      it(name, () => check(toGroupedMessages(history, derive(history, files ?? {}))))
     })
   })
 

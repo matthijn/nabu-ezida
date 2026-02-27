@@ -11,9 +11,10 @@ import "./tools/rename-file"
 import "./tools/remove-file"
 import "./tools/patch-json-block"
 import "./tools/run-local-shell"
-import "./tools/for-each"
 import "./tools/ask"
 import "./tools/compact"
+import "./tools/read-section"
+import "./tools/segment-file"
 
 export type { ToolDeps }
 export { getToolDefinitions }

@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "aaa\nbbb\nccc\nddd"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed '2,3s/b/X/g'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "aaa\nXXX\nccc\nddd",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

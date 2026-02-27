@@ -1,5 +1,5 @@
 import type { Block } from "~/lib/agent"
-import { type Derived, type DerivedPlan, type PerSectionConfig, type Step } from "~/lib/agent"
+import { type Derived, type DerivedPlan, type Step } from "~/lib/agent"
 import {
   type TextMessage,
   type AskMessage,
@@ -21,21 +21,7 @@ export type PlanStep = {
   status: StepStatus
 }
 
-export type PlanSection = {
-  type: "plan-section"
-  file: string
-  indexInFile: number
-  totalInFile: number
-}
-
-export type PlanSectionGroup = {
-  type: "plan-section-group"
-  section: PlanSection
-  children: (PlanStep | LeafMessage)[]
-  dimmed: boolean
-}
-
-export type PlanChild = PlanStep | PlanSection | PlanSectionGroup | LeafMessage
+export type PlanChild = PlanStep | LeafMessage
 
 export type PlanHeader = {
   type: "plan-header"
@@ -47,7 +33,6 @@ export type PlanHeader = {
 export type PlanItem = {
   type: "plan-item"
   child: PlanChild
-  section: boolean
   dimmed: boolean
 }
 
@@ -113,90 +98,38 @@ const getStepStatus = (step: Step, flatIndex: number, currentStep: number | null
   return "pending"
 }
 
-const isInPerSectionRange = (flatIndex: number, ps: PerSectionConfig): boolean =>
-  flatIndex >= ps.firstInnerStepIndex && flatIndex < ps.firstInnerStepIndex + ps.innerStepCount
-
-const isLastInnerStep = (flatIndex: number, ps: PerSectionConfig): boolean =>
-  flatIndex === ps.firstInnerStepIndex + ps.innerStepCount - 1
-
-type StepTransition = { blockIndex: number; newStep: number; newSection: number }
+type StepTransition = { blockIndex: number; newStep: number }
 
 const findStepTransitions = (
   history: Block[],
   planStart: number,
   planEnd: number,
-  plan: DerivedPlan
 ): StepTransition[] => {
   const statuses = collectResultStatuses(history)
   const transitions: StepTransition[] = []
   let currentStep = 0
-  let currentSection = 0
 
   for (let i = planStart; i < planEnd; i++) {
     if (!isSuccessfulCompleteStep(history[i], statuses)) continue
-
-    const ps = plan.perSection
-    if (ps && isInPerSectionRange(currentStep, ps)) {
-      if (isLastInnerStep(currentStep, ps) && currentSection < ps.sections.length - 1) {
-        currentSection++
-        currentStep = ps.firstInnerStepIndex
-      } else if (isLastInnerStep(currentStep, ps)) {
-        currentStep = ps.firstInnerStepIndex + ps.innerStepCount
-      } else {
-        currentStep++
-      }
-    } else {
-      currentStep++
-    }
-    transitions.push({ blockIndex: i + 1, newStep: currentStep, newSection: currentSection })
+    currentStep++
+    transitions.push({ blockIndex: i + 1, newStep: currentStep })
   }
 
   return transitions
 }
 
-type MessagePosition = { flatStep: number; section: number }
-
-const getPositionAtIndex = (blockIndex: number, transitions: StepTransition[]): MessagePosition => {
-  let flatStep = 0
-  let section = 0
+const getStepAtIndex = (blockIndex: number, transitions: StepTransition[]): number => {
+  let step = 0
   for (const t of transitions) {
     if (blockIndex < t.blockIndex) break
-    flatStep = t.newStep
-    section = t.newSection
+    step = t.newStep
   }
-  return { flatStep, section }
+  return step
 }
 
-const buildInnerSteps = (plan: DerivedPlan): PlanStep[] => {
-  if (!plan.perSection) return []
-  const { firstInnerStepIndex, innerStepCount } = plan.perSection
-  return plan.steps
-    .slice(firstInnerStepIndex, firstInnerStepIndex + innerStepCount)
-    .map((step, i) => ({
-      type: "plan-step" as const,
-      description: step.description,
-      summary: step.summary,
-      status: getStepStatus(step, firstInnerStepIndex + i, plan.currentStep, plan.aborted),
-    }))
-}
-
-const buildCompletedSectionSteps = (plan: DerivedPlan, sectionIndex: number): PlanStep[] => {
-  if (!plan.perSection) return []
-  const result = plan.perSection.completedSections.find((s) => s.sectionIndex === sectionIndex)
-  if (!result) return []
-  const { firstInnerStepIndex } = plan.perSection
-  return result.innerResults.map((r, i) => ({
-    type: "plan-step" as const,
-    description: plan.steps[firstInnerStepIndex + i]?.description ?? "",
-    summary: r.summary,
-    status: "completed" as const,
-  }))
-}
-
-const toItem = (child: PlanChild, section: boolean, dimmed: boolean): PlanItem => ({
+const toItem = (child: PlanChild, dimmed: boolean): PlanItem => ({
   type: "plan-item",
   child,
-  section,
   dimmed,
 })
 
@@ -207,15 +140,21 @@ const buildPlanHeader = (plan: DerivedPlan): PlanHeader => ({
   aborted: plan.aborted,
 })
 
-const buildSimplePlanEntries = (
-  plan: DerivedPlan,
+const buildPlanEntries = (
+  range: PlanRange,
   leaves: Indexed<LeafMessage>[],
-  transitions: StepTransition[],
-  startIndex: number,
-  endIndex: number
+  history: Block[]
 ): FlatEntry[] => {
+  const { plan, startIndex, endIndex } = range
+  const transitions = findStepTransitions(history, startIndex, endIndex)
   const totalSteps = plan.steps.length
-  const stepActivations = plan.steps.map((step, i) => {
+
+  const header: FlatEntry = {
+    blockIndex: startIndex,
+    item: buildPlanHeader(plan),
+  }
+
+  const stepActivations: FlatEntry[] = plan.steps.map((step, i) => {
     const activation = i === 0
       ? startIndex
       : transitions.find((t) => t.newStep === i)?.blockIndex ?? endIndex - (totalSteps - i) * 0.001
@@ -229,144 +168,16 @@ const buildSimplePlanEntries = (
           status: getStepStatus(step, i, plan.currentStep, plan.aborted),
         },
         false,
-        false,
       ),
     }
   })
 
   const leafEntries: FlatEntry[] = leaves.map((l) => ({
     blockIndex: l.index,
-    item: toItem(l.message, false, false),
+    item: toItem(l.message, false),
   }))
 
-  return [...stepActivations, ...leafEntries]
-}
-
-const buildPerSectionPlanEntries = (
-  plan: DerivedPlan,
-  ps: PerSectionConfig,
-  leaves: Indexed<LeafMessage>[],
-  transitions: StepTransition[],
-  planStart: number,
-  endIndex: number
-): FlatEntry[] => {
-  const outerBefore = plan.steps.slice(0, ps.firstInnerStepIndex)
-  const outerAfter = plan.steps.slice(ps.firstInnerStepIndex + ps.innerStepCount)
-  const afterStartIndex = ps.firstInnerStepIndex + ps.innerStepCount
-  const totalAfter = outerAfter.length
-
-  const beforeEntries: FlatEntry[] = outerBefore.map((step, i) => ({
-    blockIndex: i === 0 ? planStart : (transitions.find((t) => t.newStep === i)?.blockIndex ?? endIndex - (totalAfter + 1 + outerBefore.length - i) * 0.001),
-    item: toItem(
-      {
-        type: "plan-step" as const,
-        description: step.description,
-        summary: step.summary,
-        status: getStepStatus(step, i, plan.currentStep, plan.aborted),
-      },
-      false,
-      false,
-    ),
-  }))
-
-  const afterEntries: FlatEntry[] = outerAfter.map((step, i) => {
-    const flatIdx = afterStartIndex + i
-    return {
-      blockIndex: transitions.find((t) => t.newStep === flatIdx)?.blockIndex ?? endIndex - (totalAfter - i) * 0.001,
-      item: toItem(
-        {
-          type: "plan-step" as const,
-          description: step.description,
-          summary: step.summary,
-          status: getStepStatus(step, flatIdx, plan.currentStep, plan.aborted),
-        },
-        false,
-        false,
-      ),
-    }
-  })
-
-  const sectionBoundaries = transitions
-    .filter((t) => t.newStep === ps.firstInnerStepIndex && t.newSection > 0)
-    .map((t) => ({ blockIndex: t.blockIndex, section: t.newSection }))
-
-  const totalSections = ps.sections.length
-
-  const sectionEntries: FlatEntry[] = []
-  for (let s = 0; s < totalSections; s++) {
-    const section = ps.sections[s]
-    if (!section) continue
-
-    const isCurrentSection = s === ps.currentSection && plan.currentStep !== null &&
-      isInPerSectionRange(plan.currentStep, ps)
-    const isCompletedSection = ps.completedSections.some((cs) => cs.sectionIndex === s)
-    const isDimmed = !isCurrentSection && !isCompletedSection
-
-    const sectionStart = s === 0
-      ? (transitions.find((t) => t.newStep === ps.firstInnerStepIndex)?.blockIndex ?? planStart)
-      : (sectionBoundaries.find((b) => b.section === s)?.blockIndex ?? endIndex - 0.01)
-
-    const sectionLabel: PlanSection = {
-      type: "plan-section" as const,
-      file: section.file,
-      indexInFile: section.indexInFile,
-      totalInFile: section.totalInFile,
-    }
-
-    const steps = isCompletedSection && !isCurrentSection
-      ? buildCompletedSectionSteps(plan, s)
-      : buildInnerSteps(plan)
-
-    const sectionLeaves = leaves.filter((l) => {
-      const pos = getPositionAtIndex(l.index, transitions)
-      return pos.section === s && isInPerSectionRange(pos.flatStep, ps)
-    })
-
-    const children: (PlanStep | LeafMessage)[] = [
-      ...steps,
-      ...sectionLeaves.map((l) => l.message),
-    ]
-
-    sectionEntries.push({
-      blockIndex: sectionStart,
-      item: toItem(
-        { type: "plan-section-group" as const, section: sectionLabel, children, dimmed: isDimmed },
-        true,
-        isDimmed,
-      ),
-    })
-  }
-
-  const outsideLeaves = leaves.filter((l) => {
-    const pos = getPositionAtIndex(l.index, transitions)
-    return !isInPerSectionRange(pos.flatStep, ps)
-  })
-  const outsideEntries: FlatEntry[] = outsideLeaves.map((l) => ({
-    blockIndex: l.index,
-    item: toItem(l.message, false, false),
-  }))
-
-  return [...beforeEntries, ...sectionEntries, ...afterEntries, ...outsideEntries]
-}
-
-const buildPlanEntries = (
-  range: PlanRange,
-  leaves: Indexed<LeafMessage>[],
-  history: Block[]
-): FlatEntry[] => {
-  const { plan, startIndex, endIndex } = range
-  const transitions = findStepTransitions(history, startIndex, endIndex, plan)
-  const header: FlatEntry = {
-    blockIndex: startIndex,
-    item: buildPlanHeader(plan),
-  }
-
-  const ps = plan.perSection
-  const itemEntries = ps
-    ? buildPerSectionPlanEntries(plan, ps, leaves, transitions, startIndex, endIndex)
-    : buildSimplePlanEntries(plan, leaves, transitions, startIndex, endIndex)
-
-  return [header, ...itemEntries]
+  return [header, ...stepActivations, ...leafEntries]
 }
 
 const isInRange = (index: number, range: PlanRange): boolean =>

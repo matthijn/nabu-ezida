@@ -6,12 +6,11 @@ const StepObject = z.object({
   expected: z.string(),
 })
 
-const PerSectionStep = z.object({
-  per_section: z.array(StepObject),
-  files: z.array(z.string()),
+const NestedStep = z.object({
+  nested: z.array(StepObject),
 })
 
-const StepDef = z.union([StepObject, PerSectionStep])
+const StepDef = z.union([StepObject, NestedStep])
 
 export const SubmitPlanArgs = z.object({
   task: z.string().describe("High-level description of the task."),

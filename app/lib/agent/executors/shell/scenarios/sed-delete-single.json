@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "line1\nline2\nline3"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed '2d'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "line1\nline3",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

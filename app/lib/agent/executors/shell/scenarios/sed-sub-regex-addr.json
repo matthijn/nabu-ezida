@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "foo bar\nbaz bar\nfoo qux"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed '/foo/s/bar/BAR/'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "foo BAR\nbaz bar\nfoo qux",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

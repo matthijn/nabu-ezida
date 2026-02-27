@@ -30,7 +30,7 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type PlanSection, type PlanSectionGroup, type StepStatus } from "~/lib/chat/group"
+import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type StepStatus } from "~/lib/chat/group"
 import type { AskMessage } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
@@ -174,13 +174,6 @@ const PlanStepRow = ({ step, nested = false, files, projectId, navigate }: PlanS
   )
 }
 
-const PlanSectionLabel = ({ section }: { section: PlanSection }) => (
-  <span className="text-caption-bold font-caption-bold text-subtext-color">
-    {section.file}
-    {section.totalInFile > 1 && <span className="text-neutral-400"> · {section.indexInFile} of {section.totalInFile}</span>}
-  </span>
-)
-
 const displayContent = (message: LeafMessage): string | null =>
   message.draft ? preprocessStreaming(message.content) : message.content
 
@@ -302,8 +295,6 @@ const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSel
 const isAskMessage = (m: GroupedMessage): m is AskMessage => m.type === "ask"
 
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
-const isPlanSection = (child: PlanChild): child is PlanSection => child.type === "plan-section"
-const isPlanSectionGroup = (child: PlanChild): child is PlanSectionGroup => child.type === "plan-section-group"
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text"
 
@@ -332,19 +323,6 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
   )
 }
 
-const SectionGroupRenderer = ({ group, files, projectId, navigate }: { group: PlanSectionGroup; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
-  <div className="flex w-full flex-col items-start gap-1 border-l-2 border-solid border-neutral-200 pl-3 py-1 ml-2">
-    <div className={`flex w-full flex-col items-start gap-1${group.dimmed ? " opacity-50" : ""}`}>
-      <PlanSectionLabel section={group.section} />
-      {group.children.map((child, i) =>
-        child.type === "plan-step"
-          ? <PlanStepRow key={i} step={child} nested files={files} projectId={projectId} navigate={navigate} />
-          : <PlanLeafInline key={i} message={child} files={files} projectId={projectId} navigate={navigate} />
-      )}
-    </div>
-  </div>
-)
-
 type PlanChildRendererProps = {
   child: PlanChild
   files: Record<string, string>
@@ -354,7 +332,6 @@ type PlanChildRendererProps = {
 
 const PlanChildRenderer = ({ child, files, projectId, navigate }: PlanChildRendererProps) => {
   if (isPlanStep(child)) return <PlanStepRow step={child} files={files} projectId={projectId} navigate={navigate} />
-  if (isPlanSection(child)) return <PlanSectionLabel section={child} />
   if (isLeafMessage(child)) return <PlanLeafInline message={child} files={files} projectId={projectId} navigate={navigate} />
   return null
 }
@@ -375,15 +352,11 @@ const PlanHeaderRenderer = ({ header, files, projectId, navigate }: PlanHeaderRe
   </div>
 )
 
-const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
-  if (isPlanSectionGroup(item.child))
-    return <SectionGroupRenderer group={item.child} files={files} projectId={projectId} navigate={navigate} />
-  return (
-    <div className={`flex w-full flex-col items-start${item.section ? " ml-3" : ""}${item.dimmed ? " opacity-50" : ""}`}>
-      <PlanChildRenderer child={item.child} files={files} projectId={projectId} navigate={navigate} />
-    </div>
-  )
-}
+const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
+  <div className={`flex w-full flex-col items-start${item.dimmed ? " opacity-50" : ""}`}>
+    <PlanChildRenderer child={item.child} files={files} projectId={projectId} navigate={navigate} />
+  </div>
+)
 
 type PlanMessage = PlanHeader | PlanItem
 

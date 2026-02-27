@@ -13,8 +13,6 @@ export {
   type PlanItem,
   type PlanChild,
   type PlanStep,
-  type PlanSection,
-  type PlanSectionGroup,
   type StepStatus,
   type LeafMessage,
 } from "./group"

@@ -1,0 +1,25 @@
+{
+  "files": {
+    "f.txt": "apple\nbanana\napricot\ncherry"
+  },
+  "args": {
+    "commands": [
+      "cat f.txt | sed '/^ap/d'"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "banana\ncherry",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

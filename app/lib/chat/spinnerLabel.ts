@@ -10,7 +10,6 @@ const toolLabels: Record<string, string> = {
   remove_file: "Writing",
   plan: "Planning",
   submit_plan: "Starting execution",
-  for_each: "Processing",
   complete_step: "Working",
   cancel: "Cancelling",
   ask: "Asking",

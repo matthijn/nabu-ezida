@@ -7,8 +7,9 @@ import {
   cancel,
   planTool,
   completeStep,
-  forEachTool,
   askTool,
+  readSectionTool,
+  segmentFileTool,
 } from "./tools"
 import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -42,20 +43,20 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, planTool, askTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, planTool, askTool, segmentFileTool, readSectionTool],
     triggers: ["cancel"],
     reasoning: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
-    tools: [runLocalShell, submitPlanTool, cancel, askTool],
+    tools: [runLocalShell, submitPlanTool, cancel, askTool, segmentFileTool],
     triggers: ["plan"],
     prompt: "planning",
     reasoning: "high",
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, forEachTool, completeStep],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, segmentFileTool, readSectionTool],
     triggers: ["submit_plan"],
     prompt: "execution",
     reasoning: "medium",
@@ -75,7 +76,7 @@ const triggerToMode: Record<string, ModeName> = Object.fromEntries(
 
 export const DEFAULT_MODE: ModeName = "chat"
 
-export const ENDPOINT = "/expert/qualitative-researcher?chat=true"
+export const ENDPOINT = "/qual-coder?chat=true"
 
 export const deriveMode = (blocks: Block[]): ModeName => {
   for (let i = blocks.length - 1; i >= 0; i--) {

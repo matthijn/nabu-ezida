@@ -5,18 +5,17 @@ let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)
 export const resetCallIdCounter = (): void => { callIdCounter = 0 }
 
-type StepInput = string | StepDefObject | { per_section: (string | StepDefObject)[]; files: string[] }
+type StepInput = string | StepDefObject | { nested: (string | StepDefObject)[] }
 
 const toStepDef = (input: StepInput): StepDef => {
   if (typeof input === "string") {
     return { title: input, expected: `${input} done` }
   }
-  if ("per_section" in input) {
+  if ("nested" in input) {
     return {
-      per_section: input.per_section.map((s) =>
+      nested: input.nested.map((s) =>
         typeof s === "string" ? { title: s, expected: `${s} done` } : s
       ),
-      files: input.files,
     }
   }
   return input

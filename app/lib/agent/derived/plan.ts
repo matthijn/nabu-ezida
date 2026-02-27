@@ -1,44 +1,18 @@
 import type { ToolCall } from "../types"
-import { splitByLines } from "~/lib/text"
 
 export type Files = Record<string, string>
 
-// Input type from submit_plan args
 export type StepDefObject = { title: string; expected: string }
-export type StepDefPerSection = { per_section: StepDefObject[]; files: string[] }
-export type StepDef = StepDefObject | StepDefPerSection
+export type StepDefNested = { nested: StepDefObject[] }
+export type StepDef = StepDefObject | StepDefNested
 
-// Flattened step with tracking
 export type Step = {
-  id: string  // "1", "2.1", "2.2", "3" etc.
+  id: string
   description: string
   expected: string
   done: boolean
   internal: string | null
   summary: string | null
-}
-
-export type Section = {
-  file: string
-  indexInFile: number  // 1-based
-  totalInFile: number
-  content: string
-}
-
-export type SectionResult = {
-  sectionIndex: number
-  file: string
-  indexInFile: number
-  innerResults: { stepId: string; internal: string | null; summary: string | null }[]
-}
-
-export type PerSectionConfig = {
-  topStepIndex: number  // which top-level step (0-based) is the per_section
-  innerStepCount: number
-  firstInnerStepIndex: number  // index in flattened steps array
-  sections: Section[]
-  currentSection: number  // 0-based
-  completedSections: SectionResult[]
 }
 
 export type AskExpertConfig = {
@@ -52,16 +26,13 @@ export type DerivedPlan = {
   task: string
   steps: Step[]
   currentStep: number | null
-  perSection: PerSectionConfig | null
   askExpert: AskExpertConfig | null
   aborted: boolean
   decisions: string[]
 }
 
-const SECTION_TARGET_LINES = 30
-
-const isPerSection = (step: StepDef): step is StepDefPerSection =>
-  "per_section" in step
+const isNested = (step: StepDef): step is StepDefNested =>
+  "nested" in step
 
 const findCurrentStep = (steps: Step[]): number | null => {
   const index = steps.findIndex((s) => !s.done)
@@ -71,34 +42,13 @@ const findCurrentStep = (steps: Step[]): number | null => {
 const markStepDone = (steps: Step[], index: number, internal: string | null, summary: string | null): Step[] =>
   steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
 
-const computeSections = (fileNames: string[], files: Files): Section[] => {
-  const sections: Section[] = []
-  for (const file of fileNames) {
-    const content = files[file] ?? ""
-    const parts = splitByLines(content, SECTION_TARGET_LINES, { stripAttributes: true })
-    parts.forEach((part, i) => {
-      sections.push({
-        file,
-        indexInFile: i + 1,
-        totalInFile: parts.length,
-        content: part,
-      })
-    })
-  }
-  return sections
-}
-
-type PerSectionInfo = { topIndex: number; innerCount: number; firstInnerIndex: number; files: string[] }
-
-const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: PerSectionInfo | null } => {
+const flattenSteps = (stepDefs: StepDef[]): Step[] => {
   const steps: Step[] = []
-  let perSectionInfo: PerSectionInfo | null = null
   let topIndex = 0
 
   for (const def of stepDefs) {
-    if (isPerSection(def)) {
-      const firstInnerIndex = steps.length
-      def.per_section.forEach((innerDef, i) => {
+    if (isNested(def)) {
+      def.nested.forEach((innerDef, i) => {
         steps.push({
           id: `${topIndex + 1}.${i + 1}`,
           description: innerDef.title,
@@ -108,7 +58,6 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: Per
           summary: null,
         })
       })
-      perSectionInfo = { topIndex, innerCount: def.per_section.length, firstInnerIndex, files: def.files }
     } else {
       steps.push({
         id: String(topIndex + 1),
@@ -122,134 +71,28 @@ const flattenSteps = (stepDefs: StepDef[]): { steps: Step[]; perSectionInfo: Per
     topIndex++
   }
 
-  return { steps, perSectionInfo }
+  return steps
 }
 
-export const planFromCall = (call: ToolCall, files: Files): DerivedPlan => {
+export const planFromCall = (call: ToolCall, _files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
   const askExpertArg = call.args.ask_expert as AskExpertConfig | undefined
-  const { steps, perSectionInfo } = flattenSteps(stepDefs)
-
-  let perSection: PerSectionConfig | null = null
-  if (perSectionInfo) {
-    const sections = computeSections(perSectionInfo.files, files)
-    perSection = {
-      topStepIndex: perSectionInfo.topIndex,
-      innerStepCount: perSectionInfo.innerCount,
-      firstInnerStepIndex: perSectionInfo.firstInnerIndex,
-      sections,
-      currentSection: 0,
-      completedSections: [],
-    }
-  }
+  const steps = flattenSteps(stepDefs)
 
   return {
     task: call.args.task as string,
     steps,
     currentStep: 0,
-    perSection,
     askExpert: askExpertArg ?? null,
     aborted: false,
     decisions: (call.args.decisions as string[] | undefined) ?? [],
   }
 }
 
-const isInPerSection = (plan: DerivedPlan, stepIndex: number): boolean => {
-  if (!plan.perSection) return false
-  const { firstInnerStepIndex, innerStepCount } = plan.perSection
-  return stepIndex >= firstInnerStepIndex && stepIndex < firstInnerStepIndex + innerStepCount
-}
-
-const isLastInnerStep = (plan: DerivedPlan, stepIndex: number): boolean => {
-  if (!plan.perSection) return false
-  const { firstInnerStepIndex, innerStepCount } = plan.perSection
-  return stepIndex === firstInnerStepIndex + innerStepCount - 1
-}
-
-const hasMoreSections = (plan: DerivedPlan): boolean => {
-  if (!plan.perSection) return false
-  return plan.perSection.currentSection < plan.perSection.sections.length - 1
-}
-
-const resetInnerSteps = (steps: Step[], firstIndex: number, count: number): Step[] =>
-  steps.map((s, i) =>
-    i >= firstIndex && i < firstIndex + count
-      ? { ...s, done: false, internal: null, summary: null }
-      : s
-  )
-
 export const processCompleteStep = (plan: DerivedPlan, internal: string | null, summary: string | null): DerivedPlan => {
   if (plan.currentStep === null) return plan
-
-  const stepIndex = plan.currentStep
-  const inPerSection = isInPerSection(plan, stepIndex)
-  const lastInner = isLastInnerStep(plan, stepIndex)
-
-  if (inPerSection && !lastInner) {
-    const newSteps = markStepDone(plan.steps, stepIndex, internal, summary)
-    return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
-  }
-
-  const moreSections = hasMoreSections(plan)
-  let newSteps = markStepDone(plan.steps, stepIndex, internal, summary)
-  let newPerSection = plan.perSection
-
-  if (inPerSection && lastInner && moreSections && newPerSection) {
-    // Completed last inner step but more sections remain
-    // Record section result, reset inner steps, advance section
-    const currentSectionData = newPerSection.sections[newPerSection.currentSection]
-    const innerResults = newSteps
-      .slice(newPerSection.firstInnerStepIndex, newPerSection.firstInnerStepIndex + newPerSection.innerStepCount)
-      .map((s) => ({ stepId: s.id, internal: s.internal, summary: s.summary }))
-
-    const sectionResult: SectionResult = {
-      sectionIndex: newPerSection.currentSection,
-      file: currentSectionData.file,
-      indexInFile: currentSectionData.indexInFile,
-      innerResults,
-    }
-
-    newSteps = resetInnerSteps(newSteps, newPerSection.firstInnerStepIndex, newPerSection.innerStepCount)
-    newPerSection = {
-      ...newPerSection,
-      currentSection: newPerSection.currentSection + 1,
-      completedSections: [...newPerSection.completedSections, sectionResult],
-    }
-
-    return {
-      ...plan,
-      steps: newSteps,
-      currentStep: newPerSection.firstInnerStepIndex,
-      perSection: newPerSection,
-    }
-  }
-
-  if (inPerSection && lastInner && !moreSections && newPerSection) {
-    // Completed last inner step of last section - record final section result
-    const currentSectionData = newPerSection.sections[newPerSection.currentSection]
-    const innerResults = newSteps
-      .slice(newPerSection.firstInnerStepIndex, newPerSection.firstInnerStepIndex + newPerSection.innerStepCount)
-      .map((s) => ({ stepId: s.id, internal: s.internal, summary: s.summary }))
-
-    const sectionResult: SectionResult = {
-      sectionIndex: newPerSection.currentSection,
-      file: currentSectionData.file,
-      indexInFile: currentSectionData.indexInFile,
-      innerResults,
-    }
-
-    newPerSection = {
-      ...newPerSection,
-      completedSections: [...newPerSection.completedSections, sectionResult],
-    }
-  }
-
-  return {
-    ...plan,
-    steps: newSteps,
-    currentStep: findCurrentStep(newSteps),
-    perSection: newPerSection,
-  }
+  const newSteps = markStepDone(plan.steps, plan.currentStep, internal, summary)
+  return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
 }
 
 export type StepGuard = { allowed: true } | { allowed: false; reason: string }
