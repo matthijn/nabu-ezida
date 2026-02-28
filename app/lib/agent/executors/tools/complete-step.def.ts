@@ -1,8 +1,8 @@
 import { z } from "zod"
 
 const CompleteStepArgs = z.object({
-  summary: z.string().optional().describe("Observations, uncertainties, or judgment calls — the user sees the document, don't inventory it."),
-  internal: z.string().optional().describe("Context, IDs, or findings to carry forward to later steps. Not shown to user."),
+  summary: z.string().describe("What the user can't see from the document: hesitations, judgment calls, emerging patterns. Not a narration of what you wrote."),
+  internal: z.string().describe("Everything the next step needs to continue: IDs, counts, decisions, context. This is the only memory from this step that carries forward — tool calls and results within the step are dropped."),
 })
 
 export const completeStep = {

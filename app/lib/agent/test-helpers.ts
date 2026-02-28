@@ -29,15 +29,9 @@ const withResult = (callId: string, call: Block): Block[] => [
   { type: "tool_result", callId, toolName: toolName(call), result: { status: "ok" } },
 ]
 
-type SubmitPlanOptions = {
-  askExpert?: { expert: string; task?: string; using: string }
-}
-
-export const submitPlanCall = (task: string, steps: StepInput[], options?: SubmitPlanOptions): Block[] => {
+export const submitPlanCall = (task: string, steps: StepInput[]): Block[] => {
   const id = nextCallId()
   const args: Record<string, unknown> = { task, steps: steps.map(toStepDef) }
-
-  if (options?.askExpert) args.ask_expert = options.askExpert
 
   return withResult(id, {
     type: "tool_call",

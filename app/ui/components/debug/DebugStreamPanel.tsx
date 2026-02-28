@@ -11,6 +11,7 @@ import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { getAllBlocksWithDraft, subscribeBlocks, isDraft } from "~/lib/agent/block-store"
 import type { Block, ToolCall } from "~/lib/agent"
+import { stepCompactedIndices } from "~/lib/agent/compact"
 
 type BlockRendererProps = {
   block: Block
@@ -270,6 +271,7 @@ const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocksWi
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
   const allBlocks = useBlockStore()
+  const compacted = stepCompactedIndices(allBlocks)
   const mode = deriveMode(allBlocks)
   const reasoning = modes[mode].reasoning
   const [copiedAll, setCopiedAll] = useState(false)
@@ -340,12 +342,13 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
           </div>
         )}
         {allBlocks.map((block, i) => (
-          <BlockRenderer
-            key={i}
-            block={block}
-            selected={selectedIndices.has(i)}
-            onToggleSelect={() => handleToggleBlock(i)}
-          />
+          <div key={i} className={compacted.has(i) ? "opacity-50" : ""}>
+            <BlockRenderer
+              block={block}
+              selected={selectedIndices.has(i)}
+              onToggleSelect={() => handleToggleBlock(i)}
+            />
+          </div>
         ))}
       </AutoScroll>
     </div>

@@ -10,7 +10,7 @@ import { extractEntityIdCandidates } from "~/domain/entity-link"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 import { getFiles } from "~/lib/files/store"
 import { resolveEntityName } from "~/lib/files/selectors"
-import { compactHistory } from "./compact"
+import { compactHistory, stepCompactHistory } from "./compact"
 
 export type AgentLoopConfig = {
   executor: ToolExecutor
@@ -104,7 +104,7 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,
       callbacks,
-      readBlocks: () => compactHistory(getAllBlocks(), getFiles()),
+      readBlocks: () => stepCompactHistory(compactHistory(getAllBlocks(), getFiles())),
       transformBlocks: rejectDanglingEntityIds,
     })
 

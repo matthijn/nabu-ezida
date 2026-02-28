@@ -138,6 +138,7 @@ describe("toGroupedMessages", () => {
           const steps = planSteps(result)
           expect(steps).toHaveLength(4)
           expect(steps.map((s) => s.description)).toEqual(["Setup", "Analyze", "Code", "Wrap up"])
+          expect(steps.map((s) => s.nested)).toEqual([false, true, true, false])
         },
       },
     ]

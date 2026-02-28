@@ -133,7 +133,7 @@ export {
   type StepDef,
   type StepDefObject,
   type StepDefNested,
-  type AskExpertConfig,
+
   type StepGuard,
   type Files,
   lastPlan,

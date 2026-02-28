@@ -148,20 +148,18 @@ const stepTextColor: Record<StepStatus, string> = {
 
 type PlanStepRowProps = {
   step: PlanStep
-  nested?: boolean
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
 }
 
-const PlanStepRow = ({ step, nested = false, files, projectId, navigate }: PlanStepRowProps) => {
-  const sizeClass = nested ? "text-caption font-caption" : "text-body font-body"
+const PlanStepRow = ({ step, files, projectId, navigate }: PlanStepRowProps) => {
   const Icon = stepIconComponent[step.status]
   return (
     <div className="flex w-full items-start gap-2">
-      <Icon className={`${sizeClass} ${stepIconColor[step.status]} mt-0.5 flex-none`} />
+      <Icon className={`text-body ${stepIconColor[step.status]} mt-0.5 flex-none`} />
       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
-        <div className={`prose prose-sm [&>*]:mb-0 [&_a]:no-underline ${sizeClass} ${stepTextColor[step.status]}`}>
+        <div className={`prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-body font-body ${stepTextColor[step.status]}`}>
           <MessageContent content={step.description} files={files} projectId={projectId} navigate={navigate} />
         </div>
         {step.summary && (
@@ -402,13 +400,41 @@ type PlanSegmentRendererProps = {
   navigate?: (url: string) => void
 }
 
-const PlanSegmentRenderer = ({ items, files, projectId, navigate }: PlanSegmentRendererProps) => (
+type SegmentRun =
+  | { type: "single"; item: PlanMessage }
+  | { type: "nested"; items: PlanMessage[] }
+
+const isNestedPlanItem = (item: PlanMessage): boolean =>
+  item.type === "plan-item" && item.child.type === "plan-step" && item.child.nested
+
+const groupIntoRuns = (items: PlanMessage[]): SegmentRun[] =>
+  items.reduce<SegmentRun[]>((acc, item) => {
+    if (!isNestedPlanItem(item)) return [...acc, { type: "single", item }]
+    const prev = acc[acc.length - 1]
+    if (prev && prev.type === "nested") {
+      return [...acc.slice(0, -1), { type: "nested", items: [...prev.items, item] }]
+    }
+    return [...acc, { type: "nested", items: [item] }]
+  }, [])
+
+const PlanSegmentRenderer = ({ items, files, projectId, navigate }: PlanSegmentRendererProps) => {
+  const runs = groupIntoRuns(items)
+  return (
     <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
-      {items.map((item, i) => (
-        <PlanSegmentItemRenderer key={i} item={item} files={files} projectId={projectId} navigate={navigate} />
-      ))}
+      {runs.map((run, i) =>
+        run.type === "single" ? (
+          <PlanSegmentItemRenderer key={i} item={run.item} files={files} projectId={projectId} navigate={navigate} />
+        ) : (
+          <div key={i} className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3">
+            {run.items.map((item, j) => (
+              <PlanSegmentItemRenderer key={j} item={item} files={files} projectId={projectId} navigate={navigate} />
+            ))}
+          </div>
+        )
+      )}
     </div>
-)
+  )
+}
 
 type NabuFloatingButtonProps = {
   hasChat: boolean

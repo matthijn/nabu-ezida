@@ -3,8 +3,54 @@ import type { Files } from "./derived/plan"
 import { derive, lastPlan, hasActivePlan } from "./derived"
 import { formatStepProgress } from "./steering/nudges/step-state"
 
+const BOUNDARY_TOOLS = new Set(["submit_plan", "complete_step"])
+const PRESERVED_TOOLS = new Set(["submit_plan", "complete_step", "compacted"])
+
 const isCompactedResult = (block: Block): boolean =>
   block.type === "tool_result" && block.toolName === "compacted"
+
+const isBoundaryResult = (block: Block): boolean =>
+  block.type === "tool_result" && BOUNDARY_TOOLS.has(block.toolName ?? "")
+
+const isCompleteStepResult = (block: Block): boolean =>
+  block.type === "tool_result" && block.toolName === "complete_step"
+
+const isPreservedToolCall = (block: Block): boolean =>
+  block.type === "tool_call" && block.calls.some((c) => PRESERVED_TOOLS.has(c.name))
+
+const isPreservedToolResult = (block: Block): boolean =>
+  block.type === "tool_result" && PRESERVED_TOOLS.has(block.toolName ?? "")
+
+const isStructural = (block: Block): boolean =>
+  block.type === "user" || block.type === "system" || isPreservedToolCall(block) || isPreservedToolResult(block)
+
+const findBoundaryIndices = (blocks: Block[]): number[] =>
+  blocks.reduce<number[]>((acc, block, i) => isBoundaryResult(block) ? [...acc, i] : acc, [])
+
+const buildCompactedSet = (blocks: Block[], boundaries: number[]): Set<number> => {
+  const compacted = new Set<number>()
+  for (let b = 1; b < boundaries.length; b++) {
+    if (!isCompleteStepResult(blocks[boundaries[b]])) continue
+    const start = boundaries[b - 1] + 1
+    const end = boundaries[b]
+    for (let i = start; i < end; i++) {
+      if (!isStructural(blocks[i])) compacted.add(i)
+    }
+  }
+  return compacted
+}
+
+export const stepCompactedIndices = (blocks: Block[]): Set<number> => {
+  const boundaries = findBoundaryIndices(blocks)
+  if (boundaries.length < 2) return new Set()
+  return buildCompactedSet(blocks, boundaries)
+}
+
+export const stepCompactHistory = (blocks: Block[]): Block[] => {
+  const compacted = stepCompactedIndices(blocks)
+  if (compacted.size === 0) return blocks
+  return blocks.filter((_, i) => !compacted.has(i))
+}
 
 const findLastCompactedResultIndex = (blocks: Block[]): number => {
   for (let i = blocks.length - 1; i >= 0; i--) {

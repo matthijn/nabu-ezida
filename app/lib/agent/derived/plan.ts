@@ -15,18 +15,10 @@ export type Step = {
   summary: string | null
 }
 
-export type AskExpertConfig = {
-  expert: string
-  task?: string
-  using: string
-  instructions?: string
-}
-
 export type DerivedPlan = {
   task: string
   steps: Step[]
   currentStep: number | null
-  askExpert: AskExpertConfig | null
   aborted: boolean
   decisions: string[]
 }
@@ -76,14 +68,12 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
 
 export const planFromCall = (call: ToolCall, _files: Files): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
-  const askExpertArg = call.args.ask_expert as AskExpertConfig | undefined
   const steps = flattenSteps(stepDefs)
 
   return {
     task: call.args.task as string,
     steps,
     currentStep: 0,
-    askExpert: askExpertArg ?? null,
     aborted: false,
     decisions: (call.args.decisions as string[] | undefined) ?? [],
   }

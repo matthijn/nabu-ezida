@@ -19,6 +19,7 @@ export type PlanStep = {
   description: string
   summary: string | null
   status: StepStatus
+  nested: boolean
 }
 
 export type PlanChild = PlanStep | LeafMessage
@@ -166,6 +167,7 @@ const buildPlanEntries = (
           description: step.description,
           summary: step.summary,
           status: getStepStatus(step, i, plan.currentStep, plan.aborted),
+          nested: step.id.includes("."),
         },
         false,
       ),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { compactHistory } from "./compact"
+import { compactHistory, stepCompactHistory, stepCompactedIndices } from "./compact"
 import type { Block } from "./types"
 
 const userBlock = (content: string): Block => ({ type: "user", content })
@@ -35,6 +35,32 @@ const planResult = (): Block => ({
   callId: "plan_0",
   toolName: "submit_plan",
   result: { status: "ok", output: "ok" },
+})
+
+const reasoningBlock = (content: string): Block => ({ type: "reasoning", content })
+
+const completeStepCall = (summary: string, internal: string, id = "cs_0"): Block => ({
+  type: "tool_call",
+  calls: [{ id, name: "complete_step", args: { summary, internal } }],
+})
+
+const completeStepResult = (id = "cs_0"): Block => ({
+  type: "tool_result",
+  callId: id,
+  toolName: "complete_step",
+  result: { status: "ok" },
+})
+
+const workCall = (name: string, id = "w_0"): Block => ({
+  type: "tool_call",
+  calls: [{ id, name, args: {} }],
+})
+
+const workResult = (name: string, id = "w_0"): Block => ({
+  type: "tool_result",
+  callId: id,
+  toolName: name,
+  result: { status: "ok", output: "data" },
 })
 
 describe("compactHistory", () => {
@@ -184,5 +210,190 @@ describe("compactHistory", () => {
   it.each(cases)("$name", ({ blocks, files, expected }) => {
     const result = compactHistory(blocks, files)
     expect(result).toEqual(expected)
+  })
+})
+
+describe("stepCompactHistory", () => {
+  const cases = [
+    {
+      name: "no plan — blocks unchanged",
+      blocks: [userBlock("hi"), textBlock("hello")],
+      expected: [userBlock("hi"), textBlock("hello")],
+    },
+    {
+      name: "plan with no completed steps — blocks unchanged",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+      ],
+      expected: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+      ],
+    },
+    {
+      name: "one completed step — filters work blocks, keeps boundaries",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }, { title: "B", expected: "done" }]),
+        planResult(),
+        systemBlock("mode: exec"),
+        textBlock("working on A"),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+        reasoningBlock("thinking"),
+        completeStepCall("Did A", "found 3 items"),
+        completeStepResult(),
+        textBlock("now B"),
+      ],
+      expected: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }, { title: "B", expected: "done" }]),
+        planResult(),
+        systemBlock("mode: exec"),
+        completeStepCall("Did A", "found 3 items"),
+        completeStepResult(),
+        textBlock("now B"),
+      ],
+    },
+    {
+      name: "user block within completed step survives",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        userBlock("checkpoint"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+      expected: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        userBlock("checkpoint"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+    },
+    {
+      name: "compacted tool_call/result within step survives",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        compactedToolCall("Mid-step summary"),
+        compactedResult(),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+      expected: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        compactedToolCall("Mid-step summary"),
+        compactedResult(),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+    },
+    {
+      name: "two completed steps — both compacted, in-progress untouched",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }, { title: "B", expected: "done" }, { title: "C", expected: "done" }]),
+        planResult(),
+        textBlock("step A"),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+        completeStepCall("Did A", "ctx-a", "cs1"),
+        completeStepResult("cs1"),
+        textBlock("step B"),
+        workCall("apply_local_patch", "w2"),
+        workResult("apply_local_patch", "w2"),
+        completeStepCall("Did B", "ctx-b", "cs2"),
+        completeStepResult("cs2"),
+        textBlock("step C in progress"),
+        workCall("read_section", "w3"),
+        workResult("read_section", "w3"),
+      ],
+      expected: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }, { title: "B", expected: "done" }, { title: "C", expected: "done" }]),
+        planResult(),
+        completeStepCall("Did A", "ctx-a", "cs1"),
+        completeStepResult("cs1"),
+        completeStepCall("Did B", "ctx-b", "cs2"),
+        completeStepResult("cs2"),
+        textBlock("step C in progress"),
+        workCall("read_section", "w3"),
+        workResult("read_section", "w3"),
+      ],
+    },
+    {
+      name: "blocks before submit_plan are untouched",
+      blocks: [
+        userBlock("hi"),
+        textBlock("planning..."),
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+      expected: [
+        userBlock("hi"),
+        textBlock("planning..."),
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(stepCompactHistory(blocks)).toEqual(expected)
+  })
+})
+
+describe("stepCompactedIndices", () => {
+  const cases = [
+    {
+      name: "no plan — empty set",
+      blocks: [userBlock("hi"), textBlock("hello")],
+      expected: new Set<number>(),
+    },
+    {
+      name: "one completed step — returns work block indices",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        textBlock("working"),
+        workCall("read_section", "w1"),
+        workResult("read_section", "w1"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+      expected: new Set([2, 3, 4]),
+    },
+    {
+      name: "system and user blocks not in compacted set",
+      blocks: [
+        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
+        planResult(),
+        systemBlock("mode"),
+        userBlock("checkpoint"),
+        textBlock("working"),
+        completeStepCall("Done", "ctx"),
+        completeStepResult(),
+      ],
+      expected: new Set([4]),
+    },
+  ]
+
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(stepCompactedIndices(blocks)).toEqual(expected)
   })
 })
