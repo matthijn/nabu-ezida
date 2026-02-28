@@ -17,6 +17,7 @@ import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
+import { planStructureNudge } from "../steering/nudges/plan-structure"
 import { getFiles } from "~/lib/files/store"
 
 export type ReasoningLevel = "low" | "medium" | "high"
@@ -53,7 +54,7 @@ const raw: Record<ModeName, ModeConfig> = {
     triggers: ["plan"],
     prompt: "planning",
     reasoning: "high",
-    nudges: [baselineNudge, memoryNudge],
+    nudges: [baselineNudge, memoryNudge, planStructureNudge],
   },
   exec: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, segmentFileTool, readSectionTool],

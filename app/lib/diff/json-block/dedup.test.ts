@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 import { dedupArray, dedupArraysIn } from "./dedup"
 
 describe("dedupArray", () => {
-  const cases = [
+  const cases: { name: string; input: unknown[]; expected: unknown[] }[] = [
     {
       name: "removes duplicate primitives",
       input: [1, 2, 2, 3, 1],
