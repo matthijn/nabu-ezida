@@ -100,9 +100,13 @@ const isOp = (entry: ParseEntry | VarMarker): entry is { op: ControlOperator } =
 const tokenToString = (token: ParseEntry | VarMarker): string | null =>
   typeof token === "string" ? token : isGlob(token) ? token.pattern : null
 
+const isBareDollar = (token: VarMarker, next?: ParseEntry | VarMarker): boolean =>
+  token.__var === "" && !(next && isOp(next) && next.op === "(")
+
 const validateToken = (token: ParseEntry | VarMarker, next?: ParseEntry | VarMarker): string | null => {
   if (isVarMarker(token)) {
-    const feature = token.__var === "" && next && isOp(next) && next.op === "(" ? "$(" : `$${token.__var}`
+    if (isBareDollar(token, next)) return null
+    const feature = token.__var === "" ? "$(" : `$${token.__var}`
     return notBashError(feature)
   }
   if (isOp(token)) {
@@ -111,13 +115,23 @@ const validateToken = (token: ParseEntry | VarMarker, next?: ParseEntry | VarMar
   return null
 }
 
+const mergeBareAnchors = (tokens: (ParseEntry | VarMarker)[]): (ParseEntry | VarMarker)[] =>
+  tokens.reduce<(ParseEntry | VarMarker)[]>((acc, token, i) => {
+    if (isVarMarker(token) && isBareDollar(token, tokens[i + 1])) {
+      const prev = acc[acc.length - 1]
+      if (typeof prev === "string") return [...acc.slice(0, -1), prev + "$"]
+      return [...acc, "$"]
+    }
+    return [...acc, token]
+  }, [])
+
 const parseInput = (input: string): { tokens: (ParseEntry | VarMarker)[]; error?: string } => {
   const tokens = parse(input, (key) => ({ __var: key }))
   for (let i = 0; i < tokens.length; i++) {
     const error = validateToken(tokens[i], tokens[i + 1])
     if (error) return { tokens: [], error }
   }
-  return { tokens }
+  return { tokens: mergeBareAnchors(tokens) }
 }
 
 // Pipeline state for reduce

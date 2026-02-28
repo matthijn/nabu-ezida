@@ -1,0 +1,24 @@
+{
+  "files": {
+    "data.md": "### Color\n### Colors\n### Color scheme\nEnd Color"
+  },
+  "args": {
+    "commands": [
+      "grep \"^### Color$\" data.md"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "data.md:### Color",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "mutations": []
+  }
+}

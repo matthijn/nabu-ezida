@@ -21,6 +21,9 @@ type EnrichedBlock = Exclude<Block, ToolCallBlock> | EnrichedToolCallBlock
 export const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
   block.type === "tool_call"
 
+export const isDebugPauseBlock = (block: Block): boolean =>
+  block.type === "debug_pause"
+
 export const isErrorResult = (result: unknown): boolean =>
   typeof result === "object" && result !== null && "status" in result &&
   ((result as { status: string }).status === "error" || (result as { status: string }).status === "partial")
@@ -118,6 +121,29 @@ const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => b
   return count
 }
 
+const WRITE_TOOLS = new Set(["patch_json_block", "apply_local_patch", "copy_file", "rename_file", "remove_file"])
+
+const isSuccessfulWrite = (block: Block): boolean =>
+  block.type === "tool_result" &&
+  block.toolName !== undefined &&
+  WRITE_TOOLS.has(block.toolName) &&
+  !isErrorResult(block.result)
+
+const isCompletedBoundary = (block: Block): boolean =>
+  block.type === "tool_result" &&
+  block.toolName !== undefined &&
+  (block.toolName === "submit_plan" || block.toolName === "complete_step")
+
+export const hasDeliverable = (history: Block[]): boolean => {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const block = history[i]
+    if (isCompletedBoundary(block)) break
+    if (block.type === "user") return true
+    if (isSuccessfulWrite(block)) return true
+  }
+  return false
+}
+
 export const isPlanPaused = (history: Block[]): boolean => {
   let foundText = false
   for (let i = history.length - 1; i >= 0; i--) {
@@ -143,4 +169,5 @@ export {
   lastPlan,
   hasActivePlan,
   guardCompleteStep,
+  isLastStep,
 } from "./plan"

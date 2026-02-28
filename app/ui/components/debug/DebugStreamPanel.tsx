@@ -10,7 +10,7 @@ import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { getAllBlocksWithDraft, subscribeBlocks, isDraft, clearPauseBlocks } from "~/lib/agent/block-store"
-import { isErrorResult } from "~/lib/agent"
+import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
@@ -280,7 +280,7 @@ const readStepCompaction = (): boolean => {
 }
 
 const isPaused = (blocks: Block[]): boolean =>
-  blocks.some((b) => b.type === "debug_pause")
+  blocks.some(isDebugPauseBlock)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })

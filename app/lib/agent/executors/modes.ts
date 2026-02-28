@@ -5,11 +5,9 @@ import {
   patchJsonBlock, applyLocalPatch,
   copyFile, renameFile, removeFile, runLocalShell,
   cancel,
-  planTool,
+  triageTool,
   completeStep,
   askTool,
-  readSectionTool,
-  segmentFileTool,
 } from "./tools"
 import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -17,7 +15,6 @@ import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
-import { planStructureNudge } from "../steering/nudges/plan-structure"
 import { getFiles } from "~/lib/files/store"
 
 export type ReasoningLevel = "low" | "medium" | "high"
@@ -44,20 +41,20 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, planTool, askTool, segmentFileTool, readSectionTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, triageTool, askTool],
     triggers: ["cancel"],
     reasoning: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
-    tools: [runLocalShell, submitPlanTool, cancel, askTool, segmentFileTool],
-    triggers: ["plan"],
+    tools: [runLocalShell, submitPlanTool, cancel, askTool],
+    triggers: [],
     prompt: "planning",
-    reasoning: "high",
-    nudges: [baselineNudge, memoryNudge, planStructureNudge],
+    reasoning: "medium",
+    nudges: [baselineNudge, memoryNudge],
   },
   exec: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, segmentFileTool, readSectionTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep],
     triggers: ["submit_plan"],
     prompt: "execution",
     reasoning: "medium",
@@ -79,11 +76,25 @@ export const DEFAULT_MODE: ModeName = "chat"
 
 export const ENDPOINT = "/qual-coder?chat=true"
 
+const promptToMode: Record<string, ModeName> = {
+  planning: "plan",
+  execution: "exec",
+}
+
+const modeFromPromptMarker = (content: string): ModeName | undefined => {
+  const match = content.match(/<!-- prompt: (\w+) -->/)
+  return match ? promptToMode[match[1]] : undefined
+}
+
 export const deriveMode = (blocks: Block[]): ModeName => {
   for (let i = blocks.length - 1; i >= 0; i--) {
     const block = blocks[i]
     if (block.type === "tool_result" && block.toolName) {
       const mode = triggerToMode[block.toolName]
+      if (mode) return mode
+    }
+    if (block.type === "system") {
+      const mode = modeFromPromptMarker(block.content)
       if (mode) return mode
     }
   }

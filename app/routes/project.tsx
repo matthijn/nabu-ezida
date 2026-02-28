@@ -9,6 +9,7 @@ import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
+import { useNotifications } from "~/ui/hooks/useNotifications"
 import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
@@ -97,6 +98,7 @@ export default function ProjectLayout() {
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
+  useNotifications()
 
   useEffect(() => {
     saveDebugOptions(debugOptions)

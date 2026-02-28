@@ -133,6 +133,11 @@ const buildReplacement = (parts: HunkPart[], matchedText: string): string => {
   return result.join("").replace(/\n$/, "")
 }
 
+const MIN_CONTEXT_LINES = 3
+
+const countNonBlankLines = (text: string): number =>
+  text.split("\n").filter((line) => !isBlankLine(line)).length
+
 const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const matchText = buildMatchText(hunk.parts)
 
@@ -146,6 +151,13 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   const matches = findMatches(content, matchText)
 
   if (matches.length === 0) {
+    const nonBlank = countNonBlankLines(matchText)
+    if (nonBlank < MIN_CONTEXT_LINES) {
+      return {
+        ok: false,
+        error: `patch context too short: ${nonBlank} non-blank line(s). Include at least ${MIN_CONTEXT_LINES} non-blank context/remove lines for reliable matching.`,
+      }
+    }
     return {
       ok: false,
       error: `patch context not found:\n  searching for: "${matchText}"\n  in content: "${content}"`,

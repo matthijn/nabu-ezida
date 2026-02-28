@@ -1,8 +1,8 @@
-import type { ToolCall, ToolResult, Block } from "../types"
+import type { ToolCall, ToolResult } from "../types"
 import type { ToolExecutor } from "../turn"
 import { pushBlocks, getAllBlocks, subscribeBlocks } from "../block-store"
 import { getFiles } from "~/lib/files/store"
-import { derive, lastPlan, guardCompleteStep } from "../derived"
+import { derive, lastPlan, guardCompleteStep, hasDeliverable, isLastStep } from "../derived"
 import { deriveMode, buildModeResult, modeSystemBlocks } from "./modes"
 import type { ModeName } from "./modes"
 
@@ -40,11 +40,6 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
   })
 }
 
-const handlePlan = (): ToolResult<unknown> => {
-  pushBlocks(modeSystemBlocks("plan"))
-  return { status: "ok", output: buildModeResult("plan") }
-}
-
 const handleSubmitPlan = (): ToolResult<unknown> => {
   pushBlocks(modeSystemBlocks("exec"))
   return { status: "ok", output: buildModeResult("exec") }
@@ -72,12 +67,16 @@ const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
   if (!plan) return null
 
   const guard = guardFn(plan)
-  if (guard.allowed) return null
-  return { status: "error", output: guard.reason }
+  if (!guard.allowed) return { status: "error", output: guard.reason }
+
+  if (call.name === "complete_step" && !isLastStep(plan) && !hasDeliverable(blocks))
+    return { status: "error", output: "Produce a deliverable first — either ask the user a relevant question or write changes to a file." }
+
+  return null
 }
 
 const isModeTransition = (name: string): boolean =>
-  name === "plan" || name === "submit_plan" || name === "cancel"
+  name === "submit_plan" || name === "cancel"
 
 export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
   async (call) => {
@@ -85,7 +84,6 @@ export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
       const blocks = getAllBlocks()
       const mode = deriveMode(blocks)
 
-      if (call.name === "plan") return handlePlan()
       if (call.name === "submit_plan") return handleSubmitPlan()
       if (call.name === "cancel") return handleCancelInMode(call, mode)
     }

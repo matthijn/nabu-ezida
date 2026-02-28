@@ -81,17 +81,26 @@ describe("deriveMode", () => {
       expected: "chat",
     },
     {
-      name: "plan result → plan",
+      name: "planning prompt marker → plan",
       blocks: [
-        toolCallBlock("plan", "c1"),
-        terminalResult("plan", "c1", { status: "ok", output: "mode: plan" }),
+        toolCallBlock("triage", "c1"),
+        toolResult("c1", { status: "ok", output: "triage result" }),
+        { type: "system", content: "<!-- prompt: planning -->" } as Block,
       ],
       expected: "plan",
     },
     {
+      name: "triage without prompt marker → chat",
+      blocks: [
+        toolCallBlock("triage", "c1"),
+        toolResult("c1", { status: "ok", output: "no plan needed" }),
+      ],
+      expected: "chat",
+    },
+    {
       name: "submit_plan result → exec",
       blocks: [
-        terminalResult("plan", "c1", { status: "ok", output: "plan mode" }),
+        { type: "system", content: "<!-- prompt: planning -->" } as Block,
         toolCallBlock("submit_plan", "c2", { task: "do stuff", steps: [] }),
         terminalResult("submit_plan", "c2", { status: "ok", output: "exec mode" }),
       ],
@@ -100,24 +109,24 @@ describe("deriveMode", () => {
     {
       name: "cancel result → chat",
       blocks: [
-        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
+        { type: "system", content: "<!-- prompt: planning -->" } as Block,
         terminalResult("cancel", "c2", { status: "ok", output: { reason: "nah" } }),
       ],
       expected: "chat",
     },
     {
-      name: "uses last trigger (plan then exec)",
+      name: "uses last signal (plan then exec)",
       blocks: [
-        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
+        { type: "system", content: "<!-- prompt: planning -->" } as Block,
         textBlock("here's the plan"),
         terminalResult("submit_plan", "c2", { status: "ok", output: "exec" }),
       ],
       expected: "exec",
     },
     {
-      name: "non-trigger results between triggers ignored",
+      name: "prompt marker survives non-trigger results",
       blocks: [
-        terminalResult("plan", "c1", { status: "ok", output: "plan" }),
+        { type: "system", content: "<!-- prompt: planning -->" } as Block,
         toolCallBlock("run_local_shell", "c2"),
         toolResult("c2", { status: "ok", output: "file content" }),
         textBlock("analyzing..."),
@@ -138,7 +147,7 @@ describe("buildModeResult", () => {
     {
       name: "chat mode lists tools",
       mode: "chat",
-      contains: ["Mode: chat", "plan"],
+      contains: ["Mode: chat", "triage"],
     },
     {
       name: "plan mode lists tools",

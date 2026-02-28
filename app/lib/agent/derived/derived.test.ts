@@ -1,12 +1,14 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, guardCompleteStep } from "."
+import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, hasDeliverable, guardCompleteStep, isLastStep } from "."
 import {
   submitPlanCall,
   completeStepCall,
   cancelCall,
   textBlock,
   userBlock,
+  toolCallBlock,
+  terminalResult,
   resetCallIdCounter,
 } from "../test-helpers"
 
@@ -252,6 +254,82 @@ describe("derived", () => {
     })
   })
 
+  describe("hasDeliverable", () => {
+    const cases = [
+      {
+        name: "no work since step boundary = no deliverable",
+        history: [...submitPlanCall("Task", ["Step 1"])],
+        expected: false,
+      },
+      {
+        name: "read-only tool = no deliverable",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          toolCallBlock("run_local_shell", "99"),
+          terminalResult("run_local_shell", "99"),
+        ],
+        expected: false,
+      },
+      {
+        name: "user block = deliverable",
+        history: [...submitPlanCall("Task", ["Step 1"]), userBlock("yes")],
+        expected: true,
+      },
+      {
+        name: "apply_local_patch = deliverable",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          toolCallBlock("apply_local_patch", "99"),
+          terminalResult("apply_local_patch", "99"),
+        ],
+        expected: true,
+      },
+      {
+        name: "patch_json_block = deliverable",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          toolCallBlock("patch_json_block", "99"),
+          terminalResult("patch_json_block", "99"),
+        ],
+        expected: true,
+      },
+      {
+        name: "failed write = no deliverable",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          toolCallBlock("apply_local_patch", "99"),
+          terminalResult("apply_local_patch", "99", { status: "error", output: "failed" }),
+        ],
+        expected: false,
+      },
+      {
+        name: "deliverable from previous step doesn't count",
+        history: [
+          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
+          userBlock("answer"),
+          ...completeStepCall("Done"),
+        ],
+        expected: false,
+      },
+      {
+        name: "write before pending complete_step call = deliverable",
+        history: [
+          ...submitPlanCall("Task", ["Step 1"]),
+          toolCallBlock("apply_local_patch", "99"),
+          terminalResult("apply_local_patch", "99"),
+          toolCallBlock("complete_step", "100"),
+        ],
+        expected: true,
+      },
+    ]
+
+    cases.forEach(({ name, history, expected }) => {
+      it(name, () => {
+        expect(hasDeliverable(history)).toBe(expected)
+      })
+    })
+  })
+
   describe("guards", () => {
     const cases = [
       {
@@ -293,6 +371,61 @@ describe("derived", () => {
     cases.forEach(({ name, plan, guard, expected }) => {
       it(name, () => {
         expect(guard(plan()).allowed).toBe(expected)
+      })
+    })
+  })
+
+  describe("isLastStep", () => {
+    const cases = [
+      {
+        name: "single step plan — first step is last",
+        history: () => [...submitPlanCall("Task", [{ title: "Only", expected: "Done" }])],
+        expected: true,
+      },
+      {
+        name: "multi-step plan — first step is not last",
+        history: () => [...submitPlanCall("Task", [{ title: "A", expected: "Done" }, { title: "B", expected: "Done" }])],
+        expected: false,
+      },
+      {
+        name: "multi-step plan — after completing first, second is last",
+        history: () => [
+          ...submitPlanCall("Task", [{ title: "A", expected: "Done" }, { title: "B", expected: "Done" }]),
+          ...completeStepCall("A done"),
+        ],
+        expected: true,
+      },
+      {
+        name: "completed plan — no current step",
+        history: () => [
+          ...submitPlanCall("Task", [{ title: "A", expected: "Done" }]),
+          ...completeStepCall("Done"),
+        ],
+        expected: false,
+      },
+      {
+        name: "nested steps — last nested is not last if top-level follows",
+        history: () => [
+          ...submitPlanCall("Task", [{ nested: ["Inner 1", "Inner 2"] }, { title: "Final", expected: "Done" }]),
+          ...completeStepCall("Inner 1 done"),
+        ],
+        expected: false,
+      },
+      {
+        name: "nested steps — final top-level after nested is last",
+        history: () => [
+          ...submitPlanCall("Task", [{ nested: ["Inner 1", "Inner 2"] }, { title: "Final", expected: "Done" }]),
+          ...completeStepCall("Inner 1 done"),
+          ...completeStepCall("Inner 2 done"),
+        ],
+        expected: true,
+      },
+    ]
+
+    cases.forEach(({ name, history, expected }) => {
+      it(name, () => {
+        const plan = lastPlan(derive(history()).plans)!
+        expect(isLastStep(plan)).toBe(expected)
       })
     })
   })

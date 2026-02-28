@@ -4,7 +4,7 @@ import type { ToolExecutor } from "./turn"
 import { toToolDefinition, toSchemaMap } from "./executors/tool"
 import { buildCaller } from "./caller"
 import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks } from "./block-store"
-import { isErrorResult } from "./derived"
+import { isErrorResult, isDebugPauseBlock } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { extractEntityIdCandidates } from "~/domain/entity-link"
@@ -67,7 +67,7 @@ const hasToolError = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_result" && isErrorResult(b.result))
 
 const hasPauseBlock = (): boolean =>
-  getAllBlocks().some((b) => b.type === "debug_pause")
+  getAllBlocks().some(isDebugPauseBlock)
 
 const awaitResume = (signal?: AbortSignal): Promise<void> =>
   new Promise((resolve) => {

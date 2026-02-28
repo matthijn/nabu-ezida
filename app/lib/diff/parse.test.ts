@@ -63,7 +63,7 @@ line3`,
       expected: { ok: true, content: "line1\nreplaced\nline3" },
     },
     {
-      name: "fails when patch context not found",
+      name: "fails when patch context too short",
       content: "hello",
       patch: `*** Update File: test.md
 @@
@@ -71,7 +71,7 @@ line3`,
 +replacement`,
       expected: {
         ok: false,
-        error: `patch context not found:\n  searching for: "nonexistent"\n  in content: "hello"`,
+        error: "patch context too short: 1 non-blank line(s). Include at least 3 non-blank context/remove lines for reliable matching.",
       },
     },
     {

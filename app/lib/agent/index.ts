@@ -5,6 +5,7 @@ export {
   hasActivePlan,
   getMode,
   isToolCallBlock,
+  isDebugPauseBlock,
   isErrorResult,
   findCall,
   hasCall,

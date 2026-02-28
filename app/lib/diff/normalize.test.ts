@@ -77,6 +77,41 @@ describe("normalizeContent", () => {
       expected: "# Title\n\n\t- item\n\n\t- item2",
     },
     {
+      name: "adds blank line after heading",
+      input: "### Color\nbrown",
+      expected: "### Color\n\nbrown",
+    },
+    {
+      name: "adds blank line before heading (not at start)",
+      input: "some text\n### Color\nbrown",
+      expected: "some text\n\n### Color\n\nbrown",
+    },
+    {
+      name: "heading at start gets no blank before",
+      input: "# Title\ncontent",
+      expected: "# Title\n\ncontent",
+    },
+    {
+      name: "preserves existing heading spacing",
+      input: "# Title\n\nParagraph\n\n## Section\n\nMore text",
+      expected: "# Title\n\nParagraph\n\n## Section\n\nMore text",
+    },
+    {
+      name: "multiple headings without spacing",
+      input: "### Color\nbrown\n### Definition\nsome text",
+      expected: "### Color\n\nbrown\n\n### Definition\n\nsome text",
+    },
+    {
+      name: "skips headings inside fenced code blocks",
+      input: "```json-callout\n### Color\nbrown\n```",
+      expected: "```json-callout\n### Color\nbrown\n```",
+    },
+    {
+      name: "heading after code block gets spacing",
+      input: "```json\n{}\n```\n### Next\ncontent",
+      expected: "```json\n{}\n```\n\n### Next\n\ncontent",
+    },
+    {
       name: "empty string stays empty",
       input: "",
       expected: "",

@@ -1,5 +1,4 @@
 import type { Block } from "~/lib/agent"
-import { sampleAndHold } from "~/lib/utils"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",
@@ -8,7 +7,7 @@ const toolLabels: Record<string, string> = {
   copy_file: "Writing",
   rename_file: "Writing",
   remove_file: "Writing",
-  plan: "Planning",
+  triage: "Preparing",
   submit_plan: "Starting execution",
   complete_step: "Working",
   cancel: "Cancelling",
@@ -17,8 +16,8 @@ const toolLabels: Record<string, string> = {
 }
 
 const toLabel = (toolName: string | null): string => {
-  if (!toolName) return "Thinking"
-  return toolLabels[toolName] ?? "Thinking"
+  if (!toolName) return "Thought"
+  return toolLabels[toolName] ?? "Thought"
 }
 
 const findTurnStart = (history: Block[]): number => {
@@ -59,20 +58,16 @@ const findLastToolCallName = (history: Block[], from: number): string | null => 
   return null
 }
 
-const HOLD_MS = 400
-
-const computeSpinnerLabel = (history: Block[], draft: Block | null): string => {
+export const getSpinnerLabel = (history: Block[], draft: Block | null): string => {
   const turnStart = findTurnStart(history)
 
-  if (draft?.type === "reasoning") return extractReasoningLabel(draft.content) ?? "Thinking"
+  if (draft?.type === "reasoning") return extractReasoningLabel(draft.content) ?? "Thought"
 
   const reasoning = findLastReasoningContent(history, turnStart)
-  if (reasoning) return extractReasoningLabel(reasoning) ?? "Thinking"
+  if (reasoning) return extractReasoningLabel(reasoning) ?? "Thought"
 
   const draftTool = getDraftToolName(draft)
   if (draftTool) return toLabel(draftTool)
 
   return toLabel(findLastToolCallName(history, turnStart))
 }
-
-export const getSpinnerLabel = sampleAndHold(computeSpinnerLabel, HOLD_MS)

@@ -90,6 +90,10 @@ export type StepGuard = { allowed: true } | { allowed: false; reason: string }
 const allowed: StepGuard = { allowed: true }
 const denied = (reason: string): StepGuard => ({ allowed: false, reason })
 
+export const isLastStep = (plan: DerivedPlan): boolean =>
+  plan.currentStep !== null &&
+  plan.steps.every((s, i) => i === plan.currentStep || s.done)
+
 export const guardCompleteStep = (plan: DerivedPlan): StepGuard => {
   if (plan.currentStep === null) return denied("Plan is already complete — all steps are done.")
   return allowed

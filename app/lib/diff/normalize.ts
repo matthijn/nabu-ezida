@@ -6,9 +6,43 @@ export const normalizeLine = (line: string): string =>
 export const normalizeContent = (text: string): string =>
   trimTrailingBlanks(
     collapseBlankLines(
-      text.split("\n").map(normalizeLine)
+      ensureHeadingSpacing(
+        text.split("\n").map(normalizeLine)
+      )
     )
   ).join("\n")
+
+const isHeading = (s: string): boolean => /^#{1,6} /.test(s)
+
+const isFenceLine = (s: string): boolean => /^```/.test(s)
+
+const ensureHeadingSpacing = (lines: string[]): string[] => {
+  const result: string[] = []
+  let inFence = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    if (isFenceLine(line)) {
+      inFence = !inFence
+      result.push(line)
+      continue
+    }
+
+    if (inFence || !isHeading(line)) {
+      result.push(line)
+      continue
+    }
+
+    const prev = result[result.length - 1]
+    if (prev !== undefined && !isBlankLine(prev)) result.push("")
+    result.push(line)
+    const next = lines[i + 1]
+    if (next !== undefined && !isBlankLine(next)) result.push("")
+  }
+
+  return result
+}
 
 const trimTrailing = (s: string): string => s.replace(/[ \t]+$/, "")
 

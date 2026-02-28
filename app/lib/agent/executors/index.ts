@@ -13,8 +13,7 @@ import "./tools/patch-json-block"
 import "./tools/run-local-shell"
 import "./tools/ask"
 import "./tools/compact"
-import "./tools/read-section"
-import "./tools/segment-file"
+import "./tools/triage"
 
 export type { ToolDeps }
 export { getToolDefinitions }
