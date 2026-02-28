@@ -39,7 +39,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleReasoningSummaryAuto, toggleForceCompaction, getFileTags } = useProject()
+  const { files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags } = useProject()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
   useScrollToEntity(editorContainerRef)
@@ -81,12 +81,8 @@ export default function ProjectFile() {
         debugOptions={debugOptions}
         onPin={() => {}}
         onShare={() => {}}
-        onToggleDebug={toggleDebugExpanded}
-        onTogglePersist={togglePersistToServer}
-        onToggleRenderJson={toggleRenderAsJson}
-        onToggleStreamPanel={toggleStreamPanel}
-        onToggleReasoningSummary={toggleReasoningSummaryAuto}
-        onToggleForceCompaction={toggleForceCompaction}
+        onToggleOption={toggleDebugOption}
+        onRequestCompaction={requestCompaction}
         onCopyRaw={copyRawMarkdown}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },

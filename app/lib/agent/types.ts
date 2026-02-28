@@ -50,7 +50,11 @@ export type ErrorBlock = {
   content: string
 }
 
-export type Block = (TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock) & { timestamp?: number }
+export type DebugPauseBlock = {
+  type: "debug_pause"
+}
+
+export type Block = (TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock | DebugPauseBlock) & { timestamp?: number }
 
 export type ToolDeps = {
   project?: { id: string }

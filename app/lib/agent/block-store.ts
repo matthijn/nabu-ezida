@@ -66,6 +66,13 @@ export const clearBlocks = (): void => {
   notify()
 }
 
+export const clearPauseBlocks = (): void => {
+  const filtered = blocks.filter((b) => b.type !== "debug_pause")
+  if (filtered.length === blocks.length) return
+  blocks = filtered
+  notify()
+}
+
 export const subscribeBlocks = (listener: () => void): (() => void) => {
   listeners = [...listeners, listener]
   return () => {

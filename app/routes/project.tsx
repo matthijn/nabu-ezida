@@ -9,11 +9,14 @@ import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
+import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
 import { getAnnotationCount, findDocumentForCallout } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
+
+export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
 type SidebarDocument = {
   id: string
@@ -46,23 +49,7 @@ const filesToSidebarDocuments = (
     annotationCount: getAnnotationCount(files[filename]),
   }))
 
-export type DebugOptions = {
-  expanded: boolean
-  persistToServer: boolean
-  renderAsJson: boolean
-  showStreamPanel: boolean
-  reasoningSummaryAuto: boolean
-}
-
 const DEBUG_STORAGE_KEY = "nabu-debug-options"
-
-const DEFAULT_DEBUG_OPTIONS: DebugOptions = {
-  expanded: false,
-  persistToServer: true,
-  renderAsJson: false,
-  showStreamPanel: false,
-  reasoningSummaryAuto: false,
-}
 
 const requestCompaction = (): void => {
   if (typeof window === "undefined") return
@@ -94,12 +81,8 @@ export type ProjectContextValue = {
   files: Record<string, string>
   currentFile: string | null
   debugOptions: DebugOptions
-  toggleDebugExpanded: () => void
-  togglePersistToServer: () => void
-  toggleRenderAsJson: () => void
-  toggleStreamPanel: () => void
-  toggleReasoningSummaryAuto: () => void
-  toggleForceCompaction: () => void
+  toggleDebugOption: (key: string) => void
+  requestCompaction: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
 }
@@ -113,28 +96,18 @@ export default function ProjectLayout() {
   const [searchValue, setSearchValue] = useState("")
   const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [debugExpanded, setDebugExpanded] = useState(() => loadDebugOptions().expanded)
-  const [persistToServer, setPersistToServer] = useState(() => loadDebugOptions().persistToServer)
-  const [renderAsJson, setRenderAsJson] = useState(() => loadDebugOptions().renderAsJson)
-  const [showStreamPanel, setShowStreamPanel] = useState(() => loadDebugOptions().showStreamPanel)
-  const [reasoningSummaryAuto, setReasoningSummaryAuto] = useState(() => loadDebugOptions().reasoningSummaryAuto)
-
-  const debugOptions: DebugOptions = { expanded: debugExpanded, persistToServer, renderAsJson, showStreamPanel, reasoningSummaryAuto }
+  const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
 
   useEffect(() => {
     saveDebugOptions(debugOptions)
-  }, [debugExpanded, persistToServer, renderAsJson, showStreamPanel, reasoningSummaryAuto])
+  }, [debugOptions])
 
   useEffect(() => {
-    setPersistEnabled(persistToServer)
-  }, [persistToServer])
+    setPersistEnabled(debugOptions.persistToServer)
+  }, [debugOptions.persistToServer])
 
-  const toggleDebugExpanded = useCallback(() => setDebugExpanded((prev) => !prev), [])
-  const togglePersistToServer = useCallback(() => setPersistToServer((prev) => !prev), [])
-  const toggleRenderAsJson = useCallback(() => setRenderAsJson((prev) => !prev), [])
-  const toggleStreamPanel = useCallback(() => setShowStreamPanel((prev) => !prev), [])
-  const toggleReasoningSummaryAuto = useCallback(() => setReasoningSummaryAuto((prev) => !prev), [])
-  const toggleForceCompaction = useCallback(() => requestCompaction(), [])
+  const toggleDebugOption = useCallback((key: string) =>
+    setDebugOptions((prev) => ({ ...prev, [key]: !prev[key] })), [])
 
   useEffect(() => {
     return () => closeChat()
@@ -157,7 +130,7 @@ export default function ProjectLayout() {
   const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
   const fileImport = useFileImport()
 
-  const fileNames = Object.keys(files).filter((f) => debugExpanded || !isHiddenFile(f))
+  const fileNames = Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f))
 
   useEffect(() => {
     if (params.fileId) {
@@ -175,7 +148,7 @@ export default function ProjectLayout() {
     }
   }, [params.fileId, fileNames.length, params.projectId])
 
-  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, debugExpanded)
+  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, !!debugOptions.expanded)
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -208,7 +181,7 @@ export default function ProjectLayout() {
         searchValue={searchValue}
         sortBy={sortBy}
         collapsed={sidebarCollapsed}
-        debugMode={debugExpanded}
+        debugMode={!!debugOptions.expanded}
         onSearchChange={setSearchValue}
         onSortChange={setSortBy}
         onDocumentSelect={handleDocumentSelect}
@@ -230,11 +203,11 @@ export default function ProjectLayout() {
           <div className="flex h-full w-full items-start bg-default-background">
             {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugExpanded, togglePersistToServer, toggleRenderAsJson, toggleStreamPanel, toggleReasoningSummaryAuto, toggleForceCompaction, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, getFileAnnotations }} />
             </div>
           </div>
           <NabuChatSidebar />
-          {showStreamPanel && <DebugStreamPanel onClose={toggleStreamPanel} />}
+          {debugOptions.showStreamPanel && <DebugStreamPanel onClose={() => toggleDebugOption("showStreamPanel")} />}
         </DefaultPageLayout>
         <FileDropOverlay
           isVisible={fileImport.isVisible}

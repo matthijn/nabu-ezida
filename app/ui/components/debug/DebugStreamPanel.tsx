@@ -2,14 +2,15 @@
 
 import { useState } from "react"
 import { useSyncExternalStore } from "react"
-import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck, FeatherListX } from "@subframe/core"
+import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck, FeatherListX, FeatherPlay } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocksWithDraft, subscribeBlocks, isDraft } from "~/lib/agent/block-store"
+import { getAllBlocksWithDraft, subscribeBlocks, isDraft, clearPauseBlocks } from "~/lib/agent/block-store"
+import { isErrorResult } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
@@ -55,9 +56,6 @@ const formatToolDefinitions = (): string =>
 const formatBlockSchemaDefinitions = (): string =>
   JSON.stringify(getBlockSchemaDefinitions(), null, 2)
 
-const isErrorResult = (result: unknown): boolean =>
-  typeof result === "object" && result !== null && "status" in result && (result.status === "error" || result.status === "partial")
-
 const formatBlock = (block: Block): string => {
   switch (block.type) {
     case "user":
@@ -76,6 +74,8 @@ const formatBlock = (block: Block): string => {
       return `[empty_nudge]`
     case "error":
       return `[error]\n${block.content}`
+    case "debug_pause":
+      return `[debug_pause]`
   }
 }
 
@@ -246,6 +246,8 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
       )
     case "empty_nudge":
       return null
+    case "debug_pause":
+      return null
     case "error":
       return (
         <CollapsibleBlock
@@ -268,12 +270,25 @@ type DebugStreamPanelProps = {
 
 const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
 
+const readStepCompaction = (): boolean => {
+  try {
+    const stored = localStorage.getItem("nabu-debug-options")
+    return stored ? (JSON.parse(stored).stepCompaction ?? true) : true
+  } catch {
+    return true
+  }
+}
+
+const isPaused = (blocks: Block[]): boolean =>
+  blocks.some((b) => b.type === "debug_pause")
+
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
   const allBlocks = useBlockStore()
-  const compacted = stepCompactedIndices(allBlocks)
+  const compacted = readStepCompaction() ? stepCompactedIndices(allBlocks) : new Set<number>()
   const mode = deriveMode(allBlocks)
   const reasoning = modes[mode].reasoning
+  const paused = isPaused(allBlocks)
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
 
@@ -288,6 +303,11 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
     navigator.clipboard.writeText(content)
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 1500)
+  }
+
+  const handleClose = () => {
+    clearPauseBlocks()
+    onClose()
   }
 
   const handleDeselectAll = () => setSelectedIndices(new Set())
@@ -326,11 +346,20 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
           >
             {copiedAll ? <FeatherCheck className="w-4 h-4 text-green-500" /> : <FeatherCopy className="w-4 h-4" />}
           </button>
+          {paused && (
+            <button
+              onClick={clearPauseBlocks}
+              className="flex items-center gap-1 rounded bg-red-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-red-600"
+            >
+              <FeatherPlay className="w-3 h-3" />
+              Continue
+            </button>
+          )}
           <IconButton
             variant="neutral-tertiary"
             size="small"
             icon={<FeatherX />}
-            onClick={onClose}
+            onClick={handleClose}
           />
         </div>
       </div>

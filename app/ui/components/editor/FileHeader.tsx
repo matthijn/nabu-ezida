@@ -5,9 +5,10 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherBug, FeatherCheck, FeatherClipboard, FeatherCode, FeatherCloud, FeatherMinimize, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2, FeatherActivity, FeatherSparkles } from "@subframe/core"
+import { FeatherBug, FeatherCheck, FeatherClipboard, FeatherMinimize, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
+import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
 type Tag = {
   label: string
@@ -20,14 +21,6 @@ type MenuItem = {
   onClick: () => void
 }
 
-type DebugOptions = {
-  expanded: boolean
-  persistToServer: boolean
-  renderAsJson: boolean
-  showStreamPanel: boolean
-  reasoningSummaryAuto: boolean
-}
-
 type FileHeaderProps = {
   title: string
   tags?: Tag[]
@@ -35,17 +28,32 @@ type FileHeaderProps = {
   debugOptions?: DebugOptions
   onPin?: () => void
   onShare?: () => void
-  onToggleDebug?: () => void
-  onTogglePersist?: () => void
-  onToggleRenderJson?: () => void
-  onToggleStreamPanel?: () => void
-  onToggleReasoningSummary?: () => void
-  onToggleForceCompaction?: () => void
+  onToggleOption?: (key: string) => void
+  onRequestCompaction?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
   className?: string
 }
+
+const isActive = (options: DebugOptions | undefined, key: string): boolean =>
+  options?.[key] ?? false
+
+const renderToggleItem = (
+  key: string,
+  label: string,
+  icon: ReactNode,
+  active: boolean,
+  onToggle: (key: string) => void,
+) => (
+  <DropdownMenu.DropdownItem
+    key={key}
+    icon={active ? <FeatherCheck /> : icon}
+    onClick={() => onToggle(key)}
+  >
+    {label}
+  </DropdownMenu.DropdownItem>
+)
 
 export const FileHeader = ({
   title,
@@ -54,19 +62,13 @@ export const FileHeader = ({
   debugOptions,
   onPin,
   onShare,
-  onToggleDebug,
-  onTogglePersist,
-  onToggleRenderJson,
-  onToggleStreamPanel,
-  onToggleReasoningSummary,
-  onToggleForceCompaction,
+  onToggleOption,
+  onRequestCompaction,
   onCopyRaw,
   menuItems = [],
   onAddTag,
   className,
 }: FileHeaderProps) => {
-  const debugExpanded = debugOptions?.expanded ?? false
-
   return (
     <div
       className={cn(
@@ -95,11 +97,11 @@ export const FileHeader = ({
             onClick={onShare}
           />
         )}
-        {onToggleDebug && (
+        {onToggleOption && (
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild>
               <IconButton
-                variant={debugExpanded ? "brand-primary" : "neutral-tertiary"}
+                variant={isActive(debugOptions, "expanded") ? "brand-primary" : "neutral-tertiary"}
                 size="small"
                 icon={<FeatherBug />}
               />
@@ -112,48 +114,13 @@ export const FileHeader = ({
                 asChild
               >
                 <DropdownMenu>
-                  <DropdownMenu.DropdownItem
-                    icon={debugExpanded ? <FeatherCheck /> : <FeatherBug />}
-                    onClick={onToggleDebug}
-                  >
-                    Hidden files
-                  </DropdownMenu.DropdownItem>
-                  {onTogglePersist && (
-                    <DropdownMenu.DropdownItem
-                      icon={debugOptions?.persistToServer ? <FeatherCheck /> : <FeatherCloud />}
-                      onClick={onTogglePersist}
-                    >
-                      Server persistence
-                    </DropdownMenu.DropdownItem>
+                  {DEBUG_TOGGLES.map((t) =>
+                    renderToggleItem(t.key, t.label, t.icon, isActive(debugOptions, t.key), onToggleOption)
                   )}
-                  {onToggleRenderJson && (
-                    <DropdownMenu.DropdownItem
-                      icon={debugOptions?.renderAsJson ? <FeatherCheck /> : <FeatherCode />}
-                      onClick={onToggleRenderJson}
-                    >
-                      JSON rendering
-                    </DropdownMenu.DropdownItem>
-                  )}
-                  {onToggleStreamPanel && (
-                    <DropdownMenu.DropdownItem
-                      icon={debugOptions?.showStreamPanel ? <FeatherCheck /> : <FeatherActivity />}
-                      onClick={onToggleStreamPanel}
-                    >
-                      Stream panel
-                    </DropdownMenu.DropdownItem>
-                  )}
-                  {onToggleReasoningSummary && (
-                    <DropdownMenu.DropdownItem
-                      icon={debugOptions?.reasoningSummaryAuto ? <FeatherCheck /> : <FeatherSparkles />}
-                      onClick={onToggleReasoningSummary}
-                    >
-                      Reasoning summary
-                    </DropdownMenu.DropdownItem>
-                  )}
-                  {onToggleForceCompaction && (
+                  {onRequestCompaction && (
                     <DropdownMenu.DropdownItem
                       icon={<FeatherMinimize />}
-                      onClick={onToggleForceCompaction}
+                      onClick={onRequestCompaction}
                     >
                       Force compaction
                     </DropdownMenu.DropdownItem>

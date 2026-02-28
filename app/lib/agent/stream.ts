@@ -385,6 +385,9 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
   if (block.type === "empty_nudge") {
     return []
   }
+  if (block.type === "debug_pause") {
+    return []
+  }
   return []
 }
 

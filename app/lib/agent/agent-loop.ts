@@ -3,7 +3,8 @@ import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
 import { toToolDefinition, toSchemaMap } from "./executors/tool"
 import { buildCaller } from "./caller"
-import { pushBlocks, getAllBlocks, isDraft } from "./block-store"
+import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks } from "./block-store"
+import { isErrorResult } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
 import { extractEntityIdCandidates } from "~/domain/entity-link"
@@ -43,6 +44,9 @@ const readDebugOption = <T,>(key: string, fallback: T): T => {
 const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
+const readStepCompaction = (): boolean =>
+  readDebugOption("stepCompaction", true)
+
 const writeDebugOption = (key: string, value: unknown): void => {
   if (typeof window === "undefined") return
   try {
@@ -58,6 +62,33 @@ const consumeForceCompaction = (): boolean => {
   writeDebugOption("forceCompaction", false)
   return true
 }
+
+const hasToolError = (blocks: Block[]): boolean =>
+  blocks.some((b) => b.type === "tool_result" && isErrorResult(b.result))
+
+const hasPauseBlock = (): boolean =>
+  getAllBlocks().some((b) => b.type === "debug_pause")
+
+const awaitResume = (signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    const tryResolve = () => {
+      if (!hasPauseBlock()) {
+        cleanup()
+        resolve()
+      }
+    }
+    const unsub = subscribeBlocks(tryResolve)
+    const onAbort = () => { cleanup(); resolve() }
+    const cleanup = () => {
+      unsub()
+      signal?.removeEventListener("abort", onAbort)
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    tryResolve()
+  })
+
+const shouldPauseOnError = (blocks: Block[]): boolean =>
+  hasToolError(blocks) && readDebugOption("showStreamPanel", false)
 
 const findDanglingIds = (text: string): string[] => {
   const candidates = extractEntityIdCandidates(text)
@@ -104,11 +135,20 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
       blockSchemas: getBlockSchemaDefinitions(),
       execute: executor,
       callbacks,
-      readBlocks: () => stepCompactHistory(compactHistory(getAllBlocks(), getFiles())),
+      readBlocks: () => {
+        const blocks = compactHistory(getAllBlocks(), getFiles())
+        return readStepCompaction() ? stepCompactHistory(blocks) : blocks
+      },
       transformBlocks: rejectDanglingEntityIds,
     })
 
     const newBlocks = await caller(signal)
+
+    if (shouldPauseOnError(newBlocks)) {
+      pushBlocks([{ type: "debug_pause" }])
+      await awaitResume(signal)
+    }
+
     if (!shouldContinue(newBlocks)) return
   }
 }

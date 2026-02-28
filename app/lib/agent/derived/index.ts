@@ -21,6 +21,10 @@ type EnrichedBlock = Exclude<Block, ToolCallBlock> | EnrichedToolCallBlock
 export const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
   block.type === "tool_call"
 
+export const isErrorResult = (result: unknown): boolean =>
+  typeof result === "object" && result !== null && "status" in result &&
+  ((result as { status: string }).status === "error" || (result as { status: string }).status === "partial")
+
 const isEnrichedToolCallBlock = (block: EnrichedBlock): block is EnrichedToolCallBlock =>
   block.type === "tool_call"
 
