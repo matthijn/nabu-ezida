@@ -6,6 +6,8 @@ export {
   fillMissingIds,
   buildGeneratedIdsList,
   formatGeneratedIds,
+  clearPersistentIds,
+  isSystemId,
   type UuidMapping,
   type GeneratedId,
   type FillIdsResult,

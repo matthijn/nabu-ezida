@@ -1,5 +1,27 @@
-import { describe, it, expect } from "vitest"
-import { fillMissingIds, replaceUuidPlaceholders } from "./uuid"
+import { describe, it, expect, beforeEach } from "vitest"
+import { fillMissingIds, replaceUuidPlaceholders, clearPersistentIds, isSystemId } from "./uuid"
+
+beforeEach(() => {
+  clearPersistentIds()
+})
+
+describe("isSystemId", () => {
+  const cases = [
+    { id: "callout_3k8m2n4p", prefix: "callout", expected: true, name: "valid callout ID" },
+    { id: "annotation_7abc123d", prefix: "annotation", expected: true, name: "valid annotation ID" },
+    { id: "code_fiscal-reporting", prefix: "callout", expected: false, name: "wrong prefix" },
+    { id: "callout_my-custom-id", prefix: "callout", expected: false, name: "hyphens in suffix" },
+    { id: "callout_abc", prefix: "callout", expected: false, name: "suffix too short" },
+    { id: "callout_ABCDEFGH", prefix: "callout", expected: false, name: "uppercase in suffix" },
+    { id: "", prefix: "callout", expected: false, name: "empty string" },
+  ]
+
+  cases.forEach(({ id, prefix, expected, name }) => {
+    it(name, () => {
+      expect(isSystemId(id, prefix)).toBe(expected)
+    })
+  })
+})
 
 describe("fillMissingIds", () => {
   describe("root-level IDs (json-callout)", () => {
@@ -121,6 +143,96 @@ describe("fillMissingIds", () => {
     expect(result.generated).toHaveLength(0)
     expect(result.content).toBe(input)
   })
+
+  describe("malformed ID normalization", () => {
+    const calloutBlock = (id: string) => `# Doc
+
+\`\`\`json-callout
+{
+  "id": "${id}",
+  "title": "Test"
+}
+\`\`\``
+
+    const annotationBlock = (id: string) => `# Doc
+
+\`\`\`json-attributes
+{
+  "annotations": [
+    { "id": "${id}", "text": "hello", "reason": "test", "color": "blue" }
+  ]
+}
+\`\`\``
+
+    const emptyOriginal = "# Doc\n\nSome content"
+
+    const cases = [
+      {
+        name: "normalizes malformed callout ID when original provided",
+        input: calloutBlock("code_fiscal-reporting"),
+        original: emptyOriginal,
+        expectNormalized: true,
+        expectedPrefix: /^callout_/,
+        expectedSource: "code_fiscal-reporting",
+      },
+      {
+        name: "preserves malformed ID when no original provided",
+        input: calloutBlock("code_fiscal-reporting"),
+        original: undefined,
+        expectNormalized: false,
+      },
+      {
+        name: "preserves malformed ID present in original content",
+        input: calloutBlock("code_fiscal-reporting"),
+        original: calloutBlock("code_fiscal-reporting"),
+        expectNormalized: false,
+      },
+      {
+        name: "preserves system-format callout ID",
+        input: calloutBlock("callout_3k8m2n4p"),
+        original: emptyOriginal,
+        expectNormalized: false,
+      },
+      {
+        name: "normalizes malformed annotation ID",
+        input: annotationBlock("my-annotation"),
+        original: emptyOriginal,
+        expectNormalized: true,
+        expectedPrefix: /^annotation_/,
+        expectedSource: "my-annotation",
+      },
+      {
+        name: "preserves system-format annotation ID",
+        input: annotationBlock("annotation_7abc123d"),
+        original: emptyOriginal,
+        expectNormalized: false,
+      },
+    ]
+
+    cases.forEach(({ name, input, original, expectNormalized, expectedPrefix, expectedSource }) => {
+      it(name, () => {
+        const result = fillMissingIds(input, original)
+
+        if (expectNormalized) {
+          expect(result.generated).toHaveLength(1)
+          expect(result.generated[0].id).toMatch(expectedPrefix!)
+          expect(result.generated[0].source).toBe(expectedSource)
+          expect(result.content).toContain(result.generated[0].id)
+          expect(result.content).not.toContain(expectedSource)
+        } else {
+          expect(result.generated).toHaveLength(0)
+          expect(result.content).toBe(input)
+        }
+      })
+    })
+
+    it("returns same normalized ID for same malformed ID across calls", () => {
+      const first = fillMissingIds(calloutBlock("my-custom-id"), emptyOriginal)
+      const second = fillMissingIds(calloutBlock("my-custom-id"), emptyOriginal)
+
+      expect(first.generated[0].id).toBe(second.generated[0].id)
+    })
+  })
 })
 
 describe("replaceUuidPlaceholders", () => {
@@ -156,5 +268,25 @@ describe("replaceUuidPlaceholders", () => {
 
     expect(result.generated).toEqual({})
     expect(result.result).toBe(input)
+  })
+
+  describe("persistent placeholder map", () => {
+    it("returns same ID for same placeholder across calls", () => {
+      const first = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
+      const second = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
+
+      expect(first.generated["callout"]).toBe(second.generated["callout"])
+    })
+
+    it("returns different IDs after clear", () => {
+      const first = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
+      const firstId = first.generated["callout"]
+      clearPersistentIds()
+      const second = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
+
+      expect(firstId).toBeDefined()
+      expect(second.generated["callout"]).toBeDefined()
+      expect(firstId).not.toBe(second.generated["callout"])
+    })
   })
 })

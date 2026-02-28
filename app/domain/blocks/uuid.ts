@@ -4,6 +4,22 @@ import { tryParseJson, isObject, parsePath } from "./json"
 
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([a-zA-Z0-9_-]+)\]/g
 const TRAILING_NUMBER_REGEX = /-\d+$/
+const SYSTEM_ID_SUFFIX_RE = /^[a-z0-9]{6,10}$/
+
+export type GeneratedId = {
+  id: string
+  type: string
+  label: string | null
+  source: string  // placeholder key like "uuid-callout-1", malformed ID, or "none"
+}
+
+export type UuidMapping = Record<string, string>
+
+let persistentIdMap: UuidMapping = {}
+
+export const clearPersistentIds = (): void => {
+  persistentIdMap = {}
+}
 
 const generateShortId = (): string => {
   const digit = Math.floor(Math.random() * 10).toString()
@@ -17,23 +33,45 @@ const extractPrefix = (name: string): string =>
 const generatePrefixedId = (name: string): string =>
   `${extractPrefix(name)}_${generateShortId()}`
 
-export type GeneratedId = {
-  id: string
-  type: string
-  label: string | null
-  source: string  // placeholder key like "uuid-callout-1" or "none"
+export const isSystemId = (id: string, prefix: string): boolean => {
+  if (!id.startsWith(`${prefix}_`)) return false
+  return SYSTEM_ID_SUFFIX_RE.test(id.slice(prefix.length + 1))
 }
 
-export type UuidMapping = Record<string, string>
+const shouldNormalizeId = (id: string, prefix: string, originalContent?: string): boolean => {
+  if (isSystemId(id, prefix)) return false
+  if (!originalContent) return false
+  if (originalContent.includes(id)) return false
+  return true
+}
+
+const resolveOrGenerateId = (malformedId: string, prefix: string): string => {
+  if (malformedId in persistentIdMap) return persistentIdMap[malformedId]
+  const newId = `${prefix}_${generateShortId()}`
+  persistentIdMap[malformedId] = newId
+  return newId
+}
+
+type ResolvedId = { newId: string; source: string }
+
+const resolveId = (currentValue: unknown, prefix: string, originalContent?: string): ResolvedId | null => {
+  if (isMissingId(currentValue)) {
+    return { newId: `${prefix}_${generateShortId()}`, source: "none" }
+  }
+  if (typeof currentValue !== "string") return null
+  if (!shouldNormalizeId(currentValue, prefix, originalContent)) return null
+  return { newId: resolveOrGenerateId(currentValue, prefix), source: currentValue }
+}
 
 export const replaceUuidPlaceholders = (content: string): { result: string; generated: UuidMapping } => {
   const generated: UuidMapping = {}
 
   const result = content.replace(UUID_PLACEHOLDER_REGEX, (_, name) => {
-    if (!(name in generated)) {
-      generated[name] = generatePrefixedId(name)
+    if (!(name in persistentIdMap)) {
+      persistentIdMap[name] = generatePrefixedId(name)
     }
-    return generated[name]
+    generated[name] = persistentIdMap[name]
+    return persistentIdMap[name]
   })
 
   return { result, generated }
@@ -64,7 +102,8 @@ type BlockUpdate = {
 const fillIdPath = (
   parsed: Record<string, unknown>,
   config: IdPathConfig,
-  language: string
+  language: string,
+  originalContent?: string,
 ): GeneratedId[] => {
   const pathInfo = parsePath(config.path)
   if (!pathInfo) return []
@@ -72,15 +111,14 @@ const fillIdPath = (
   const ids: GeneratedId[] = []
 
   if (pathInfo.type === "root") {
-    const currentValue = parsed[pathInfo.field]
-    if (isMissingId(currentValue)) {
-      const newId = `${config.prefix}_${generateShortId()}`
-      parsed[pathInfo.field] = newId
+    const resolved = resolveId(parsed[pathInfo.field], config.prefix, originalContent)
+    if (resolved) {
+      parsed[pathInfo.field] = resolved.newId
       ids.push({
-        id: newId,
+        id: resolved.newId,
         type: language,
         label: getBlockLabel(parsed, language),
-        source: "none",
+        source: resolved.source,
       })
     }
   } else {
@@ -89,15 +127,14 @@ const fillIdPath = (
 
     for (const item of arr) {
       if (!isObject(item)) continue
-      if (!isMissingId(item[pathInfo.itemField])) continue
-
-      const newId = `${config.prefix}_${generateShortId()}`
-      item[pathInfo.itemField] = newId
+      const resolved = resolveId(item[pathInfo.itemField], config.prefix, originalContent)
+      if (!resolved) continue
+      item[pathInfo.itemField] = resolved.newId
       ids.push({
-        id: newId,
+        id: resolved.newId,
         type: `${language}.${pathInfo.arrayField}`,
         label: null,
-        source: "none",
+        source: resolved.source,
       })
     }
   }
@@ -105,7 +142,7 @@ const fillIdPath = (
   return ids
 }
 
-const collectBlockUpdates = (markdown: string): BlockUpdate[] => {
+const collectBlockUpdates = (markdown: string, originalContent?: string): BlockUpdate[] => {
   const blocks = parseCodeBlocks(markdown)
   const updates: BlockUpdate[] = []
 
@@ -120,7 +157,7 @@ const collectBlockUpdates = (markdown: string): BlockUpdate[] => {
 
     const ids: GeneratedId[] = []
     for (const config of idPaths) {
-      ids.push(...fillIdPath(parsed, config, block.language))
+      ids.push(...fillIdPath(parsed, config, block.language, originalContent))
     }
 
     if (ids.length > 0) {
@@ -135,8 +172,8 @@ const collectBlockUpdates = (markdown: string): BlockUpdate[] => {
   return updates
 }
 
-export const fillMissingIds = (markdown: string): FillIdsResult => {
-  const updates = collectBlockUpdates(markdown)
+export const fillMissingIds = (markdown: string, originalContent?: string): FillIdsResult => {
+  const updates = collectBlockUpdates(markdown, originalContent)
   if (updates.length === 0) {
     return { content: markdown, generated: [] }
   }
