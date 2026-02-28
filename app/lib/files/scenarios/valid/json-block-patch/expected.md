@@ -4,8 +4,8 @@ Some introductory text about the research.
 
 ```json-attributes
 {
-  "tags": ["final", "research", "verified"],
-  "status": "complete"
+	"tags": ["final", "research", "verified"],
+	"status": "complete"
 }
 ```
 

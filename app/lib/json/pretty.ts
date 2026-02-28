@@ -82,8 +82,8 @@ const isSimpleArray = (arr: JsonValue[]): boolean =>
   )
 
 const serializeJson = (obj: JsonValue, indent: number, expandMultiline: boolean): string => {
-  const spaces = "  ".repeat(indent)
-  const childSpaces = "  ".repeat(indent + 1)
+  const prefix = "\t".repeat(indent)
+  const childPrefix = "\t".repeat(indent + 1)
 
   if (obj === null) return "null"
   if (typeof obj === "boolean") return obj.toString()
@@ -95,8 +95,8 @@ const serializeJson = (obj: JsonValue, indent: number, expandMultiline: boolean)
     if (isSimpleArray(obj)) {
       return "[" + obj.map((item) => JSON.stringify(item)).join(", ") + "]"
     }
-    const items = obj.map((item) => childSpaces + serializeJson(item, indent + 1, expandMultiline))
-    return "[\n" + items.join(",\n") + "\n" + spaces + "]"
+    const items = obj.map((item) => childPrefix + serializeJson(item, indent + 1, expandMultiline))
+    return "[\n" + items.join(",\n") + "\n" + prefix + "]"
   }
 
   if (typeof obj === "object") {
@@ -109,10 +109,10 @@ const serializeJson = (obj: JsonValue, indent: number, expandMultiline: boolean)
 
     const lines = entries.map(([key, value]) => {
       const serialized = serializeJson(value, indent + 1, expandMultiline)
-      return `${childSpaces}${JSON.stringify(key)}: ${serialized}`
+      return `${childPrefix}${JSON.stringify(key)}: ${serialized}`
     })
 
-    return "{\n" + lines.join(",\n") + "\n" + spaces + "}"
+    return "{\n" + lines.join(",\n") + "\n" + prefix + "}"
   }
 
   return String(obj)

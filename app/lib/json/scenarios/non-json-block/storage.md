@@ -6,12 +6,12 @@ const msg = "hello\nworld"
 
 ```json-callout
 {
-  "id": "code_test1234",
-  "type": "codebook-code",
-  "title": "Test",
-  "content": "Multi\nline",
-  "color": "green",
-  "collapsed": false
+	"id": "code_test1234",
+	"type": "codebook-code",
+	"title": "Test",
+	"content": "Multi\nline",
+	"color": "green",
+	"collapsed": false
 }
 ```
 

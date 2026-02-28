@@ -6,7 +6,7 @@ const makeFiles = (entries: Record<string, string>): Map<string, string> =>
   new Map(Object.entries(entries))
 
 const doc = (json: object, language = "json-attributes"): string =>
-  `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, 2)}\n\`\`\`\n\nMore text.\n`
+  `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, "\t")}\n\`\`\`\n\nMore text.\n`
 
 describe("patch_json_block", () => {
   type Case = {

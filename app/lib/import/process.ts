@@ -16,7 +16,7 @@ type StatusCallback = (id: string, status: ImportStatus, extra?: Partial<ImportF
 const ATTRIBUTES_BLOCK_REGEX = /```json-attributes\n([\s\S]*?)\n```/
 
 const createAttributesBlock = (tags: string[]): string =>
-  `\`\`\`json-attributes\n${JSON.stringify({ tags }, null, 2)}\n\`\`\``
+  `\`\`\`json-attributes\n${JSON.stringify({ tags }, null, "\t")}\n\`\`\``
 
 const injectTags = (content: string, tags: string[]): string => {
   if (tags.length === 0) return content
@@ -29,7 +29,7 @@ const injectTags = (content: string, tags: string[]): string => {
   try {
     const existing = JSON.parse(match[1]) as { tags?: string[] }
     const merged = [...new Set([...(existing.tags ?? []), ...tags])]
-    const updated = JSON.stringify({ ...existing, tags: merged }, null, 2)
+    const updated = JSON.stringify({ ...existing, tags: merged }, null, "\t")
     return content.replace(ATTRIBUTES_BLOCK_REGEX, `\`\`\`json-attributes\n${updated}\n\`\`\``)
   } catch {
     return content

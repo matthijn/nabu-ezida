@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { generateDiff } from "./generate"
 import { applyDiff } from "./parse"
+import { normalizeContent } from "./normalize"
 
 describe("generateDiff", () => {
   const cases = [
@@ -54,7 +55,7 @@ describe("generateDiff", () => {
     const result = applyDiff(oldContent, diff)
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.content).toBe(newContent)
+      expect(result.content).toBe(normalizeContent(newContent))
     }
   })
 })

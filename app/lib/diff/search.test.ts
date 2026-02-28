@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import { readdirSync, readFileSync } from "fs"
 import { join } from "path"
 import { findMatches, getMatchedText, type Match } from "./search"
+import { normalizeContent } from "./normalize"
 
 type ExpectedMatch = Match & { content?: string }
 
@@ -49,39 +50,29 @@ describe("findMatches", () => {
 
   const blankLineCases = [
     {
-      name: "empty needle line matches whitespace-only content line",
+      name: "normalized: whitespace-only blank line matches empty blank line",
       content: "heading\n   \ntext after gap",
       needle: "heading\n\ntext after gap",
-      expected: { start: 0, end: 2, fuzzy: true },
+      expected: { start: 0, end: 2, fuzzy: false },
     },
     {
-      name: "whitespace-only needle line matches empty content line",
-      content: "heading\n\ntext after gap",
-      needle: "heading\n   \ntext after gap",
-      expected: { start: 0, end: 2, fuzzy: true },
-    },
-    {
-      name: "tab-only line matches empty line",
+      name: "normalized: tabs-only blank line matches empty blank line",
       content: "heading\n\t\t\ntext after gap",
       needle: "heading\n\ntext after gap",
-      expected: { start: 0, end: 2, fuzzy: true },
+      expected: { start: 0, end: 2, fuzzy: false },
     },
     {
-      name: "mixed whitespace lines match each other",
-      content: "heading\n  \t \ntext after gap",
-      needle: "heading\n \ntext after gap",
-      expected: { start: 0, end: 2, fuzzy: true },
-    },
-    {
-      name: "blank line mismatch in multi-line block still matches",
+      name: "normalized: multi-line block with blank mismatch",
       content: "Sarah is a senior nurse\n   \nin the emergency department",
       needle: "Sarah is a senior nurse\n\nin the emergency department",
-      expected: { start: 0, end: 2, fuzzy: true },
+      expected: { start: 0, end: 2, fuzzy: false },
     },
   ]
 
   it.each(blankLineCases)("$name", ({ content: c, needle, expected }) => {
-    const matches = findMatches(c, needle)
+    const nc = normalizeContent(c)
+    const nn = normalizeContent(needle)
+    const matches = findMatches(nc, nn)
     expect(matches.length).toBe(1)
     expect(matches[0]).toEqual(expected)
   })

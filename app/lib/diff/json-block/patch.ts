@@ -5,7 +5,7 @@ export type JsonBlockPatchResult =
   | { ok: true; patch: string }
   | { ok: false; error: string }
 
-const formatJson = (obj: object): string => JSON.stringify(obj, null, 2)
+const formatJson = (obj: object): string => JSON.stringify(obj, null, "\t")
 
 const prefixLines = (lines: string[], prefix: string): string[] =>
   lines.map((line) => prefix + line)

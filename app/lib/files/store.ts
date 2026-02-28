@@ -2,6 +2,7 @@ import { getCodebook as computeCodebook, type Codebook } from "./selectors"
 import { stripPendingRefs, markPendingRefs, resolvePendingRef, getAllDefinitions, findPendingRefs, findDefinitionIds } from "./pending-refs"
 import { debounce, createScopedDebounce } from "~/lib/utils"
 import { sendCommand } from "~/lib/sync/commands"
+import { normalizeContent } from "~/lib/diff/normalize"
 
 type Files = Record<string, string>
 type Listener = () => void
@@ -76,7 +77,7 @@ export const getFileLineCount = (filename: string): number =>
 
 export const setFiles = (newFiles: Record<string, string>): void => {
   console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))
-  files = newFiles
+  files = Object.fromEntries(Object.entries(newFiles).map(([k, v]) => [k, normalizeContent(v)]))
   notify()
 }
 
@@ -86,17 +87,18 @@ export const setCurrentFile = (filename: string | null): void => {
 }
 
 export const updateFileRaw = (filename: string, raw: string): void => {
+  const normalized = normalizeContent(raw)
   const isNew = !(filename in files)
-  console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${raw.length} chars)`)
+  console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`)
 
   const definitions = getAllDefinitions(files)
-  const marked = markPendingRefs(raw, definitions)
+  const marked = markPendingRefs(normalized, definitions)
   const pendingRefsInNew = findPendingRefs(marked)
   if (pendingRefsInNew.length > 0) {
     console.debug(`[store] marked ${pendingRefsInNew.length} pending refs in "${filename}"`)
   }
 
-  const newDefinitions = findDefinitionIds(raw)
+  const newDefinitions = findDefinitionIds(normalized)
   let updatedFiles: Files = { ...files, [filename]: marked }
   const resolvedPaths: string[] = []
 

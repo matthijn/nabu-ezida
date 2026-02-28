@@ -1,5 +1,6 @@
 import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
+import { normalizeContent, normalizeLine, isBlankLine } from "./normalize"
 
 export type HunkPart =
   | { type: "context"; content: string }
@@ -161,8 +162,8 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
 }
 
 export const applyDiff = (content: string, patch: string): DiffResult => {
-  const hunks = parseV4ADiff(patch)
-  let result = content
+  const hunks = parseV4ADiff(patch).map(normalizeHunk)
+  let result = normalizeContent(content)
 
   for (const hunk of hunks) {
     const applied = applyHunk(result, hunk)
@@ -174,6 +175,22 @@ export const applyDiff = (content: string, patch: string): DiffResult => {
 
   return { ok: true, content: result }
 }
+
+const normalizePartContent = (content: string): string =>
+  normalizeLine(content.replace(/\n$/, "")) + "\n"
+
+const normalizeHunk = (hunk: Hunk): Hunk => ({
+  parts: collapseBlankParts(
+    hunk.parts.map((p) => ({ ...p, content: normalizePartContent(p.content) }))
+  ),
+})
+
+const collapseBlankParts = (parts: HunkPart[]): HunkPart[] =>
+  parts.reduce<HunkPart[]>((acc, part) => {
+    const prev = acc[acc.length - 1]
+    if (part.content === "\n" && prev?.content === "\n" && prev.type === part.type) return acc
+    return [...acc, part]
+  }, [])
 
 const CONTEXT_LINES = 3
 

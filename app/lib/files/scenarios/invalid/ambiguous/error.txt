@@ -6,7 +6,7 @@ Match 1:
 First section here.
 
 function process() {
-  return 1
+	return 1
 }
 
 ───
@@ -16,7 +16,7 @@ Match 2:
 Middle content.
 
 function process() {
-  return 2
+	return 2
 }
 
 ───

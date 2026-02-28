@@ -76,7 +76,7 @@ line3`,
     },
     {
       name: "handles function rename example from spec",
-      content: "def fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)",
+      content: "def fib(n):\n\t\tif n <= 1:\n\t\t\t\treturn n\n\t\treturn fib(n-1) + fib(n-2)",
       patch: `@@
 -def fib(n):
 +def fibonacci(n):
@@ -84,7 +84,7 @@ line3`,
         return n
 -    return fib(n-1) + fib(n-2)
 +    return fibonacci(n-1) + fibonacci(n-2)`,
-      expected: { ok: true, content: "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)" },
+      expected: { ok: true, content: "def fibonacci(n):\n\t\tif n <= 1:\n\t\t\t\treturn n\n\t\treturn fibonacci(n-1) + fibonacci(n-2)" },
     },
     {
       name: "appends to content when old text is empty",
@@ -164,13 +164,13 @@ appended`,
     },
     {
       name: "context preserves file content not patch content",
-      content: "function test() {\n    return 42\n}",
+      content: "function test() {\n\t\treturn 42\n}",
       patch: `@@
 -function test() {
 +function renamed() {
     return 42
 }`,
-      expected: { ok: true, content: "function renamed() {\n    return 42\n}" },
+      expected: { ok: true, content: "function renamed() {\n\t\treturn 42\n}" },
     },
     {
       name: "interleaved context and removes: all preserved correctly",

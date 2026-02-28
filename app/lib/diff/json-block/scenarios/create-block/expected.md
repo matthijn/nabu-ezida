@@ -4,8 +4,8 @@ Some text here.
 
 ```json-attributes
 {
-  "tags": [
-    "new-tag"
-  ]
+	"tags": [
+		"new-tag"
+	]
 }
 ```

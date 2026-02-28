@@ -4,14 +4,14 @@ Some text here.
 
 ```json-attributes
 {
-  "tags": [
-    "pulled-files"
-  ],
-  "annotations": [
-    {
-      "text": "foo",
-      "reason": "old reason"
-    }
-  ]
+	"tags": [
+		"pulled-files"
+	],
+	"annotations": [
+		{
+			"text": "foo",
+			"reason": "old reason"
+		}
+	]
 }
 ```
