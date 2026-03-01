@@ -77,20 +77,28 @@ const findPendingBlock = (blocks: Block[], toolCallIndex: number): Block | null 
   return null
 }
 
-const extractCompactedState = (blocks: Block[], resultIndex: number, toolCallIndex: number) => {
+const DIRECTIVE_PATTERN = /^<!--\s*(\w+):\s*(\w+)\s*-->$/
+
+const isDirectiveBlock = (block: Block): boolean =>
+  block.type === "system" && DIRECTIVE_PATTERN.test(block.content)
+
+const extractSummary = (blocks: Block[], toolCallIndex: number): string => {
   const toolCall = toolCallIndex >= 0 ? blocks[toolCallIndex] : null
-  if (!toolCall || toolCall.type !== "tool_call") return { summary: "", directives: {} as Record<string, string> }
+  if (!toolCall || toolCall.type !== "tool_call") return ""
   const call = toolCall.calls.find((c) => c.name === "compacted")
-  return {
-    summary: (call?.args?.summary as string) ?? "",
-    directives: (call?.args?.directives as Record<string, string>) ?? {},
-  }
+  return (call?.args?.summary as string) ?? ""
 }
 
-const directivesToBlocks = (directives: Record<string, string>): Block[] =>
-  Object.entries(directives).map(
-    ([key, value]) => ({ type: "system" as const, content: `<!-- ${key}: ${value} -->` }),
-  )
+const collectDirectiveBlocks = (blocks: Block[], end: number): Block[] => {
+  const last = new Map<string, Block>()
+  for (let i = 0; i < end; i++) {
+    const block = blocks[i]
+    if (block.type !== "system" || !isDirectiveBlock(block)) continue
+    const match = block.content.match(DIRECTIVE_PATTERN)
+    if (match) last.set(match[1], block)
+  }
+  return [...last.values()]
+}
 
 const formatPlanContext = (blocks: Block[], files: Files): string => {
   const d = derive(blocks, files)
@@ -105,14 +113,15 @@ export const compactHistory = (blocks: Block[], files: Files): Block[] => {
   if (resultIndex === -1) return blocks
 
   const toolCallIndex = findMatchingToolCallIndex(blocks, resultIndex)
-  const { summary, directives } = extractCompactedState(blocks, resultIndex, toolCallIndex)
+  const summary = extractSummary(blocks, toolCallIndex)
+  const directives = collectDirectiveBlocks(blocks, resultIndex)
   const planContext = formatPlanContext(blocks, files)
   const systemContent = summary + planContext
   const pending = toolCallIndex >= 0 ? findPendingBlock(blocks, toolCallIndex) : null
 
   return [
     { type: "system" as const, content: systemContent },
-    ...directivesToBlocks(directives),
+    ...directives,
     ...(pending ? [pending] : []),
     ...blocks.slice(resultIndex + 1),
   ]

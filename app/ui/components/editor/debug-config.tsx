@@ -14,7 +14,7 @@ export const DEBUG_TOGGLES: DebugToggle[] = [
   { key: "renderAsJson", label: "JSON rendering", icon: <FeatherCode />, defaultValue: false },
   { key: "showStreamPanel", label: "Stream panel", icon: <FeatherActivity />, defaultValue: false },
   { key: "reasoningSummaryAuto", label: "Reasoning summary", icon: <FeatherSparkles />, defaultValue: false },
-  { key: "stepCompaction", label: "Step compaction", icon: <FeatherFilter />, defaultValue: true },
+  { key: "stepCompaction", label: "Step compaction", icon: <FeatherFilter />, defaultValue: false },
 ]
 
 export type DebugOptions = Record<string, boolean>

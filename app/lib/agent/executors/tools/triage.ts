@@ -5,7 +5,7 @@ import { registerSpecialHandler } from "../delegation"
 import { segmentContent, type SegmentResult } from "./segment-file"
 import { readFileContent } from "./file-content"
 import { pushBlocks } from "../../block-store"
-import { modeSystemBlocks, buildModeResult } from "../modes"
+import { modeSystemBlocks } from "../modes"
 
 const TOTAL_LINE_THRESHOLD = 150
 const FILE_LINE_THRESHOLD = 50
@@ -54,12 +54,7 @@ const executeTriage = async (entries: FileEntry[]): Promise<TriageResult> => {
 
 const formatTriageOutput = (result: TriageResult): string => {
   if (!result.plan_needed) return "No plan needed — handle directly."
-
-  const parts = [
-    buildModeResult("plan"),
-    `\nFile manifests:\n${JSON.stringify(result.manifests, null, 2)}`,
-  ]
-  return parts.join("\n")
+  return `File manifests:\n${JSON.stringify(result.manifests, null, 2)}`
 }
 
 const handleTriage = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {

@@ -5,33 +5,33 @@
     {
       "action": "add",
       "path": "doc.md",
-      "content": "{\"annotations\": [{\"text\": \"a\", \"code\": \"code_1aaaaaaa\"}, {\"text\": \"b\", \"code\": \"code_2bbbbbbb\"}]}"
+      "content": "{\"annotations\": [{\"text\": \"a\", \"code\": \"code-1aaaaaaa\"}, {\"text\": \"b\", \"code\": \"code-2bbbbbbb\"}]}"
     },
     {
       "action": "check",
       "path": "doc.md",
-      "contains": "#[code_1aaaaaaa]"
+      "contains": "#[code-1aaaaaaa]"
     },
     {
       "action": "check",
       "path": "doc.md",
-      "contains": "#[code_2bbbbbbb]"
+      "contains": "#[code-2bbbbbbb]"
     },
     {
       "action": "add",
       "path": "codebook.md",
-      "content": "{\"id\": \"code_1aaaaaaa\", \"title\": \"A\"}"
+      "content": "{\"id\": \"code-1aaaaaaa\", \"title\": \"A\"}"
     },
     {
       "action": "check",
       "path": "doc.md",
-      "notContains": "#[code_1aaaaaaa]",
-      "contains": "code_1aaaaaaa"
+      "notContains": "#[code-1aaaaaaa]",
+      "contains": "code-1aaaaaaa"
     },
     {
       "action": "check",
       "path": "doc.md",
-      "contains": "#[code_2bbbbbbb]"
+      "contains": "#[code-2bbbbbbb]"
     }
   ]
 }

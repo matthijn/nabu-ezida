@@ -1,6 +1,6 @@
 {
   "files": {
-    "REAL CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout_abc\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Test Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"Definition.\"\n}\n```"
+    "REAL CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout-abc\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Test Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"Definition.\"\n}\n```"
   },
   "args": {
     "commands": [
@@ -12,7 +12,7 @@
     "status": "ok",
     "output": [
       {
-        "stdout": "callout_abc\tTest Code",
+        "stdout": "callout-abc\tTest Code",
         "stderr": "",
         "outcome": {
           "type": "exit",

@@ -7,12 +7,12 @@ beforeEach(() => {
 
 describe("isSystemId", () => {
   const cases = [
-    { id: "callout_3k8m2n4p", prefix: "callout", expected: true, name: "valid callout ID" },
-    { id: "annotation_7abc123d", prefix: "annotation", expected: true, name: "valid annotation ID" },
+    { id: "callout-3k8m2n4p", prefix: "callout", expected: true, name: "valid callout ID" },
+    { id: "annotation-7abc123d", prefix: "annotation", expected: true, name: "valid annotation ID" },
     { id: "code_fiscal-reporting", prefix: "callout", expected: false, name: "wrong prefix" },
-    { id: "callout_my-custom-id", prefix: "callout", expected: false, name: "hyphens in suffix" },
-    { id: "callout_abc", prefix: "callout", expected: false, name: "suffix too short" },
-    { id: "callout_ABCDEFGH", prefix: "callout", expected: false, name: "uppercase in suffix" },
+    { id: "callout-my-custom-id", prefix: "callout", expected: false, name: "hyphens in suffix" },
+    { id: "callout-abc", prefix: "callout", expected: false, name: "suffix too short" },
+    { id: "callout-ABCDEFGH", prefix: "callout", expected: false, name: "uppercase in suffix" },
     { id: "", prefix: "callout", expected: false, name: "empty string" },
   ]
 
@@ -75,7 +75,7 @@ describe("fillMissingIds", () => {
 
       expect(result.generated).toHaveLength(1)
       expect(result.generated[0].type).toBe("json-attributes.annotations")
-      expect(result.generated[0].id).toMatch(/^annotation_/)
+      expect(result.generated[0].id).toMatch(/^annotation-/)
       expect(result.content).toContain(`"id": "${result.generated[0].id}"`)
     })
 
@@ -94,8 +94,8 @@ describe("fillMissingIds", () => {
       const result = fillMissingIds(input)
 
       expect(result.generated).toHaveLength(2)
-      expect(result.generated[0].id).toMatch(/^annotation_/)
-      expect(result.generated[1].id).toMatch(/^annotation_/)
+      expect(result.generated[0].id).toMatch(/^annotation-/)
+      expect(result.generated[1].id).toMatch(/^annotation-/)
       expect(result.generated[0].id).not.toBe(result.generated[1].id)
     })
 
@@ -172,7 +172,7 @@ describe("fillMissingIds", () => {
         input: calloutBlock("code_fiscal-reporting"),
         original: emptyOriginal,
         expectNormalized: true,
-        expectedPrefix: /^callout_/,
+        expectedPrefix: /^callout-/,
         expectedSource: "code_fiscal-reporting",
       },
       {
@@ -189,7 +189,7 @@ describe("fillMissingIds", () => {
       },
       {
         name: "preserves system-format callout ID",
-        input: calloutBlock("callout_3k8m2n4p"),
+        input: calloutBlock("callout-3k8m2n4p"),
         original: emptyOriginal,
         expectNormalized: false,
       },
@@ -198,12 +198,12 @@ describe("fillMissingIds", () => {
         input: annotationBlock("my-annotation"),
         original: emptyOriginal,
         expectNormalized: true,
-        expectedPrefix: /^annotation_/,
+        expectedPrefix: /^annotation-/,
         expectedSource: "my-annotation",
       },
       {
         name: "preserves system-format annotation ID",
-        input: annotationBlock("annotation_7abc123d"),
+        input: annotationBlock("annotation-7abc123d"),
         original: emptyOriginal,
         expectNormalized: false,
       },
@@ -268,6 +268,47 @@ describe("replaceUuidPlaceholders", () => {
 
     expect(result.generated).toEqual({})
     expect(result.result).toBe(input)
+  })
+
+  describe("normalization", () => {
+    const cases = [
+      {
+        name: "lowercases and dasherizes",
+        input: '{"id": "[uuid-callout-User Frustration]"}',
+        expectedKey: "callout-user-frustration",
+      },
+      {
+        name: "trims whitespace",
+        input: '{"id": "[uuid-callout- spaced ]"}',
+        expectedKey: "callout-spaced",
+      },
+      {
+        name: "collapses multiple dashes",
+        input: '{"id": "[uuid-callout--double--dash]"}',
+        expectedKey: "callout-double-dash",
+      },
+      {
+        name: "replaces underscores with dashes",
+        input: '{"id": "[uuid-callout-some_name]"}',
+        expectedKey: "callout-some-name",
+      },
+      {
+        name: "same key for different casing",
+        input: '{"a": "[uuid-callout-Theme A]", "b": "[uuid-callout-theme a]"}',
+        expectedKey: "callout-theme-a",
+        expectedCount: 1,
+      },
+    ]
+
+    cases.forEach(({ name, input, expectedKey, expectedCount }) => {
+      it(name, () => {
+        const result = replaceUuidPlaceholders(input)
+        expect(result.generated).toHaveProperty(expectedKey)
+        if (expectedCount !== undefined) {
+          expect(Object.keys(result.generated)).toHaveLength(expectedCount)
+        }
+      })
+    })
   })
 
   describe("persistent placeholder map", () => {

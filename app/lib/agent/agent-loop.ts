@@ -45,7 +45,7 @@ const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
 const readStepCompaction = (): boolean =>
-  readDebugOption("stepCompaction", true)
+  readDebugOption("stepCompaction", false)
 
 const writeDebugOption = (key: string, value: unknown): void => {
   if (typeof window === "undefined") return
@@ -120,7 +120,8 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
     const tools = modeConfig.tools.map(toToolDefinition)
     const nudge = collect(...modeConfig.nudges)
 
-    const nudges = await nudge(excludeReasoning(blocks))
+    const visible = compactHistory(blocks, getFiles())
+    const nudges = await nudge(excludeReasoning(visible))
     if (nudges.length === 0) return
 
     const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))

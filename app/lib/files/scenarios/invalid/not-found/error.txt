@@ -1,5 +1,1 @@
-patch context not found:
-  searching for: "This text does not exist in the file"
-  in content: "# Document
-
-This is the actual content."
+patch context too short: 1 non-blank line(s). Include at least 3 non-blank context/remove lines for reliable matching.

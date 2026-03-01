@@ -3,7 +3,7 @@ import type { ToolExecutor } from "../turn"
 import { pushBlocks, getAllBlocks, subscribeBlocks } from "../block-store"
 import { getFiles } from "~/lib/files/store"
 import { derive, lastPlan, guardCompleteStep, hasDeliverable, isLastStep } from "../derived"
-import { deriveMode, buildModeResult, modeSystemBlocks } from "./modes"
+import { deriveMode, modeSystemBlocks } from "./modes"
 import type { ModeName } from "./modes"
 
 export type SpecialHandler = (call: { args: unknown }) => Promise<ToolResult<unknown>>
@@ -42,14 +42,14 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
 
 const handleSubmitPlan = (): ToolResult<unknown> => {
   pushBlocks(modeSystemBlocks("exec"))
-  return { status: "ok", output: buildModeResult("exec") }
+  return { status: "ok", output: "Plan submitted." }
 }
 
 const handleCancelInMode = (call: ToolCall, mode: ModeName): ToolResult<unknown> => {
   if (mode === "chat") return { status: "error", output: "Nothing to cancel." }
   pushBlocks(modeSystemBlocks("chat"))
   const reason = (call.args as { reason?: string }).reason ?? "Cancelled"
-  return { status: "ok", output: `Cancelled: ${reason}. ${buildModeResult("chat")}` }
+  return { status: "ok", output: `Cancelled: ${reason}.` }
 }
 
 const isStepGuarded = (name: string): boolean =>

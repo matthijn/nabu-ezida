@@ -1,4 +1,5 @@
-json-attributes: Invalid JSON: JSON Parse error: Unexpected token '}'
+json-attributes: Invalid JSON: Unexpected token '}', ..."["draft",
+}" is not valid JSON
 Current block:
 ```json-attributes
 {

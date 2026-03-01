@@ -55,8 +55,8 @@ describe("parseCodeBlocks", () => {
     },
     {
       name: "realistic codebook callout with multiline JSON",
-      input: `# Codebook\n\n\`\`\`json-callout\n{\n  "id": "callout_abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}\n\`\`\``,
-      expected: [{ language: "json-callout", content: '{\n  "id": "callout_abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}' }],
+      input: `# Codebook\n\n\`\`\`json-callout\n{\n  "id": "callout-abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}\n\`\`\``,
+      expected: [{ language: "json-callout", content: '{\n  "id": "callout-abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}' }],
     },
   ]
 

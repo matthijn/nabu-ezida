@@ -1,6 +1,6 @@
 {
   "files": {
-    "CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout_abc12345\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Multiline Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"\"\"\nA definition that spans\nmultiple lines.\n\"\"\"\n}\n```"
+    "CODEBOOK.md": "# Codebook\n\n```json-callout\n{\n  \"id\": \"callout-abc12345\",\n  \"type\": \"codebook-code\",\n  \"title\": \"Multiline Code\",\n  \"color\": \"brown\",\n  \"collapsed\": false,\n  \"content\": \"\"\"\nA definition that spans\nmultiple lines.\n\"\"\"\n}\n```"
   },
   "args": {
     "commands": [

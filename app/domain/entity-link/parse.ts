@@ -3,8 +3,8 @@ import type { EntityRef } from "./types"
 
 const FILE_PROTOCOL = "file://"
 const RANGE_DELIMITER = "..."
-const ANNOTATION_PREFIX = "annotation_"
-const CALLOUT_PREFIX = "callout_"
+const ANNOTATION_PREFIX = "annotation-"
+const CALLOUT_PREFIX = "callout-"
 
 const parseTextPart = (textPart: string): Spotlight | null => {
   if (!textPart) return null

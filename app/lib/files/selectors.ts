@@ -137,7 +137,7 @@ export const findDocumentForCallout = (files: Record<string, string>, id: string
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
 
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
-  id.startsWith("annotation_") ? findAnnotationById(files, id)?.text ?? null
-  : id.startsWith("callout_") ? findCalloutById(files, id)?.title ?? null
+  id.startsWith("annotation-") ? findAnnotationById(files, id)?.text ?? null
+  : id.startsWith("callout-") ? findCalloutById(files, id)?.title ?? null
   : id.endsWith(".md") && id.toLowerCase() in files ? toDisplayName(id.toLowerCase())
   : null

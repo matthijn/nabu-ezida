@@ -43,7 +43,7 @@ const raw: Record<ModeName, ModeConfig> = {
   chat: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, triageTool, askTool],
     triggers: ["cancel"],
-    reasoning: "low",
+    reasoning: "medium",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
@@ -109,8 +109,3 @@ export const modeSystemBlocks = (mode: ModeName): Block[] => {
   return blocks
 }
 
-export const buildModeResult = (mode: ModeName): string => {
-  const config = modes[mode]
-  const available = config.tools.map((t) => t.name).join(", ")
-  return `Mode: ${mode}. Available tools: ${available}.`
-}

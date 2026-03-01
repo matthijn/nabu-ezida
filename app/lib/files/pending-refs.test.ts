@@ -15,18 +15,18 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "removes markers, keeps ids",
-        input: '"code": "#[callout_1bc12345]"',
-        expected: '"code": "callout_1bc12345"',
+        input: '"code": "#[callout-1bc12345]"',
+        expected: '"code": "callout-1bc12345"',
       },
       {
         name: "handles multiple markers",
-        input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
-        expected: '"a": "code_1aaaaaaa", "b": "code_2bbbbbbb"',
+        input: '"a": "#[code-1aaaaaaa]", "b": "#[code-2bbbbbbb]"',
+        expected: '"a": "code-1aaaaaaa", "b": "code-2bbbbbbb"',
       },
       {
         name: "leaves clean content unchanged",
-        input: '"code": "callout_1bc12345"',
-        expected: '"code": "callout_1bc12345"',
+        input: '"code": "callout-1bc12345"',
+        expected: '"code": "callout-1bc12345"',
       },
     ]
 
@@ -39,12 +39,12 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "finds all pending ref markers",
-        input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
-        expected: ["code_1aaaaaaa", "code_2bbbbbbb"],
+        input: '"a": "#[code-1aaaaaaa]", "b": "#[code-2bbbbbbb]"',
+        expected: ["code-1aaaaaaa", "code-2bbbbbbb"],
       },
       {
         name: "returns empty for clean content",
-        input: '"code": "callout_1bc12345"',
+        input: '"code": "callout-1bc12345"',
         expected: [],
       },
     ]
@@ -56,8 +56,8 @@ describe("pending-refs", () => {
 
   describe("hasPendingRefs", () => {
     const cases = [
-      { name: "true for content with markers", input: '"code": "#[callout_1bc12345]"', expected: true },
-      { name: "false for clean content", input: '"code": "callout_1bc12345"', expected: false },
+      { name: "true for content with markers", input: '"code": "#[callout-1bc12345]"', expected: true },
+      { name: "false for clean content", input: '"code": "callout-1bc12345"', expected: false },
     ]
 
     cases.forEach(({ name, input, expected }) => {
@@ -69,17 +69,17 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "finds id field values",
-        input: '{"id": "callout_1bc12345", "title": "Test"}',
-        expected: new Set(["callout_1bc12345"]),
+        input: '{"id": "callout-1bc12345", "title": "Test"}',
+        expected: new Set(["callout-1bc12345"]),
       },
       {
         name: "finds multiple definitions",
-        input: '{"id": "code_1aaaaaaa"}\n{"id": "code_2bbbbbbb"}',
-        expected: new Set(["code_1aaaaaaa", "code_2bbbbbbb"]),
+        input: '{"id": "code-1aaaaaaa"}\n{"id": "code-2bbbbbbb"}',
+        expected: new Set(["code-1aaaaaaa", "code-2bbbbbbb"]),
       },
       {
         name: "ignores non-id fields with same pattern",
-        input: '{"code": "callout_1bc12345"}',
+        input: '{"code": "callout-1bc12345"}',
         expected: new Set(),
       },
       {
@@ -98,21 +98,21 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "marks unresolved foreign keys",
-        input: '{"code": "callout_1otfound"}',
+        input: '{"code": "callout-1otfound"}',
         definitions: new Set<string>(),
-        expected: '{"code": "#[callout_1otfound]"}',
+        expected: '{"code": "#[callout-1otfound]"}',
       },
       {
         name: "leaves resolved foreign keys unchanged",
-        input: '{"code": "callout_3xists12"}',
-        definitions: new Set(["callout_3xists12"]),
-        expected: '{"code": "callout_3xists12"}',
+        input: '{"code": "callout-3xists12"}',
+        definitions: new Set(["callout-3xists12"]),
+        expected: '{"code": "callout-3xists12"}',
       },
       {
         name: "does not mark definition ids",
-        input: '{"id": "callout_1bc12345"}',
+        input: '{"id": "callout-1bc12345"}',
         definitions: new Set<string>(),
-        expected: '{"id": "callout_1bc12345"}',
+        expected: '{"id": "callout-1bc12345"}',
       },
       {
         name: "does not mark strings without leading digit in suffix",
@@ -131,21 +131,21 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "resolves specific marker",
-        input: '"code": "#[callout_1bc12345]"',
-        id: "callout_1bc12345",
-        expected: '"code": "callout_1bc12345"',
+        input: '"code": "#[callout-1bc12345]"',
+        id: "callout-1bc12345",
+        expected: '"code": "callout-1bc12345"',
       },
       {
         name: "resolves all occurrences",
-        input: '"a": "#[code_1xx12345]", "b": "#[code_1xx12345]"',
-        id: "code_1xx12345",
-        expected: '"a": "code_1xx12345", "b": "code_1xx12345"',
+        input: '"a": "#[code-1xx12345]", "b": "#[code-1xx12345]"',
+        id: "code-1xx12345",
+        expected: '"a": "code-1xx12345", "b": "code-1xx12345"',
       },
       {
         name: "leaves other markers untouched",
-        input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
-        id: "code_1aaaaaaa",
-        expected: '"a": "code_1aaaaaaa", "b": "#[code_2bbbbbbb]"',
+        input: '"a": "#[code-1aaaaaaa]", "b": "#[code-2bbbbbbb]"',
+        id: "code-1aaaaaaa",
+        expected: '"a": "code-1aaaaaaa", "b": "#[code-2bbbbbbb]"',
       },
     ]
 
@@ -158,15 +158,15 @@ describe("pending-refs", () => {
     const cases = [
       {
         name: "resolves all markers that exist in definitions",
-        input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
-        definitions: new Set(["code_1aaaaaaa", "code_2bbbbbbb"]),
-        expected: '"a": "code_1aaaaaaa", "b": "code_2bbbbbbb"',
+        input: '"a": "#[code-1aaaaaaa]", "b": "#[code-2bbbbbbb]"',
+        definitions: new Set(["code-1aaaaaaa", "code-2bbbbbbb"]),
+        expected: '"a": "code-1aaaaaaa", "b": "code-2bbbbbbb"',
       },
       {
         name: "leaves unresolved markers",
-        input: '"a": "#[code_1aaaaaaa]", "b": "#[code_2bbbbbbb]"',
-        definitions: new Set(["code_1aaaaaaa"]),
-        expected: '"a": "code_1aaaaaaa", "b": "#[code_2bbbbbbb]"',
+        input: '"a": "#[code-1aaaaaaa]", "b": "#[code-2bbbbbbb]"',
+        definitions: new Set(["code-1aaaaaaa"]),
+        expected: '"a": "code-1aaaaaaa", "b": "#[code-2bbbbbbb]"',
       },
     ]
 
@@ -180,17 +180,17 @@ describe("pending-refs", () => {
       {
         name: "collects definitions from all files",
         files: {
-          "a.md": '{"id": "code_1aaaaaaa"}',
-          "b.md": '{"id": "code_2bbbbbbb"}',
+          "a.md": '{"id": "code-1aaaaaaa"}',
+          "b.md": '{"id": "code-2bbbbbbb"}',
         },
-        expected: new Set(["code_1aaaaaaa", "code_2bbbbbbb"]),
+        expected: new Set(["code-1aaaaaaa", "code-2bbbbbbb"]),
       },
       {
         name: "strips pending ref markers before finding definitions",
         files: {
-          "a.md": '{"id": "code_1aaaaaaa", "ref": "#[code_2bbbbbbb]"}',
+          "a.md": '{"id": "code-1aaaaaaa", "ref": "#[code-2bbbbbbb]"}',
         },
-        expected: new Set(["code_1aaaaaaa"]),
+        expected: new Set(["code-1aaaaaaa"]),
       },
     ]
 

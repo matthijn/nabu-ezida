@@ -1,6 +1,6 @@
 type NameResolver = (id: string) => string | null
 
-const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)_\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
+const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)-\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const QUOTES = new Set(['"', "'"])
 const FILE_PROTOCOL = "file://"

@@ -2,15 +2,14 @@ import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { getLabelKey, getIdPaths, type IdPathConfig } from "./registry"
 import { tryParseJson, isObject, parsePath } from "./json"
 
-const UUID_PLACEHOLDER_REGEX = /\[uuid-([a-zA-Z0-9_-]+)\]/g
-const TRAILING_NUMBER_REGEX = /-\d+$/
+const UUID_PLACEHOLDER_REGEX = /\[uuid-([^\]]+)\]/g
 const SYSTEM_ID_SUFFIX_RE = /^[a-z0-9]{6,10}$/
 
 export type GeneratedId = {
   id: string
   type: string
   label: string | null
-  source: string  // placeholder key like "uuid-callout-1", malformed ID, or "none"
+  source: string  // normalized placeholder name, malformed ID, or "none"
 }
 
 export type UuidMapping = Record<string, string>
@@ -29,14 +28,17 @@ const generateShortId = (): string => {
   return digit + rest
 }
 
+const normalizePlaceholderName = (name: string): string =>
+  name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")
+
 const extractPrefix = (name: string): string =>
-  name.replace(TRAILING_NUMBER_REGEX, "")
+  name.split("-")[0]
 
 const generatePrefixedId = (name: string): string =>
-  `${extractPrefix(name)}_${generateShortId()}`
+  `${extractPrefix(name)}-${generateShortId()}`
 
 export const isSystemId = (id: string, prefix: string): boolean => {
-  if (!id.startsWith(`${prefix}_`)) return false
+  if (!id.startsWith(`${prefix}-`)) return false
   return SYSTEM_ID_SUFFIX_RE.test(id.slice(prefix.length + 1))
 }
 
@@ -49,7 +51,7 @@ const shouldNormalizeId = (id: string, prefix: string, originalContent?: string)
 
 const resolveOrGenerateId = (malformedId: string, prefix: string): string => {
   if (malformedId in persistentIdMap) return persistentIdMap[malformedId]
-  const newId = `${prefix}_${generateShortId()}`
+  const newId = `${prefix}-${generateShortId()}`
   persistentIdMap[malformedId] = newId
   return newId
 }
@@ -58,7 +60,7 @@ type ResolvedId = { newId: string; source: string }
 
 const resolveId = (currentValue: unknown, prefix: string, originalContent?: string): ResolvedId | null => {
   if (isMissingId(currentValue)) {
-    return { newId: `${prefix}_${generateShortId()}`, source: "none" }
+    return { newId: `${prefix}-${generateShortId()}`, source: "none" }
   }
   if (typeof currentValue !== "string") return null
   if (!shouldNormalizeId(currentValue, prefix, originalContent)) return null
@@ -68,7 +70,8 @@ const resolveId = (currentValue: unknown, prefix: string, originalContent?: stri
 export const replaceUuidPlaceholders = (content: string): { result: string; generated: UuidMapping } => {
   const generated: UuidMapping = {}
 
-  const result = content.replace(UUID_PLACEHOLDER_REGEX, (_, name) => {
+  const result = content.replace(UUID_PLACEHOLDER_REGEX, (_, raw) => {
+    const name = normalizePlaceholderName(raw)
     if (!(name in persistentIdMap)) {
       persistentIdMap[name] = generatePrefixedId(name)
     }

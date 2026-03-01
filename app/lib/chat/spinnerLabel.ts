@@ -15,9 +15,21 @@ const toolLabels: Record<string, string> = {
   compacted: "Summarizing conversation",
 }
 
-const toLabel = (toolName: string | null): string => {
-  if (!toolName) return "Thought"
-  return toolLabels[toolName] ?? "Thought"
+const DEFAULT_LABEL = "Thought"
+
+const toLabel = (toolName: string | null): string =>
+  toolName ? toolLabels[toolName] ?? DEFAULT_LABEL : DEFAULT_LABEL
+
+const findLastBoldText = (text: string): string | null => {
+  const matches = [...text.matchAll(/\*\*(.+?)\*\*/g)]
+  return matches.length > 0 ? matches[matches.length - 1][1].trim() : null
+}
+
+export const blockToSpinnerLabel = (block: Block): string | null => {
+  if (block.type === "reasoning") return findLastBoldText(block.content) ?? DEFAULT_LABEL
+  if (block.type === "tool_call" && block.calls.length > 0) return toLabel(block.calls[block.calls.length - 1].name)
+  if (block.type === "tool_result") return toLabel(block.toolName ?? null)
+  return null
 }
 
 const findTurnStart = (history: Block[]): number => {
@@ -27,47 +39,15 @@ const findTurnStart = (history: Block[]): number => {
   return 0
 }
 
-const findLastBoldBlock = (text: string): string | null => {
-  const matches = [...text.matchAll(/\*\*(.+?)\*\*/g)]
-  return matches.length > 0 ? matches[matches.length - 1][1].trim() : null
-}
-
-const extractReasoningLabel = (text: string): string | null =>
-  findLastBoldBlock(text.trim())
-
-const findLastReasoningContent = (history: Block[], from: number): string | null => {
-  for (let i = history.length - 1; i >= from; i--) {
-    const block = history[i]
-    if (block.type === "reasoning") return block.content
-  }
-  return null
-}
-
-const getDraftToolName = (draft: Block | null): string | null => {
-  if (!draft || draft.type !== "tool_call") return null
-  return draft.calls[0]?.name ?? null
-}
-
-const findLastToolCallName = (history: Block[], from: number): string | null => {
-  for (let i = history.length - 1; i >= from; i--) {
-    const block = history[i]
-    if (block.type === "tool_call" && block.calls.length > 0) {
-      return block.calls[block.calls.length - 1].name
-    }
-  }
-  return null
-}
-
 export const getSpinnerLabel = (history: Block[], draft: Block | null): string => {
+  if (draft) {
+    const label = blockToSpinnerLabel(draft)
+    if (label) return label
+  }
   const turnStart = findTurnStart(history)
-
-  if (draft?.type === "reasoning") return extractReasoningLabel(draft.content) ?? "Thought"
-
-  const reasoning = findLastReasoningContent(history, turnStart)
-  if (reasoning) return extractReasoningLabel(reasoning) ?? "Thought"
-
-  const draftTool = getDraftToolName(draft)
-  if (draftTool) return toLabel(draftTool)
-
-  return toLabel(findLastToolCallName(history, turnStart))
+  for (let i = history.length - 1; i >= turnStart; i--) {
+    const label = blockToSpinnerLabel(history[i])
+    if (label) return label
+  }
+  return DEFAULT_LABEL
 }

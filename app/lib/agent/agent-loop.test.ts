@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "./types"
 import { shouldContinue, hasToolCalls, excludeReasoning } from "./agent-loop"
-import { deriveMode, buildModeResult } from "./executors/modes"
+import { deriveMode } from "./executors/modes"
 import { textBlock, userBlock, toolCallBlock, terminalResult, toolResult } from "./test-helpers"
 
 describe("shouldContinue", () => {
@@ -142,30 +142,4 @@ describe("deriveMode", () => {
   })
 })
 
-describe("buildModeResult", () => {
-  const cases: { name: string; mode: "chat" | "plan" | "exec"; contains: string[] }[] = [
-    {
-      name: "chat mode lists tools",
-      mode: "chat",
-      contains: ["Mode: chat", "triage"],
-    },
-    {
-      name: "plan mode lists tools",
-      mode: "plan",
-      contains: ["Mode: plan", "submit_plan", "cancel"],
-    },
-    {
-      name: "exec mode lists tools",
-      mode: "exec",
-      contains: ["Mode: exec", "complete_step"],
-    },
-  ]
-
-  cases.forEach(({ name, mode, contains }) => {
-    it(name, () => {
-      const result = buildModeResult(mode)
-      contains.forEach((s) => expect(result).toContain(s))
-    })
-  })
-})
 

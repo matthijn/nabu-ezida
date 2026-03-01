@@ -21,13 +21,13 @@ describe("parseEntityLink", () => {
     },
     {
       name: "parses annotation ref",
-      href: "file://annotation_abc123",
-      expected: { kind: "annotation", id: "annotation_abc123" },
+      href: "file://annotation-abc123",
+      expected: { kind: "annotation", id: "annotation-abc123" },
     },
     {
       name: "parses callout ref",
-      href: "file://callout_xyz789",
-      expected: { kind: "callout", id: "callout_xyz789" },
+      href: "file://callout-xyz789",
+      expected: { kind: "callout", id: "callout-xyz789" },
     },
     {
       name: "parses text ref without spotlight",
@@ -61,7 +61,7 @@ describe("parseEntityLink", () => {
     },
     {
       name: "returns null for plain text without file protocol",
-      href: "annotation_abc123",
+      href: "annotation-abc123",
       expected: null,
     },
   ]

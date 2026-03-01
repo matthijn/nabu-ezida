@@ -6,9 +6,9 @@ const userBlock = (content: string): Block => ({ type: "user", content })
 const textBlock = (content: string): Block => ({ type: "text", content })
 const systemBlock = (content: string): Block => ({ type: "system", content })
 
-const compactedToolCall = (summary: string, directives?: Record<string, string>): Block => ({
+const compactedToolCall = (summary: string): Block => ({
   type: "tool_call",
-  calls: [{ id: "compact_0", name: "compacted", args: { summary, ...(directives ? { directives } : {}) } }],
+  calls: [{ id: "compact_0", name: "compacted", args: { summary } }],
 })
 
 const compactedResult = (): Block => ({
@@ -165,10 +165,12 @@ describe("compactHistory", () => {
       ],
     },
     {
-      name: "compacted with directives — pending + directive blocks",
+      name: "collects directive blocks from pre-compaction history",
       blocks: [
+        systemBlock("<!-- prompt: planning -->"),
+        systemBlock("<!-- reasoning: high -->"),
         userBlock("hi"),
-        compactedToolCall("Summary here", { prompt: "planning", reasoning: "high" }),
+        compactedToolCall("Summary here"),
         compactedResult(),
       ],
       files: {},
@@ -180,10 +182,12 @@ describe("compactHistory", () => {
       ],
     },
     {
-      name: "compacted with directives and trailing blocks",
+      name: "last directive per key wins",
       blocks: [
+        systemBlock("<!-- prompt: planning -->"),
         userBlock("hi"),
-        compactedToolCall("Summary", { prompt: "execution" }),
+        systemBlock("<!-- prompt: execution -->"),
+        compactedToolCall("Summary"),
         compactedResult(),
         userBlock("continue"),
       ],
