@@ -147,31 +147,24 @@ export const extractAskMessages = (history: Block[]): AskExtraction => {
   return { messages, consumedUserIndices: consumed }
 }
 
-const PAUSING_TOOLS = new Set(["ask", "submit_plan"])
+const isAskToolCall = (block: Block): boolean =>
+  isToolCallBlock(block) && block.calls.some((c) => c.name === "ask")
 
-const isPausingToolCall = (block: Block): boolean =>
-  isToolCallBlock(block) && block.calls.some((c) => PAUSING_TOOLS.has(c.name))
-
-const findPausingCall = (block: Block): ToolCall | undefined =>
-  isToolCallBlock(block) ? block.calls.find((c) => PAUSING_TOOLS.has(c.name)) : undefined
+const findAskCall = (block: Block): ToolCall | undefined =>
+  isToolCallBlock(block) ? block.calls.find((c) => c.name === "ask") : undefined
 
 const hasMatchingResult = (history: Block[], callId: string): boolean =>
   history.some((b) => b.type === "tool_result" && b.callId === callId)
 
-export type WaitingTool = "ask" | "submit_plan" | null
-
-export const getWaitingTool = (history: Block[]): WaitingTool => {
+export const isWaitingForAsk = (history: Block[]): boolean => {
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
     if (isDraft(block)) continue
-    if (block.type === "text" || block.type === "user") return null
-    if (isPausingToolCall(block)) {
-      const call = findPausingCall(block)!
-      return hasMatchingResult(history, call.id) ? null : call.name as WaitingTool
+    if (block.type === "text" || block.type === "user") return false
+    if (isAskToolCall(block)) {
+      const call = findAskCall(block)!
+      return !hasMatchingResult(history, call.id)
     }
   }
-  return null
+  return false
 }
-
-export const isWaitingForInput = (history: Block[]): boolean =>
-  getWaitingTool(history) !== null

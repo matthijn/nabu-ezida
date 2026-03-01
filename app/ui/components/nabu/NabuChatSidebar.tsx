@@ -32,7 +32,7 @@ import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type StepStatus } from "~/lib/chat/group"
 import type { AskMessage } from "~/lib/chat/messages"
-import { getWaitingTool } from "~/lib/chat/messages"
+import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
@@ -484,8 +484,7 @@ export const NabuChatSidebar = () => {
   const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const segments = useMemo(() => toRenderSegments(messages), [messages])
-  const waitingTool = useMemo(() => getWaitingTool(history), [history])
-  const waitingForInput = waitingTool !== null
+  const waitingForInput = useMemo(() => isWaitingForAsk(history), [history])
 
   const memoryContent = files[PREFERENCES_FILE]
 
@@ -628,7 +627,7 @@ export const NabuChatSidebar = () => {
             <TextFieldUnstyled className="grow min-h-5">
               <TextFieldUnstyled.Textarea
                 ref={inputRef}
-                placeholder={waitingTool === "submit_plan" ? "Approve plan or give feedback..." : waitingTool === "ask" ? "Or type your own answer..." : `Message ${recipient.name}...`}
+                placeholder={waitingForInput ? "Or type your own answer..." : `Message ${recipient.name}...`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}

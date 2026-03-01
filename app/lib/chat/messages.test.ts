@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
-import { toRenderMessages, extractAskMessages, getWaitingTool, type RenderMessage, type AskMessage, type WaitingTool } from "./messages"
+import { toRenderMessages, extractAskMessages, isWaitingForAsk, type RenderMessage, type AskMessage } from "./messages"
 import {
   submitPlanCall,
   submitPlanCallPending,
@@ -258,68 +258,53 @@ describe("extractAskMessages", () => {
   })
 })
 
-describe("getWaitingTool", () => {
-  const cases: { name: string; history: Block[]; expected: WaitingTool }[] = [
+describe("isWaitingForAsk", () => {
+  const cases: { name: string; history: Block[]; expected: boolean }[] = [
     {
-      name: "no waiting blocks returns null",
+      name: "no waiting blocks returns false",
       history: [userBlock("Hello"), textBlock("Hi")],
-      expected: null,
+      expected: false,
     },
     {
-      name: "pending ask returns ask",
+      name: "pending ask returns true",
       history: [...askCallPending("Pick one", ["A", "B"])],
-      expected: "ask",
+      expected: true,
     },
     {
-      name: "answered ask returns null",
+      name: "answered ask returns false",
       history: [...askCall("Pick one", ["A", "B"], "A")],
-      expected: null,
+      expected: false,
     },
     {
-      name: "ask followed by text returns null",
+      name: "ask followed by text returns false",
       history: [...askCallPending("Pick", ["A", "B"]), textBlock("Continuing")],
-      expected: null,
+      expected: false,
     },
     {
-      name: "ask followed by user returns null",
+      name: "ask followed by user returns false",
       history: [...askCallPending("Pick", ["A", "B"]), userBlock("My answer")],
-      expected: null,
+      expected: false,
     },
     {
-      name: "answered ask then new pending ask returns ask",
+      name: "answered ask then new pending ask returns true",
       history: [
         ...askCall("Q1", ["A", "B"], "A"),
         ...askCallPending("Q2", ["C", "D"]),
       ],
-      expected: "ask",
+      expected: true,
     },
     {
-      name: "draft ask tool call returns null",
+      name: "draft ask tool call returns false",
       history: [
         { type: "tool_call" as const, calls: [{ id: "", name: "ask", args: {} }], draft: true as const },
       ],
-      expected: null,
-    },
-    {
-      name: "pending submit_plan returns submit_plan",
-      history: [...submitPlanCallPending("Build feature", ["Design", "Implement"])],
-      expected: "submit_plan",
-    },
-    {
-      name: "answered submit_plan returns null",
-      history: [...submitPlanCall("Build feature", ["Design", "Implement"])],
-      expected: null,
-    },
-    {
-      name: "pending submit_plan followed by text returns null",
-      history: [...submitPlanCallPending("Task", ["Step"]), textBlock("Continuing")],
-      expected: null,
+      expected: false,
     },
   ]
 
   cases.forEach(({ name, history, expected }) => {
     it(name, () => {
-      expect(getWaitingTool(history)).toBe(expected)
+      expect(isWaitingForAsk(history)).toBe(expected)
     })
   })
 })
