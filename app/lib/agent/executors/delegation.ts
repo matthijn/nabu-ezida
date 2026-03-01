@@ -4,7 +4,6 @@ import { pushBlocks, getAllBlocks, subscribeBlocks } from "../block-store"
 import { getFiles } from "~/lib/files/store"
 import { derive, lastPlan, guardCompleteStep, hasDeliverable, isLastStep } from "../derived"
 import { deriveMode, modeSystemBlocks } from "./modes"
-import type { ModeName } from "./modes"
 
 export type SpecialHandler = (call: { args: unknown }) => Promise<ToolResult<unknown>>
 
@@ -40,12 +39,9 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
   })
 }
 
-const handleSubmitPlan = (): ToolResult<unknown> => {
-  pushBlocks(modeSystemBlocks("exec"))
-  return { status: "ok", output: "Plan submitted." }
-}
-
-const handleCancelInMode = (call: ToolCall, mode: ModeName): ToolResult<unknown> => {
+const handleCancelInMode = (call: ToolCall): ToolResult<unknown> => {
+  const blocks = getAllBlocks()
+  const mode = deriveMode(blocks)
   if (mode === "chat") return { status: "error", output: "Nothing to cancel." }
   pushBlocks(modeSystemBlocks("chat"))
   const reason = (call.args as { reason?: string }).reason ?? "Cancelled"
@@ -75,18 +71,9 @@ const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
   return null
 }
 
-const isModeTransition = (name: string): boolean =>
-  name === "submit_plan" || name === "cancel"
-
 export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
   async (call) => {
-    if (isModeTransition(call.name)) {
-      const blocks = getAllBlocks()
-      const mode = deriveMode(blocks)
-
-      if (call.name === "submit_plan") return handleSubmitPlan()
-      if (call.name === "cancel") return handleCancelInMode(call, mode)
-    }
+    if (call.name === "cancel") return handleCancelInMode(call)
 
     const handler = specialHandlers.get(call.name)
     if (handler) return handler(call)

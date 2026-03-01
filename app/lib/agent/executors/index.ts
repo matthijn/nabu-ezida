@@ -12,6 +12,7 @@ import "./tools/remove-file"
 import "./tools/patch-json-block"
 import "./tools/run-local-shell"
 import "./tools/ask"
+import "./tools/submit-plan"
 import "./tools/compact"
 import "./tools/triage"
 

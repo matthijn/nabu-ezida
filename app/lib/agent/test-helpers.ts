@@ -55,6 +55,14 @@ export const cancelCall = (reason = "Stopping", need?: string): Block[] => {
   })
 }
 
+export const submitPlanCallPending = (task: string, steps: StepInput[]): Block[] => {
+  const id = nextCallId()
+  return [{
+    type: "tool_call",
+    calls: [{ id, name: "submit_plan", args: { task, steps: steps.map(toStepDef) } }],
+  }]
+}
+
 export const askCallPending = (question: string, options: string[]): Block[] => {
   const id = nextCallId()
   return [{

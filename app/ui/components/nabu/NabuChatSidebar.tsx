@@ -32,7 +32,7 @@ import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type StepStatus } from "~/lib/chat/group"
 import type { AskMessage } from "~/lib/chat/messages"
-import { isWaitingForAsk } from "~/lib/chat/messages"
+import { getWaitingTool } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
@@ -484,7 +484,8 @@ export const NabuChatSidebar = () => {
   const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const segments = useMemo(() => toRenderSegments(messages), [messages])
-  const waitingForAsk = useMemo(() => isWaitingForAsk(history), [history])
+  const waitingTool = useMemo(() => getWaitingTool(history), [history])
+  const waitingForInput = waitingTool !== null
 
   const memoryContent = files[PREFERENCES_FILE]
 
@@ -515,7 +516,7 @@ export const NabuChatSidebar = () => {
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
-    if (waitingForAsk) {
+    if (waitingForInput) {
       respond(inputValue.trim())
       setInputValue("")
       return
@@ -523,7 +524,7 @@ export const NabuChatSidebar = () => {
     if (loading) return
     send(inputValue.trim(), getDeps())
     setInputValue("")
-  }, [loading, waitingForAsk, inputValue, send, respond, getDeps])
+  }, [loading, waitingForInput, inputValue, send, respond, getDeps])
 
   const markTyping = useCallback(() => {
     setIsTyping(true)
@@ -620,20 +621,20 @@ export const NabuChatSidebar = () => {
                 </AnimatedListItem>
               )}
             </AnimatePresence>
-            {!waitingForAsk && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+            {!waitingForInput && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
           </AutoScroll>
 
-          <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForAsk ? "bg-neutral-50" : ""}`}>
+          <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForInput ? "bg-neutral-50" : ""}`}>
             <TextFieldUnstyled className="grow min-h-5">
               <TextFieldUnstyled.Textarea
                 ref={inputRef}
-                placeholder={waitingForAsk ? "Or type your own answer..." : `Message ${recipient.name}...`}
+                placeholder={waitingTool === "submit_plan" ? "Approve plan or give feedback..." : waitingTool === "ask" ? "Or type your own answer..." : `Message ${recipient.name}...`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
             </TextFieldUnstyled>
-            {loading && !waitingForAsk ? (
+            {loading && !waitingForInput ? (
               <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
                 Cancel
               </Button>

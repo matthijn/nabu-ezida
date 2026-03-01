@@ -7,8 +7,7 @@ export const SegmentFileResponse = z.object({
     group: z.string().describe("Group this section belongs to (empty string if none)"),
     desc: z.string().describe("Brief description of what the section contains"),
   })),
-  file_context: z.string().describe("One-sentence summary of the entire file"),
-  error: z.string().nullable().optional().describe("Set when the file doesn't match the stated reason (e.g. expected a codebook but found a transcript)"),
+  file_context: z.string().describe("One-sentence summary of what the file contains and its format"),
 })
 
 export type SegmentResult = z.infer<typeof SegmentFileResponse>
@@ -30,8 +29,6 @@ export const segmentContent = async (prose: string, instruction: string): Promis
 
   const result = SegmentFileResponse.safeParse(JSON.parse(text))
   if (!result.success) throw new Error(`Invalid segmenter response: ${result.error.message}`)
-
-  if (result.data.error) throw new Error(result.data.error)
 
   return result.data
 }

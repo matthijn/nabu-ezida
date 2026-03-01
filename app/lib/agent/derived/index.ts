@@ -157,6 +157,13 @@ export const isPlanPaused = (history: Block[]): boolean => {
 export const actionsSinceStepChange = (history: Block[]): number =>
   countActionsSinceBoundary(history, isStepBoundary)
 
+export const findLastUserContent = (blocks: Block[]): string => {
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i].type === "user") return (blocks[i] as { type: "user"; content: string }).content
+  }
+  return ""
+}
+
 export {
   type DerivedPlan,
   type Step,
