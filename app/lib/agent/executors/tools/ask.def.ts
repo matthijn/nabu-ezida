@@ -4,6 +4,7 @@ import type { AnyTool } from "../tool"
 export const AskArgs = z.object({
   question: z.string().describe("A focused question with enough context for the user to decide."),
   options: z.array(z.string()).min(2).describe("Concrete, actionable choices. Each option is a direction you can act on immediately."),
+  persist: z.boolean().optional().describe("Set to true when the answer applies across the project — methodology choices, analytical preferences, scope decisions that hold for every file. Omit for file-specific or section-specific questions."),
 })
 
 export const askTool: AnyTool = {

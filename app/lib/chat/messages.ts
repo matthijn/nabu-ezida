@@ -74,6 +74,7 @@ export type AskMessage = {
   question: string
   options: string[]
   selected: string | null
+  persist: boolean
 }
 
 type AskExtraction = {
@@ -107,9 +108,11 @@ const findConsumedUserIndices = (history: Block[], askIndex: number, callId: str
   return indices
 }
 
-const parseAskArgs = (args: Record<string, unknown>): { question: string; options: string[] } | null => {
+type ParsedAskArgs = { question: string; options: string[]; persist: boolean }
+
+const parseAskArgs = (args: Record<string, unknown>): ParsedAskArgs | null => {
   const parsed = AskArgs.safeParse(args)
-  return parsed.success ? parsed.data : null
+  return parsed.success ? { ...parsed.data, persist: parsed.data.persist ?? false } : null
 }
 
 const extractSingleAsk = (
@@ -135,6 +138,7 @@ const extractSingleAsk = (
       question: args.question,
       options: args.options,
       selected,
+      persist: args.persist,
     },
   }]
 }

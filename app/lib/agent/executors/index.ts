@@ -15,6 +15,7 @@ import "./tools/ask"
 import "./tools/submit-plan"
 import "./tools/compact"
 import "./tools/triage"
+import "./tools/get-approach"
 
 export type { ToolDeps }
 export { getToolDefinitions }

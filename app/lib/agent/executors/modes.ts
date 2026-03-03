@@ -8,6 +8,7 @@ import {
   triageTool,
   completeStep,
   askTool,
+  getApproachTool,
 } from "./tools"
 import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -41,7 +42,7 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, triageTool, askTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, triageTool, getApproachTool, askTool],
     triggers: ["cancel"],
     reasoning: "medium",
     nudges: [baselineNudge, memoryNudge],

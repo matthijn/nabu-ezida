@@ -63,18 +63,18 @@ export const submitPlanCallPending = (task: string, steps: StepInput[]): Block[]
   }]
 }
 
-export const askCallPending = (question: string, options: string[]): Block[] => {
+export const askCallPending = (question: string, options: string[], persist = false): Block[] => {
   const id = nextCallId()
   return [{
     type: "tool_call",
-    calls: [{ id, name: "ask", args: { question, options } }],
+    calls: [{ id, name: "ask", args: { question, options, persist } }],
   }]
 }
 
-export const askCall = (question: string, options: string[], answer: string): Block[] => {
+export const askCall = (question: string, options: string[], answer: string, persist = false): Block[] => {
   const id = nextCallId()
   return [
-    { type: "tool_call", calls: [{ id, name: "ask", args: { question, options } }] },
+    { type: "tool_call", calls: [{ id, name: "ask", args: { question, options, persist } }] },
     { type: "user" as const, content: answer },
     { type: "tool_result", callId: id, result: { status: "ok", output: answer } },
   ]

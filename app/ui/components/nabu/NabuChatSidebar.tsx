@@ -14,6 +14,7 @@ import {
   FeatherLoader2,
   FeatherMessageSquare,
   FeatherMinus,
+  FeatherPin,
   FeatherSend,
   FeatherSparkles,
   FeatherX,
@@ -266,29 +267,51 @@ type AskRendererProps = {
 const isTypedAnswer = (message: AskMessage): boolean =>
   message.selected !== null && !message.options.includes(message.selected)
 
-const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSelect, onToggleSave }: AskRendererProps) => (
-  <div className="flex w-full flex-col items-start gap-2 mb-3">
-    <AssistantBubble><MessageContent content={message.question} files={files} projectId={projectId} navigate={navigate} /></AssistantBubble>
-    <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
-      {message.options.map((option) => {
-        const selected = message.selected === option
-        return (
-          <OptionCard
-            key={option}
-            selected={selected}
-            dimmed={message.selected !== null && !selected}
-            saved={selected && isAnswerSaved(memoryContent, message.question, option)}
-            onClick={message.selected === null ? () => onSelect(option) : undefined}
-            onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
-          >
-            <InlineMarkdown files={files} projectId={projectId}>{option}</InlineMarkdown>
-          </OptionCard>
-        )
-      })}
-    </div>
-    {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} navigate={navigate} /></UserBubble>}
-  </div>
+const PersistBadge = () => (
+  <span className="flex items-center gap-1 text-caption font-caption text-subtext-color">
+    <FeatherPin className="w-3 h-3" />
+    <span>Project-wide</span>
+  </span>
 )
+
+const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSelect, onToggleSave }: AskRendererProps) => {
+  const selectedSaved = message.selected !== null && isAnswerSaved(memoryContent, message.question, message.selected)
+
+  useEffect(() => {
+    if (message.persist && message.selected && !selectedSaved) {
+      onToggleSave(message.question, message.selected)
+    }
+  }, [message.persist, message.selected, selectedSaved, onToggleSave, message.question])
+
+  return (
+    <div className="flex w-full flex-col items-start gap-2 mb-3">
+      <AssistantBubble>
+        <div className="flex flex-col gap-1">
+          <MessageContent content={message.question} files={files} projectId={projectId} navigate={navigate} />
+          {message.persist && <PersistBadge />}
+        </div>
+      </AssistantBubble>
+      <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
+        {message.options.map((option) => {
+          const selected = message.selected === option
+          return (
+            <OptionCard
+              key={option}
+              selected={selected}
+              dimmed={message.selected !== null && !selected}
+              saved={selected && isAnswerSaved(memoryContent, message.question, option)}
+              onClick={message.selected === null ? () => onSelect(option) : undefined}
+              onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
+            >
+              <InlineMarkdown files={files} projectId={projectId}>{option}</InlineMarkdown>
+            </OptionCard>
+          )
+        })}
+      </div>
+      {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} navigate={navigate} /></UserBubble>}
+    </div>
+  )
+}
 
 const isAskMessage = (m: GroupedMessage): m is AskMessage => m.type === "ask"
 
