@@ -1,11 +1,11 @@
 import { diffLines } from "diff"
-import { findSingletonBlock } from "~/domain/blocks/parse"
+import { findSingletonBlock, replaceSingletonBlock } from "~/domain/blocks/parse"
 
 export type JsonBlockPatchResult =
   | { ok: true; patch: string }
   | { ok: false; error: string }
 
-const formatJson = (obj: object): string => JSON.stringify(obj, null, "\t")
+export const formatJson = (obj: object): string => JSON.stringify(obj, null, "\t")
 
 const prefixLines = (lines: string[], prefix: string): string[] =>
   lines.map((line) => prefix + line)
@@ -28,28 +28,31 @@ const generateLineDiff = (oldStr: string, newStr: string): string[] => {
   return result
 }
 
-export const generateJsonBlockPatch = (
-  docContent: string,
-  blockLanguage: string,
-  newJson: object
+export const generateBlockContentDiff = (
+  oldDoc: string,
+  newDoc: string,
+  blockLanguage: string
 ): JsonBlockPatchResult => {
-  const block = findSingletonBlock(docContent, blockLanguage)
-  const newJsonStr = formatJson(newJson)
+  const oldBlock = findSingletonBlock(oldDoc, blockLanguage)
+  const newBlock = findSingletonBlock(newDoc, blockLanguage)
 
-  if (!block) {
-    const newBlock = "```" + blockLanguage + "\n" + newJsonStr + "\n```"
-    const lines = newBlock.split("\n")
-    const patch = "@@\n" + prefixLines(["", ...lines], "+").join("\n")
-    return { ok: true, patch }
+  if (!oldBlock && !newBlock) return { ok: true, patch: "" }
+
+  if (!oldBlock && newBlock) {
+    const blockText = newDoc.slice(newBlock.start, newBlock.end)
+    const lines = blockText.split("\n")
+    return { ok: true, patch: "@@\n" + prefixLines(["", ...lines], "+").join("\n") }
   }
 
-  const oldJsonStr = block.content
+  if (oldBlock && !newBlock) {
+    return { ok: false, error: "Block removed unexpectedly" }
+  }
 
-  if (oldJsonStr.trim() === newJsonStr.trim()) {
+  if (oldBlock!.content.trim() === newBlock!.content.trim()) {
     return { ok: true, patch: "" }
   }
 
-  const diffedLines = generateLineDiff(oldJsonStr, newJsonStr)
+  const diffedLines = generateLineDiff(oldBlock!.content, newBlock!.content)
 
   const patchLines = ["@@"]
   patchLines.push("```" + blockLanguage)
@@ -57,4 +60,13 @@ export const generateJsonBlockPatch = (
   patchLines.push("```")
 
   return { ok: true, patch: patchLines.join("\n") }
+}
+
+export const generateJsonBlockPatch = (
+  docContent: string,
+  blockLanguage: string,
+  newJson: object
+): JsonBlockPatchResult => {
+  const newDoc = replaceSingletonBlock(docContent, blockLanguage, formatJson(newJson))
+  return generateBlockContentDiff(docContent, newDoc, blockLanguage)
 }

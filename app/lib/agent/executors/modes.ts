@@ -5,10 +5,9 @@ import {
   patchJsonBlock, applyLocalPatch,
   copyFile, renameFile, removeFile, runLocalShell,
   cancel,
-  triageTool,
+  preflightTool,
   completeStep,
   askTool,
-  getApproachTool,
 } from "./tools"
 import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -17,14 +16,16 @@ import { createMemoryNudge } from "../steering/nudges/memory"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
-
-export type ReasoningLevel = "low" | "medium" | "high"
+// off is for gpt mini, none is for gpt regular (or its 5.2 vs 5... unclear)
+export type ReasoningLevel = "none" | "low" | "medium" | "high"
 
 export type ModeConfig = {
   tools: AnyTool[]
   triggers: string[]
   prompt?: string
+  model: string
   reasoning: ReasoningLevel
+  verbosity: string
   nudges: Nudger[]
 }
 
@@ -42,23 +43,29 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, triageTool, getApproachTool, askTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, preflightTool, askTool],
     triggers: ["cancel"],
-    reasoning: "medium",
+    model: "gpt-5.2",
+    reasoning: "none",
+    verbosity: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   plan: {
-    tools: [runLocalShell, submitPlanTool, cancel, askTool],
+    tools: [runLocalShell, preflightTool, submitPlanTool, cancel, askTool],
     triggers: [],
     prompt: "planning",
-    reasoning: "medium",
+    model: "gpt-5.2",
+    reasoning: "low",
+    verbosity: "low",
     nudges: [baselineNudge, memoryNudge],
   },
   exec: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep],
     triggers: ["submit_plan"],
     prompt: "execution",
+    model: "gpt-5.2",
     reasoning: "medium",
+    verbosity: "low",
     nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
   },
 }
@@ -106,7 +113,9 @@ export const modeSystemBlocks = (mode: ModeName): Block[] => {
   const config = modes[mode]
   const blocks: Block[] = []
   if (config.prompt) blocks.push({ type: "system", content: `<!-- prompt: ${config.prompt} -->` })
+  blocks.push({ type: "system", content: `<!-- model: ${config.model} -->` })
   blocks.push({ type: "system", content: `<!-- reasoning: ${config.reasoning} -->` })
+  blocks.push({ type: "system", content: `<!-- verbosity: ${config.verbosity} -->` })
   return blocks
 }
 

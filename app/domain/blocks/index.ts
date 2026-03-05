@@ -1,5 +1,5 @@
 export { blockTypes, getBlockConfig, isKnownBlockType, isSingleton, getBlockSchemaDefinitions, getActorPaths, type ValidationContext, type BlockSchemaDefinition, type ActorPathConfig } from "./registry"
-export { parseCodeBlocks, findBlocksByLanguage, findSingletonBlock, parseBlockJson, replaceSingletonBlock, type CodeBlock } from "./parse"
+export { parseCodeBlocks, findBlocksByLanguage, findSingletonBlock, parseBlockJson, replaceSingletonBlock, type CodeBlock, type ParseJsonResult } from "./parse"
 export {
   replaceUuidPlaceholders,
   hasUuidPlaceholders,

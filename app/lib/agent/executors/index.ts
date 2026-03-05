@@ -14,8 +14,7 @@ import "./tools/run-local-shell"
 import "./tools/ask"
 import "./tools/submit-plan"
 import "./tools/compact"
-import "./tools/triage"
-import "./tools/get-approach"
+import "./tools/preflight"
 
 export type { ToolDeps }
 export { getToolDefinitions }

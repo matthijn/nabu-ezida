@@ -1,17 +1,17 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, afterEach } from "vitest"
 import { patchJsonBlock, autoFuzzyAnnotationText, resolveSelectors, partitionNumericIndices } from "./tools/patch-json-block"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
-
-const makeFiles = (entries: Record<string, string>): Map<string, string> =>
-  new Map(Object.entries(entries))
+import { setFiles } from "~/lib/files"
 
 const doc = (json: object, language = "json-attributes"): string =>
   `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, "\t")}\n\`\`\`\n\nMore text.\n`
 
 describe("patch_json_block", () => {
+  afterEach(() => setFiles({}))
+
   type Case = {
     name: string
-    files: Map<string, string>
+    files: Record<string, string>
     args: Record<string, unknown>
     expectStatus: "ok" | "partial" | "error"
     expectOutput: string | RegExp
@@ -22,7 +22,7 @@ describe("patch_json_block", () => {
   const cases: Case[] = [
     {
       name: "replace a field produces update_file operation",
-      files: makeFiles({ "doc.md": doc({ color: "red", count: 1 }) }),
+      files: ({ "doc.md": doc({ color: "red", count: 1 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -34,7 +34,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "add a field",
-      files: makeFiles({ "doc.md": doc({ name: "test" }) }),
+      files: ({ "doc.md": doc({ name: "test" }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -46,7 +46,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "remove a field",
-      files: makeFiles({ "doc.md": doc({ a: 1, b: 2 }) }),
+      files: ({ "doc.md": doc({ a: 1, b: 2 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -58,7 +58,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "no-op when result is identical",
-      files: makeFiles({ "doc.md": doc({ x: 1 }) }),
+      files: ({ "doc.md": doc({ x: 1 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -70,7 +70,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error when file not found",
-      files: makeFiles({}),
+      files: ({}),
       args: {
         path: "missing.md",
         language: "json-attributes",
@@ -80,19 +80,43 @@ describe("patch_json_block", () => {
       expectOutput: /No such file/,
     },
     {
-      name: "error when block not found",
-      files: makeFiles({ "doc.md": "# No blocks here\n" }),
+      name: "error when block not found for unknown language",
+      files: ({ "doc.md": "# No blocks here\n" }),
       args: {
         path: "doc.md",
-        language: "json-attributes",
+        language: "json-unknown",
         operations: [{ op: "replace", path: "/x", value: 1 }],
       },
       expectStatus: "error",
       expectOutput: /No .* block found/,
     },
     {
+      name: "auto-creates block for known language",
+      files: ({ "doc.md": "# No blocks here\n" }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "add", path: "/annotations/-", value: { text: "test", reason: "r", color: "red" } }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
+      name: "double extension resolves to correct file",
+      files: ({ "doc.md": doc({ color: "red" }) }),
+      args: {
+        path: "doc.md.md",
+        language: "json-attributes",
+        operations: [{ op: "replace", path: "/color", value: "blue" }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
       name: "error on invalid json pointer path",
-      files: makeFiles({ "doc.md": doc({ a: 1 }) }),
+      files: ({ "doc.md": doc({ a: 1 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -103,7 +127,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "different block language",
-      files: makeFiles({ "doc.md": doc({ key: "old" }, "json-callout") }),
+      files: ({ "doc.md": doc({ key: "old" }, "json-callout") }),
       args: {
         path: "doc.md",
         language: "json-callout",
@@ -115,7 +139,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "multiple operations in sequence",
-      files: makeFiles({ "doc.md": doc({ items: ["a"], count: 0 }) }),
+      files: ({ "doc.md": doc({ items: ["a"], count: 0 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -130,7 +154,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector removes by id",
-      files: makeFiles({
+      files: ({
         "doc.md": doc({
           annotations: [
             { id: "ann_1", text: "first" },
@@ -149,7 +173,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector replaces nested field",
-      files: makeFiles({
+      files: ({
         "doc.md": doc({
           annotations: [
             { id: "ann_1", code: "old" },
@@ -168,7 +192,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector error on no match",
-      files: makeFiles({
+      files: ({
         "doc.md": doc({ annotations: [{ id: "ann_1" }] }),
       }),
       args: {
@@ -181,7 +205,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "all numeric indices — error",
-      files: makeFiles({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      files: ({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -192,7 +216,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "mixed: applies valid ops, reports rejected numeric index",
-      files: makeFiles({ "doc.md": doc({ color: "red", annotations: [{ id: "ann_1", code: "x" }] }) }),
+      files: ({ "doc.md": doc({ color: "red", annotations: [{ id: "ann_1", code: "x" }] }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -208,7 +232,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "allows append with /-",
-      files: makeFiles({ "doc.md": doc({ annotations: [] }) }),
+      files: ({ "doc.md": doc({ annotations: [] }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -220,7 +244,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "partial: one op fails selector, other succeeds",
-      files: makeFiles({
+      files: ({
         "doc.md": doc({
           color: "red",
           annotations: [{ id: "ann_1", code: "x" }],
@@ -241,7 +265,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "partial: one op fails application, other succeeds",
-      files: makeFiles({ "doc.md": doc({ a: 1, b: 2 }) }),
+      files: ({ "doc.md": doc({ a: 1, b: 2 }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -257,7 +281,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error: all ops fail",
-      files: makeFiles({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      files: ({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -271,7 +295,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "partial: numeric rejection + op failure + success",
-      files: makeFiles({
+      files: ({
         "doc.md": doc({
           color: "red",
           annotations: [{ id: "ann_1", code: "x" }],
@@ -294,7 +318,8 @@ describe("patch_json_block", () => {
   ]
 
   it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMessage, expectMutations }) => {
-    const result = await patchJsonBlock.handle(files, args)
+    setFiles(files)
+    const result = await patchJsonBlock.handle(new Map(), args)
     expect(result.status).toBe(expectStatus)
     if (expectOutput instanceof RegExp) {
       expect(result.output).toMatch(expectOutput)

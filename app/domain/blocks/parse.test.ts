@@ -85,16 +85,27 @@ describe("findBlocksByLanguage", () => {
 })
 
 describe("parseBlockJson", () => {
-  const cases: { name: string; content: string; expected: unknown }[] = [
-    { name: "valid JSON", content: '{"a":1}', expected: { a: 1 } },
-    { name: "invalid JSON", content: "not json", expected: null },
-    { name: "JSON array", content: '[1,2,3]', expected: [1, 2, 3] },
+  const ok = (data: unknown) => ({ ok: true, data })
+
+  const cases: { name: string; content: string; check: (r: ReturnType<typeof parseBlockJson>) => void }[] = [
+    { name: "valid JSON object", content: '{"a":1}', check: (r) => expect(r).toEqual(ok({ a: 1 })) },
+    { name: "valid JSON array", content: '[1,2,3]', check: (r) => expect(r).toEqual(ok([1, 2, 3])) },
+    {
+      name: "invalid JSON returns error and raw snippet",
+      content: "not json",
+      check: (r) => {
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+          expect(r.error).toContain("Unexpected token")
+          expect(r.raw).toBe("not json")
+        }
+      },
+    },
   ]
 
-  cases.forEach(({ name, content, expected }) => {
+  cases.forEach(({ name, content, check }) => {
     it(name, () => {
-      const block = { language: "json", content, start: 0, end: 0 }
-      expect(parseBlockJson(block)).toEqual(expected)
+      check(parseBlockJson({ language: "json", content, start: 0, end: 0 }))
     })
   })
 })

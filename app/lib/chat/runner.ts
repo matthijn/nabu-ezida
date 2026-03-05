@@ -3,6 +3,7 @@ import { createToolExecutor } from "~/lib/agent"
 import { setDraft, getDraft, clearDraft, pushBlocks, setLoading } from "~/lib/agent/block-store"
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
+import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
 import { getChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 
@@ -56,6 +57,7 @@ const runAgent = async (deps: RunnerDeps): Promise<void> => {
   controller = new AbortController()
   const executor = createToolExecutor(deps)
   const callbacks = buildCallbacks()
+  pushBlocks(modeSystemBlocks(DEFAULT_MODE))
   setLoading(true)
 
   while (true) {

@@ -2,7 +2,7 @@ import type { ToolCall, ToolResult } from "../types"
 import type { ToolExecutor } from "../turn"
 import { pushBlocks, getAllBlocks, subscribeBlocks } from "../block-store"
 import { getFiles } from "~/lib/files/store"
-import { derive, lastPlan, guardCompleteStep, hasDeliverable, isLastStep } from "../derived"
+import { derive, lastPlan, guardCompleteStep } from "../derived"
 import { deriveMode, modeSystemBlocks } from "./modes"
 
 export type SpecialHandler = (call: { args: unknown }) => Promise<ToolResult<unknown>>
@@ -64,9 +64,6 @@ const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
 
   const guard = guardFn(plan)
   if (!guard.allowed) return { status: "error", output: guard.reason }
-
-  if (call.name === "complete_step" && !isLastStep(plan) && !hasDeliverable(blocks))
-    return { status: "error", output: "Produce a deliverable first — either ask the user a relevant question or write changes to a file." }
 
   return null
 }

@@ -186,6 +186,16 @@ keep2
 +replaced3`,
       expected: { ok: true, content: "replaced1\nkeep1\nreplaced2\nkeep2\nreplaced3" },
     },
+    {
+      name: "add after context at end of file preserves newline boundary",
+      content: "line1\nline2\nline3",
+      patch: `@@
+line1
+line2
+line3
++new line`,
+      expected: { ok: true, content: "line1\nline2\nline3\nnew line" },
+    },
   ]
 
   it.each(cases)("$name", ({ content, patch, expected }) => {

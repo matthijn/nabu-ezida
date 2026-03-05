@@ -83,16 +83,16 @@ describe("deriveMode", () => {
     {
       name: "planning prompt marker → plan",
       blocks: [
-        toolCallBlock("triage", "c1"),
-        toolResult("c1", { status: "ok", output: "triage result" }),
+        toolCallBlock("preflight", "c1"),
+        toolResult("c1", { status: "ok", output: "preflight result" }),
         { type: "system", content: "<!-- prompt: planning -->" } as Block,
       ],
       expected: "plan",
     },
     {
-      name: "triage without prompt marker → chat",
+      name: "preflight without prompt marker → chat",
       blocks: [
-        toolCallBlock("triage", "c1"),
+        toolCallBlock("preflight", "c1"),
         toolResult("c1", { status: "ok", output: "no plan needed" }),
       ],
       expected: "chat",

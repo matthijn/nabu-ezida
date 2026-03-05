@@ -313,8 +313,6 @@ const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSel
   )
 }
 
-const isAskMessage = (m: GroupedMessage): m is AskMessage => m.type === "ask"
-
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text"
@@ -326,7 +324,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-          <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
+          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
             <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
           </div>
         </div>
@@ -336,7 +334,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
   return (
     <div className="flex w-full items-start mt-1">
       <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-        <div className="prose prose-sm text-caption font-caption text-default-font [&>*]:mb-0 [&_a]:no-underline">
+        <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
           <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
         </div>
       </div>
@@ -382,13 +380,21 @@ const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem
 type PlanMessage = PlanHeader | PlanItem
 
 type PlanSegment = { type: "plan-segment"; items: PlanMessage[] }
+type CollapsedSteps = { type: "collapsed-steps"; count: number }
 type RenderSegment = LeafMessage | AskMessage | PlanSegment
+type FinalSegment = RenderSegment | CollapsedSteps
 
 const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
   m.type === "plan-header" || m.type === "plan-item"
 
-const isPlanSegment = (s: RenderSegment): s is PlanSegment =>
+const isPlanSegment = (s: FinalSegment): s is PlanSegment =>
   s.type === "plan-segment"
+
+const isAskSegment = (s: FinalSegment): s is AskMessage =>
+  s.type === "ask"
+
+const isCollapsedSteps = (s: FinalSegment): s is CollapsedSteps =>
+  s.type === "collapsed-steps"
 
 const toRenderSegments = (messages: GroupedMessage[]): RenderSegment[] =>
   messages.reduce<RenderSegment[]>((acc, m) => {
@@ -399,6 +405,27 @@ const toRenderSegments = (messages: GroupedMessage[]): RenderSegment[] =>
     }
     return [...acc, { type: "plan-segment", items: [m] }]
   }, [])
+
+const countPlanSteps = (items: PlanMessage[]): number =>
+  items.filter((item) => item.type === "plan-item" && isPlanStep(item.child)).length
+
+const findLastAskIndex = (segments: RenderSegment[]): number => {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (isAskSegment(segments[i])) return i
+  }
+  return -1
+}
+
+const collapseAfterPendingAsk = (segments: RenderSegment[], waiting: boolean): FinalSegment[] => {
+  if (!waiting) return segments
+  const lastAskIdx = findLastAskIndex(segments)
+  if (lastAskIdx === -1) return segments
+  const after = segments.slice(lastAskIdx + 1)
+  const count = after.reduce((sum: number, s) =>
+    isPlanSegment(s) ? sum + countPlanSteps(s.items) : sum, 0)
+  if (count === 0) return segments
+  return [...segments.slice(0, lastAskIdx + 1), { type: "collapsed-steps", count }]
+}
 
 type PlanSegmentItemRendererProps = {
   item: PlanMessage
@@ -416,8 +443,33 @@ const PlanSegmentItemRenderer = ({ item, files, projectId, navigate }: PlanSegme
   }
 }
 
+const CollapsedStepsIndicator = ({ count }: { count: number }) => (
+  <span className="text-caption font-caption text-subtext-color">
+    Waiting for your input — {count} step{count !== 1 ? "s" : ""} remaining
+  </span>
+)
+
+const isPendingPlanStep = (item: PlanMessage): boolean =>
+  item.type === "plan-item" && isPlanStep(item.child) && item.child.status === "pending"
+
+const hasInlineLeaf = (items: PlanMessage[]): boolean =>
+  items.some((item) => item.type === "plan-item" && isLeafMessage(item.child))
+
+type TrailingSplit = { visible: PlanMessage[]; pendingCount: number }
+
+const splitTrailingPending = (items: PlanMessage[], loading: boolean): TrailingSplit => {
+  if (loading || !hasInlineLeaf(items)) return { visible: items, pendingCount: 0 }
+  let splitIdx = items.length
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (!isPendingPlanStep(items[i])) break
+    splitIdx = i
+  }
+  return { visible: items.slice(0, splitIdx), pendingCount: items.length - splitIdx }
+}
+
 type PlanSegmentRendererProps = {
   items: PlanMessage[]
+  loading: boolean
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
@@ -440,8 +492,9 @@ const groupIntoRuns = (items: PlanMessage[]): SegmentRun[] =>
     return [...acc, { type: "nested", items: [item] }]
   }, [])
 
-const PlanSegmentRenderer = ({ items, files, projectId, navigate }: PlanSegmentRendererProps) => {
-  const runs = groupIntoRuns(items)
+const PlanSegmentRenderer = ({ items, loading, files, projectId, navigate }: PlanSegmentRendererProps) => {
+  const { visible, pendingCount } = splitTrailingPending(items, loading)
+  const runs = groupIntoRuns(visible)
   return (
     <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
       {runs.map((run, i) =>
@@ -455,6 +508,7 @@ const PlanSegmentRenderer = ({ items, files, projectId, navigate }: PlanSegmentR
           </div>
         )
       )}
+      {pendingCount > 0 && <CollapsedStepsIndicator count={pendingCount} />}
     </div>
   )
 }
@@ -506,8 +560,9 @@ export const NabuChatSidebar = () => {
   const derived = useMemo(() => derive(history, files), [history, files])
   const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
-  const segments = useMemo(() => toRenderSegments(messages), [messages])
+  const rawSegments = useMemo(() => toRenderSegments(messages), [messages])
   const waitingForInput = useMemo(() => isWaitingForAsk(history), [history])
+  const segments = useMemo(() => collapseAfterPendingAsk(rawSegments, waitingForInput), [rawSegments, waitingForInput])
 
   const memoryContent = files[PREFERENCES_FILE]
 
@@ -631,12 +686,15 @@ export const NabuChatSidebar = () => {
                   {isPlanSegment(segment) ? (
                     <PlanSegmentRenderer
                       items={segment.items}
+                      loading={loading}
                       files={files}
                       projectId={params.projectId ?? null}
                       navigate={navigate}
                     />
-                  ) : isAskMessage(segment) ? (
+                  ) : isAskSegment(segment) ? (
                     <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
+                  ) : isCollapsedSteps(segment) ? (
+                    <CollapsedStepsIndicator count={segment.count} />
                   ) : (
                     <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
                   )}

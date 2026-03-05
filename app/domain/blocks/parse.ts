@@ -32,11 +32,21 @@ export const findSingletonBlock = (markdown: string, language: string): CodeBloc
 export const countBlocksByLanguage = (markdown: string, language: string): number =>
   findBlocksByLanguage(markdown, language).length
 
-export const parseBlockJson = <T>(block: CodeBlock): T | null => {
+export type ParseJsonResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; raw: string }
+
+const errorMessage = (e: unknown): string =>
+  e instanceof Error ? e.message : String(e)
+
+const snippet = (s: string, max: number = 200): string =>
+  s.length <= max ? s : s.slice(0, max) + "…"
+
+export const parseBlockJson = <T>(block: CodeBlock): ParseJsonResult<T> => {
   try {
-    return JSON.parse(block.content) as T
-  } catch {
-    return null
+    return { ok: true, data: JSON.parse(block.content) as T }
+  } catch (e) {
+    return { ok: false, error: errorMessage(e), raw: snippet(block.content) }
   }
 }
 

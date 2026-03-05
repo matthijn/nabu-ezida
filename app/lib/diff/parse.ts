@@ -113,6 +113,7 @@ const buildAddText = (parts: HunkPart[]): string =>
     .replace(/\n$/, "")
 
 const buildReplacement = (parts: HunkPart[], matchedText: string): string => {
+  const padded = matchedText + "\n"
   let offset = 0
   const result: string[] = []
 
@@ -120,10 +121,8 @@ const buildReplacement = (parts: HunkPart[], matchedText: string): string => {
     if (part.type === "context" || part.type === "remove") {
       const len = part.content.length
       if (part.type === "context") {
-        // Output from matchedText to preserve original (handles whitespace differences)
-        result.push(matchedText.slice(offset, offset + len))
+        result.push(padded.slice(offset, offset + len))
       }
-      // For remove, skip output but advance offset
       offset += len
     } else if (part.type === "add") {
       result.push(part.content)
