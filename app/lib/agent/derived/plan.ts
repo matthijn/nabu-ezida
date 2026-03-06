@@ -2,7 +2,7 @@ import type { ToolCall } from "../types"
 
 export type Files = Record<string, string>
 
-export type StepDefObject = { title: string; expected: string }
+export type StepDefObject = { title: string; expected: string; checkpoint?: boolean }
 export type StepDefNested = { nested: StepDefObject[] }
 export type StepDef = StepDefObject | StepDefNested
 
@@ -10,6 +10,7 @@ export type Step = {
   id: string
   description: string
   expected: string
+  checkpoint: boolean
   done: boolean
   internal: string | null
   summary: string | null
@@ -45,6 +46,7 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
           id: `${topIndex + 1}.${i + 1}`,
           description: innerDef.title,
           expected: innerDef.expected,
+          checkpoint: innerDef.checkpoint === true,
           done: false,
           internal: null,
           summary: null,
@@ -55,6 +57,7 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
         id: String(topIndex + 1),
         description: def.title,
         expected: def.expected,
+        checkpoint: def.checkpoint === true,
         done: false,
         internal: null,
         summary: null,

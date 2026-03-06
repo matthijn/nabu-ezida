@@ -4,6 +4,7 @@ import type { AnyTool } from "../tool"
 const StepObject = z.object({
   title: z.string(),
   expected: z.string(),
+  checkpoint: z.boolean().optional().describe("Mark as a check-in moment with the user."),
 })
 
 const NestedStep = z.object({

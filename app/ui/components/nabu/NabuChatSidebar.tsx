@@ -159,7 +159,7 @@ type PlanStepRowProps = {
 }
 
 const PlanStepRow = ({ step, files, projectId, currentFile, currentFileContent, navigate }: PlanStepRowProps) => {
-  const Icon = stepIconComponent[step.status]
+  const Icon = step.checkpoint ? FeatherMessageSquare : stepIconComponent[step.status]
   return (
     <div className="flex w-full items-start gap-2">
       <Icon className={`text-body ${stepIconColor[step.status]} mt-0.5 flex-none`} />
