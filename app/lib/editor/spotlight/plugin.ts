@@ -2,6 +2,7 @@ import { Plugin, PluginKey } from "prosemirror-state"
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
 import type { Spotlight } from "~/domain/spotlight"
+import { getBlockConfig } from "~/domain/blocks"
 import { proseTextContent, textOffsetToPos } from "~/lib/editor/text"
 import type { TextRange } from "~/lib/editor/text"
 import { findMatchOffset } from "~/lib/diff/fuzzy-inline"
@@ -13,20 +14,17 @@ export const spotlightMeta = pluginKey
 const SPOTLIGHT_STYLE = "border-bottom: 2px solid var(--color-brand-600) !important;"
 
 const resolveSpotlightSingle = (doc: Node, text: string): TextRange | null => {
-  const proseText = proseTextContent(doc)
-  const offset = findMatchOffset(proseText, text)
+  const content = proseTextContent(doc)
+  const offset = findMatchOffset(content, text)
   if (!offset) return null
-  return {
-    from: textOffsetToPos(doc, offset.start),
-    to: textOffsetToPos(doc, offset.end),
-  }
+  return { from: textOffsetToPos(doc, offset.start), to: textOffsetToPos(doc, offset.end) }
 }
 
 const resolveSpotlightRange = (doc: Node, from: string, to: string): TextRange | null => {
-  const proseText = proseTextContent(doc)
-  const fromOffset = findMatchOffset(proseText, from)
+  const content = proseTextContent(doc)
+  const fromOffset = findMatchOffset(content, from)
   if (!fromOffset) return null
-  const remainingText = proseText.slice(fromOffset.start)
+  const remainingText = content.slice(fromOffset.start)
   const toOffset = findMatchOffset(remainingText, to)
   if (!toOffset) return null
   return {
@@ -44,13 +42,41 @@ const resolveSpotlight = (doc: Node, spotlight: Spotlight): TextRange | null => 
   }
 }
 
-const toDecorationSet = (doc: Node, range: TextRange): DecorationSet =>
-  DecorationSet.create(doc, [
+type NodeSpan = { nodePos: number; nodeEnd: number }
+
+const isCalloutCodeBlock = (node: Node): boolean => {
+  const config = getBlockConfig(node.attrs.language as string)
+  return config?.renderer === "callout"
+}
+
+const findContainingCallout = (doc: Node, from: number, to: number): NodeSpan | null => {
+  const $from = doc.resolve(from)
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth)
+    if (!isCalloutCodeBlock(node)) continue
+    const nodePos = $from.before(depth)
+    const nodeEnd = nodePos + node.nodeSize
+    if (to <= nodeEnd) return { nodePos, nodeEnd }
+    return null
+  }
+  return null
+}
+
+const toDecorationSet = (doc: Node, range: TextRange): DecorationSet => {
+  const callout = findContainingCallout(doc, range.from, range.to)
+  if (callout) {
+    return DecorationSet.create(doc, [
+      Decoration.node(callout.nodePos, callout.nodeEnd, { "data-spotlight": "true" }),
+      Decoration.inline(range.from, range.to, {}, { spotlight: true }),
+    ])
+  }
+  return DecorationSet.create(doc, [
     Decoration.inline(range.from, range.to, {
       style: SPOTLIGHT_STYLE,
       "data-spotlight": "true",
     }),
   ])
+}
 
 const computeDecorations = (doc: Node, spotlight: Spotlight | null): DecorationSet => {
   if (!spotlight) return DecorationSet.empty

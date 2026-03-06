@@ -1,14 +1,9 @@
 import { Plugin, PluginKey } from "prosemirror-state"
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import { getBlockConfig } from "~/domain/blocks"
+import { isHiddenRenderer } from "~/domain/blocks"
 
 const pluginKey = new PluginKey("hiddenBlocks")
-
-const isHiddenBlock = (language: string): boolean => {
-  const config = getBlockConfig(language)
-  return config?.renderer === "hidden"
-}
 
 const findHiddenBlocks = (doc: Node): Decoration[] => {
   const decorations: Decoration[] = []
@@ -16,7 +11,7 @@ const findHiddenBlocks = (doc: Node): Decoration[] => {
   doc.descendants((node, pos) => {
     if (node.type.name === "code_block") {
       const language = node.attrs.language as string | undefined
-      if (language && isHiddenBlock(language)) {
+      if (language && isHiddenRenderer(language)) {
         decorations.push(
           Decoration.node(pos, pos + node.nodeSize, {
             class: "hidden-block",

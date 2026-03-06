@@ -29,6 +29,8 @@ const validateOperation = (files: Map<string, string>, op: Operation): string | 
       return files.has(op.path) ? null : `${op.path}: No such file`
     case "delete_file":
       return files.has(op.path) ? null : `${op.path}: No such file`
+    case "write_file":
+      return `write_file is not a valid LLM operation`
     case "rename_file":
       if (!files.has(op.path)) return `${op.path}: No such file`
       if (files.has(op.newPath)) return `${op.newPath}: already exists`
@@ -39,6 +41,7 @@ const validateOperation = (files: Map<string, string>, op: Operation): string | 
 const operationVerb: Record<Operation["type"], string> = {
   create_file: "Created",
   update_file: "Updated",
+  write_file: "Wrote",
   delete_file: "Deleted",
   rename_file: "Renamed",
 }

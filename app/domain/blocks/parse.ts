@@ -50,8 +50,41 @@ export const parseBlockJson = <T>(block: CodeBlock): ParseJsonResult<T> => {
   }
 }
 
+type BlockIdRecord = { id: string; [key: string]: unknown }
+
+const hasId = (data: unknown): data is BlockIdRecord =>
+  typeof data === "object" && data !== null && "id" in data && typeof (data as Record<string, unknown>).id === "string"
+
+export type BlockWithData<T = unknown> = { block: CodeBlock; data: T }
+
+export const findBlockById = (markdown: string, language: string, id: string): BlockWithData | undefined => {
+  const blocks = findBlocksByLanguage(markdown, language)
+  for (const block of blocks) {
+    const parsed = parseBlockJson(block)
+    if (parsed.ok && hasId(parsed.data) && parsed.data.id === id) {
+      return { block, data: parsed.data }
+    }
+  }
+  return undefined
+}
+
+type BlockSummary = { id: string; label: string | undefined }
+
+export const summarizeBlocks = (markdown: string, language: string, labelKey: string | undefined): BlockSummary[] =>
+  findBlocksByLanguage(markdown, language).reduce<BlockSummary[]>((acc, block) => {
+    const parsed = parseBlockJson(block)
+    if (!parsed.ok || !hasId(parsed.data)) return acc
+    const label = labelKey && typeof (parsed.data as Record<string, unknown>)[labelKey] === "string"
+      ? (parsed.data as Record<string, unknown>)[labelKey] as string
+      : undefined
+    return [...acc, { id: parsed.data.id, label }]
+  }, [])
+
 const formatBlock = (language: string, content: string): string =>
   `\`\`\`${language}\n${content}\n\`\`\``
+
+export const replaceBlock = (markdown: string, block: CodeBlock, newContent: string): string =>
+  markdown.slice(0, block.start) + formatBlock(block.language, newContent) + markdown.slice(block.end)
 
 export const replaceSingletonBlock = (
   markdown: string,
@@ -59,11 +92,6 @@ export const replaceSingletonBlock = (
   newContent: string
 ): string => {
   const block = findSingletonBlock(markdown, language)
-  const formatted = formatBlock(language, newContent)
-
-  if (block) {
-    return markdown.slice(0, block.start) + formatted + markdown.slice(block.end)
-  }
-
-  return markdown.trimEnd() + "\n\n" + formatted
+  if (block) return replaceBlock(markdown, block, newContent)
+  return markdown.trimEnd() + "\n\n" + formatBlock(language, newContent)
 }

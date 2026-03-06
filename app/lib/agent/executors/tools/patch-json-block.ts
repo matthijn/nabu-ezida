@@ -1,15 +1,13 @@
 import { z } from "zod"
 import { tool, registerTool, ok, partial, err } from "../tool"
 import { patchJsonBlock as def } from "./patch-json-block.def"
-import { findSingletonBlock, parseBlockJson, replaceSingletonBlock } from "~/domain/blocks/parse"
+import { findSingletonBlock, findBlockById, summarizeBlocks, parseBlockJson, replaceBlock, replaceSingletonBlock, type CodeBlock } from "~/domain/blocks/parse"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
-import { generateBlockContentDiff, formatJson } from "~/lib/diff/json-block/patch"
 import { hasFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { dedupArraysIn } from "~/lib/diff/json-block/dedup"
-import { getBlockConfig } from "~/domain/blocks/registry"
+import { getBlockConfig, isKnownBlockType, isSingleton, getLabelKey } from "~/domain/blocks/registry"
 import { getFile } from "~/lib/files"
-import { toExtraPretty } from "~/lib/json"
 
 type SelectorOp = "eq" | "neq" | "exists" | "not_exists"
 type Selector = { arrayPath: string; key: string; op: SelectorOp; value: string; rest: string }
@@ -223,25 +221,68 @@ const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown): ApplyResult => 
   return { doc: currentDoc, failures, applied }
 }
 
+const formatJson = (obj: object): string => JSON.stringify(obj, null, "\t")
+
+const formatBlockList = (summaries: { id: string; label: string | undefined }[]): string =>
+  summaries.map((s) => s.label ? `  ${s.id} (${s.label})` : `  ${s.id}`).join("\n")
+
+type ResolvedBlock =
+  | { ok: true; json: unknown; block: CodeBlock | null }
+  | { ok: false; error: string }
+
+type ResolveBlockArgs = {
+  content: string
+  language: string
+  blockId: string | undefined
+  operations: JsonPatchOp[]
+}
+
+const isMultiBlockLanguage = (language: string): boolean =>
+  isKnownBlockType(language) && !isSingleton(language)
+
+const resolveBlock = ({ content, language, blockId, operations }: ResolveBlockArgs): ResolvedBlock => {
+  if (!isMultiBlockLanguage(language)) {
+    const block = findSingletonBlock(content, language)
+    if (block) {
+      const parsed = parseBlockJson(block)
+      if (!parsed.ok) return { ok: false, error: `Failed to parse JSON in \`${language}\` block: ${parsed.error}\n---\n${parsed.raw}` }
+      return { ok: true, json: parsed.data, block }
+    }
+    const validFields = schemaArrayFields(language)
+    if (!validFields) return { ok: false, error: `No \`${language}\` block found` }
+    return { ok: true, json: seedAppendArrays(operations, validFields), block: null }
+  }
+
+  if (!blockId) {
+    const summaries = summarizeBlocks(content, language, getLabelKey(language))
+    if (summaries.length === 0) return { ok: false, error: `No \`${language}\` blocks found in this file` }
+    return { ok: false, error: `block_id is required for \`${language}\`. Available blocks:\n${formatBlockList(summaries)}` }
+  }
+
+  const found = findBlockById(content, language, blockId)
+  if (!found) {
+    const summaries = summarizeBlocks(content, language, getLabelKey(language))
+    const available = summaries.length > 0
+      ? `Available blocks:\n${formatBlockList(summaries)}`
+      : `No \`${language}\` blocks found in this file`
+    return { ok: false, error: `No \`${language}\` block with id "${blockId}". ${available}` }
+  }
+
+  return { ok: true, json: found.data, block: found.block }
+}
+
+const writeBack = (content: string, language: string, block: CodeBlock | null, newJson: string): string =>
+  block ? replaceBlock(content, block, newJson) : replaceSingletonBlock(content, language, newJson)
+
 export const patchJsonBlock = registerTool(
   tool({
     ...def,
-    handler: async (_files, { path, language, operations }) => {
+    handler: async (_files, { path, language, block_id, operations }) => {
       const file = resolveFile(path)
       if (!file) return err(`${path}: No such file`)
 
-      const block = findSingletonBlock(file.content, language)
-      let json: unknown
-
-      if (block) {
-        const parsed = parseBlockJson(block)
-        if (!parsed.ok) return err(`${file.path}: Failed to parse JSON in \`${language}\` block: ${parsed.error}\n---\n${parsed.raw}`)
-        json = parsed.data
-      } else {
-        const validFields = schemaArrayFields(language)
-        if (!validFields) return err(`${file.path}: No \`${language}\` block found`)
-        json = seedAppendArrays(operations, validFields)
-      }
+      const resolved = resolveBlock({ content: file.content, language, blockId: block_id, operations })
+      if (!resolved.ok) return err(`${file.path}: ${resolved.error}`)
 
       const { accepted, rejectedPaths } = partitionNumericIndices(operations)
       const rejectedMessage = rejectedPaths.length > 0
@@ -252,26 +293,23 @@ export const patchJsonBlock = registerTool(
         return err(`All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`)
       }
 
-      const { doc: patchedDoc, failures, applied } = applyOpsIndividually(accepted, json)
+      const { doc: patchedDoc, failures, applied } = applyOpsIndividually(accepted, resolved.json)
 
       if (applied === 0) {
         return err([rejectedMessage, ...failures].filter(Boolean).join("\n"))
       }
 
       const deduped = dedupArraysIn(patchedDoc) as object
-      const newRaw = replaceSingletonBlock(file.content, language, formatJson(deduped))
-      const prettyOld = toExtraPretty(file.content)
-      const prettyNew = toExtraPretty(newRaw)
-      const diffResult = generateBlockContentDiff(prettyOld, prettyNew, language)
-      if (!diffResult.ok) return err(`Diff generation failed: ${diffResult.error}`)
+      const newRaw = writeBack(file.content, language, resolved.block, formatJson(deduped))
+      const isNoOp = newRaw === file.content
 
-      const successOutput = diffResult.patch
-        ? `Patched \`${language}\` block in ${file.path}`
-        : `${file.path}: No changes`
+      const successOutput = isNoOp
+        ? `${file.path}: No changes`
+        : `Patched \`${language}\` block in ${file.path}`
 
-      const mutations = diffResult.patch
-        ? [{ type: "update_file" as const, path: file.path, diff: diffResult.patch }]
-        : []
+      const mutations = isNoOp
+        ? []
+        : [{ type: "write_file" as const, path: file.path, content: newRaw }]
 
       const allFailures = [rejectedMessage, ...failures].filter(Boolean)
 

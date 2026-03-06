@@ -163,6 +163,9 @@ export const getBlockConfig = (language: string): AnyBlockConfig | undefined =>
 export const isKnownBlockType = (language: string): boolean =>
   language in blockTypes
 
+export const isHiddenRenderer = (language: string): boolean =>
+  blockTypes[language]?.renderer === "hidden"
+
 export const isSingleton = (language: string): boolean =>
   blockTypes[language]?.singleton ?? false
 

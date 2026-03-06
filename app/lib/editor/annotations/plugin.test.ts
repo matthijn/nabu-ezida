@@ -6,20 +6,23 @@ const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
     paragraph: { group: "block", content: "inline*" },
-    code_block: { group: "block", content: "text*", code: true },
+    code_block: { group: "block", content: "text*", code: true, attrs: { language: { default: null } } },
     text: { group: "inline" },
     hard_break: { group: "inline", inline: true, selectable: false },
   },
 })
 
-type BlockDef = string | { code: string }
+type BlockDef = string | { code: string; language?: string }
 
-const isCodeDef = (def: BlockDef): def is { code: string } =>
+const isCodeDef = (def: BlockDef): def is { code: string; language?: string } =>
   typeof def !== "string"
 
 const toNode = (def: BlockDef) =>
   isCodeDef(def)
-    ? schema.nodes.code_block.create(null, def.code ? schema.text(def.code) : null)
+    ? schema.nodes.code_block.create(
+        { language: def.language ?? null },
+        def.code ? schema.text(def.code) : null,
+      )
     : schema.nodes.paragraph.create(null, def ? schema.text(def) : null)
 
 const createDoc = (blocks: BlockDef[]) =>
@@ -134,22 +137,32 @@ describe("textOffsetToPos", () => {
     })
   })
 
-  describe("code block exclusion", () => {
+  describe("hidden block exclusion", () => {
     const cases = [
       {
-        name: "proseTextContent excludes code block text",
-        blocks: ["Hello", { code: '{"tags": ["interview"]}' }, "World"] as BlockDef[],
+        name: "proseTextContent excludes hidden block text",
+        blocks: ["Hello", { code: '{"tags": ["interview"]}', language: "json-attributes" }, "World"] as BlockDef[],
         expectedProseText: "HelloWorld",
       },
       {
-        name: "proseTextContent with only code block returns empty",
-        blocks: [{ code: "some code" }] as BlockDef[],
+        name: "proseTextContent with only hidden block returns empty",
+        blocks: [{ code: "some code", language: "json-attributes" }] as BlockDef[],
         expectedProseText: "",
       },
       {
-        name: "proseTextContent with code block between paragraphs",
-        blocks: ["AAA", { code: "BBB" }, "CCC"] as BlockDef[],
+        name: "proseTextContent with hidden block between paragraphs",
+        blocks: ["AAA", { code: "BBB", language: "json-attributes" }, "CCC"] as BlockDef[],
         expectedProseText: "AAACCC",
+      },
+      {
+        name: "proseTextContent includes non-hidden code block text",
+        blocks: ["Hello", { code: "callout content", language: "json-callout" }, "World"] as BlockDef[],
+        expectedProseText: "Hellocallout contentWorld",
+      },
+      {
+        name: "proseTextContent includes code block without language",
+        blocks: ["Hello", { code: "plain code" }, "World"] as BlockDef[],
+        expectedProseText: "Helloplain codeWorld",
       },
     ]
 
@@ -158,16 +171,16 @@ describe("textOffsetToPos", () => {
       expect(proseTextContent(doc)).toBe(expectedProseText)
     })
 
-    it("textOffsetToPos skips code block and maps to correct paragraph", () => {
-      const doc = createDoc([{ code: '{"annotations": []}' }, "Target text"])
+    it("textOffsetToPos skips hidden block and maps to correct paragraph", () => {
+      const doc = createDoc([{ code: '{"annotations": []}', language: "json-attributes" }, "Target text"])
       expect(proseTextContent(doc)).toBe("Target text")
       const pos = textOffsetToPos(doc, 0)
       const resolvedText = doc.textBetween(pos, pos + "Target".length)
       expect(resolvedText).toBe("Target")
     })
 
-    it("offset after code block maps to second paragraph", () => {
-      const doc = createDoc(["Before", { code: "code content" }, "After"])
+    it("offset after hidden block maps to second paragraph", () => {
+      const doc = createDoc(["Before", { code: "code content", language: "json-attributes" }, "After"])
       expect(proseTextContent(doc)).toBe("BeforeAfter")
       const afterOffset = "Before".length
       const pos = textOffsetToPos(doc, afterOffset)

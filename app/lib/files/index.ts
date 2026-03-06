@@ -46,6 +46,7 @@ export {
   applyFilePatch,
   applyFilePatches,
   computeJsonDiff,
+  finalizeContent,
   type FileResult,
 } from "./patch"
 

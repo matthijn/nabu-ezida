@@ -6,6 +6,9 @@ import { setFiles } from "~/lib/files"
 const doc = (json: object, language = "json-attributes"): string =>
   `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, "\t")}\n\`\`\`\n\nMore text.\n`
 
+const multiBlockDoc = (blocks: { id: string; title: string; content: string }[]): string =>
+  `# Codebook\n\n${blocks.map((b) => `\`\`\`json-callout\n${JSON.stringify(b, null, "\t")}\n\`\`\``).join("\n\nSome prose.\n\n")}\n`
+
 describe("patch_json_block", () => {
   afterEach(() => setFiles({}))
 
@@ -127,10 +130,11 @@ describe("patch_json_block", () => {
     },
     {
       name: "different block language",
-      files: ({ "doc.md": doc({ key: "old" }, "json-callout") }),
+      files: ({ "doc.md": doc({ id: "callout_1", key: "old" }, "json-callout") }),
       args: {
         path: "doc.md",
         language: "json-callout",
+        block_id: "callout_1",
         operations: [{ op: "replace", path: "/key", value: "new" }],
       },
       expectStatus: "ok",
@@ -315,6 +319,74 @@ describe("patch_json_block", () => {
       expectMessage: /Rejected 1 op.*No items match/s,
       expectMutations: 1,
     },
+    {
+      name: "multi-block: patches correct block by id",
+      files: ({
+        "codebook.md": multiBlockDoc([
+          { id: "callout_a", title: "Alpha", content: "old" },
+          { id: "callout_b", title: "Beta", content: "keep" },
+        ]),
+      }),
+      args: {
+        path: "codebook.md",
+        language: "json-callout",
+        block_id: "callout_a",
+        operations: [{ op: "replace", path: "/content", value: "new" }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched.*json-callout/,
+      expectMutations: 1,
+    },
+    {
+      name: "multi-block: error when block_id missing",
+      files: ({
+        "codebook.md": multiBlockDoc([
+          { id: "callout_a", title: "Alpha", content: "x" },
+          { id: "callout_b", title: "Beta", content: "y" },
+        ]),
+      }),
+      args: {
+        path: "codebook.md",
+        language: "json-callout",
+        operations: [{ op: "replace", path: "/content", value: "z" }],
+      },
+      expectStatus: "error",
+      expectOutput: /block_id is required.*callout_a \(Alpha\).*callout_b \(Beta\)/s,
+    },
+    {
+      name: "multi-block: error when block_id not found lists available",
+      files: ({
+        "codebook.md": multiBlockDoc([
+          { id: "callout_a", title: "Alpha", content: "x" },
+        ]),
+      }),
+      args: {
+        path: "codebook.md",
+        language: "json-callout",
+        block_id: "callout_nope",
+        operations: [{ op: "replace", path: "/content", value: "z" }],
+      },
+      expectStatus: "error",
+      expectOutput: /No.*block with id "callout_nope".*callout_a \(Alpha\)/s,
+    },
+    {
+      name: "multi-block: does not modify other blocks",
+      files: ({
+        "codebook.md": multiBlockDoc([
+          { id: "callout_a", title: "Alpha", content: "stay" },
+          { id: "callout_b", title: "Beta", content: "old" },
+        ]),
+      }),
+      args: {
+        path: "codebook.md",
+        language: "json-callout",
+        block_id: "callout_b",
+        operations: [{ op: "replace", path: "/content", value: "new" }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
   ]
 
   it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMessage, expectMutations }) => {
@@ -333,7 +405,7 @@ describe("patch_json_block", () => {
       expect(result.mutations).toHaveLength(expectMutations)
     }
     if (expectMutations && expectMutations > 0) {
-      expect(result.mutations[0].type).toBe("update_file")
+      expect(result.mutations[0].type).toBe("write_file")
     }
   })
 })

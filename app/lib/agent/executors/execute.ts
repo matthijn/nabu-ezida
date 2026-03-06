@@ -1,5 +1,5 @@
 import type { ToolCall, ToolResult, Operation, Handler } from "../types"
-import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, formatGeneratedIds } from "~/lib/files"
+import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, finalizeContent, formatGeneratedIds } from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/domain/blocks"
 import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
@@ -56,6 +56,15 @@ export const applyMutation = (op: Operation, placeholderIds: Record<string, stri
         pushEntries(diffFileContent(oldContent, newContent, op.path, ts))
       }
       return result
+    }
+    case "write_file": {
+      const oldContent = getFileRaw(op.path)
+      const result = finalizeContent(op.path, op.content, { original: oldContent, actor: "ai" })
+      if (result.status === "error") return { error: result.error }
+      updateFileRaw(result.path, result.content)
+      pushEntries(diffFileContent(oldContent, result.content, op.path, ts))
+      const ids = result.generatedIds ? formatGeneratedIds(result.generatedIds) : null
+      return { ids }
     }
     case "delete_file": {
       const oldContent = getFileRaw(op.path)

@@ -1,20 +1,26 @@
 import type { Node } from "prosemirror-model"
+import { isHiddenRenderer } from "~/domain/blocks"
 
 export type TextRange = { from: number; to: number }
 
-const isCodeBlock = (node: Node): boolean => node.type.name === "code_block"
+type NodeFilter = (node: Node) => boolean
 
-export const proseTextContent = (doc: Node): string => {
+const isHiddenCodeBlock = (node: Node): boolean =>
+  node.type.name === "code_block" && isHiddenRenderer(node.attrs.language as string)
+
+const collectText = (doc: Node, shouldSkip: NodeFilter): string => {
   let text = ""
   doc.descendants((node) => {
-    if (isCodeBlock(node)) return false
+    if (shouldSkip(node)) return false
     if (node.isLeaf && node.textContent.length > 0) text += node.textContent
     return !node.isLeaf
   })
   return text
 }
 
-export const textOffsetToPos = (doc: Node, offset: number): number => {
+export const proseTextContent = (doc: Node): string => collectText(doc, isHiddenCodeBlock)
+
+const offsetToPos = (doc: Node, offset: number, shouldSkip: NodeFilter): number => {
   let result = 0
   let textSeen = 0
   let found = false
@@ -22,7 +28,7 @@ export const textOffsetToPos = (doc: Node, offset: number): number => {
 
   doc.descendants((node, nodePos) => {
     if (found || textSeen > offset) return false
-    if (isCodeBlock(node)) return false
+    if (shouldSkip(node)) return false
 
     const nodeText = node.textContent
     const len = nodeText.length
@@ -46,6 +52,9 @@ export const textOffsetToPos = (doc: Node, offset: number): number => {
 
   return result
 }
+
+export const textOffsetToPos = (doc: Node, offset: number): number =>
+  offsetToPos(doc, offset, isHiddenCodeBlock)
 
 export const findAllTextRanges = (doc: Node, searchText: string): TextRange[] => {
   const docText = proseTextContent(doc)

@@ -35,6 +35,7 @@ const JsonPatchOpSchema = z.discriminatedUnion("op", [
 const PatchJsonBlockArgs = z.object({
   path: z.string().min(1).describe("File path containing the JSON block"),
   language: z.string().min(1).describe("Fenced code block language (e.g. json-attributes, json-callout)"),
+  block_id: z.string().optional().describe("ID of the specific block to target. Required for non-singleton block types (e.g. json-callout) when multiple blocks exist."),
   operations: z.array(JsonPatchOpSchema).min(1).describe("RFC 6902 JSON Patch operations to apply"),
 })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { parseCodeBlocks, findBlocksByLanguage, parseBlockJson, findSingletonBlock } from "./parse"
+import { parseCodeBlocks, findBlocksByLanguage, parseBlockJson, findSingletonBlock, findBlockById, summarizeBlocks } from "./parse"
 
 const block = (lang: string, content: string) => `\`\`\`${lang}\n${content}\n\`\`\``
 const crlfBlock = (lang: string, content: string) => `\`\`\`${lang}\r\n${content}\r\n\`\`\``
@@ -118,5 +118,58 @@ describe("findSingletonBlock", () => {
 
   it("returns undefined for missing language", () => {
     expect(findSingletonBlock("no blocks", "json")).toBeUndefined()
+  })
+})
+
+describe("findBlockById", () => {
+  const multiDoc = `${block("json-callout", '{"id":"c_a","title":"Alpha"}')}\n\nProse.\n\n${block("json-callout", '{"id":"c_b","title":"Beta"}')}`
+
+  type Case = { name: string; id: string; expectedData: unknown }
+  const cases: Case[] = [
+    { name: "finds first block by id", id: "c_a", expectedData: { id: "c_a", title: "Alpha" } },
+    { name: "finds second block by id", id: "c_b", expectedData: { id: "c_b", title: "Beta" } },
+    { name: "returns undefined for unknown id", id: "c_nope", expectedData: undefined },
+  ]
+
+  it.each(cases)("$name", ({ id, expectedData }) => {
+    const result = findBlockById(multiDoc, "json-callout", id)
+    if (expectedData === undefined) {
+      expect(result).toBeUndefined()
+    } else {
+      expect(result?.data).toEqual(expectedData)
+    }
+  })
+})
+
+describe("summarizeBlocks", () => {
+  const multiDoc = `${block("json-callout", '{"id":"c_a","title":"Alpha"}')}\n${block("json-callout", '{"id":"c_b","title":"Beta"}')}`
+
+  type Case = { name: string; doc: string; language: string; labelKey: string | undefined; expected: { id: string; label: string | undefined }[] }
+  const cases: Case[] = [
+    {
+      name: "lists blocks with labels",
+      doc: multiDoc,
+      language: "json-callout",
+      labelKey: "title",
+      expected: [{ id: "c_a", label: "Alpha" }, { id: "c_b", label: "Beta" }],
+    },
+    {
+      name: "lists blocks without labelKey",
+      doc: multiDoc,
+      language: "json-callout",
+      labelKey: undefined,
+      expected: [{ id: "c_a", label: undefined }, { id: "c_b", label: undefined }],
+    },
+    {
+      name: "empty for missing language",
+      doc: multiDoc,
+      language: "json-attributes",
+      labelKey: undefined,
+      expected: [],
+    },
+  ]
+
+  it.each(cases)("$name", ({ doc, language, labelKey, expected }) => {
+    expect(summarizeBlocks(doc, language, labelKey)).toEqual(expected)
   })
 })
