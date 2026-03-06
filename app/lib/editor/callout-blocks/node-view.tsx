@@ -1,9 +1,12 @@
 "use client"
 
+import { useRef, useMemo, useEffect } from "react"
 import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapter/react"
+import { DecorationSet } from "prosemirror-view"
 import { getBlockConfig } from "~/domain/blocks"
 import { parseCallout } from "~/domain/blocks/callout"
 import { CalloutBlockView } from "./view"
+import { applyDOMHighlights, type HighlightEntry } from "./highlight"
 
 type BlockSpacerProps = {
   onClick: () => void
@@ -28,13 +31,37 @@ const CodeBlockFallback = ({ language, contentRef, invalid }: CodeBlockFallbackP
   </pre>
 )
 
+const extractHighlights = (
+  innerDecorations: unknown,
+  textContent: string,
+): HighlightEntry[] => {
+  const decoSet = innerDecorations as DecorationSet
+  if (!decoSet.find) return []
+  return decoSet.find().map((d) => ({
+    text: textContent.slice(d.from, d.to),
+    isSpotlight: d.spec?.spotlight === true,
+  })).filter((e) => e.text.length > 0)
+}
+
 export const CalloutNodeView = () => {
-  const { node, view, getPos, contentRef } = useNodeViewContext()
+  const { node, view, getPos, contentRef, innerDecorations } = useNodeViewContext()
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const language = node.attrs.language as string | undefined
   const config = language ? getBlockConfig(language) : undefined
   const isCallout = config?.renderer === "callout"
   const data = isCallout ? parseCallout(node.textContent) : null
+
+  const highlights = useMemo(
+    () => isCallout ? extractHighlights(innerDecorations, node.textContent) : [],
+    [isCallout, innerDecorations, node.textContent],
+  )
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !data || highlights.length === 0) return
+    return applyDOMHighlights(container, data.id, highlights)
+  }, [data, highlights])
 
   if (!isCallout || !data) {
     return <CodeBlockFallback language={language} contentRef={contentRef} invalid={isCallout && !data} />
@@ -59,7 +86,7 @@ export const CalloutNodeView = () => {
   return (
     <>
       <BlockSpacer onClick={handleInsertBefore} />
-      <div contentEditable={false} data-id={data.id}>
+      <div ref={containerRef} contentEditable={false} data-id={data.id}>
         <CalloutBlockView data={data} onDelete={handleDelete} />
       </div>
     </>

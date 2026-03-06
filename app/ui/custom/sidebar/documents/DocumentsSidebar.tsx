@@ -1,52 +1,96 @@
-"use client";
-import { AnimatePresence } from "framer-motion";
-import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch, FeatherPlus } from "@subframe/core";
-import { IconButton } from "~/ui/components/IconButton";
-import { TextField } from "~/ui/components/TextField";
-import { ToggleGroup } from "~/ui/components/ToggleGroup";
-import { Button } from "~/ui/components/Button";
-import { AnimatedListItem } from "~/ui/components/AnimatedListItem";
-import { matchesAny } from "~/lib/filter";
-import { SectionHeader } from "./SectionHeader";
-import { DocumentItem, type DocumentItemProps } from "./DocumentItem";
+"use client"
 
-type ListItem = { id: string; pinned?: boolean; lineCount?: number; annotationCount?: number } & Pick<DocumentItemProps, "title" | "editedAt" | "tags">
+import { useState, useEffect, useMemo } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch, FeatherPlus } from "@subframe/core"
+import { IconButton } from "~/ui/components/IconButton"
+import { TextField } from "~/ui/components/TextField"
+import { Button } from "~/ui/components/Button"
+import { matchesAny } from "~/lib/filter"
+import { TagGroupHeader } from "./TagGroupHeader"
+import { DocumentItem } from "./DocumentItem"
 
-interface DocumentsSidebarProps {
-  documents: ListItem[];
-  selectedId?: string;
-  searchValue?: string;
-  sortBy?: "modified" | "name";
-  collapsed?: boolean;
-  debugMode?: boolean;
-  onSearchChange?: (value: string) => void;
-  onSortChange?: (sort: "modified" | "name") => void;
-  onDocumentSelect?: (id: string) => void;
-  onNewDocument?: () => void;
-  onCollapse?: () => void;
-  onExpand?: () => void;
+export type ListItem = {
+  id: string
+  title: string
+  editedAt: string
+  tags: string[]
+}
+
+type DocumentsSidebarProps = {
+  documents: ListItem[]
+  selectedId?: string
+  searchValue?: string
+  collapsed?: boolean
+  onSearchChange?: (value: string) => void
+  onDocumentSelect?: (id: string) => void
+  onNewDocument?: () => void
+  onCollapse?: () => void
+  onExpand?: () => void
+}
+
+const UNGROUPED = "ungrouped"
+
+type TagGroup = { tag: string; docs: ListItem[] }
+
+const groupByTag = (docs: ListItem[]): TagGroup[] => {
+  const tagMap = new Map<string, ListItem[]>()
+  for (const doc of docs) {
+    const tags = doc.tags.length > 0 ? doc.tags : [UNGROUPED]
+    for (const tag of tags) {
+      const existing = tagMap.get(tag)
+      if (existing) existing.push(doc)
+      else tagMap.set(tag, [doc])
+    }
+  }
+  return Array.from(tagMap, ([tag, docs]) => ({ tag, docs }))
+}
+
+const filterGroups = (groups: TagGroup[], query: string): TagGroup[] => {
+  if (query.length === 0) return groups
+  return groups.reduce<TagGroup[]>((acc, { tag, docs }) => {
+    const tagMatches = matchesAny(query, [tag])
+    if (tagMatches) {
+      acc.push({ tag, docs })
+      return acc
+    }
+    const matchingDocs = docs.filter((doc) => matchesAny(query, [doc.title]))
+    if (matchingDocs.length > 0) acc.push({ tag, docs: matchingDocs })
+    return acc
+  }, [])
+}
+
+const findTagForDoc = (groups: TagGroup[], docId: string): string | null => {
+  const group = groups.find((g) => g.docs.some((d) => d.id === docId))
+  return group?.tag ?? null
 }
 
 export function DocumentsSidebar({
   documents,
   selectedId,
   searchValue = "",
-  sortBy = "modified",
   collapsed = false,
-  debugMode = false,
   onSearchChange,
-  onSortChange,
   onDocumentSelect,
   onNewDocument,
   onCollapse,
   onExpand,
 }: DocumentsSidebarProps) {
-  const matchesSearch = (doc: ListItem): boolean =>
-    matchesAny(searchValue, [doc.title, ...doc.tags.map((t) => t.label)])
+  const isSearching = searchValue.length > 0
 
-  const filtered = documents.filter(matchesSearch)
-  const pinnedDocs = filtered.filter((d) => d.pinned);
-  const allDocs = filtered.filter((d) => !d.pinned);
+  const allGroups = useMemo(() => groupByTag(documents), [documents])
+  const groups = useMemo(() => filterGroups(allGroups, searchValue), [allGroups, searchValue])
+
+  const [expandedTag, setExpandedTag] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!selectedId || isSearching) return
+    const tag = findTagForDoc(allGroups, selectedId)
+    if (tag && tag !== expandedTag) setExpandedTag(tag)
+  }, [selectedId])
+
+  const handleToggle = (tag: string) =>
+    setExpandedTag((prev) => (prev === tag ? null : tag))
 
   if (collapsed) {
     return (
@@ -61,7 +105,7 @@ export function DocumentsSidebar({
           />
         )}
       </div>
-    );
+    )
   }
 
   return (
@@ -76,37 +120,10 @@ export function DocumentsSidebar({
         />
       )}
 
-      <div className="flex w-full flex-col items-start gap-2">
+      <div className="flex w-full items-center justify-between">
         <span className="text-heading-2 font-heading-2 text-default-font">
           Documents
         </span>
-        <TextField
-          className="h-auto w-full flex-none"
-          variant="filled"
-          label=""
-          helpText=""
-          icon={<FeatherSearch />}
-        >
-          <TextField.Input
-            placeholder="Filter"
-            value={searchValue}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-          />
-        </TextField>
-      </div>
-
-      <div className="flex w-full items-center justify-between">
-        <ToggleGroup
-          value={sortBy === "modified" ? "modified" : "name"}
-          onValueChange={(v) => onSortChange?.(v as "modified" | "name")}
-        >
-          <ToggleGroup.Item icon={null} value="modified">
-            Modified
-          </ToggleGroup.Item>
-          <ToggleGroup.Item icon={null} value="name">
-            Name
-          </ToggleGroup.Item>
-        </ToggleGroup>
         <Button
           variant="brand-primary"
           size="small"
@@ -117,49 +134,64 @@ export function DocumentsSidebar({
         </Button>
       </div>
 
-      <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 overflow-auto">
-        {pinnedDocs.length > 0 && (
-          <div className="flex w-full flex-col items-start gap-1">
-            <SectionHeader>PINNED</SectionHeader>
-            <AnimatePresence initial={false}>
-              {pinnedDocs.map((doc) => (
-                <AnimatedListItem key={doc.id}>
-                  <DocumentItem
-                    title={doc.title}
-                    editedAt={doc.editedAt}
-                    tags={doc.tags}
-                    lineCount={debugMode ? doc.lineCount : undefined}
-                    annotationCount={doc.annotationCount}
-                    selected={doc.id === selectedId}
-                    onClick={() => onDocumentSelect?.(doc.id)}
-                  />
-                </AnimatedListItem>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+      <TextField
+        className="h-auto w-full flex-none"
+        variant="filled"
+        label=""
+        helpText=""
+        icon={<FeatherSearch />}
+      >
+        <TextField.Input
+          placeholder="Search tags & files..."
+          value={searchValue}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+        />
+      </TextField>
 
-        {allDocs.length > 0 && (
-          <div className="flex w-full flex-col items-start gap-1">
-            <SectionHeader>ALL DOCUMENTS</SectionHeader>
-            <AnimatePresence initial={false}>
-              {allDocs.map((doc) => (
-                <AnimatedListItem key={doc.id}>
-                  <DocumentItem
-                    title={doc.title}
-                    editedAt={doc.editedAt}
-                    tags={doc.tags}
-                    lineCount={debugMode ? doc.lineCount : undefined}
-                    annotationCount={doc.annotationCount}
-                    selected={doc.id === selectedId}
-                    onClick={() => onDocumentSelect?.(doc.id)}
-                  />
-                </AnimatedListItem>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+      <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-3 pt-2 pb-6 overflow-y-auto">
+        {groups.map(({ tag, docs }) => {
+          const isExpanded = isSearching || expandedTag === tag
+          return (
+            <div
+              key={tag}
+              className={`flex w-full flex-none flex-col items-start overflow-hidden rounded-md border border-solid bg-default-background ${
+                isExpanded ? "border-brand-300 shadow-sm" : "border-neutral-border transition-colors hover:border-neutral-300"
+              }`}
+            >
+              <TagGroupHeader
+                tag={tag}
+                count={docs.length}
+                expanded={isExpanded}
+                onClick={() => handleToggle(tag)}
+              />
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    key="content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    className="flex w-full flex-col items-start overflow-hidden"
+                  >
+                    <div className="flex w-full flex-col items-start py-1">
+                      {docs.map((doc) => (
+                        <DocumentItem
+                          key={doc.id}
+                          title={doc.title}
+                          editedAt={doc.editedAt}
+                          selected={doc.id === selectedId}
+                          onClick={() => onDocumentSelect?.(doc.id)}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )
+        })}
       </div>
     </div>
-  );
+  )
 }

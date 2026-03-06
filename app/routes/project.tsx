@@ -14,7 +14,7 @@ import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
-import { getAnnotationCount, findDocumentForCallout } from "~/lib/files/selectors"
+import { findDocumentForCallout } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
@@ -23,10 +23,7 @@ type SidebarDocument = {
   id: string
   title: string
   editedAt: string
-  tags: { label: string; variant: "brand" | "neutral" }[]
-  pinned: boolean
-  lineCount: number
-  annotationCount: number
+  tags: string[]
 }
 
 const isHiddenFile = (filename: string): boolean =>
@@ -35,20 +32,16 @@ const isHiddenFile = (filename: string): boolean =>
 const filesToSidebarDocuments = (
   files: Record<string, string>,
   getFileTags: (filename: string) => string[],
-  getFileLineCount: (filename: string) => number,
-  debugMode: boolean
+  debugMode: boolean,
 ): SidebarDocument[] =>
   Object.keys(files)
     .filter((filename) => debugMode || !isHiddenFile(filename))
     .map((filename) => ({
-    id: filename,
-    title: toDisplayName(filename),
-    editedAt: "just now",
-    tags: getFileTags(filename).map((tag, i) => ({ label: tag, variant: i === 0 ? "brand" as const : "neutral" as const })),
-    pinned: false,
-    lineCount: getFileLineCount(filename),
-    annotationCount: getAnnotationCount(files[filename]),
-  }))
+      id: filename,
+      title: toDisplayName(filename),
+      editedAt: "just now",
+      tags: getFileTags(filename),
+    }))
 
 const DEBUG_STORAGE_KEY = "nabu-debug-options"
 
@@ -95,7 +88,6 @@ export default function ProjectLayout() {
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
-  const [sortBy, setSortBy] = useState<"modified" | "name">("modified")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
   useNotifications()
@@ -129,7 +121,7 @@ export default function ProjectLayout() {
     }
   }, [params.projectId])
 
-  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount, getFileAnnotations } = useFiles()
+  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
   const fileImport = useFileImport()
 
   const fileNames = Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f))
@@ -150,7 +142,7 @@ export default function ProjectLayout() {
     }
   }, [params.fileId, fileNames.length, params.projectId])
 
-  const documents = filesToSidebarDocuments(files, getFileTags, getFileLineCount, !!debugOptions.expanded)
+  const documents = filesToSidebarDocuments(files, getFileTags, !!debugOptions.expanded)
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -181,11 +173,8 @@ export default function ProjectLayout() {
         documents={documents}
         selectedId={currentFile ?? undefined}
         searchValue={searchValue}
-        sortBy={sortBy}
         collapsed={sidebarCollapsed}
-        debugMode={!!debugOptions.expanded}
         onSearchChange={setSearchValue}
-        onSortChange={setSortBy}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => {}}
         onCollapse={() => setSidebarCollapsed(true)}

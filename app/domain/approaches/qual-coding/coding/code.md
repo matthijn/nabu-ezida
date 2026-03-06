@@ -28,7 +28,7 @@ thematic block? This affects where findings are anchored.
 
 Resolve scope decisions with the user before planning passes.
 
-When coding, determine if the relevant sections already contain coded annotations and confirm approach with users
+Figure out if the material is already partially coded. If so, find out users intent for those segments.
 
 ## Analysis strategy
 

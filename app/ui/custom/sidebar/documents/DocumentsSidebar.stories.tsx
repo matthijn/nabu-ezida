@@ -1,46 +1,44 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { DocumentsSidebar } from "./DocumentsSidebar";
+import type { Meta, StoryObj } from "@storybook/react-vite"
+import { DocumentsSidebar } from "./DocumentsSidebar"
 
 const sampleDocuments = [
   {
     id: "1",
     title: "Habitat Destruction Framework",
     editedAt: "Edited 2 hours ago",
-    tags: [{ label: "Framework", variant: "brand" as const }],
-    pinned: true,
+    tags: ["ecology", "framework"],
   },
   {
     id: "2",
     title: "Research Paper Draft",
     editedAt: "Edited 3 days ago",
-    tags: [{ label: "Paper" }],
-    pinned: true,
+    tags: ["paper"],
   },
   {
     id: "3",
     title: "Amazon Rainforest Case Study",
     editedAt: "Edited yesterday",
-    tags: [{ label: "Corpus" }, { label: "Field Notes" }],
+    tags: ["corpus", "ecology"],
   },
   {
     id: "4",
     title: "Literature Review Notes",
     editedAt: "Edited 1 week ago",
-    tags: [{ label: "Literature" }, { label: "Review" }],
+    tags: ["literature"],
   },
   {
     id: "5",
     title: "Species Survey Data",
     editedAt: "Edited 2 weeks ago",
-    tags: [{ label: "Corpus" }],
+    tags: ["corpus"],
   },
   {
     id: "6",
     title: "Methodology & Approach",
     editedAt: "Edited 3 weeks ago",
-    tags: [{ label: "Framework" }],
+    tags: ["framework"],
   },
-];
+]
 
 const meta: Meta<typeof DocumentsSidebar> = {
   title: "Custom/Sidebar/Documents/DocumentsSidebar",
@@ -55,30 +53,23 @@ const meta: Meta<typeof DocumentsSidebar> = {
       </div>
     ),
   ],
-};
+}
 
-export default meta;
-type Story = StoryObj<typeof DocumentsSidebar>;
+export default meta
+type Story = StoryObj<typeof DocumentsSidebar>
 
 export const Default: Story = {
   args: {
     documents: sampleDocuments,
     selectedId: "1",
   },
-};
+}
 
 export const Empty: Story = {
   args: {
     documents: [],
   },
-};
-
-export const NoPinned: Story = {
-  args: {
-    documents: sampleDocuments.map((d) => ({ ...d, pinned: false })),
-    selectedId: "3",
-  },
-};
+}
 
 export const WithSearch: Story = {
   args: {
@@ -86,4 +77,4 @@ export const WithSearch: Story = {
     searchValue: "habitat",
     selectedId: "1",
   },
-};
+}

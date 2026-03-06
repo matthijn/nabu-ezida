@@ -4,7 +4,7 @@ import { patchJsonBlock as def } from "./patch-json-block.def"
 import { findSingletonBlock, findBlockById, summarizeBlocks, parseBlockJson, replaceBlock, replaceSingletonBlock, type CodeBlock } from "~/domain/blocks/parse"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
-import { hasFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
+import { hasFuzzyPatterns, resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { dedupArraysIn } from "~/lib/diff/json-block/dedup"
 import { getBlockConfig, isKnownBlockType, isSingleton, getLabelKey } from "~/domain/blocks/registry"
 import { getFile } from "~/lib/files"
@@ -149,6 +149,38 @@ export const autoFuzzyAnnotationText = (op: JsonPatchOp): JsonPatchOp => {
   return op
 }
 
+type FuzzyOpResult =
+  | { ok: true; op: JsonPatchOp }
+  | { ok: false; error: string }
+
+const resolveOpAnnotationText = (op: JsonPatchOp, content: string): FuzzyOpResult => {
+  if (op.op !== "add" && op.op !== "replace") return { ok: true, op }
+
+  if (typeof op.value === "string" && hasFuzzyPatterns(op.value)) {
+    const { patch: resolved, unresolved } = resolveFuzzyPatterns(op.value, content)
+    if (unresolved.length > 0) return { ok: false, error: `${op.path}: Text not found in document` }
+    return { ok: true, op: { ...op, value: resolved } }
+  }
+
+  if (hasTextField(op.value) && hasFuzzyPatterns(op.value.text)) {
+    const { patch: resolved, unresolved } = resolveFuzzyPatterns(op.value.text, content)
+    if (unresolved.length > 0) return { ok: false, error: `${op.path}: Text not found in document` }
+    return { ok: true, op: { ...op, value: { ...op.value, text: resolved } } }
+  }
+
+  return { ok: true, op }
+}
+
+const resolveAnnotationTextOps = (ops: JsonPatchOp[], content: string): ResolveResult => {
+  const resolved: JsonPatchOp[] = []
+  for (const op of ops) {
+    const result = resolveOpAnnotationText(op, content)
+    if (!result.ok) return { ok: false, error: result.error }
+    resolved.push(result.op)
+  }
+  return { ok: true, ops: resolved }
+}
+
 const normalizeDoubleExt = (path: string): string =>
   path.replace(/(\.\w+)\1+$/, "$1")
 
@@ -195,7 +227,7 @@ const seedAppendArrays = (ops: JsonPatchOp[], validFields: Set<string>): Record<
 
 type ApplyResult = { doc: unknown; failures: string[]; applied: number }
 
-const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown): ApplyResult => {
+const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown, content: string): ApplyResult => {
   let currentDoc = doc
   const failures: string[] = []
   let applied = 0
@@ -207,8 +239,14 @@ const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown): ApplyResult => 
       continue
     }
 
-    const fuzzyOps = resolved.ops.map(autoFuzzyAnnotationText)
-    const result = applyJsonPatchOps(currentDoc, fuzzyOps)
+    const fuzzyWrapped = resolved.ops.map(autoFuzzyAnnotationText)
+    const fuzzyResolved = resolveAnnotationTextOps(fuzzyWrapped, content)
+    if (!fuzzyResolved.ok) {
+      failures.push(fuzzyResolved.error)
+      continue
+    }
+
+    const result = applyJsonPatchOps(currentDoc, fuzzyResolved.ops)
     if (!result.ok) {
       failures.push(`${op.path}: ${result.error}`)
       continue
@@ -293,7 +331,7 @@ export const patchJsonBlock = registerTool(
         return err(`All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`)
       }
 
-      const { doc: patchedDoc, failures, applied } = applyOpsIndividually(accepted, resolved.json)
+      const { doc: patchedDoc, failures, applied } = applyOpsIndividually(accepted, resolved.json, file.content)
 
       if (applied === 0) {
         return err([rejectedMessage, ...failures].filter(Boolean).join("\n"))

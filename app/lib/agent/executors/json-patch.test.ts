@@ -99,7 +99,7 @@ describe("patch_json_block", () => {
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{ op: "add", path: "/annotations/-", value: { text: "test", reason: "r", color: "red" } }],
+        operations: [{ op: "add", path: "/annotations/-", value: { text: "No blocks here", reason: "r", color: "red" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -240,11 +240,40 @@ describe("patch_json_block", () => {
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{ op: "add", path: "/annotations/-", value: { id: "new", text: "t", reason: "r", color: "red" } }],
+        operations: [{ op: "add", path: "/annotations/-", value: { id: "new", text: "Some text", reason: "r", color: "red" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
       expectMutations: 1,
+    },
+    {
+      name: "annotation text fuzzy-resolved against document",
+      files: ({
+        "doc.md": "# Verslag\n\nDe minister kondigde aan dat er stappen worden genomen om het beleid te wijzigen.\n\n```json-attributes\n{\n\t\"annotations\": []\n}\n```\n",
+      }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{
+          op: "add",
+          path: "/annotations/-",
+          value: { text: "De minister kondigde aan dat er stappn worden genomen om het beleid te wijzigen", reason: "typo in quote", code: "x" },
+        }],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched/,
+      expectMutations: 1,
+    },
+    {
+      name: "annotation text not found in document — error",
+      files: ({ "doc.md": doc({ annotations: [] }) }),
+      args: {
+        path: "doc.md",
+        language: "json-attributes",
+        operations: [{ op: "add", path: "/annotations/-", value: { text: "completely nonexistent phrase that appears nowhere", reason: "r", code: "x" } }],
+      },
+      expectStatus: "error",
+      expectOutput: /Text not found in document/,
     },
     {
       name: "partial: one op fails selector, other succeeds",
