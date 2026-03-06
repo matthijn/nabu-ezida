@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { Schema } from "prosemirror-model"
-import { textOffsetToPos, proseTextContent } from "./plugin"
+import { textOffsetToPos, proseTextContent } from "~/lib/editor/text"
 
 const schema = new Schema({
   nodes: {

@@ -12,21 +12,25 @@ import { Milkdown, MilkdownProvider, useEditor, useInstance } from "@milkdown/re
 import { ProsemirrorAdapterProvider, useNodeViewFactory } from "@prosemirror-adapter/react"
 import { $prose, replaceAll } from "@milkdown/utils"
 import { createAnnotationsPlugin, annotationsMeta } from "~/lib/editor/annotations"
+import { createSpotlightPlugin, spotlightMeta } from "~/lib/editor/spotlight"
 import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
 import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 import { useFiles } from "~/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
+import type { Spotlight } from "~/domain/spotlight"
 
 type MilkdownEditorCoreProps = {
   defaultValue: string
   debugMode: boolean
+  spotlight: Spotlight | null
 }
 
-const MilkdownEditorCore = ({ defaultValue, debugMode }: MilkdownEditorCoreProps) => {
+const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEditorCoreProps) => {
   const { files } = useFiles()
   const nodeViewFactory = useNodeViewFactory()
   const annotationsPlugin = $prose(() => createAnnotationsPlugin())
+  const spotlightPlugin = $prose(() => createSpotlightPlugin())
   const hiddenBlocksPlugin = $prose(() => createHiddenBlocksPlugin())
   const gapCursorPlugin = $prose(gapCursor)
   const calloutBlocksPlugin = createCalloutBlocksPlugin(nodeViewFactory)
@@ -48,6 +52,7 @@ const MilkdownEditorCore = ({ defaultValue, debugMode }: MilkdownEditorCoreProps
         .use(clipboard)
         .use(gapCursorPlugin)
         .use(annotationsPlugin)
+        .use(spotlightPlugin)
 
       if (debugMode) return editor
 
@@ -69,9 +74,12 @@ const MilkdownEditorCore = ({ defaultValue, debugMode }: MilkdownEditorCoreProps
     }
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr.setMeta(annotationsMeta, annotations))
+      const tr = view.state.tr
+        .setMeta(annotationsMeta, annotations)
+        .setMeta(spotlightMeta, spotlight)
+      view.dispatch(tr)
     })
-  }, [loading, getEditor, defaultValue, annotations])
+  }, [loading, getEditor, defaultValue, annotations, spotlight])
 
   return (
     <AnnotationHover annotations={annotations}>
@@ -83,14 +91,15 @@ const MilkdownEditorCore = ({ defaultValue, debugMode }: MilkdownEditorCoreProps
 export type MilkdownEditorProps = {
   content: string
   debugMode?: boolean
+  spotlight?: Spotlight | null
 }
 
-export const MilkdownEditor = ({ content, debugMode = false }: MilkdownEditorProps) => {
+export const MilkdownEditor = ({ content, debugMode = false, spotlight = null }: MilkdownEditorProps) => {
   return (
     <div className="w-full max-w-[768px] text-default-font">
       <MilkdownProvider>
         <ProsemirrorAdapterProvider>
-          <MilkdownEditorCore defaultValue={content} debugMode={debugMode} />
+          <MilkdownEditorCore defaultValue={content} debugMode={debugMode} spotlight={spotlight} />
         </ProsemirrorAdapterProvider>
       </MilkdownProvider>
     </div>

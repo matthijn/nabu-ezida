@@ -2,7 +2,7 @@
 
 import Markdown from "react-markdown"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { linkifyEntityIds } from "~/domain/entity-link"
+import { linkifyEntityIds, linkifyQuotes } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
 
 const allowFileProtocol = (url: string) => url
@@ -11,10 +11,12 @@ type InlineMarkdownProps = {
   children: string
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-export const InlineMarkdown = ({ children, files, projectId, navigate }: InlineMarkdownProps) => (
+export const InlineMarkdown = ({ children, files, projectId, currentFile, currentFileContent, navigate }: InlineMarkdownProps) => (
   <Markdown
     components={{
       ...createEntityLinkComponents({ files, projectId, navigate }),
@@ -22,6 +24,6 @@ export const InlineMarkdown = ({ children, files, projectId, navigate }: InlineM
     }}
     urlTransform={allowFileProtocol}
   >
-    {linkifyEntityIds(children, (id) => resolveEntityName(files, id))}
+    {linkifyEntityIds(linkifyQuotes(children, currentFile, currentFileContent), (id) => resolveEntityName(files, id))}
   </Markdown>
 )

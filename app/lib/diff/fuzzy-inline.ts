@@ -61,7 +61,9 @@ const scoreTokenWindow = (needleWords: Set<string>, windowTokens: Token[]): numb
   return hits / needleWords.size
 }
 
-const findTokenMatch = (content: string, docTokens: Token[], needleWords: string[]): string | null => {
+export type MatchOffset = { start: number; end: number }
+
+const findTokenMatchOffset = (docTokens: Token[], needleWords: string[]): MatchOffset | null => {
   if (needleWords.length < MIN_FUZZY_WORDS) return null
 
   const needleSet = new Set(needleWords)
@@ -72,7 +74,7 @@ const findTokenMatch = (content: string, docTokens: Token[], needleWords: string
   for (let i = 0; i <= docTokens.length - windowSize; i++) {
     const window = docTokens.slice(i, i + windowSize)
     if (scoreTokenWindow(needleSet, window) >= TOKEN_OVERLAP_THRESHOLD) {
-      return content.slice(window[0].start, window[window.length - 1].end)
+      return { start: window[0].start, end: window[window.length - 1].end }
     }
   }
 
@@ -81,20 +83,32 @@ const findTokenMatch = (content: string, docTokens: Token[], needleWords: string
 
 const flattenNewlines = (text: string): string => text.replace(/[\r\n]/g, " ")
 
-const findExactSubstring = (content: string, needle: string): string | null => {
+const findExactOffset = (content: string, needle: string): MatchOffset | null => {
   const idx = flattenNewlines(content).toLowerCase().indexOf(flattenNewlines(needle).toLowerCase())
   if (idx < 0) return null
-  return content.slice(idx, idx + needle.length)
+  return { start: idx, end: idx + needle.length }
 }
 
-const findBestMatch = (content: string, needle: string): string | null => {
-  const exact = findExactSubstring(content, needle)
+const findBestOffset = (content: string, needle: string): MatchOffset | null => {
+  const exact = findExactOffset(content, needle)
   if (exact) return exact
 
   const docTokens = getDocTokens(content)
   const needleWords = tokenizeWords(needle)
-  return findTokenMatch(content, docTokens, needleWords)
+  return findTokenMatchOffset(docTokens, needleWords)
 }
+
+const sliceOffset = (content: string, offset: MatchOffset): string =>
+  content.slice(offset.start, offset.end)
+
+const findBestMatch = (content: string, needle: string): string | null => {
+  const offset = findBestOffset(content, needle)
+  if (!offset) return null
+  return sliceOffset(content, offset)
+}
+
+export const findMatchOffset = (content: string, needle: string): MatchOffset | null =>
+  findBestOffset(content, needle)
 
 const collectFuzzyPatterns = (patch: string): FuzzyMatch[] => {
   const matches: FuzzyMatch[] = []

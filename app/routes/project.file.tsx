@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef } from "react"
+import { useSearchParams } from "react-router"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
+import { parseSpotlight } from "~/domain/spotlight"
 import { useProject } from "./project"
 import { linkifyEntityIds } from "~/domain/entity-link/linkify"
 import { toExtraPretty } from "~/lib/json"
@@ -40,6 +42,8 @@ const formatContent = (content: string, filename: string): string =>
 
 export default function ProjectFile() {
   const { files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags } = useProject()
+  const [searchParams] = useSearchParams()
+  const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
   useScrollToEntity(editorContainerRef)
@@ -116,7 +120,7 @@ export default function ProjectFile() {
             ]}
           />
           <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} debugMode={debugOptions.renderAsJson} />
+            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} debugMode={debugOptions.renderAsJson} spotlight={spotlight} />
           </div>
         </div>
         <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />

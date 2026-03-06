@@ -42,7 +42,7 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { linkifyEntityIds } from "~/domain/entity-link"
+import { linkifyEntityIds, linkifyQuotes } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
@@ -66,6 +66,8 @@ type MessageContentProps = {
   content: string
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
@@ -82,9 +84,9 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
   </div>
 )
 
-const MessageContent = ({ content, files, projectId, navigate }: MessageContentProps) => (
+const MessageContent = ({ content, files, projectId, currentFile, currentFileContent, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(linkifyEntityIds(content, (id) => resolveAndTruncateName(files, id)))}
+    {fixMarkdownUrls(linkifyEntityIds(linkifyQuotes(content, currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)))}
   </Markdown>
 )
 
@@ -151,21 +153,23 @@ type PlanStepRowProps = {
   step: PlanStep
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-const PlanStepRow = ({ step, files, projectId, navigate }: PlanStepRowProps) => {
+const PlanStepRow = ({ step, files, projectId, currentFile, currentFileContent, navigate }: PlanStepRowProps) => {
   const Icon = stepIconComponent[step.status]
   return (
     <div className="flex w-full items-start gap-2">
       <Icon className={`text-body ${stepIconColor[step.status]} mt-0.5 flex-none`} />
       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
         <div className={`prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-body font-body ${stepTextColor[step.status]}`}>
-          <MessageContent content={step.description} files={files} projectId={projectId} navigate={navigate} />
+          <MessageContent content={step.description} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
         </div>
         {step.summary && (
           <div className="prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-caption font-caption text-subtext-color">
-            <MessageContent content={step.summary} files={files} projectId={projectId} navigate={navigate} />
+            <MessageContent content={step.summary} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
           </div>
         )}
       </div>
@@ -180,22 +184,24 @@ type LeafRendererProps = {
   message: LeafMessage
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-const LeafRenderer = ({ message, files, projectId, navigate }: LeafRendererProps) => {
+const LeafRenderer = ({ message, files, projectId, currentFile, currentFileContent, navigate }: LeafRendererProps) => {
   const content = displayContent(message)
   if (!content) return null
   if (message.role === "user") {
     return (
       <UserBubble>
-        <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
+        <MessageContent content={content} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
       </UserBubble>
     )
   }
   return (
     <AssistantBubble>
-      <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
+      <MessageContent content={content} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
     </AssistantBubble>
   )
 }
@@ -259,6 +265,8 @@ type AskRendererProps = {
   memoryContent: string | undefined
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
   onSelect: (option: string) => void
   onToggleSave: (question: string, answer: string) => void
@@ -274,7 +282,7 @@ const PersistBadge = () => (
   </span>
 )
 
-const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSelect, onToggleSave }: AskRendererProps) => {
+const AskRenderer = ({ message, memoryContent, files, projectId, currentFile, currentFileContent, navigate, onSelect, onToggleSave }: AskRendererProps) => {
   const selectedSaved = message.selected !== null && isAnswerSaved(memoryContent, message.question, message.selected)
 
   useEffect(() => {
@@ -287,7 +295,7 @@ const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSel
     <div className="flex w-full flex-col items-start gap-2 mb-3">
       <AssistantBubble>
         <div className="flex flex-col gap-1">
-          <MessageContent content={message.question} files={files} projectId={projectId} navigate={navigate} />
+          <MessageContent content={message.question} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
           {message.persist && <PersistBadge />}
         </div>
       </AssistantBubble>
@@ -303,12 +311,12 @@ const AskRenderer = ({ message, memoryContent, files, projectId, navigate, onSel
               onClick={message.selected === null ? () => onSelect(option) : undefined}
               onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
             >
-              <InlineMarkdown files={files} projectId={projectId}>{option}</InlineMarkdown>
+              <InlineMarkdown files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent}>{option}</InlineMarkdown>
             </OptionCard>
           )
         })}
       </div>
-      {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} navigate={navigate} /></UserBubble>}
+      {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} /></UserBubble>}
     </div>
   )
 }
@@ -317,7 +325,7 @@ const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
   child.type === "text"
 
-const PlanLeafInline = ({ message, files, projectId, navigate }: { message: LeafMessage; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => {
+const PlanLeafInline = ({ message, files, projectId, currentFile, currentFileContent, navigate }: { message: LeafMessage; files: Record<string, string>; projectId: string | null; currentFile: string | null; currentFileContent: string | null; navigate?: (url: string) => void }) => {
   const content = displayContent(message)
   if (!content) return null
   if (message.role === "user") {
@@ -325,7 +333,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
           <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
-            <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
+            <MessageContent content={content} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
           </div>
         </div>
       </div>
@@ -335,7 +343,7 @@ const PlanLeafInline = ({ message, files, projectId, navigate }: { message: Leaf
     <div className="flex w-full items-start mt-1">
       <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
         <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
-          <MessageContent content={content} files={files} projectId={projectId} navigate={navigate} />
+          <MessageContent content={content} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
         </div>
       </div>
     </div>
@@ -346,12 +354,14 @@ type PlanChildRendererProps = {
   child: PlanChild
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-const PlanChildRenderer = ({ child, files, projectId, navigate }: PlanChildRendererProps) => {
-  if (isPlanStep(child)) return <PlanStepRow step={child} files={files} projectId={projectId} navigate={navigate} />
-  if (isLeafMessage(child)) return <PlanLeafInline message={child} files={files} projectId={projectId} navigate={navigate} />
+const PlanChildRenderer = ({ child, files, projectId, currentFile, currentFileContent, navigate }: PlanChildRendererProps) => {
+  if (isPlanStep(child)) return <PlanStepRow step={child} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
+  if (isLeafMessage(child)) return <PlanLeafInline message={child} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
   return null
 }
 
@@ -359,21 +369,23 @@ type PlanHeaderRendererProps = {
   header: PlanHeader
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-const PlanHeaderRenderer = ({ header, files, projectId, navigate }: PlanHeaderRendererProps) => (
+const PlanHeaderRenderer = ({ header, files, projectId, currentFile, currentFileContent, navigate }: PlanHeaderRendererProps) => (
   <div className="flex w-full flex-col items-start gap-1 py-1">
     <div className="prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-body-bold font-body-bold text-default-font">
-      <MessageContent content={header.task} files={files} projectId={projectId} navigate={navigate} />
+      <MessageContent content={header.task} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
     </div>
     {header.aborted && <AbortBox />}
   </div>
 )
 
-const PlanItemRenderer = ({ item, files, projectId, navigate }: { item: PlanItem; files: Record<string, string>; projectId: string | null; navigate?: (url: string) => void }) => (
+const PlanItemRenderer = ({ item, files, projectId, currentFile, currentFileContent, navigate }: { item: PlanItem; files: Record<string, string>; projectId: string | null; currentFile: string | null; currentFileContent: string | null; navigate?: (url: string) => void }) => (
   <div className={`flex w-full flex-col items-start${item.dimmed ? " opacity-50" : ""}`}>
-    <PlanChildRenderer child={item.child} files={files} projectId={projectId} navigate={navigate} />
+    <PlanChildRenderer child={item.child} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
   </div>
 )
 
@@ -431,15 +443,17 @@ type PlanSegmentItemRendererProps = {
   item: PlanMessage
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
-const PlanSegmentItemRenderer = ({ item, files, projectId, navigate }: PlanSegmentItemRendererProps) => {
+const PlanSegmentItemRenderer = ({ item, files, projectId, currentFile, currentFileContent, navigate }: PlanSegmentItemRendererProps) => {
   switch (item.type) {
     case "plan-header":
-      return <PlanHeaderRenderer header={item} files={files} projectId={projectId} navigate={navigate} />
+      return <PlanHeaderRenderer header={item} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
     case "plan-item":
-      return <PlanItemRenderer item={item} files={files} projectId={projectId} navigate={navigate} />
+      return <PlanItemRenderer item={item} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
   }
 }
 
@@ -472,6 +486,8 @@ type PlanSegmentRendererProps = {
   loading: boolean
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
@@ -492,18 +508,18 @@ const groupIntoRuns = (items: PlanMessage[]): SegmentRun[] =>
     return [...acc, { type: "nested", items: [item] }]
   }, [])
 
-const PlanSegmentRenderer = ({ items, loading, files, projectId, navigate }: PlanSegmentRendererProps) => {
+const PlanSegmentRenderer = ({ items, loading, files, projectId, currentFile, currentFileContent, navigate }: PlanSegmentRendererProps) => {
   const { visible, pendingCount } = splitTrailingPending(items, loading)
   const runs = groupIntoRuns(visible)
   return (
     <div className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
       {runs.map((run, i) =>
         run.type === "single" ? (
-          <PlanSegmentItemRenderer key={i} item={run.item} files={files} projectId={projectId} navigate={navigate} />
+          <PlanSegmentItemRenderer key={i} item={run.item} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
         ) : (
           <div key={i} className="flex w-full flex-col items-start gap-2 border-l-2 border-solid border-neutral-200 pl-3">
             {run.items.map((item, j) => (
-              <PlanSegmentItemRenderer key={j} item={item} files={files} projectId={projectId} navigate={navigate} />
+              <PlanSegmentItemRenderer key={j} item={item} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
             ))}
           </div>
         )
@@ -555,7 +571,8 @@ export const NabuChatSidebar = () => {
     return { project, navigate }
   }, [navigate, params.projectId])
   const { chat, send, respond, cancel, loading, draft, history } = useChat()
-  const { files } = useFiles()
+  const { files, currentFile } = useFiles()
+  const currentFileContent = currentFile ? files[currentFile] ?? null : null
 
   const derived = useMemo(() => derive(history, files), [history, files])
   const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
@@ -689,14 +706,16 @@ export const NabuChatSidebar = () => {
                       loading={loading}
                       files={files}
                       projectId={params.projectId ?? null}
+                      currentFile={currentFile}
+                      currentFileContent={currentFileContent}
                       navigate={navigate}
                     />
                   ) : isAskSegment(segment) ? (
-                    <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
+                    <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
                   ) : isCollapsedSteps(segment) ? (
                     <CollapsedStepsIndicator count={segment.count} />
                   ) : (
-                    <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} navigate={navigate} />
+                    <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
                   )}
                 </AnimatedListItem>
               )}

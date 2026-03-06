@@ -4,7 +4,8 @@ import { resolveEntityLink, type ResolvedLink, type EntityIcons } from "./resolv
 const StubIcon = () => null
 
 const icons: EntityIcons = {
-  text: StubIcon,
+  file: StubIcon,
+  spotlight: StubIcon,
 }
 
 const fileWithAnnotation = (id: string, text: string, color: string): string =>
@@ -72,7 +73,7 @@ describe("resolveEntityLink", () => {
       files: {},
       expected: {
         kind: "text",
-        colors: { text: "var(--color-brand-700)", icon: "var(--color-brand-600)", background: "var(--color-brand-100)", backgroundHover: "var(--color-brand-200)" },
+        colors: { text: "var(--color-neutral-700)", icon: "var(--color-neutral-500)", background: "var(--color-neutral-200)", backgroundHover: "var(--color-neutral-300)" },
         url: "/project/proj1/file/my-doc?spotlight=hello%20world",
         label: "my-doc",
       },

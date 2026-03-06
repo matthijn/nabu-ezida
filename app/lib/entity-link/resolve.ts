@@ -36,11 +36,18 @@ const radixColors = (color: RadixColor): ResolvedColors => ({
   backgroundHover: hoveredElementBackground(color),
 })
 
-const BRAND_COLORS: ResolvedColors = {
+const FILE_COLORS: ResolvedColors = {
   text: "var(--color-brand-700)",
   icon: "var(--color-brand-600)",
   background: "var(--color-brand-100)",
   backgroundHover: "var(--color-brand-200)",
+}
+
+const SPOTLIGHT_COLORS: ResolvedColors = {
+  text: "var(--color-neutral-700)",
+  icon: "var(--color-neutral-500)",
+  background: "var(--color-neutral-200)",
+  backgroundHover: "var(--color-neutral-300)",
 }
 
 const buildEntityUrl = (projectId: string, documentId: string, entityId: string): string =>
@@ -88,20 +95,24 @@ const resolveCalloutRef = (
   }
 }
 
+const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean =>
+  ref.spotlight !== null
+
 const resolveTextRef = (
   ref: Extract<EntityRef, { kind: "text" }>,
   projectId: string,
-  textIcon: ComponentType<{ className?: string }>,
+  icons: EntityIcons,
 ): ResolvedLink => ({
   kind: "text",
-  colors: BRAND_COLORS,
-  icon: textIcon,
+  colors: hasSpotlight(ref) ? SPOTLIGHT_COLORS : FILE_COLORS,
+  icon: hasSpotlight(ref) ? icons.spotlight : icons.file,
   url: buildTextUrl(projectId, ref.documentId, ref.spotlight),
   label: ref.documentId,
 })
 
 export type EntityIcons = {
-  text: ComponentType<{ className?: string }>
+  file: ComponentType<{ className?: string }>
+  spotlight: ComponentType<{ className?: string }>
 }
 
 export const resolveEntityLink = (
@@ -119,7 +130,7 @@ export const resolveEntityLink = (
     case "callout":
       return resolveCalloutRef(ref, files, projectId)
     case "text":
-      return resolveTextRef(ref, projectId, icons.text)
+      return resolveTextRef(ref, projectId, icons)
     default: {
       const _exhaustive: never = ref
       throw new Error(`Unknown entity kind: ${(_exhaustive as EntityRef).kind}`)

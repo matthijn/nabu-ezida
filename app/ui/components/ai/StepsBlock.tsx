@@ -22,6 +22,8 @@ type StepItem = {
 type MarkdownContext = {
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
@@ -53,13 +55,13 @@ const StepRow = ({ step, context }: StepRowProps) => (
     {stepIcons[step.type]}
     <div className="flex flex-col items-start gap-0.5">
       <span className={stepTextStyles[step.type]}>
-        <InlineMarkdown files={context.files} projectId={context.projectId} navigate={context.navigate}>
+        <InlineMarkdown files={context.files} projectId={context.projectId} currentFile={context.currentFile} currentFileContent={context.currentFileContent} navigate={context.navigate}>
           {step.content}
         </InlineMarkdown>
       </span>
       {step.summary && (
         <span className="text-caption font-caption text-subtext-color">
-          <InlineMarkdown files={context.files} projectId={context.projectId} navigate={context.navigate}>
+          <InlineMarkdown files={context.files} projectId={context.projectId} currentFile={context.currentFile} currentFileContent={context.currentFileContent} navigate={context.navigate}>
             {step.summary}
           </InlineMarkdown>
         </span>
@@ -84,14 +86,16 @@ export type StepsBlockProps = {
   aborted?: boolean
   files: Record<string, string>
   projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
   navigate?: (url: string) => void
 }
 
 const toCancelledIfAborted = (step: StepItem, aborted: boolean): StepItem =>
   aborted && step.type === "active" ? { ...step, type: "cancelled" } : step
 
-export const StepsBlock = ({ steps, aborted, files, projectId, navigate }: StepsBlockProps) => {
-  const context: MarkdownContext = { files, projectId, navigate }
+export const StepsBlock = ({ steps, aborted, files, projectId, currentFile, currentFileContent, navigate }: StepsBlockProps) => {
+  const context: MarkdownContext = { files, projectId, currentFile, currentFileContent, navigate }
   const displaySteps = steps.map((step) => toCancelledIfAborted(step, !!aborted))
 
   return (
