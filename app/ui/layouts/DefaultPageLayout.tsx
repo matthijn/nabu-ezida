@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode, type MutableRefObject } from "react";
+import { useState, useCallback, useEffect, useRef, type ReactNode, type MutableRefObject, type MouseEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FeatherBook,
@@ -38,6 +38,16 @@ const buildNavItems = (activeNav: ActiveNav, showCodes: boolean): NavItem[][] =>
   return secondary.length > 0 ? [primary, secondary] : [primary];
 };
 
+const HANDLE_WIDTH = 12;
+const CONTAINER_PADDING = 24;
+const MIN_LEFT_WIDTH = 400;
+const MIN_RIGHT_WIDTH = 280;
+const RIGHT_PANEL_DEFAULT = { width: 384, height: 0 };
+const RIGHT_PANEL_STORAGE_KEY = "layout:right-panel";
+
+const computeMaxRightWidth = (containerWidth: number): number =>
+  Math.floor((containerWidth - CONTAINER_PADDING - HANDLE_WIDTH) / 2);
+
 export const DefaultPageLayout = ({
   children,
   rightPanel,
@@ -51,10 +61,47 @@ export const DefaultPageLayout = ({
   const [hoveredNav, setHoveredNav] = useState<ActiveNav | null>(null);
   if (dismissSidebarRef) dismissSidebarRef.current = () => setHoveredNav(null);
   const activePanel = hoveredNav && sidebarPanels?.[hoveredNav];
-  const { size: chatSize, handleResizeMouseDown } = useResizable(
-    { width: 380, height: 0 },
-    { storageKey: "chat-panel-width", bounds: { minWidth: 280, maxWidth: 500 } }
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width + CONTAINER_PADDING));
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const maxRightWidth = computeMaxRightWidth(containerWidth || 800);
+
+  const { size: rightPanelSize, handleResizeMouseDown } = useResizable(
+    RIGHT_PANEL_DEFAULT,
+    { bounds: { minWidth: MIN_RIGHT_WIDTH, maxWidth: maxRightWidth, minHeight: 0, maxHeight: 0 }, storageKey: RIGHT_PANEL_STORAGE_KEY },
   );
+
+  const rightWidth = Math.min(rightPanelSize.width, maxRightWidth);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const prev = { cursor: document.body.style.cursor, userSelect: document.body.style.userSelect };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.cursor = prev.cursor;
+      document.body.style.userSelect = prev.userSelect;
+    };
+  }, [isDragging]);
+
+  const onDragStart = useCallback((e: MouseEvent) => {
+    setIsDragging(true);
+    handleResizeMouseDown(e);
+    const onUp = () => {
+      setIsDragging(false);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mouseup", onUp);
+  }, [handleResizeMouseDown]);
 
   return (
     <div className={cn("flex h-screen w-full items-center", className)}>
@@ -84,22 +131,28 @@ export const DefaultPageLayout = ({
           )}
         </AnimatePresence>
       </div>
-      <div className="flex h-full grow gap-3 bg-neutral-100 p-3">
+      <div ref={containerRef} className="flex h-full grow overflow-hidden bg-neutral-100 p-3">
         {children && (
-          <div className="relative flex grow flex-col items-start gap-4 rounded-xl bg-default-background overflow-hidden">
+          <div className="relative flex grow flex-col items-start gap-4 rounded-xl bg-default-background overflow-hidden" style={{ minWidth: MIN_LEFT_WIDTH }}>
             {children}
           </div>
         )}
         {rightPanel && (
-          <div className="flex flex-col flex-none h-full relative" style={{ width: chatSize.width }}>
+          <>
             <div
-              className="absolute inset-y-0 left-0 w-3 -ml-3 cursor-col-resize group z-10"
-              onMouseDown={handleResizeMouseDown}
+              className="flex-none cursor-col-resize flex items-center justify-center group"
+              style={{ width: HANDLE_WIDTH }}
+              onMouseDown={onDragStart}
             >
-              <div className="absolute inset-y-0 left-1/2 w-px group-hover:bg-neutral-300 transition-colors" />
+              <div className={cn(
+                "w-px h-full bg-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity",
+                isDragging && "!opacity-100",
+              )} />
             </div>
-            {rightPanel}
-          </div>
+            <div className="flex flex-col flex-none h-full" style={{ width: rightWidth }}>
+              {rightPanel}
+            </div>
+          </>
         )}
       </div>
     </div>

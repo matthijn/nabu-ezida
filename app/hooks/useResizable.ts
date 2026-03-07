@@ -44,9 +44,14 @@ const writeStoredSize = (key: string, size: Size): void => {
 }
 
 export const useResizable = (initialSize: Size, options: ResizableOptions = {}) => {
-  const { minWidth, maxWidth, minHeight, maxHeight } = { ...DEFAULT_BOUNDS, ...options.bounds }
+  const bounds = { ...DEFAULT_BOUNDS, ...options.bounds }
+  const boundsRef = useRef(bounds)
+  boundsRef.current = bounds
+
   const [size, setSize] = useState(() => readStoredSize(options.storageKey ?? "") ?? initialSize)
   const dragRef = useRef<DragState | null>(null)
+  const sizeRef = useRef(size)
+  sizeRef.current = size
 
   const handleResizeMouseDown = useCallback((e: MouseEvent) => {
     e.preventDefault()
@@ -54,12 +59,13 @@ export const useResizable = (initialSize: Size, options: ResizableOptions = {}) 
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startWidth: size.width,
-      startHeight: size.height,
+      startWidth: sizeRef.current.width,
+      startHeight: sizeRef.current.height,
     }
 
     const handleMouseMove = (e: globalThis.MouseEvent) => {
       if (!dragRef.current) return
+      const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
       const deltaX = dragRef.current.startX - e.clientX
       const deltaY = dragRef.current.startY - e.clientY
       setSize({
@@ -70,6 +76,7 @@ export const useResizable = (initialSize: Size, options: ResizableOptions = {}) 
 
     const handleMouseUp = (e: globalThis.MouseEvent) => {
       if (!dragRef.current) return
+      const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
       const finalSize = {
         width: clamp(dragRef.current.startWidth + (dragRef.current.startX - e.clientX), minWidth, maxWidth),
         height: clamp(dragRef.current.startHeight + (dragRef.current.startY - e.clientY), minHeight, maxHeight),
@@ -82,7 +89,7 @@ export const useResizable = (initialSize: Size, options: ResizableOptions = {}) 
 
     document.addEventListener("mousemove", handleMouseMove)
     document.addEventListener("mouseup", handleMouseUp)
-  }, [size, minWidth, maxWidth, minHeight, maxHeight, options.storageKey])
+  }, [options.storageKey])
 
   return { size, setSize, handleResizeMouseDown }
 }

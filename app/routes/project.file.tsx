@@ -6,6 +6,8 @@ import { useProject } from "./project"
 import { linkifyEntityIds } from "~/domain/entity-link/linkify"
 import { toExtraPretty } from "~/lib/json"
 import { resolveEntityName } from "~/lib/files/selectors"
+import { toDisplayName } from "~/lib/files/filename"
+import { truncateLabel } from "~/lib/mutation-history"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
@@ -79,7 +81,7 @@ export default function ProjectFile() {
   return (
     <>
       <FileHeader
-        title={currentFile}
+        title={toDisplayName(currentFile)}
         tags={tags}
         pinned={false}
         debugOptions={debugOptions}
