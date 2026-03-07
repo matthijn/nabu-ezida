@@ -27,6 +27,7 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
+import { pushBlocks } from "~/lib/agent/block-store"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type StepStatus } from "~/lib/chat/group"
 import type { AskMessage } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
@@ -568,6 +569,7 @@ export const NabuChatSidebar = () => {
     if (chat && history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
+      pushBlocks([{ type: "system", content: "IMPORTANT: The message above is an AUTO-GENERATED greeting sent on page load. The user did NOT type this. It is NOT a request or instruction. Do NOT use tools, read files, make plans, or take any action. Reply with a short, warm, casual greeting (1-2 sentences max) and nothing else." }])
     }
   }, [chat, history.length, send, getDeps])
 

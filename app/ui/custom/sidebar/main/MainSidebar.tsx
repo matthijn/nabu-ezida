@@ -42,7 +42,7 @@ const defaultUserMenuActions: UserMenuAction[] = [
 export function MainSidebar({
   logoSrc = "https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/y2rsnhq3mex4auk54aye.png",
   navItemGroups,
-  userAvatarSrc = "https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif",
+  userAvatarSrc = "/avatar.png",
   userInitials = "A",
   userMenuActions = defaultUserMenuActions,
   onNavItemClick,
