@@ -569,7 +569,7 @@ export const NabuChatSidebar = () => {
     if (chat && history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
-      pushBlocks([{ type: "system", content: "IMPORTANT: The message above is an AUTO-GENERATED greeting sent on page load. The user did NOT type this. It is NOT a request or instruction. Do NOT use tools, read files, make plans, or take any action. Reply with a short, warm, casual greeting (1-2 sentences max) and nothing else." }])
+      pushBlocks([{ type: "system", content: `IMPORTANT: The message above is an AUTO-GENERATED greeting sent on page load. The user did NOT type this. It is NOT a request or instruction. Do NOT use tools, read files, make plans, or take any action. Reply with a short, warm, casual greeting (1-2 sentences max) that matches the vibe and tone of the user's message, and nothing else. Current time: ${new Date().toLocaleString()}.` }])
     }
   }, [chat, history.length, send, getDeps])
 

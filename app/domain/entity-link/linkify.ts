@@ -6,8 +6,15 @@ const QUOTES = new Set(['"', "'"])
 const FILE_PROTOCOL = "file://"
 const MAX_GLUE = 8
 
+const isFileEntity = (id: string): boolean => id.endsWith(".md")
+
 const isQuoted = (text: string, start: number, end: number): boolean =>
   start > 0 && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]
+
+const expandQuotes = (text: string, start: number, end: number, floor: number): [number, number] => {
+  if (start > floor && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]) return [start - 1, end + 1]
+  return [start, end]
+}
 
 const isPartOfFileUrl = (text: string, start: number): boolean =>
   start >= FILE_PROTOCOL.length && text.slice(start - FILE_PROTOCOL.length, start) === FILE_PROTOCOL
@@ -69,9 +76,19 @@ export const linkifyEntityIds = (text: string, resolveName: NameResolver): strin
       continue
     }
 
-    const [consumeStart, consumeEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
+    const [wrapStart, wrapEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
 
-    if (isQuoted(text, consumeStart, consumeEnd) || isPartOfFileUrl(text, match.index)) {
+    if (isPartOfFileUrl(text, match.index)) {
+      result += text.slice(lastIndex, match.index + match[0].length)
+      lastIndex = match.index + match[0].length
+      continue
+    }
+
+    const [consumeStart, consumeEnd] = isFileEntity(bareId)
+      ? expandQuotes(text, wrapStart, wrapEnd, lastIndex)
+      : [wrapStart, wrapEnd]
+
+    if (!isFileEntity(bareId) && isQuoted(text, wrapStart, wrapEnd)) {
       result += text.slice(lastIndex, match.index + match[0].length)
       lastIndex = match.index + match[0].length
       continue

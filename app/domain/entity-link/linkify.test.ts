@@ -174,6 +174,16 @@ describe("linkifyEntityIds", () => {
       input: '"(callout-7xk2m9p1)" used as key',
       expected: '"(callout-7xk2m9p1)" used as key',
     },
+    {
+      name: "links double-quoted .md filename consuming quotes",
+      input: 'transcript: "interview-notes.md".',
+      expected: "transcript: [interview-notes](file://interview-notes.md).",
+    },
+    {
+      name: "links single-quoted .md filename consuming quotes",
+      input: "transcript: 'interview-notes.md'.",
+      expected: "transcript: [interview-notes](file://interview-notes.md).",
+    },
   ]
 
   test.each(cases)("$name", ({ input, expected }) => {
