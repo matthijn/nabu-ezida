@@ -42,7 +42,7 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { useResizable } from "~/hooks/useResizable"
 import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { linkifyEntityIds, linkifyQuotes } from "~/domain/entity-link"
+import { linkifyEntityIds, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
@@ -86,7 +86,7 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
 
 const MessageContent = ({ content, files, projectId, currentFile, currentFileContent, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(linkifyEntityIds(linkifyQuotes(content, currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)))}
+    {fixMarkdownUrls(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)))}
   </Markdown>
 )
 
