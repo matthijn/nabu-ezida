@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherChevronsLeft, FeatherChevronsRight, FeatherSearch, FeatherPlus } from "@subframe/core"
-import { IconButton } from "~/ui/components/IconButton"
+import { FeatherSearch, FeatherPlus } from "@subframe/core"
 import { TextField } from "~/ui/components/TextField"
 import { Button } from "~/ui/components/Button"
 import { matchesAny } from "~/lib/filter"
@@ -21,12 +20,9 @@ type DocumentsSidebarProps = {
   documents: ListItem[]
   selectedId?: string
   searchValue?: string
-  collapsed?: boolean
   onSearchChange?: (value: string) => void
   onDocumentSelect?: (id: string) => void
   onNewDocument?: () => void
-  onCollapse?: () => void
-  onExpand?: () => void
 }
 
 const UNGROUPED = "ungrouped"
@@ -69,12 +65,9 @@ export function DocumentsSidebar({
   documents,
   selectedId,
   searchValue = "",
-  collapsed = false,
   onSearchChange,
   onDocumentSelect,
   onNewDocument,
-  onCollapse,
-  onExpand,
 }: DocumentsSidebarProps) {
   const isSearching = searchValue.length > 0
 
@@ -92,33 +85,8 @@ export function DocumentsSidebar({
   const handleToggle = (tag: string) =>
     setExpandedTag((prev) => (prev === tag ? null : tag))
 
-  if (collapsed) {
-    return (
-      <div className="flex flex-none self-stretch border-r border-solid border-neutral-border bg-default-background relative z-10">
-        {onExpand && (
-          <IconButton
-            className="absolute top-4 -right-[13px] z-50 cursor-pointer"
-            variant="brand-secondary"
-            size="small"
-            icon={<FeatherChevronsRight />}
-            onClick={onExpand}
-          />
-        )}
-      </div>
-    )
-  }
-
   return (
-    <div className="flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative z-10">
-      {onCollapse && (
-        <IconButton
-          className="absolute top-4 -right-[13px] z-50 cursor-pointer"
-          variant="brand-secondary"
-          size="small"
-          icon={<FeatherChevronsLeft />}
-          onClick={onCollapse}
-        />
-      )}
+    <div className="flex h-full w-72 flex-none flex-col items-start gap-4 bg-default-background px-4 py-6">
 
       <div className="flex w-full items-center justify-between">
         <span className="text-heading-2 font-heading-2 text-default-font">

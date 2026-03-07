@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from "react"
 import {
-  FeatherChevronsLeft,
-  FeatherChevronsRight,
   FeatherSearch,
   FeatherPlus,
 } from "@subframe/core"
@@ -16,9 +14,6 @@ import { CodeDetail } from "./CodeDetail"
 
 type CodesSidebarProps = {
   codebook: Codebook
-  collapsed?: boolean
-  onCollapse?: () => void
-  onExpand?: () => void
   onEditCode?: (code: Code) => void
 }
 
@@ -40,9 +35,6 @@ const filterCodebook = (codebook: Codebook, query: string): CodeCategory[] =>
 
 export const CodesSidebar = ({
   codebook,
-  collapsed = false,
-  onCollapse,
-  onExpand,
   onEditCode,
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
@@ -57,33 +49,8 @@ export const CodesSidebar = ({
     setSelectedCode(code.id === selectedCode?.id ? null : code)
   }
 
-  if (collapsed) {
-    return (
-      <div className="flex flex-none self-stretch border-r border-solid border-neutral-border bg-default-background relative z-10">
-        {onExpand && (
-          <IconButton
-            className="absolute top-4 -right-[13px] z-50 cursor-pointer"
-            variant="brand-secondary"
-            size="small"
-            icon={<FeatherChevronsRight />}
-            onClick={onExpand}
-          />
-        )}
-      </div>
-    )
-  }
-
   return (
-    <div className="flex w-72 flex-none flex-col items-start self-stretch border-r border-solid border-neutral-border bg-default-background relative z-10">
-      {onCollapse && (
-        <IconButton
-          className="absolute top-4 -right-[13px] z-50 cursor-pointer"
-          variant="brand-secondary"
-          size="small"
-          icon={<FeatherChevronsLeft />}
-          onClick={onCollapse}
-        />
-      )}
+    <div className="flex h-full w-72 flex-none flex-col items-start bg-default-background">
 
       <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
         <div className="flex w-full items-center justify-between">

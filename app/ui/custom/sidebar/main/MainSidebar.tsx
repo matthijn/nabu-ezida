@@ -13,6 +13,7 @@ export interface NavItem {
   label: string;
   tooltip?: string;
   selected?: boolean;
+  disabled?: boolean;
 }
 
 export interface UserMenuAction {
@@ -28,6 +29,7 @@ export interface MainSidebarProps {
   userInitials?: string;
   userMenuActions?: UserMenuAction[];
   onNavItemClick?: (id: string) => void;
+  onNavItemHover?: (id: string) => void;
   onUserMenuAction?: (actionId: string) => void;
 }
 
@@ -44,9 +46,11 @@ export function MainSidebar({
   userInitials = "A",
   userMenuActions = defaultUserMenuActions,
   onNavItemClick,
+  onNavItemHover,
   onUserMenuAction,
 }: MainSidebarProps) {
   const handleNavItemClick = (id: string) => () => onNavItemClick?.(id);
+  const handleNavItemHover = (id: string) => () => onNavItemHover?.(id);
   const handleUserMenuAction = (actionId: string) => () => onUserMenuAction?.(actionId);
 
   const renderNavItem = (item: NavItem) => (
@@ -55,7 +59,9 @@ export function MainSidebar({
       icon={item.icon}
       tooltip={item.tooltip}
       selected={item.selected}
-      onClick={handleNavItemClick(item.id)}
+      className={item.disabled ? "opacity-40 pointer-events-none" : undefined}
+      onClick={item.disabled ? undefined : handleNavItemClick(item.id)}
+      onMouseEnter={item.disabled ? undefined : handleNavItemHover(item.id)}
     >
       {item.label}
     </SidebarRailWithLabels.NavItem>

@@ -10,10 +10,8 @@ import {
   FeatherCheck,
   FeatherChevronRight,
   FeatherCircle,
-  FeatherEdit3,
   FeatherLoader2,
   FeatherMessageSquare,
-  FeatherMinus,
   FeatherPin,
   FeatherSend,
   FeatherSparkles,
@@ -21,10 +19,8 @@ import {
 } from "@subframe/core"
 import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
-import { Avatar } from "~/ui/components/Avatar"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
-import { Tabs } from "~/ui/components/Tabs"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
@@ -38,9 +34,6 @@ import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
-import { useDraggable } from "~/hooks/useDraggable"
-import { useResizable } from "~/hooks/useResizable"
-import type { Participant } from "~/domain/participant"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
 import { resolveEntityName } from "~/lib/files/selectors"
@@ -50,9 +43,6 @@ import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
 import { updateFileRaw, getFileRaw } from "~/lib/files"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { useNabu } from "./context"
-import { HistoryTab } from "./HistoryTab"
-
-type ChatTab = "chat" | "history"
 
 const encodeUrlForMarkdown = (url: string): string =>
   url.replace(/"/g, "%22")
@@ -89,24 +79,6 @@ const MessageContent = ({ content, files, projectId, currentFile, currentFileCon
     {fixMarkdownUrls(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)))}
   </Markdown>
 )
-
-type ParticipantAvatarProps = {
-  participant: Participant
-  size?: "x-small" | "small"
-}
-
-const ParticipantAvatar = ({ participant, size = "x-small" }: ParticipantAvatarProps) =>
-  participant.type === "llm" ? (
-    <IconWithBackground variant={participant.variant} size={size} icon={<FeatherSparkles />} />
-  ) : participant.image ? (
-    <Avatar size={size} image={participant.image}>
-      {participant.initial}
-    </Avatar>
-  ) : (
-    <Avatar variant={participant.variant} size={size}>
-      {participant.initial}
-    </Avatar>
-  )
 
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">
@@ -529,24 +501,15 @@ const PlanSegmentRenderer = ({ items, loading, files, projectId, currentFile, cu
   )
 }
 
-type NabuFloatingButtonProps = {
-  hasChat: boolean
-}
-
-const NabuFloatingButton = ({ hasChat }: NabuFloatingButtonProps) => {
-  const { startChat, restoreChat } = useNabu()
-
-  const handleClick = hasChat ? restoreChat : startChat
-
-  return (
-    <button
-      onClick={handleClick}
-      className="fixed bottom-6 right-10 z-50 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 transition-colors"
-    >
-      <FeatherSparkles className="h-6 w-6 shrink-0" />
-    </button>
-  )
-}
+const EmptyState = ({ onStart }: { onStart: () => void }) => (
+  <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+    <IconWithBackground variant="brand" size="medium" icon={<FeatherSparkles />} />
+    <span className="text-body font-body text-subtext-color">How can I help you today?</span>
+    <Button variant="brand-primary" icon={<FeatherSparkles />} onClick={onStart}>
+      Start chat
+    </Button>
+  </div>
+)
 
 type LoadingBubbleProps = {
   label: string
@@ -562,7 +525,7 @@ const LoadingBubble = ({ label }: LoadingBubbleProps) => (
 )
 
 export const NabuChatSidebar = () => {
-  const { minimized, minimizeChat, chatWidth, chatHeight, setChatSize } = useNabu()
+  const { startChat } = useNabu()
   const navigate = useNavigate()
   const params = useParams<{ projectId: string }>()
 
@@ -588,19 +551,10 @@ export const NabuChatSidebar = () => {
     updateFileRaw(PREFERENCES_FILE, toggleAnswer(current || undefined, question, answer))
   }, [])
 
-  const [activeTab, setActiveTab] = useState<ChatTab>("chat")
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { position, isDragging, handleMouseDown } = useDraggable({ x: 16, y: 16 })
-  const { size, handleResizeMouseDown } = useResizable(
-    { width: chatWidth, height: chatHeight },
-  )
-
-  useEffect(() => {
-    setChatSize(size.width, size.height)
-  }, [size.width, size.height])
 
   useEffect(() => {
     if (chat) {
@@ -637,118 +591,75 @@ export const NabuChatSidebar = () => {
     [handleSend, markTyping]
   )
 
-  const handleMinimize = useCallback(() => {
-    minimizeChat()
-  }, [minimizeChat])
-
-  const showFloatingButton = !chat || minimized
-  if (showFloatingButton) return <NabuFloatingButton hasChat={!!chat} />
+  if (!chat) {
+    return (
+      <div className="flex w-96 grow flex-col rounded-xl bg-default-background overflow-hidden">
+        <EmptyState onStart={startChat} />
+      </div>
+    )
+  }
 
   const { recipient } = chat
   const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
 
   return (
-    <div
-      style={{ right: position.x, bottom: position.y, width: size.width, height: size.height }}
-      className="fixed z-50 flex flex-col rounded-xl border border-solid border-neutral-border bg-white shadow-lg overflow-hidden"
-    >
-      <div
-        onMouseDown={handleResizeMouseDown}
-        className="absolute -left-1 -top-1 z-10 h-4 w-4 cursor-nwse-resize"
-      />
-      <div className="flex w-full flex-col items-start border-b border-solid border-neutral-border bg-white">
-        <div
-          onMouseDown={handleMouseDown}
-          className="flex w-full cursor-move items-center justify-between px-4 py-3"
-        >
-          <div className="flex items-center gap-2">
-            <ParticipantAvatar participant={recipient} size="small" />
-            <span className="text-body-bold font-body-bold text-default-font">
-              {recipient.name}
-            </span>
+    <div className="flex w-96 grow flex-col rounded-xl bg-white overflow-hidden">
+      <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
+        {messages.length === 0 && !loading && (
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-body font-body text-subtext-color">How can I help you today?</span>
           </div>
-          <IconButton
-            variant="neutral-tertiary"
-            size="small"
-            icon={<FeatherMinus />}
-            onClick={handleMinimize}
-          />
-        </div>
-        <div className="flex w-full items-start px-4">
-          <Tabs>
-            <Tabs.Item active={activeTab === "chat"} icon={<FeatherMessageSquare />} onClick={() => setActiveTab("chat")}>
-              Chat
-            </Tabs.Item>
-            <Tabs.Item active={activeTab === "history"} icon={<FeatherEdit3 />} onClick={() => setActiveTab("history")}>
-              History
-            </Tabs.Item>
-          </Tabs>
-        </div>
-      </div>
-
-      {activeTab === "history" ? (
-        <HistoryTab files={files} projectId={params.projectId ?? null} navigate={navigate} />
-      ) : (
-        <>
-          <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
-            {messages.length === 0 && !loading && (
-              <div className="flex h-full w-full items-center justify-center">
-                <span className="text-body font-body text-subtext-color">How can I help you today?</span>
-              </div>
-            )}
-            <AnimatePresence initial={false}>
-              {/* DO NOT TOUCH — layout animation is intentional and tuned. Do not remove, refactor, or "fix". */}
-              {segments.map((segment, i) =>
-                <AnimatedListItem key={i} layout={isDragging || isTyping ? false : "position"}>
-                  {isPlanSegment(segment) ? (
-                    <PlanSegmentRenderer
-                      items={segment.items}
-                      loading={loading}
-                      files={files}
-                      projectId={params.projectId ?? null}
-                      currentFile={currentFile}
-                      currentFileContent={currentFileContent}
-                      navigate={navigate}
-                    />
-                  ) : isAskSegment(segment) ? (
-                    <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
-                  ) : isCollapsedSteps(segment) ? (
-                    <CollapsedStepsIndicator count={segment.count} />
-                  ) : (
-                    <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
-                  )}
-                </AnimatedListItem>
+        )}
+        <AnimatePresence initial={false}>
+          {segments.map((segment, i) =>
+            <AnimatedListItem key={i} layout={isTyping ? false : "position"}>
+              {isPlanSegment(segment) ? (
+                <PlanSegmentRenderer
+                  items={segment.items}
+                  loading={loading}
+                  files={files}
+                  projectId={params.projectId ?? null}
+                  currentFile={currentFile}
+                  currentFileContent={currentFileContent}
+                  navigate={navigate}
+                />
+              ) : isAskSegment(segment) ? (
+                <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
+              ) : isCollapsedSteps(segment) ? (
+                <CollapsedStepsIndicator count={segment.count} />
+              ) : (
+                <LeafRenderer message={segment} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
               )}
-            </AnimatePresence>
-            {!waitingForInput && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
-          </AutoScroll>
+            </AnimatedListItem>
+          )}
+        </AnimatePresence>
+        {!waitingForInput && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+      </AutoScroll>
 
-          <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForInput ? "bg-neutral-50" : ""}`}>
-            <TextFieldUnstyled className="grow min-h-5">
-              <TextFieldUnstyled.Textarea
-                ref={inputRef}
-                placeholder={waitingForInput ? "Or type your own answer..." : `Message ${recipient.name}...`}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-            </TextFieldUnstyled>
-            {loading && !waitingForInput ? (
-              <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
-                Cancel
-              </Button>
-            ) : (
-              <IconButton
-                variant="brand-primary"
-                size="small"
-                icon={<FeatherSend />}
-                onClick={handleSend}
-                disabled={!inputValue.trim()}
-              />
-            )}
-          </div>
-        </>
-      )}
+      <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForInput ? "bg-neutral-50" : ""}`}>
+        <TextFieldUnstyled className="grow min-h-5">
+          <TextFieldUnstyled.Textarea
+            ref={inputRef}
+            placeholder={waitingForInput ? "Or type your own answer..." : `Message ${recipient.name}...`}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </TextFieldUnstyled>
+        {loading && !waitingForInput ? (
+          <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
+            Cancel
+          </Button>
+        ) : (
+          <IconButton
+            variant="brand-primary"
+            size="small"
+            icon={<FeatherSend />}
+            onClick={handleSend}
+            disabled={!inputValue.trim()}
+          />
+        )}
+      </div>
     </div>
   )
 }

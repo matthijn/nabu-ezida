@@ -88,7 +88,6 @@ export default function ProjectLayout() {
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
   useNotifications()
 
@@ -156,31 +155,25 @@ export default function ProjectLayout() {
     navigate(`/project/${params.projectId}/file/${encodeURIComponent(documentId)}?entity=${code.id}`)
   }
 
-  const renderSidebar = () => {
-    if (activeNav === "codes" && codebook) {
-      return (
-        <CodesSidebar
-          codebook={codebook}
-          collapsed={sidebarCollapsed}
-          onCollapse={() => setSidebarCollapsed(true)}
-          onExpand={() => setSidebarCollapsed(false)}
-          onEditCode={handleEditCode}
-        />
-      )
-    }
-    return (
+  const sidebarPanels = {
+    documents: (
       <DocumentsSidebar
         documents={documents}
         selectedId={currentFile ?? undefined}
         searchValue={searchValue}
-        collapsed={sidebarCollapsed}
         onSearchChange={setSearchValue}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => {}}
-        onCollapse={() => setSidebarCollapsed(true)}
-        onExpand={() => setSidebarCollapsed(false)}
       />
-    )
+    ),
+    ...(codebook ? {
+      codes: (
+        <CodesSidebar
+          codebook={codebook}
+          onEditCode={handleEditCode}
+        />
+      ),
+    } : {}),
   }
 
   return (
@@ -190,14 +183,14 @@ export default function ProjectLayout() {
           activeNav={activeNav}
           showCodes={!!codebook}
           onNavChange={setActiveNav}
+          sidebarPanels={sidebarPanels}
+          rightPanel={<NabuChatSidebar />}
         >
           <div className="flex h-full w-full items-start bg-default-background">
-            {renderSidebar()}
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
               <Outlet context={{ files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, getFileAnnotations }} />
             </div>
           </div>
-          <NabuChatSidebar />
           {debugOptions.showStreamPanel && <DebugStreamPanel onClose={() => toggleDebugOption("showStreamPanel")} />}
         </DefaultPageLayout>
         <FileDropOverlay
