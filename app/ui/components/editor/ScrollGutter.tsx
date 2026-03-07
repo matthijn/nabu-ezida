@@ -72,7 +72,7 @@ export const ScrollGutter = memo(({ contentRef, scrollContainerRef, onScrollTo }
 
   return (
     <div
-      className="w-5 flex-none bg-neutral-100 cursor-pointer"
+      className="w-5 flex-none bg-white cursor-pointer"
       style={{ position: "relative", height: "100%" }}
       onClick={handleClick}
     >

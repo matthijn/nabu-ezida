@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
@@ -86,6 +86,7 @@ export const useProject = () => useOutletContext<ProjectContextValue>()
 export default function ProjectLayout() {
   const params = useParams<{ projectId: string; fileId?: string }>()
   const navigate = useNavigate()
+  const dismissSidebarRef = useRef<(() => void) | null>(null)
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
@@ -152,6 +153,7 @@ export default function ProjectLayout() {
     if (!params.projectId) return
     const documentId = findDocumentForCallout(files, code.id)
     if (!documentId) return
+    dismissSidebarRef.current?.()
     navigate(`/project/${params.projectId}/file/${encodeURIComponent(documentId)}?entity=${code.id}`)
   }
 
@@ -183,6 +185,7 @@ export default function ProjectLayout() {
           activeNav={activeNav}
           showCodes={!!codebook}
           onNavChange={setActiveNav}
+          dismissSidebarRef={dismissSidebarRef}
           sidebarPanels={sidebarPanels}
           rightPanel={<NabuChatSidebar />}
         >

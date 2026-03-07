@@ -1,11 +1,17 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { FeatherSearch, FeatherPlus } from "@subframe/core"
 import { TextField } from "~/ui/components/TextField"
 import { Button } from "~/ui/components/Button"
 import { matchesAny } from "~/lib/filter"
+import {
+  subtleBackground,
+  subtleBorder,
+  hoveredElementBorder,
+  type RadixColor,
+} from "~/lib/colors/radix"
 import { TagGroupHeader } from "./TagGroupHeader"
 import { DocumentItem } from "./DocumentItem"
 
@@ -20,11 +26,13 @@ type DocumentsSidebarProps = {
   documents: ListItem[]
   selectedId?: string
   searchValue?: string
+  tagColors?: Record<string, RadixColor>
   onSearchChange?: (value: string) => void
   onDocumentSelect?: (id: string) => void
   onNewDocument?: () => void
 }
 
+const DEFAULT_TAG_COLOR: RadixColor = "lime"
 const UNGROUPED = "ungrouped"
 
 type TagGroup = { tag: string; docs: ListItem[] }
@@ -61,10 +69,28 @@ const findTagForDoc = (groups: TagGroup[], docId: string): string | null => {
   return group?.tag ?? null
 }
 
+type GroupState = "collapsed" | "previewed" | "expanded"
+
+const getGroupState = (tag: string, expandedTag: string | null, previewedTag: string | null, isSearching: boolean): GroupState => {
+  if (isSearching || expandedTag === tag) return "expanded"
+  if (previewedTag === tag) return "previewed"
+  return "collapsed"
+}
+
+const previewDocs = (docs: ListItem[], selectedId: string | undefined): ListItem[] => {
+  if (docs.length <= 2) return docs
+  const selected = docs.find((d) => d.id === selectedId)
+  return selected ? [selected] : [docs[0]]
+}
+
+const resolveTagColor = (tagColors: Record<string, RadixColor> | undefined, tag: string): RadixColor =>
+  tagColors?.[tag] ?? DEFAULT_TAG_COLOR
+
 export function DocumentsSidebar({
   documents,
   selectedId,
   searchValue = "",
+  tagColors,
   onSearchChange,
   onDocumentSelect,
   onNewDocument,
@@ -73,14 +99,12 @@ export function DocumentsSidebar({
 
   const allGroups = useMemo(() => groupByTag(documents), [documents])
   const groups = useMemo(() => filterGroups(allGroups, searchValue), [allGroups, searchValue])
+  const previewedTag = useMemo(
+    () => selectedId ? findTagForDoc(allGroups, selectedId) : null,
+    [allGroups, selectedId]
+  )
 
   const [expandedTag, setExpandedTag] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!selectedId || isSearching) return
-    const tag = findTagForDoc(allGroups, selectedId)
-    if (tag && tag !== expandedTag) setExpandedTag(tag)
-  }, [selectedId])
 
   const handleToggle = (tag: string) =>
     setExpandedTag((prev) => (prev === tag ? null : tag))
@@ -118,22 +142,34 @@ export function DocumentsSidebar({
 
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-3 pt-2 pb-6 overflow-y-auto">
         {groups.map(({ tag, docs }) => {
-          const isExpanded = isSearching || expandedTag === tag
+          const state = getGroupState(tag, expandedTag, previewedTag, isSearching)
+          const isOpen = state !== "collapsed"
+          const visibleDocs = state === "previewed" ? previewDocs(docs, selectedId) : docs
+          const hasMore = state === "previewed" && visibleDocs.length < docs.length
+          const color = resolveTagColor(tagColors, tag)
           return (
             <div
               key={tag}
+              style={{
+                '--tag-border': subtleBorder(color),
+                '--tag-border-strong': hoveredElementBorder(color),
+                '--tag-subtle': subtleBackground(color),
+              } as React.CSSProperties}
               className={`flex w-full flex-none flex-col items-start overflow-hidden rounded-md border border-solid bg-default-background ${
-                isExpanded ? "border-brand-300 shadow-sm" : "border-neutral-border transition-colors hover:border-neutral-300"
+                isOpen
+                  ? "border-[var(--tag-border-strong)] shadow-sm"
+                  : "border-neutral-border transition-colors hover:border-[var(--tag-border)]"
               }`}
             >
               <TagGroupHeader
                 tag={tag}
                 count={docs.length}
-                expanded={isExpanded}
+                expanded={isOpen}
+                color={color}
                 onClick={() => handleToggle(tag)}
               />
               <AnimatePresence initial={false}>
-                {isExpanded && (
+                {isOpen && (
                   <motion.div
                     key="content"
                     initial={{ height: 0, opacity: 0 }}
@@ -142,16 +178,44 @@ export function DocumentsSidebar({
                     transition={{ type: "spring", stiffness: 500, damping: 35 }}
                     className="flex w-full flex-col items-start overflow-hidden"
                   >
-                    <div className="flex w-full flex-col items-start py-1">
-                      {docs.map((doc) => (
-                        <DocumentItem
-                          key={doc.id}
-                          title={doc.title}
-                          editedAt={doc.editedAt}
-                          selected={doc.id === selectedId}
-                          onClick={() => onDocumentSelect?.(doc.id)}
-                        />
-                      ))}
+                    <div className="group flex w-full flex-col items-start">
+                      <AnimatePresence initial={false}>
+                        {visibleDocs.map((doc) => (
+                          <motion.div
+                            key={doc.id}
+                            className="w-full"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                          >
+                            <DocumentItem
+                              title={doc.title}
+                              editedAt={doc.editedAt}
+                              color={color}
+                              selected={doc.id === selectedId}
+                              onClick={() => onDocumentSelect?.(doc.id)}
+                            />
+                          </motion.div>
+                        ))}
+                        {hasMore && (
+                          <motion.div
+                            key="more"
+                            className="w-full"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                          >
+                            <div
+                              className="flex w-full items-center justify-center px-3 py-1 cursor-pointer hover:bg-[var(--tag-subtle)]"
+                              onClick={() => setExpandedTag(tag)}
+                            >
+                              <span className="text-body-bold font-body-bold text-subtext-color">...</span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 )}

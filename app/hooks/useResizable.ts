@@ -16,6 +16,11 @@ type Bounds = {
   maxHeight: number
 }
 
+type ResizableOptions = {
+  bounds?: Partial<Bounds>
+  storageKey?: string
+}
+
 const DEFAULT_BOUNDS: Bounds = {
   minWidth: 280,
   maxWidth: 800,
@@ -26,9 +31,21 @@ const DEFAULT_BOUNDS: Bounds = {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max)
 
-export const useResizable = (initialSize: Size, bounds: Partial<Bounds> = {}) => {
-  const { minWidth, maxWidth, minHeight, maxHeight } = { ...DEFAULT_BOUNDS, ...bounds }
-  const [size, setSize] = useState(initialSize)
+const readStoredSize = (key: string): Size | null => {
+  if (typeof localStorage === "undefined") return null
+  const stored = localStorage.getItem(key)
+  if (!stored) return null
+  return JSON.parse(stored) as Size
+}
+
+const writeStoredSize = (key: string, size: Size): void => {
+  if (typeof localStorage === "undefined") return
+  localStorage.setItem(key, JSON.stringify(size))
+}
+
+export const useResizable = (initialSize: Size, options: ResizableOptions = {}) => {
+  const { minWidth, maxWidth, minHeight, maxHeight } = { ...DEFAULT_BOUNDS, ...options.bounds }
+  const [size, setSize] = useState(() => readStoredSize(options.storageKey ?? "") ?? initialSize)
   const dragRef = useRef<DragState | null>(null)
 
   const handleResizeMouseDown = useCallback((e: MouseEvent) => {
@@ -51,15 +68,21 @@ export const useResizable = (initialSize: Size, bounds: Partial<Bounds> = {}) =>
       })
     }
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: globalThis.MouseEvent) => {
+      if (!dragRef.current) return
+      const finalSize = {
+        width: clamp(dragRef.current.startWidth + (dragRef.current.startX - e.clientX), minWidth, maxWidth),
+        height: clamp(dragRef.current.startHeight + (dragRef.current.startY - e.clientY), minHeight, maxHeight),
+      }
       dragRef.current = null
       document.removeEventListener("mousemove", handleMouseMove)
       document.removeEventListener("mouseup", handleMouseUp)
+      if (options.storageKey) writeStoredSize(options.storageKey, finalSize)
     }
 
     document.addEventListener("mousemove", handleMouseMove)
     document.addEventListener("mouseup", handleMouseUp)
-  }, [size, minWidth, maxWidth, minHeight, maxHeight])
+  }, [size, minWidth, maxWidth, minHeight, maxHeight, options.storageKey])
 
   return { size, setSize, handleResizeMouseDown }
 }

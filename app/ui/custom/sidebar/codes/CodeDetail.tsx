@@ -43,27 +43,39 @@ const markdownComponents: Components = {
 
 type CodeDetailProps = {
   code: Code
+  height: number
+  onResizeMouseDown: (e: React.MouseEvent) => void
   onEdit?: () => void
 }
 
-export const CodeDetail = ({ code, onEdit }: CodeDetailProps) => (
+export const CodeDetail = ({ code, height, onResizeMouseDown, onEdit }: CodeDetailProps) => (
   <div
-    className="flex w-full flex-col items-start gap-3 border-t-2 border-solid px-4 py-4 max-h-64 overflow-y-auto"
+    className="flex w-full flex-none flex-col items-start border-t-2 border-solid cursor-ns-resize"
     style={{
+      height,
       borderColor: hoveredElementBorder(code.color),
       backgroundColor: elementBackground(code.color),
     }}
+    onMouseDown={onResizeMouseDown}
   >
-    <div className="flex w-full items-center gap-2">
-      <div
-        className="flex h-3 w-3 flex-none rounded-full"
-        style={{ backgroundColor: solidBackground(code.color) }}
-      />
-      <span className="text-body-bold font-body-bold text-default-font">
-        {code.name}
-      </span>
-      <IconButton size="small" icon={<FeatherEdit2 />} onClick={onEdit} />
+    <div className="flex w-full grow flex-col items-start gap-3 px-4 pb-4 pt-3 overflow-y-auto cursor-default" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="flex w-full items-center gap-2">
+        <div
+          className="flex h-3 w-3 flex-none rounded-full"
+          style={{ backgroundColor: solidBackground(code.color) }}
+        />
+        <span className="text-body-bold font-body-bold text-default-font">
+          {code.name}
+        </span>
+        <IconButton
+          size="small"
+          icon={<FeatherEdit2 />}
+          onClick={onEdit}
+          style={{ '--hover-bg': solidBackground(code.color) } as React.CSSProperties}
+          className="hover:bg-[var(--hover-bg)] [&:hover_*]:!text-white"
+        />
+      </div>
+      <Markdown components={markdownComponents}>{code.detail}</Markdown>
     </div>
-    <Markdown components={markdownComponents}>{code.detail}</Markdown>
   </div>
 )

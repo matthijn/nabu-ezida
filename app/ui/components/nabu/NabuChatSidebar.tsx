@@ -43,6 +43,7 @@ import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
 import { updateFileRaw, getFileRaw } from "~/lib/files"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { useNabu } from "./context"
+import { pickGreeting } from "~/lib/chat/greetings"
 
 const encodeUrlForMarkdown = (url: string): string =>
   url.replace(/"/g, "%22")
@@ -562,6 +563,14 @@ export const NabuChatSidebar = () => {
     }
   }, [chat])
 
+  const didAutoSend = useRef(false)
+  useEffect(() => {
+    if (chat && history.length === 0 && !didAutoSend.current) {
+      didAutoSend.current = true
+      send(pickGreeting(), getDeps())
+    }
+  }, [chat, history.length, send, getDeps])
+
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
     if (waitingForInput) {
@@ -593,7 +602,7 @@ export const NabuChatSidebar = () => {
 
   if (!chat) {
     return (
-      <div className="flex w-96 grow flex-col rounded-xl bg-default-background overflow-hidden">
+      <div className="flex w-full grow flex-col rounded-xl bg-default-background overflow-hidden">
         <EmptyState onStart={startChat} />
       </div>
     )
@@ -603,7 +612,7 @@ export const NabuChatSidebar = () => {
   const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
 
   return (
-    <div className="flex w-96 grow flex-col rounded-xl bg-white overflow-hidden">
+    <div className="flex w-full grow flex-col rounded-xl bg-white overflow-hidden">
       <AutoScroll className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-2 px-4 py-4 overflow-auto">
         {messages.length === 0 && !loading && (
           <div className="flex h-full w-full items-center justify-center">

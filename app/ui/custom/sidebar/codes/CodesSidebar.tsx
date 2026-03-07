@@ -8,6 +8,7 @@ import {
 import { IconButton } from "~/ui/components/IconButton"
 import { TextField } from "~/ui/components/TextField"
 import { matchesAny } from "~/lib/filter"
+import { useResizable } from "~/hooks/useResizable"
 import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeCategorySection } from "./CodeCategorySection"
 import { CodeDetail } from "./CodeDetail"
@@ -39,6 +40,10 @@ export const CodesSidebar = ({
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [selectedCode, setSelectedCode] = useState<Code | null>(() => getFirstCode(codebook))
+  const { size: detailSize, handleResizeMouseDown } = useResizable(
+    { width: 0, height: 256 },
+    { storageKey: "codes-detail-height", bounds: { minHeight: 100, maxHeight: 500 } }
+  )
 
   const filteredCategories = useMemo(
     () => filterCodebook(codebook, searchValue),
@@ -86,7 +91,12 @@ export const CodesSidebar = ({
       </div>
 
       {selectedCode && (
-        <CodeDetail code={selectedCode} onEdit={onEditCode ? () => onEditCode(selectedCode) : undefined} />
+        <CodeDetail
+          code={selectedCode}
+          height={detailSize.height}
+          onResizeMouseDown={handleResizeMouseDown}
+          onEdit={onEditCode ? () => onEditCode(selectedCode) : undefined}
+        />
       )}
     </div>
   )

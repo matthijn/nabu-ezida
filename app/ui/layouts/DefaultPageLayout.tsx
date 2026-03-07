@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type MutableRefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FeatherBook,
@@ -9,6 +9,7 @@ import {
 } from "@subframe/core";
 import { MainSidebar } from "~/ui/custom/sidebar/main";
 import type { NavItem } from "~/ui/custom/sidebar/main";
+import { useResizable } from "~/hooks/useResizable";
 import { cn } from "~/ui/utils";
 
 type ActiveNav = "documents" | "search" | "codes";
@@ -21,6 +22,7 @@ type DefaultPageLayoutProps = {
   activeNav?: ActiveNav;
   showCodes?: boolean;
   onNavChange?: (nav: ActiveNav) => void;
+  dismissSidebarRef?: MutableRefObject<(() => void) | null>;
 };
 
 const buildNavItems = (activeNav: ActiveNav, showCodes: boolean): NavItem[][] => {
@@ -44,9 +46,15 @@ export const DefaultPageLayout = ({
   activeNav = "documents",
   showCodes = false,
   onNavChange,
+  dismissSidebarRef,
 }: DefaultPageLayoutProps) => {
   const [hoveredNav, setHoveredNav] = useState<ActiveNav | null>(null);
+  if (dismissSidebarRef) dismissSidebarRef.current = () => setHoveredNav(null);
   const activePanel = hoveredNav && sidebarPanels?.[hoveredNav];
+  const { size: chatSize, handleResizeMouseDown } = useResizable(
+    { width: 380, height: 0 },
+    { storageKey: "chat-panel-width", bounds: { minWidth: 280, maxWidth: 500 } }
+  );
 
   return (
     <div className={cn("flex h-screen w-full items-center", className)}>
@@ -82,7 +90,17 @@ export const DefaultPageLayout = ({
             {children}
           </div>
         )}
-        {rightPanel}
+        {rightPanel && (
+          <div className="flex flex-col flex-none h-full relative" style={{ width: chatSize.width }}>
+            <div
+              className="absolute inset-y-0 left-0 w-3 -ml-3 cursor-col-resize group z-10"
+              onMouseDown={handleResizeMouseDown}
+            >
+              <div className="absolute inset-y-0 left-1/2 w-px group-hover:bg-neutral-300 transition-colors" />
+            </div>
+            {rightPanel}
+          </div>
+        )}
       </div>
     </div>
   );
