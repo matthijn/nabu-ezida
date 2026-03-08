@@ -19,7 +19,7 @@ type TagGroupHeaderProps = {
   onClick: () => void
 }
 
-const humanize = (tag: string): string =>
+export const humanize = (tag: string): string =>
   tag
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
