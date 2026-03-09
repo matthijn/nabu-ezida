@@ -1,6 +1,6 @@
 ## Codebook review
 
-A dedicated pass to resolve accumulated review flags and refine the codebook.
+A dedicated pass to resolve accumulated review flags and refine the codebook. Blocking patterns may have been surfaced and resolved during coding — this pass handles what remains.
 
 ## Process
 

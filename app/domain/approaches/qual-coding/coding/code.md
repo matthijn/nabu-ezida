@@ -39,6 +39,10 @@ and should be noted by each independently.
 Ground every finding in specific text with reasoning — cite the
 text, state the interpretation, flag doubts specifically.
 
+## Between sections
+
+After completing a section, triage your own review flags before moving on. The question per flag: would this change how the next section is coded? Recurring friction between the same two codes, a gap that keeps appearing, a definition stretched the same way more than once — these are patterns, and patterns change coding. Surface them now. The researcher decides whether to update the codebook before you continue. Flags that appear once stay flagged for the batch review.
+
 ## After analysis
 
 Do not narrate what you found. The findings are the output.
