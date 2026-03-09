@@ -3,6 +3,7 @@ import { createCappedCache } from "~/lib/utils"
 const FUZZY_PATTERN = /FUZZY\[\[([^\]]+)\]\]/g
 const TOKEN_OVERLAP_THRESHOLD = 0.8
 const MIN_FUZZY_WORDS = 4
+const MIN_UNIQUE_FUZZY_WORDS = 2
 
 type FuzzyMatch = {
   placeholder: string
@@ -63,13 +64,32 @@ const scoreTokenWindow = (needleWords: Set<string>, windowTokens: Token[]): numb
 
 export type MatchOffset = { start: number; end: number }
 
+const findUniqueTokenMatch = (
+  docTokens: Token[],
+  needleSet: Set<string>,
+  windowSize: number,
+): MatchOffset | null => {
+  let found: MatchOffset | null = null
+  for (let i = 0; i <= docTokens.length - windowSize; i++) {
+    const window = docTokens.slice(i, i + windowSize)
+    if (scoreTokenWindow(needleSet, window) >= TOKEN_OVERLAP_THRESHOLD) {
+      if (found) return null
+      found = { start: window[0].start, end: window[window.length - 1].end }
+    }
+  }
+  return found
+}
+
 const findTokenMatchOffset = (docTokens: Token[], needleWords: string[]): MatchOffset | null => {
-  if (needleWords.length < MIN_FUZZY_WORDS) return null
+  if (needleWords.length < MIN_UNIQUE_FUZZY_WORDS) return null
 
   const needleSet = new Set(needleWords)
   const windowSize = needleWords.length
+  const requireUnique = needleWords.length < MIN_FUZZY_WORDS
 
   if (docTokens.length < windowSize) return null
+
+  if (requireUnique) return findUniqueTokenMatch(docTokens, needleSet, windowSize)
 
   for (let i = 0; i <= docTokens.length - windowSize; i++) {
     const window = docTokens.slice(i, i + windowSize)

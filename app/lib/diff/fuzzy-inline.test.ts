@@ -113,6 +113,30 @@ describe("resolveFuzzyPatterns", () => {
       expectedResolved: 1,
       expectedUnresolved: [],
     },
+    {
+      name: "short needle unique fuzzy match with punctuation gap",
+      patch: '{ "text": "FUZZY[[said hello]]" }',
+      target: "The participant said: hello and then paused.",
+      expectedPatch: '{ "text": "said: hello" }',
+      expectedResolved: 1,
+      expectedUnresolved: [],
+    },
+    {
+      name: "short needle ambiguous fuzzy match is unresolved",
+      patch: '{ "text": "FUZZY[[said hello]]" }',
+      target: "She said: hello and he said: hello again.",
+      expectedPatch: '{ "text": "FUZZY[[said hello]]" }',
+      expectedResolved: 0,
+      expectedUnresolved: ["said hello"],
+    },
+    {
+      name: "three-word needle unique fuzzy match",
+      patch: '{ "text": "FUZZY[[said hello everyone]]" }',
+      target: "The participant said: hello, everyone! How are you?",
+      expectedPatch: '{ "text": "said: hello, everyone!" }',
+      expectedResolved: 1,
+      expectedUnresolved: [],
+    },
   ]
 
   it.each(cases)("$name", ({ patch, target, expectedPatch, expectedResolved, expectedUnresolved }) => {
