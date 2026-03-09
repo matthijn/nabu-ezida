@@ -2,8 +2,11 @@ import type { Spotlight } from "./types"
 
 const RANGE_DELIMITER = "..."
 
+const normalizeEllipsis = (text: string): string =>
+  text.replace(/\u2026/g, "...")
+
 const decodeSpotlight = (param: string): string =>
-  param.replace(/\+/g, " ")
+  normalizeEllipsis(param.replace(/\+/g, " "))
 
 const isRange = (param: string): boolean =>
   param.includes(RANGE_DELIMITER)
