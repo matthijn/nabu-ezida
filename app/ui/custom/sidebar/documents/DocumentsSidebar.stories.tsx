@@ -7,36 +7,42 @@ const sampleDocuments = [
     title: "Habitat Destruction Framework",
     editedAt: "Edited 2 hours ago",
     tags: ["ecology", "framework"],
+    annotationCount: 5,
   },
   {
     id: "2",
     title: "Research Paper Draft",
     editedAt: "Edited 3 days ago",
     tags: ["paper"],
+    annotationCount: 0,
   },
   {
     id: "3",
     title: "Amazon Rainforest Case Study",
     editedAt: "Edited yesterday",
     tags: ["corpus", "ecology"],
+    annotationCount: 12,
   },
   {
     id: "4",
     title: "Literature Review Notes",
     editedAt: "Edited 1 week ago",
     tags: ["literature"],
+    annotationCount: 0,
   },
   {
     id: "5",
     title: "Species Survey Data",
     editedAt: "Edited 2 weeks ago",
     tags: ["corpus"],
+    annotationCount: 3,
   },
   {
     id: "6",
     title: "Methodology & Approach",
     editedAt: "Edited 3 weeks ago",
     tags: ["framework"],
+    annotationCount: 0,
   },
 ]
 

@@ -1,9 +1,9 @@
 import type { ComponentType } from "react"
 import { z } from "zod"
-import { FeatherMessageCircle } from "@subframe/core"
+import { FeatherHighlighter } from "@subframe/core"
 import { BLOCK_COLORS } from "~/lib/colors/radix"
 
-export const annotationIcon: ComponentType<{ className?: string }> = FeatherMessageCircle
+export const annotationIcon: ComponentType<{ className?: string }> = FeatherHighlighter
 
 export const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 export const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])

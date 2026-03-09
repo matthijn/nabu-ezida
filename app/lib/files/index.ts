@@ -23,6 +23,7 @@ export {
   getAttributes,
   getTags,
   getStoredAnnotations,
+  getAnnotationCount,
   getCallouts,
   getCodes,
   getAllCodes,

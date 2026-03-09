@@ -15,7 +15,7 @@ import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
-import { findDocumentForCallout } from "~/lib/files/selectors"
+import { findDocumentForCallout, getAnnotationCount } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
@@ -25,6 +25,7 @@ type SidebarDocument = {
   title: string
   editedAt: string
   tags: string[]
+  annotationCount: number
 }
 
 const isHiddenFile = (filename: string): boolean =>
@@ -42,6 +43,7 @@ const filesToSidebarDocuments = (
       title: toDisplayName(filename),
       editedAt: "just now",
       tags: getFileTags(filename),
+      annotationCount: getAnnotationCount(files[filename] ?? ""),
     }))
 
 const DEBUG_STORAGE_KEY = "nabu-debug-options"

@@ -26,6 +26,7 @@ export type ListItem = {
   title: string
   editedAt: string
   tags: string[]
+  annotationCount: number
 }
 
 type DocumentsSidebarProps = {
@@ -208,6 +209,7 @@ export function DocumentsSidebar({
                   key={doc.id}
                   title={doc.title}
                   editedAt={doc.editedAt}
+                  annotationCount={doc.annotationCount}
                   color={hoveredResolved?.color ?? DEFAULT_TAG_COLOR}
                   selected={doc.id === selectedId}
                   onClick={() => { onDocumentSelect?.(doc.id); setHoveredTag(null) }}
