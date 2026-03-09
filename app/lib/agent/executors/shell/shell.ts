@@ -74,6 +74,21 @@ const helpText = (): string =>
     })
     .join("\n\n")
 
+// ANSI-C quoting: $'\t' → literal tab, $'\n' → literal newline, etc.
+const ansiCEscapes: Record<string, string> = {
+  "\\\\": "\\", "\\n": "\n", "\\t": "\t", "\\r": "\r",
+  "\\a": "\x07", "\\b": "\b", "\\f": "\f", "\\v": "\v", "\\'": "'",
+}
+
+const expandAnsiCEscape = (seq: string): string =>
+  ansiCEscapes[seq] ?? seq
+
+const expandAnsiCQuoting = (input: string): string =>
+  input.replace(/\$'((?:[^'\\]|\\.)*)'/g, (_match, inner: string) => {
+    const expanded = inner.replace(/\\./g, expandAnsiCEscape)
+    return `'${expanded.replace(/'/g, "'\\''")}'`
+  })
+
 // Error helpers
 const notBashError = (feature: string): string =>
   `This is not bash. '${feature}' is not supported.\nUse only: ${getCommandNames().join(", ")}`
@@ -126,7 +141,7 @@ const mergeBareAnchors = (tokens: (ParseEntry | VarMarker)[]): (ParseEntry | Var
   }, [])
 
 const parseInput = (input: string): { tokens: (ParseEntry | VarMarker)[]; error?: string } => {
-  const tokens = parse(input, (key) => ({ __var: key }))
+  const tokens = parse(expandAnsiCQuoting(input), (key) => ({ __var: key }))
   for (let i = 0; i < tokens.length; i++) {
     const error = validateToken(tokens[i], tokens[i + 1])
     if (error) return { tokens: [], error }

@@ -1,0 +1,25 @@
+{
+  "files": {
+    "data.tsv": "name\tage\nalice\t30\nbob\t25"
+  },
+  "args": {
+    "commands": [
+      "grep $'\\t30' data.tsv"
+    ]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "data.tsv:alice\t30",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}
