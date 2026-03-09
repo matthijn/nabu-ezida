@@ -1,20 +1,24 @@
 import type { z } from "zod"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/attributes"
 import type { Annotation } from "~/domain/document/annotations"
+import type { Settings, TagDefinition } from "~/domain/settings"
+import type { RadixColor } from "~/lib/colors/radix"
 import { blockTypes } from "~/domain/blocks/registry"
 import { findSingletonBlock, findBlocksByLanguage, type CalloutBlock } from "~/domain/blocks"
 import { createCappedCache } from "~/lib/utils"
-import { toDisplayName } from "./filename"
+import { PREFERENCES_FILE, toDisplayName } from "./filename"
 
 type BlockTypeMap = {
   "json-attributes": DocumentMeta
+  "json-settings": Settings
   "json-callout": CalloutBlock
 }
 
 type BlockLanguage = keyof BlockTypeMap
 
 type Code = { id: string; name: string; color: string; detail: string }
-export type Codebook = { categories: { name: string; codes: Code[] }[] }
+type CodeGroup = { fileId: string; name: string; codes: Code[] }
+export type Codebook = { categories: CodeGroup[] }
 
 const cache = createCappedCache<string, unknown>(100)
 
@@ -99,9 +103,16 @@ const calloutToCode = (callout: CalloutBlock): Code => ({
   detail: callout.content,
 })
 
+const groupCodesByFile = (files: Record<string, string>): CodeGroup[] =>
+  Object.entries(files).reduce<CodeGroup[]>((acc, [filename, raw]) => {
+    const codes = getCodes(raw).map(calloutToCode)
+    if (codes.length > 0) acc.push({ fileId: filename, name: toDisplayName(filename), codes })
+    return acc
+  }, [])
+
 export const getCodebook = (files: Record<string, string>): Codebook | undefined => {
-  const codes = getAllCodes(files).map(calloutToCode)
-  return codes.length === 0 ? undefined : { categories: [{ name: "Codes", codes }] }
+  const categories = groupCodesByFile(files)
+  return categories.length === 0 ? undefined : { categories }
 }
 
 const DEFAULT_ANNOTATION_COLOR = "gray"
@@ -136,8 +147,24 @@ export const findDocumentForAnnotation = (files: Record<string, string>, id: str
 export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
 
+export const getSettings = (raw: string): Settings | null =>
+  getBlock(raw, "json-settings")
+
+export const getTagDefinitions = (files: Record<string, string>): TagDefinition[] =>
+  getSettings(files[PREFERENCES_FILE] ?? "")?.tags ?? []
+
+export const findTagDefinitionById = (files: Record<string, string>, id: string): TagDefinition | undefined =>
+  getTagDefinitions(files).find((t) => t.id === id)
+
+export const findTagDefinitionByLabel = (files: Record<string, string>, label: string): TagDefinition | undefined =>
+  getTagDefinitions(files).find((t) => t.label === label)
+
+export const getTagColorMap = (files: Record<string, string>): Record<string, RadixColor> =>
+  Object.fromEntries(getTagDefinitions(files).map((t) => [t.id, t.color]))
+
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
   id.startsWith("annotation-") ? findAnnotationById(files, id)?.text ?? null
   : id.startsWith("callout-") ? findCalloutById(files, id)?.title ?? null
+  : id.startsWith("tag-") ? findTagDefinitionById(files, id)?.display ?? null
   : id.endsWith(".md") && id.toLowerCase() in files ? toDisplayName(id.toLowerCase())
   : null

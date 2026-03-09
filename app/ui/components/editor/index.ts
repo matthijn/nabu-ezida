@@ -1,4 +1,4 @@
-export { FileHeader } from "./FileHeader"
+export { FileHeader, type Tag } from "./FileHeader"
 export { EditorToolbar } from "./EditorToolbar"
 export { EditorDocumentProvider, useEditorDocument } from "./context"
 export type { EditorDocumentInfo } from "./context"

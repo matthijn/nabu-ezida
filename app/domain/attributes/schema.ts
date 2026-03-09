@@ -5,8 +5,8 @@ import { BLOCK_COLORS } from "~/lib/colors/radix"
 
 export const annotationIcon: ComponentType<{ className?: string }> = FeatherMessageCircle
 
-const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
-const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
+export const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+export const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
 const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
   z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>

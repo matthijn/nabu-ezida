@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
+import type { TagDefinition } from "~/domain/settings"
 import { useFileImport } from "~/hooks/useFileImport"
 import { DocumentsSidebar } from "~/ui/custom/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/custom/sidebar/codes"
@@ -79,6 +80,7 @@ export type ProjectContextValue = {
   requestCompaction: () => void
   getFileTags: (filename: string) => string[]
   getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
+  tagDefinitions: TagDefinition[]
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -121,7 +123,7 @@ export default function ProjectLayout() {
     }
   }, [params.projectId])
 
-  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations } = useFiles()
+  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations, tagDefinitions } = useFiles()
   const fileImport = useFileImport()
 
   const fileNames = Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f))
@@ -146,6 +148,7 @@ export default function ProjectLayout() {
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
+    dismissSidebarRef.current?.()
     navigate(`/project/${params.projectId}/file/${encodeURIComponent(filename)}`)
   }
 
@@ -163,6 +166,7 @@ export default function ProjectLayout() {
         documents={documents}
         selectedId={currentFile ?? undefined}
         searchValue={searchValue}
+        tagDefinitions={tagDefinitions}
         onSearchChange={setSearchValue}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => {}}
@@ -173,6 +177,7 @@ export default function ProjectLayout() {
         <CodesSidebar
           codebook={codebook}
           onEditCode={handleEditCode}
+          onFileSelect={handleDocumentSelect}
         />
       ),
     } : {}),
@@ -191,7 +196,7 @@ export default function ProjectLayout() {
         >
           <div className="flex h-full w-full items-start bg-default-background">
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, getFileAnnotations }} />
+              <Outlet context={{ files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, getFileAnnotations, tagDefinitions }} />
             </div>
           </div>
           {debugOptions.showStreamPanel && <DebugStreamPanel onClose={() => toggleDebugOption("showStreamPanel")} />}

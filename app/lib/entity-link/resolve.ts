@@ -6,11 +6,13 @@ import { serializeSpotlight } from "~/domain/spotlight"
 import { calloutTypeIcons } from "~/domain/blocks/callout"
 import { annotationIcon } from "~/domain/attributes/schema"
 import { lowContrastText, solidBackground, elementBackground, hoveredElementBackground } from "~/lib/colors/radix"
+import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import {
   findAnnotationById,
   findCalloutById,
   findDocumentForAnnotation,
   findDocumentForCallout,
+  findTagDefinitionById,
   resolveAnnotationColor,
 } from "~/lib/files/selectors"
 
@@ -95,6 +97,21 @@ const resolveCalloutRef = (
   }
 }
 
+const resolveTagRef = (
+  ref: Extract<EntityRef, { kind: "tag" }>,
+  files: Record<string, string>,
+): ResolvedLink | null => {
+  const tag = findTagDefinitionById(files, ref.id)
+  if (!tag) return null
+  return {
+    kind: "tag",
+    colors: radixColors(tag.color),
+    icon: resolveFeatherIcon(tag.icon),
+    url: "",
+    label: tag.display,
+  }
+}
+
 const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean =>
   ref.spotlight !== null
 
@@ -129,6 +146,8 @@ export const resolveEntityLink = (
       return resolveAnnotationRef(ref, files, projectId)
     case "callout":
       return resolveCalloutRef(ref, files, projectId)
+    case "tag":
+      return resolveTagRef(ref, files)
     case "text":
       return resolveTextRef(ref, projectId, icons)
     default: {

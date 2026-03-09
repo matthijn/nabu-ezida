@@ -6,6 +6,7 @@ export type Code = {
 }
 
 export type CodeCategory = {
+  fileId: string
   name: string
   codes: Code[]
 }

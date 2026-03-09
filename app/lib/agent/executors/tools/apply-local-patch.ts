@@ -2,6 +2,7 @@ import type { Operation } from "../../types"
 import { tool, registerTool, ok, err, withHint } from "../tool"
 import { applyLocalPatch as def } from "./apply-local-patch.def"
 import { detectHint } from "./apply-local-patch.hints"
+import { isProtectedFile } from "~/lib/files/filename"
 
 export const applyLocalPatch = registerTool(
   tool({
@@ -28,10 +29,12 @@ const validateOperation = (files: Map<string, string>, op: Operation): string | 
     case "update_file":
       return files.has(op.path) ? null : `${op.path}: No such file`
     case "delete_file":
+      if (isProtectedFile(op.path)) return `${op.path}: protected file, cannot be deleted`
       return files.has(op.path) ? null : `${op.path}: No such file`
     case "write_file":
       return `write_file is not a valid LLM operation`
     case "rename_file":
+      if (isProtectedFile(op.path)) return `${op.path}: protected file, cannot be renamed`
       if (!files.has(op.path)) return `${op.path}: No such file`
       if (files.has(op.newPath)) return `${op.newPath}: already exists`
       return null

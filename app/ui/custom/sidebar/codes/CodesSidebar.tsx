@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import {
   FeatherSearch,
   FeatherPlus,
@@ -8,54 +9,44 @@ import {
 import { IconButton } from "~/ui/components/IconButton"
 import { TextField } from "~/ui/components/TextField"
 import { matchesAny } from "~/lib/filter"
-import { useResizable } from "~/hooks/useResizable"
+import {
+  solidBackground,
+  elementBackground,
+} from "~/lib/colors/radix"
 import type { Codebook, Code, CodeCategory } from "./types"
-import { CodeCategorySection } from "./CodeCategorySection"
+import { CodeItem } from "./CodeItem"
 import { CodeDetail } from "./CodeDetail"
 
 type CodesSidebarProps = {
   codebook: Codebook
   onEditCode?: (code: Code) => void
+  onFileSelect?: (fileId: string) => void
 }
 
-const getFirstCode = (codebook: Codebook): Code | null =>
-  codebook.categories[0]?.codes[0] ?? null
-
-const filterCode = (code: Code, query: string): boolean =>
-  matchesAny(query, [code.name, code.detail])
-
-const filterCategory = (category: CodeCategory, query: string): CodeCategory => ({
-  ...category,
-  codes: category.codes.filter((code) => filterCode(code, query)),
-})
-
-const filterCodebook = (codebook: Codebook, query: string): CodeCategory[] =>
-  codebook.categories
-    .map((cat) => filterCategory(cat, query))
-    .filter((cat) => cat.codes.length > 0)
+const filterCategories = (categories: CodeCategory[], query: string): CodeCategory[] => {
+  if (query.length === 0) return categories
+  return categories.reduce<CodeCategory[]>((acc, cat) => {
+    const codes = cat.codes.filter((code) => matchesAny(query, [code.name, code.detail]))
+    if (codes.length > 0) acc.push({ ...cat, codes })
+    return acc
+  }, [])
+}
 
 export const CodesSidebar = ({
   codebook,
   onEditCode,
+  onFileSelect,
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
-  const [selectedCode, setSelectedCode] = useState<Code | null>(() => getFirstCode(codebook))
-  const { size: detailSize, handleResizeMouseDown } = useResizable(
-    { width: 0, height: 256 },
-    { storageKey: "codes-detail-height", bounds: { minHeight: 100, maxHeight: 500 } }
-  )
+  const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
 
   const filteredCategories = useMemo(
-    () => filterCodebook(codebook, searchValue),
-    [codebook, searchValue]
+    () => filterCategories(codebook.categories, searchValue),
+    [codebook.categories, searchValue]
   )
 
-  const handleCodeSelect = (code: Code) => {
-    setSelectedCode(code.id === selectedCode?.id ? null : code)
-  }
-
   return (
-    <div className="flex h-full w-72 flex-none flex-col items-start bg-default-background">
+    <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
 
       <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
         <div className="flex w-full items-center justify-between">
@@ -81,23 +72,55 @@ export const CodesSidebar = ({
 
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 px-4 py-4 overflow-auto">
         {filteredCategories.map((category) => (
-          <CodeCategorySection
-            key={category.name}
-            category={category}
-            selectedCodeId={selectedCode?.id}
-            onCodeSelect={handleCodeSelect}
-          />
+          <div key={category.fileId} className="flex w-full flex-col items-start gap-2">
+            <span
+              className="text-caption-bold font-caption-bold text-subtext-color px-2 cursor-pointer hover:text-default-font"
+              onClick={() => onFileSelect?.(category.fileId)}
+            >
+              {category.name}
+            </span>
+            {category.codes.map((code) => (
+              <CodeItem
+                key={code.id}
+                code={code}
+                highlighted={code.id === hoveredCode?.id}
+                onMouseEnter={() => setHoveredCode(code)}
+                onClick={() => onEditCode?.(code)}
+              />
+            ))}
+          </div>
         ))}
       </div>
 
-      {selectedCode && (
-        <CodeDetail
-          code={selectedCode}
-          height={detailSize.height}
-          onResizeMouseDown={handleResizeMouseDown}
-          onEdit={onEditCode ? () => onEditCode(selectedCode) : undefined}
-        />
-      )}
+      <AnimatePresence>
+        {hoveredCode && (
+          <motion.div
+            key="code-detail-panel"
+            initial={{ x: -12, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -12, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+            className="absolute left-full top-0 h-full w-80 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
+          >
+            <div
+              className="flex w-full items-center gap-2 border-b-2 border-solid px-4 py-4"
+              style={{
+                backgroundColor: elementBackground(hoveredCode.color),
+                borderColor: solidBackground(hoveredCode.color),
+              }}
+            >
+              <div
+                className="flex h-3 w-3 flex-none rounded-full"
+                style={{ backgroundColor: solidBackground(hoveredCode.color) }}
+              />
+              <span className="text-heading-3 font-heading-3 text-default-font">
+                {hoveredCode.name}
+              </span>
+            </div>
+            <CodeDetail code={hoveredCode} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

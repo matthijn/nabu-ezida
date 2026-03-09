@@ -29,6 +29,11 @@ export {
   getCodebookFiles,
   getCodeTitle,
   getAnnotations,
+  getSettings,
+  getTagDefinitions,
+  findTagDefinitionById,
+  findTagDefinitionByLabel,
+  getTagColorMap,
 } from "./selectors"
 
 export {

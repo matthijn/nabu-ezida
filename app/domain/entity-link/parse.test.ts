@@ -30,6 +30,11 @@ describe("parseEntityLink", () => {
       expected: { kind: "callout", id: "callout-xyz789" },
     },
     {
+      name: "parses tag ref",
+      href: "file://tag-abc12345",
+      expected: { kind: "tag", id: "tag-abc12345" },
+    },
+    {
       name: "parses text ref without spotlight",
       href: "file://my-document",
       expected: { kind: "text", documentId: "my-document", spotlight: null },

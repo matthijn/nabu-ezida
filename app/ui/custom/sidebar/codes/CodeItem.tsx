@@ -9,19 +9,19 @@ import type { Code } from "./types"
 
 type CodeItemProps = {
   code: Code
-  selected?: boolean
+  highlighted?: boolean
+  onMouseEnter?: () => void
   onClick?: () => void
 }
 
-export const CodeItem = ({ code, selected = false, onClick }: CodeItemProps) => (
+export const CodeItem = ({ code, highlighted = false, onMouseEnter, onClick }: CodeItemProps) => (
   <div
-    className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 ${
-      selected ? "border border-solid" : ""
-    }`}
+    className="flex w-full cursor-pointer items-center gap-2 rounded-md border border-solid px-3 py-2"
     style={{
       backgroundColor: elementBackground(code.color),
-      borderColor: selected ? hoveredElementBorder(code.color) : undefined,
+      borderColor: highlighted ? hoveredElementBorder(code.color) : "transparent",
     }}
+    onMouseEnter={onMouseEnter}
     onClick={onClick}
   >
     <div
@@ -29,9 +29,7 @@ export const CodeItem = ({ code, selected = false, onClick }: CodeItemProps) => 
       style={{ backgroundColor: solidBackground(code.color) }}
     />
     <span
-      className={`grow shrink-0 basis-0 ${
-        selected ? "text-body-bold font-body-bold" : "text-body font-body"
-      } text-default-font`}
+      className="grow shrink-0 basis-0 text-body font-body text-default-font"
     >
       {code.name}
     </span>

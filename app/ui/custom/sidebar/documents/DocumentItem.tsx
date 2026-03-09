@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  subtleBackground,
   elementBackground,
   solidBackground,
   type RadixColor,
@@ -18,11 +17,11 @@ export type DocumentItemProps = {
 export function DocumentItem({ title, editedAt, color = "lime", selected = false, onClick }: DocumentItemProps) {
   return (
     <div
-      style={{ '--tag-subtle': subtleBackground(color), '--tag-element': elementBackground(color) } as React.CSSProperties}
+      style={{ '--tag-element': elementBackground(color) } as React.CSSProperties}
       className={`flex w-full flex-col items-start gap-1 px-3 py-2 cursor-pointer relative ${
         selected
           ? "bg-[var(--tag-element)] group-hover:bg-transparent hover:!bg-[var(--tag-element)]"
-          : "hover:bg-[var(--tag-subtle)]"
+          : "hover:bg-[var(--tag-element)]"
       }`}
       onClick={onClick}
     >
@@ -32,7 +31,7 @@ export function DocumentItem({ title, editedAt, color = "lime", selected = false
           style={{ backgroundColor: solidBackground(color) }}
         />
       )}
-      <span className={`line-clamp-1 ${selected ? "text-body-bold font-body-bold" : "text-body font-body"} text-default-font`}>
+      <span className="line-clamp-1 text-body font-body text-default-font">
         {title}
       </span>
       <span className="text-caption font-caption text-subtext-color">

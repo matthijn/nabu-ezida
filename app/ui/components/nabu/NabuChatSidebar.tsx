@@ -36,8 +36,8 @@ import { useFiles } from "~/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { linkifyEntityIds, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
-import { resolveEntityName } from "~/lib/files/selectors"
+import { linkifyEntityIds, linkifyTags, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
+import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
@@ -68,6 +68,11 @@ const resolveAndTruncateName = (files: Record<string, string>, id: string): stri
   return name ? truncateLabel(name) : null
 }
 
+const resolveTagForLinkify = (files: Record<string, string>, label: string): { id: string; display: string } | null => {
+  const def = findTagDefinitionByLabel(files, label)
+  return def ? { id: def.id, display: def.display } : null
+}
+
 const remarkPlugins = [remarkGfm]
 
 const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { node?: unknown }) => (
@@ -78,7 +83,7 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
 
 const MessageContent = ({ content, files, projectId, currentFile, currentFileContent, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)))}
+    {fixMarkdownUrls(linkifyTags(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)), (label) => resolveTagForLinkify(files, label)))}
   </Markdown>
 )
 

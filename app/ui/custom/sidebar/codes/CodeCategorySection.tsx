@@ -9,14 +9,16 @@ import { CodeItem } from "./CodeItem"
 
 type CodeCategorySectionProps = {
   category: CodeCategory
-  selectedCodeId?: string
-  onCodeSelect?: (code: Code) => void
+  hoveredCodeId?: string
+  onCodeHover?: (code: Code | null) => void
+  onCodeClick?: (code: Code) => void
 }
 
 export const CodeCategorySection = ({
   category,
-  selectedCodeId,
-  onCodeSelect,
+  hoveredCodeId,
+  onCodeHover,
+  onCodeClick,
 }: CodeCategorySectionProps) => {
   const [expanded, setExpanded] = useState(true)
 
@@ -43,8 +45,9 @@ export const CodeCategorySection = ({
             <AnimatedListItem key={code.id}>
               <CodeItem
                 code={code}
-                selected={code.id === selectedCodeId}
-                onClick={() => onCodeSelect?.(code)}
+                highlighted={code.id === hoveredCodeId}
+                onMouseEnter={() => onCodeHover?.(code)}
+                onClick={() => onCodeClick?.(code)}
               />
             </AnimatedListItem>
           ))}

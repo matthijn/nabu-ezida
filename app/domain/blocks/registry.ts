@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { DocumentMeta, type StoredAnnotation } from "~/domain/attributes/schema"
+import { Settings } from "~/domain/settings/schema"
 import { CalloutSchema, type CalloutBlock } from "./callout"
 import type { ValidationError } from "./validate"
 import { parsePath, type ParsedPath } from "./json"
@@ -136,6 +137,16 @@ const jsonAttributes = defineBlock({
   validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
 })
 
+const jsonSettings = defineBlock({
+  schema: Settings,
+  readonly: [],
+  immutable: {},
+  constraints: [],
+  renderer: "hidden",
+  singleton: true,
+  idPaths: [{ path: "tags.*.id", prefix: "tag" }],
+})
+
 const jsonCallout = defineBlock({
   schema: CalloutSchema,
   readonly: [],
@@ -154,6 +165,7 @@ type AnyBlockConfig = BlockTypeConfig<unknown>
 
 export const blockTypes: Record<string, AnyBlockConfig> = {
   "json-attributes": jsonAttributes as AnyBlockConfig,
+  "json-settings": jsonSettings as AnyBlockConfig,
   "json-callout": jsonCallout as AnyBlockConfig,
 }
 

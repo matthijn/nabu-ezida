@@ -14,6 +14,9 @@ const fileWithAnnotation = (id: string, text: string, color: string): string =>
 const fileWithCallout = (id: string, title: string, color: string): string =>
   `# Codebook\n\n\`\`\`json-callout\n${JSON.stringify({ id, type: "codebook-code", title, content: "detail", color, collapsed: false })}\n\`\`\``
 
+const fileWithTagDefinition = (id: string, label: string, display: string, color: string, icon: string): string =>
+  `# Prefs\n\n\`\`\`json-settings\n${JSON.stringify({ tags: [{ id, label, display, color, icon }] })}\n\`\`\``
+
 describe("resolveEntityLink", () => {
   const cases: { name: string; href: string; files: Record<string, string>; expected: Partial<ResolvedLink> | null }[] = [
     {
@@ -53,6 +56,23 @@ describe("resolveEntityLink", () => {
     {
       name: "returns null for missing callout",
       href: "file://callout-missing",
+      files: {},
+      expected: null,
+    },
+    {
+      name: "resolves tag ref",
+      href: "file://tag-abc12345",
+      files: { "preferences.md": fileWithTagDefinition("tag-abc12345", "interview", "Interview", "green", "mic") },
+      expected: {
+        kind: "tag",
+        colors: { text: "var(--green-11)", icon: "var(--green-9)", background: "var(--green-3)", backgroundHover: "var(--green-4)" },
+        url: "",
+        label: "Interview",
+      },
+    },
+    {
+      name: "returns null for missing tag",
+      href: "file://tag-missing",
       files: {},
       expected: null,
     },

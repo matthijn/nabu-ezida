@@ -1,5 +1,6 @@
 "use client"
 
+import type { ComponentType } from "react"
 import { FeatherHash, FeatherChevronUp, FeatherChevronDown } from "@subframe/core"
 import { Badge } from "~/ui/components/Badge"
 import {
@@ -13,9 +14,11 @@ import {
 
 type TagGroupHeaderProps = {
   tag: string
+  display?: string
   count: number
   expanded: boolean
   color?: RadixColor
+  icon?: ComponentType<{ className?: string }>
   onClick: () => void
 }
 
@@ -24,8 +27,9 @@ export const humanize = (tag: string): string =>
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
-export function TagGroupHeader({ tag, count, expanded, color = "lime", onClick }: TagGroupHeaderProps) {
+export function TagGroupHeader({ tag, display, count, expanded, color = "lime", icon, onClick }: TagGroupHeaderProps) {
   const Chevron = expanded ? FeatherChevronUp : FeatherChevronDown
+  const TagIcon = icon ?? FeatherHash
   const accentStyle = expanded ? { color: lowContrastText(color) } : undefined
 
   return (
@@ -44,15 +48,14 @@ export function TagGroupHeader({ tag, count, expanded, color = "lime", onClick }
       onClick={onClick}
     >
       <div className="flex items-center gap-2">
-        <FeatherHash
-          className={`text-body font-body ${expanded ? "" : "text-subtext-color"}`}
-          style={accentStyle}
-        />
+        <span style={accentStyle}>
+          <TagIcon className={`text-body font-body ${expanded ? "" : "text-subtext-color"}`} />
+        </span>
         <span
           className={`text-body-bold font-body-bold ${expanded ? "" : "text-default-font"}`}
           style={expanded ? { color: highContrastText(color) } : undefined}
         >
-          {humanize(tag)}
+          {display ?? humanize(tag)}
         </span>
       </div>
       <div className="flex items-center gap-2">

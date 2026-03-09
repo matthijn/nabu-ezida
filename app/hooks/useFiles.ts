@@ -9,7 +9,9 @@ import {
   subscribe,
   getTags,
   getAnnotations,
+  getTagDefinitions,
 } from "~/lib/files"
+import type { TagDefinition } from "~/domain/settings"
 
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)
@@ -19,8 +21,9 @@ export const useFiles = () => {
   const getFileTags = (filename: string): string[] => getTags(files[filename] ?? "")
   const getFileLineCountFn = (filename: string): number => getFileLineCount(filename)
   const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
+  const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
 
-  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount: getFileLineCountFn, getFileAnnotations }
+  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount: getFileLineCountFn, getFileAnnotations, tagDefinitions }
 }
 
 export const useCurrentFileContent = () => {

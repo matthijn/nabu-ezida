@@ -5,6 +5,7 @@ const FILE_PROTOCOL = "file://"
 const RANGE_DELIMITER = "..."
 const ANNOTATION_PREFIX = "annotation-"
 const CALLOUT_PREFIX = "callout-"
+const TAG_PREFIX = "tag-"
 
 const parseTextPart = (textPart: string): Spotlight | null => {
   if (!textPart) return null
@@ -24,6 +25,9 @@ const isAnnotationRef = (path: string): boolean =>
 const isCalloutRef = (path: string): boolean =>
   path.startsWith(CALLOUT_PREFIX)
 
+const isTagRef = (path: string): boolean =>
+  path.startsWith(TAG_PREFIX)
+
 const parseTextRef = (path: string): EntityRef => {
   const slashIndex = path.indexOf("/")
   if (slashIndex === -1) return { kind: "text", documentId: path, spotlight: null }
@@ -38,5 +42,6 @@ export const parseEntityLink = (href: string): EntityRef | null => {
   if (!path) return null
   if (isAnnotationRef(path)) return { kind: "annotation", id: path }
   if (isCalloutRef(path)) return { kind: "callout", id: path }
+  if (isTagRef(path)) return { kind: "tag", id: path }
   return parseTextRef(path)
 }

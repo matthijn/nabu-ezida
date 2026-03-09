@@ -4,9 +4,11 @@ import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { parseSpotlight } from "~/domain/spotlight"
 import { useProject } from "./project"
 import { linkifyEntityIds } from "~/domain/entity-link/linkify"
+import { linkifyTags } from "~/domain/entity-link/linkify-tags"
 import { toExtraPretty } from "~/lib/json"
-import { resolveEntityName } from "~/lib/files/selectors"
+import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
+import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import { truncateLabel } from "~/lib/mutation-history"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -43,7 +45,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags } = useProject()
+  const { files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, tagDefinitions } = useProject()
   const [searchParams] = useSearchParams()
   const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -55,12 +57,22 @@ export default function ProjectFile() {
     if (!rawContent || !currentFile) return rawContent
     if (isJsonFile(currentFile)) return rawContent
     if (debugOptions.renderAsJson) return toExtraPretty(rawContent)
-    return linkifyEntityIds(rawContent, (id) => resolveEntityName(files, id))
+    const withEntities = linkifyEntityIds(rawContent, (id) => resolveEntityName(files, id))
+    return linkifyTags(withEntities, (label) => {
+      const def = findTagDefinitionByLabel(files, label)
+      return def ? { id: def.id, display: def.display } : null
+    })
   }, [rawContent, currentFile, debugOptions.renderAsJson, files])
   const copyRawMarkdown = useCallback(() => {
     if (rawContent) navigator.clipboard.writeText(rawContent)
   }, [rawContent])
-  const tags = currentFile ? getFileTags(currentFile).map((tag, i) => ({ label: tag, variant: (i === 0 ? "brand" : "neutral") as "brand" | "neutral" })) : []
+  const tagDefMap = useMemo(() => new Map(tagDefinitions.map((d) => [d.id, d])), [tagDefinitions])
+  const tags = currentFile ? getFileTags(currentFile).map((tagId) => {
+    const def = tagDefMap.get(tagId)
+    return def
+      ? { label: def.display, variant: "brand" as const, color: def.color, icon: resolveFeatherIcon(def.icon) }
+      : { label: tagId, variant: "neutral" as const }
+  }) : []
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current

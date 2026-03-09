@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import type { ReactNode, ComponentType } from "react"
 import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
@@ -8,11 +8,14 @@ import { IconButton } from "~/ui/components/IconButton"
 import { FeatherBug, FeatherCheck, FeatherClipboard, FeatherMinimize, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
+import { elementBackground, solidBackground, lowContrastText, type RadixColor } from "~/lib/colors/radix"
 import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
-type Tag = {
+export type Tag = {
   label: string
   variant: "brand" | "neutral"
+  color?: RadixColor
+  icon?: ComponentType<{ className?: string }>
 }
 
 type MenuItem = {
@@ -34,6 +37,24 @@ type FileHeaderProps = {
   menuItems?: MenuItem[]
   onAddTag?: () => void
   className?: string
+}
+
+const renderTag = (tag: Tag) => {
+  if (!tag.color) {
+    return <Badge key={tag.label} variant={tag.variant} icon={null}>{tag.label}</Badge>
+  }
+  const Icon = tag.icon
+  return (
+    <span key={tag.label} style={{ '--tag-bg': elementBackground(tag.color), '--tag-icon': solidBackground(tag.color), '--tag-fg': lowContrastText(tag.color) } as React.CSSProperties}>
+      <Badge
+        variant={tag.variant}
+        icon={Icon ? <span style={{ color: 'var(--tag-icon)' }}><Icon className="h-3 w-3" /></span> : null}
+        className="!border-[var(--tag-bg)] !bg-[var(--tag-bg)] [&_span]:!text-[var(--tag-fg)]"
+      >
+        {tag.label}
+      </Badge>
+    </span>
+  )
 }
 
 const isActive = (options: DebugOptions | undefined, key: string): boolean =>
@@ -173,12 +194,8 @@ export const FileHeader = ({
         )}
       </div>
       {(tags.length > 0 || onAddTag) && (
-        <div className="flex w-full items-center gap-2">
-          {tags.map((tag) => (
-            <Badge key={tag.label} variant={tag.variant} icon={null}>
-              {tag.label}
-            </Badge>
-          ))}
+        <div className="flex w-full flex-wrap items-center gap-2">
+          {tags.map((tag) => renderTag(tag))}
           {onAddTag && (
             <Button
               variant="neutral-tertiary"
