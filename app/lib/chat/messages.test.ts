@@ -241,7 +241,7 @@ describe("extractAskMessages", () => {
       history: (() => {
         const id = "99"
         return [
-          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { question: "Pick", options: ["A", "B"] } }] },
+          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { question: "Pick", options: ["A", "B"], scope: "local" } }] },
           { type: "user" as const, content: "A" },
         ]
       })(),

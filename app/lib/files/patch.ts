@@ -95,6 +95,7 @@ export const finalizeContent = (path: string, content: string, options: Finalize
 
   const context = buildValidationContext(stampedContent)
   const validation = validateMarkdownBlocks(stampedContent, {
+    path,
     context,
     original: options.original,
     skipImmutableCheck: options.skipImmutableCheck,

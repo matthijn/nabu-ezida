@@ -9,13 +9,14 @@ import { useDraggable } from "~/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocksWithDraft, subscribeBlocks, isDraft, clearPauseBlocks } from "~/lib/agent/block-store"
+import { getAllBlocksWithDraft, subscribeBlocks, isDraft, clearPauseBlocks, getSource } from "~/lib/agent/block-store"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
 type BlockRendererProps = {
   block: Block
+  source: string
   selected: boolean
   onToggleSelect: () => void
 }
@@ -153,15 +154,21 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
   )
 }
 
-const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) => {
+const isSubagentBlock = (source: string): boolean => source !== "base"
+
+const sourceLabel = (source: string): string =>
+  isSubagentBlock(source) ? ` [${source}]` : ""
+
+const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendererProps) => {
   const copy = formatBlock(block)
   const sel = { selected, onToggleSelect }
+  const suffix = sourceLabel(source)
 
   switch (block.type) {
     case "user":
       return (
         <CollapsibleBlock
-          label="user"
+          label={`user${suffix}`}
           content={block.content}
           copyContent={copy}
           borderColor="border-blue-400"
@@ -172,7 +179,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
     case "text":
       return (
         <CollapsibleBlock
-          label="assistant"
+          label={`assistant${suffix}`}
           content={block.content}
           copyContent={copy}
           borderColor="border-green-400"
@@ -186,7 +193,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
         : block.calls.map(formatToolCall).join("\n\n")
       return (
         <CollapsibleBlock
-          label="tool_call"
+          label={`tool_call${suffix}`}
           content={content}
           copyContent={copy}
           borderColor="border-orange-400"
@@ -200,7 +207,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
     case "tool_result":
       return (
         <CollapsibleBlock
-          label={`tool_result${block.toolName ? ` (${block.toolName})` : ""}`}
+          label={`tool_result${block.toolName ? ` (${block.toolName})` : ""}${suffix}`}
           content={formatResult(block.result)}
           copyContent={copy}
           borderColor={isErrorResult(block.result) ? "border-red-400" : "border-purple-400"}
@@ -215,7 +222,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
     case "system":
       return (
         <CollapsibleBlock
-          label="system"
+          label={`system${suffix}`}
           content={block.content}
           copyContent={copy}
           borderColor="border-gray-400"
@@ -228,7 +235,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
       return (
         <>
           <CollapsibleBlock
-            label="thinking"
+            label={`thinking${suffix}`}
             content={block.content}
             copyContent={copy}
             borderColor="border-yellow-400"
@@ -251,7 +258,7 @@ const BlockRenderer = ({ block, selected, onToggleSelect }: BlockRendererProps) 
     case "error":
       return (
         <CollapsibleBlock
-          label="error"
+          label={`error${suffix}`}
           content={block.content}
           copyContent={copy}
           borderColor="border-red-400"
@@ -370,15 +377,21 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
             <span className="text-sm text-neutral-400">No blocks yet</span>
           </div>
         )}
-        {allBlocks.map((block, i) => (
-          <div key={i} className={compacted.has(i) ? "opacity-50" : ""}>
-            <BlockRenderer
-              block={block}
-              selected={selectedIndices.has(i)}
-              onToggleSelect={() => handleToggleBlock(i)}
-            />
-          </div>
-        ))}
+        {allBlocks.map((block, i) => {
+          const source = getSource(block)
+          const indent = isSubagentBlock(source) ? "ml-4" : ""
+          const opacity = compacted.has(i) ? "opacity-50" : ""
+          return (
+            <div key={i} className={`${indent} ${opacity}`}>
+              <BlockRenderer
+                block={block}
+                source={source}
+                selected={selectedIndices.has(i)}
+                onToggleSelect={() => handleToggleBlock(i)}
+              />
+            </div>
+          )
+        })}
       </AutoScroll>
     </div>
   )

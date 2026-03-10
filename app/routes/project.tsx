@@ -16,7 +16,7 @@ import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
 import { findDocumentForCallout, getAnnotationCount } from "~/lib/files/selectors"
-import { toDisplayName } from "~/lib/files/filename"
+import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
@@ -27,9 +27,6 @@ type SidebarDocument = {
   tags: string[]
   annotationCount: number
 }
-
-const isHiddenFile = (filename: string): boolean =>
-  filename.includes(".hidden.")
 
 const filesToSidebarDocuments = (
   files: Record<string, string>,

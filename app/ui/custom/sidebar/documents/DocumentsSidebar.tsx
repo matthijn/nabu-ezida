@@ -3,7 +3,7 @@
 import type { ComponentType } from "react"
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherHash, FeatherSearch, FeatherPlus } from "@subframe/core"
+import { FeatherHash, FeatherFolder, FeatherSearch, FeatherPlus } from "@subframe/core"
 import type { TagDefinition } from "~/domain/settings"
 import { TextField } from "~/ui/components/TextField"
 import { Button } from "~/ui/components/Button"
@@ -40,7 +40,7 @@ type DocumentsSidebarProps = {
 }
 
 const DEFAULT_TAG_COLOR: RadixColor = "lime"
-const UNGROUPED = "ungrouped"
+const UNGROUPED = "general"
 
 type TagGroup = { tag: string; docs: ListItem[] }
 
@@ -97,8 +97,10 @@ type ResolvedTag = {
 const buildTagLookup = (definitions: TagDefinition[]): Map<string, ResolvedTag> =>
   new Map(definitions.map((d) => [d.id, { color: d.color, display: d.display, icon: resolveFeatherIcon(d.icon) }]))
 
+const UNGROUPED_TAG: ResolvedTag = { color: DEFAULT_TAG_COLOR, display: "General", icon: FeatherFolder }
+
 const resolveTag = (lookup: Map<string, ResolvedTag>, tag: string): ResolvedTag =>
-  lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: FeatherHash }
+  tag === UNGROUPED ? UNGROUPED_TAG : lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: FeatherHash }
 
 export function DocumentsSidebar({
   documents,

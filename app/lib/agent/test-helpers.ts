@@ -1,5 +1,6 @@
 import type { Block } from "./types"
 import type { StepDef, StepDefObject } from "./derived"
+import type { AskScope } from "~/lib/chat/messages"
 
 let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)
@@ -63,18 +64,18 @@ export const submitPlanCallPending = (task: string, steps: StepInput[]): Block[]
   }]
 }
 
-export const askCallPending = (question: string, options: string[], persist = false): Block[] => {
+export const askCallPending = (question: string, options: string[], scope: AskScope = "local"): Block[] => {
   const id = nextCallId()
   return [{
     type: "tool_call",
-    calls: [{ id, name: "ask", args: { question, options, persist } }],
+    calls: [{ id, name: "ask", args: { question, options, scope } }],
   }]
 }
 
-export const askCall = (question: string, options: string[], answer: string, persist = false): Block[] => {
+export const askCall = (question: string, options: string[], answer: string, scope: AskScope = "local"): Block[] => {
   const id = nextCallId()
   return [
-    { type: "tool_call", calls: [{ id, name: "ask", args: { question, options, persist } }] },
+    { type: "tool_call", calls: [{ id, name: "ask", args: { question, options, scope } }] },
     { type: "user" as const, content: answer },
     { type: "tool_result", callId: id, result: { status: "ok", output: answer } },
   ]

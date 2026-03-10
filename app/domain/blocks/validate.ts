@@ -1,5 +1,5 @@
 import equal from "fast-deep-equal"
-import { getBlockConfig, isSingleton, getImmutableFields, type ValidationContext } from "./registry"
+import { getBlockConfig, isSingleton, getImmutableFields, getAllowedFiles, type ValidationContext } from "./registry"
 import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 
@@ -29,6 +29,13 @@ const extractProse = (markdown: string): string => {
   }
 
   return prose
+}
+
+const validateFileConstraint = (language: string, path: string | undefined): ValidationError | null => {
+  const allowed = getAllowedFiles(language)
+  if (!allowed || !path) return null
+  if (allowed.includes(path)) return null
+  return { block: language, message: `\`${language}\` blocks can only exist in: ${allowed.join(", ")}` }
 }
 
 const validateBlockSchema = (language: string, content: string): ValidationError[] => {
@@ -213,6 +220,7 @@ const detectOrphanedIds = (
 }
 
 export type ValidateOptions = {
+  path?: string
   context?: ValidationContext
   original?: string
   skipImmutableCheck?: boolean
@@ -238,6 +246,12 @@ export const validateMarkdownBlocks = (
   for (const block of blocks) {
     const config = getBlockConfig(block.language)
     if (!config) continue
+
+    const fileError = validateFileConstraint(block.language, options.path)
+    if (fileError) {
+      errors.push(fileError)
+      continue
+    }
 
     const schemaErrors = validateBlockSchema(block.language, block.content)
     const semanticErrors = validateBlockSemantic(block.language, block.content, context)

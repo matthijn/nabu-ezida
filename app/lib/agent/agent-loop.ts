@@ -1,9 +1,12 @@
 import type { Block } from "./types"
 import type { ParseCallbacks } from "./stream"
 import type { ToolExecutor } from "./turn"
+import type { AnyTool } from "./executors/tool"
+import type { Nudger } from "./steering/nudge-tools"
+import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 import { toToolDefinition, toSchemaMap } from "./executors/tool"
 import { buildCaller } from "./caller"
-import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks } from "./block-store"
+import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks, filterBySource } from "./block-store"
 import { isErrorResult, isDebugPauseBlock } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
@@ -19,6 +22,25 @@ export type AgentLoopConfig = {
   signal?: AbortSignal
 }
 
+export type IterationConfig = {
+  endpoint: string
+  tools: AnyTool[]
+  nudges: Nudger[]
+  processBlocks?: (blocks: Block[]) => Block[]
+  transformResponse?: (blocks: Block[]) => Block[]
+  blockSchemas?: BlockSchemaDefinition[]
+}
+
+export type AgentRunConfig = {
+  source: string
+  executor: ToolExecutor
+  callbacks?: ParseCallbacks
+  signal?: AbortSignal
+  maxTurns?: number
+  resolve: (blocks: Block[]) => IterationConfig
+  afterTurn?: (newBlocks: Block[]) => Promise<void>
+}
+
 export const excludeReasoning = (blocks: Block[]): Block[] =>
   blocks.filter((b) => b.type !== "reasoning")
 
@@ -30,6 +52,45 @@ export const extractLastText = (blocks: Block[]): string =>
 
 export const shouldContinue = (newBlocks: Block[]): boolean =>
   hasToolCalls(newBlocks) || !extractLastText(newBlocks)
+
+export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
+  const { source, executor, callbacks, signal, maxTurns = 50 } = config
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    const sourceBlocks = filterBySource(getAllBlocks(), source)
+    const iter = config.resolve(sourceBlocks)
+    const tools = iter.tools.map(toToolDefinition)
+    const nudge = collect(...iter.nudges)
+
+    const visible = iter.processBlocks ? iter.processBlocks(sourceBlocks) : sourceBlocks
+    const nudgeBlocks = await nudge(excludeReasoning(visible))
+    if (nudgeBlocks.length === 0) return
+
+    const nonEmpty = nudgeBlocks.filter((b) => !isEmptyNudgeBlock(b))
+    if (nonEmpty.length > 0) pushBlocks(nonEmpty, source)
+
+    const caller = buildCaller({
+      endpoint: iter.endpoint,
+      tools,
+      toolSchemas: toSchemaMap(iter.tools),
+      blockSchemas: iter.blockSchemas,
+      execute: executor,
+      callbacks,
+      source,
+      readBlocks: () => {
+        const blocks = filterBySource(getAllBlocks(), source)
+        return iter.processBlocks ? iter.processBlocks(blocks) : blocks
+      },
+      transformBlocks: iter.transformResponse,
+    })
+
+    const newBlocks = await caller(signal)
+    if (config.afterTurn) await config.afterTurn(newBlocks)
+    if (!shouldContinue(newBlocks)) return
+  }
+}
+
+// --- main agent internals ---
 
 const readDebugOption = <T,>(key: string, fallback: T): T => {
   if (typeof window === "undefined") return fallback
@@ -63,6 +124,9 @@ const consumeForceCompaction = (): boolean => {
   return true
 }
 
+const shouldPauseOnError = (blocks: Block[]): boolean =>
+  hasToolError(blocks) && readDebugOption("showStreamPanel", false)
+
 const hasToolError = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_result" && isErrorResult(b.result))
 
@@ -87,9 +151,6 @@ const awaitResume = (signal?: AbortSignal): Promise<void> =>
     tryResolve()
   })
 
-const shouldPauseOnError = (blocks: Block[]): boolean =>
-  hasToolError(blocks) && readDebugOption("showStreamPanel", false)
-
 const findDanglingIds = (text: string): string[] => {
   const candidates = extractEntityIdCandidates(text)
   if (candidates.length === 0) return []
@@ -110,46 +171,33 @@ const rejectDanglingBlock = (block: Block): Block => {
 const rejectDanglingEntityIds = (blocks: Block[]): Block[] =>
   hasToolCalls(blocks) ? blocks : blocks.map(rejectDanglingBlock)
 
-export const agentLoop = async (config: AgentLoopConfig): Promise<void> => {
-  const { executor, callbacks, signal } = config
-
-  while (true) {
-    const blocks = getAllBlocks()
-    const mode = deriveMode(blocks)
-    const modeConfig = modes[mode]
-    const tools = modeConfig.tools.map(toToolDefinition)
-    const nudge = collect(...modeConfig.nudges)
-
-    const visible = compactHistory(blocks, getFiles())
-    const nudges = await nudge(excludeReasoning(visible))
-    if (nudges.length === 0) return
-
-    const nonEmpty = nudges.filter((b) => !isEmptyNudgeBlock(b))
-    if (nonEmpty.length > 0) {
-      pushBlocks(nonEmpty)
-    }
-
-    const caller = buildCaller({
-      endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}${consumeForceCompaction() ? "&compact=true" : ""}`,
-      tools,
-      toolSchemas: toSchemaMap(modeConfig.tools),
-      blockSchemas: getBlockSchemaDefinitions(),
-      execute: executor,
-      callbacks,
-      readBlocks: () => {
-        const blocks = compactHistory(getAllBlocks(), getFiles())
-        return readStepCompaction() ? stepCompactHistory(blocks) : blocks
-      },
-      transformBlocks: rejectDanglingEntityIds,
-    })
-
-    const newBlocks = await caller(signal)
-
-    if (shouldPauseOnError(newBlocks)) {
-      pushBlocks([{ type: "debug_pause" }])
-      await awaitResume(signal)
-    }
-
-    if (!shouldContinue(newBlocks)) return
-  }
+const compactBlocks = (blocks: Block[]): Block[] => {
+  const compacted = compactHistory(blocks, getFiles())
+  return readStepCompaction() ? stepCompactHistory(compacted) : compacted
 }
+
+export const agentLoop = async (config: AgentLoopConfig): Promise<void> =>
+  runAgentLoop({
+    source: "base",
+    executor: config.executor,
+    callbacks: config.callbacks,
+    signal: config.signal,
+    resolve: (blocks) => {
+      const mode = deriveMode(blocks)
+      const modeConfig = modes[mode]
+      return {
+        endpoint: `${ENDPOINT}&reasoning_summary=${readReasoningSummary()}${consumeForceCompaction() ? "&compact=true" : ""}`,
+        tools: modeConfig.tools,
+        nudges: modeConfig.nudges,
+        processBlocks: compactBlocks,
+        transformResponse: rejectDanglingEntityIds,
+        blockSchemas: getBlockSchemaDefinitions(),
+      }
+    },
+    afterTurn: async (newBlocks) => {
+      if (shouldPauseOnError(newBlocks)) {
+        pushBlocks([{ type: "debug_pause" }], "base")
+        await awaitResume(config.signal)
+      }
+    },
+  })

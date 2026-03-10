@@ -3,12 +3,12 @@ import type { AnyTool } from "../tool"
 
 export const AskArgs = z.object({
   question: z.string().describe("A focused question with enough context for the user to decide."),
-  options: z.array(z.string()).min(2).describe("Concrete, actionable choices. Each option is a direction you can act on immediately."),
-  persist: z.boolean().optional().describe("Set to true when the answer applies across the project — methodology choices, analytical preferences, scope decisions that hold for every file. Omit for file-specific or section-specific questions."),
+  options: z.array(z.string()).min(2).optional().describe("Concrete, actionable choices. Omit for open-ended questions where the user types freely."),
+  scope: z.enum(["local", "codebook", "preferences"]).describe("local = this conversation only. codebook = answer shapes how analysis is done (codes, density, granularity, which speakers/sections to code, unit of analysis, inclusion criteria). preferences = lasting non-analytical decision (user name, language, output format)."),
 })
 
 export const askTool: AnyTool = {
   name: "ask",
-  description: "Present the user with a single choice when multiple valid approaches exist and the decision depends on their preference. Execution pauses until answered. Call once per question — earlier answers may shape later questions. Do not use for yes/no, open-ended feedback, or questions you can answer yourself.",
+  description: "Ask the user a question. Every question must go through this tool — never ask in chat text. Provide options when discrete choices exist, omit for open-ended questions. Execution pauses until answered. Call once per question — earlier answers may shape later questions.",
   schema: AskArgs,
 }

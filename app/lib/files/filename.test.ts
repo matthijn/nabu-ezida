@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { normalizeFilename, toDisplayName } from "./filename"
+import { normalizeFilename, toDisplayName, isProtectedFile, isHiddenFile, PREFERENCES_FILE, SETTINGS_FILE } from "./filename"
 
 describe("normalizeFilename", () => {
   const cases = [
@@ -21,8 +21,34 @@ describe("toDisplayName", () => {
     { input: "already.md", expected: "Already" },
     { input: "no_extension", expected: "No Extension" },
     { input: "multi_word_file_name.md", expected: "Multi Word File Name" },
+    { input: "settings.hidden.md", expected: "Settings" },
+    { input: "debug.hidden.md", expected: "Debug" },
   ]
   cases.forEach(({ input, expected }) =>
     it(`"${input}" → "${expected}"`, () => expect(toDisplayName(input)).toBe(expected))
+  )
+})
+
+describe("isProtectedFile", () => {
+  const cases = [
+    { input: PREFERENCES_FILE, expected: true },
+    { input: SETTINGS_FILE, expected: true },
+    { input: "some_doc.md", expected: false },
+    { input: "debug.hidden.md", expected: false },
+  ]
+  cases.forEach(({ input, expected }) =>
+    it(`"${input}" → ${expected}`, () => expect(isProtectedFile(input)).toBe(expected))
+  )
+})
+
+describe("isHiddenFile", () => {
+  const cases = [
+    { input: "settings.hidden.md", expected: true },
+    { input: "debug.hidden.md", expected: true },
+    { input: "preferences.md", expected: false },
+    { input: "my_doc.md", expected: false },
+  ]
+  cases.forEach(({ input, expected }) =>
+    it(`"${input}" → ${expected}`, () => expect(isHiddenFile(input)).toBe(expected))
   )
 })

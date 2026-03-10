@@ -13,6 +13,7 @@ import { submitPlanTool } from "./tools"
 import { baselineNudge } from "../steering/nudges/baseline"
 import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"
+import { createSettingsNudge } from "../steering/nudges/settings"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
@@ -33,6 +34,7 @@ export type ModeName = "chat" | "plan" | "exec"
 
 const toolNudges = buildToolNudges(getFiles)
 const memoryNudge = createMemoryNudge(getFiles)
+const settingsNudge = createSettingsNudge(getFiles)
 const stepStateNudge = createStepStateNudge(getFiles)
 const planProgressNudge = createPlanProgressNudge(getFiles)
 
@@ -48,7 +50,7 @@ const raw: Record<ModeName, ModeConfig> = {
     model: "gpt-5.2",
     reasoning: "none",
     verbosity: "low",
-    nudges: [baselineNudge, memoryNudge],
+    nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   plan: {
     tools: [runLocalShell, preflightTool, submitPlanTool, cancel, askTool],
@@ -57,7 +59,7 @@ const raw: Record<ModeName, ModeConfig> = {
     model: "gpt-5.2",
     reasoning: "medium",
     verbosity: "low",
-    nudges: [baselineNudge, memoryNudge],
+    nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   exec: {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, askTool],
@@ -66,7 +68,7 @@ const raw: Record<ModeName, ModeConfig> = {
     model: "gpt-5.2",
     reasoning: "high",
     verbosity: "medium",
-    nudges: [baselineNudge, memoryNudge, stepStateNudge, planProgressNudge],
+    nudges: [baselineNudge, memoryNudge, settingsNudge, stepStateNudge, planProgressNudge],
   },
 }
 

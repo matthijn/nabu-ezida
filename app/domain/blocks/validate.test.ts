@@ -252,4 +252,44 @@ CATS are great.
     })
   })
 
+  describe("file constraint validation", () => {
+    const settingsBlock = `\`\`\`json-settings\n{"tags": []}\n\`\`\``
+
+    const cases = [
+      {
+        name: "accepts json-settings in settings.hidden.md",
+        markdown: `# Settings\n\n${settingsBlock}`,
+        path: "settings.hidden.md" as string | undefined,
+        expectValid: true,
+      },
+      {
+        name: "rejects json-settings in other files",
+        markdown: `# Doc\n\n${settingsBlock}`,
+        path: "some_doc.md" as string | undefined,
+        expectValid: false,
+        expectErrorContains: "can only exist in",
+      },
+      {
+        name: "allows json-attributes in any file",
+        markdown: `# Doc\n\n\`\`\`json-attributes\n{"tags": ["tag-1"]}\n\`\`\``,
+        path: "any_file.md" as string | undefined,
+        expectValid: true,
+      },
+      {
+        name: "skips constraint when no path provided",
+        markdown: `# Doc\n\n${settingsBlock}`,
+        path: undefined as string | undefined,
+        expectValid: true,
+      },
+    ]
+
+    it.each(cases)("$name", ({ markdown, path, expectValid, expectErrorContains }) => {
+      const result = validateMarkdownBlocks(markdown, { path })
+      expect(result.valid).toBe(expectValid)
+      if (!expectValid && expectErrorContains) {
+        expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+      }
+    })
+  })
+
 })

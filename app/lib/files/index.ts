@@ -58,4 +58,4 @@ export {
 
 export { formatGeneratedIds, type GeneratedId } from "~/domain/blocks"
 
-export { PREFERENCES_FILE, normalizeFilename, toDisplayName } from "./filename"
+export { PREFERENCES_FILE, SETTINGS_FILE, normalizeFilename, toDisplayName, isHiddenFile } from "./filename"

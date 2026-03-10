@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { DocumentMeta, type StoredAnnotation } from "~/domain/attributes/schema"
 import { Settings } from "~/domain/settings/schema"
+import { SETTINGS_FILE } from "~/lib/files/filename"
 import { CalloutSchema, type CalloutBlock } from "./callout"
 import type { ValidationError } from "./validate"
 import { parsePath, type ParsedPath } from "./json"
@@ -28,6 +29,7 @@ type BlockTypeConfig<T> = {
   constraints: string[]
   renderer: "hidden" | "callout"
   singleton: boolean
+  allowedFiles?: string[]
   labelKey?: string
   idPaths?: IdPathConfig[]
   actorPaths?: ActorPathConfig[]
@@ -144,6 +146,7 @@ const jsonSettings = defineBlock({
   constraints: [],
   renderer: "hidden",
   singleton: true,
+  allowedFiles: [SETTINGS_FILE],
   idPaths: [{ path: "tags.*.id", prefix: "tag" }],
 })
 
@@ -192,6 +195,9 @@ export const getIdPaths = (language: string): IdPathConfig[] =>
 
 export const getActorPaths = (language: string): ActorPathConfig[] =>
   blockTypes[language]?.actorPaths ?? []
+
+export const getAllowedFiles = (language: string): string[] | undefined =>
+  blockTypes[language]?.allowedFiles
 
 export type BlockSchemaDefinition = {
   language: string

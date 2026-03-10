@@ -3,7 +3,7 @@ import { getLabelKey, getIdPaths, type IdPathConfig } from "./registry"
 import { tryParseJson, isObject, parsePath } from "./json"
 
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([^\]]+)\]/g
-const SYSTEM_ID_SUFFIX_RE = /^[a-z0-9]{6,10}$/
+const SYSTEM_ID_SUFFIX_RE = /^(?=.*\d)[a-z0-9]{6,10}$/
 
 export type GeneratedId = {
   id: string

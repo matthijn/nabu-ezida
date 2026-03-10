@@ -14,6 +14,9 @@ describe("isSystemId", () => {
     { id: "callout-abc", prefix: "callout", expected: false, name: "suffix too short" },
     { id: "callout-ABCDEFGH", prefix: "callout", expected: false, name: "uppercase in suffix" },
     { id: "", prefix: "callout", expected: false, name: "empty string" },
+    { id: "tag-transcript", prefix: "tag", expected: false, name: "pure-alpha slug" },
+    { id: "tag-codebook", prefix: "tag", expected: false, name: "pure-alpha word" },
+    { id: "annotation-abcdefgh", prefix: "annotation", expected: false, name: "all letters no digits" },
   ]
 
   cases.forEach(({ id, prefix, expected, name }) => {

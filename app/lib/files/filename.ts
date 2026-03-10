@@ -1,12 +1,18 @@
 export const PREFERENCES_FILE = "preferences.md"
+export const SETTINGS_FILE = "settings.hidden.md"
 
-export const isProtectedFile = (path: string): boolean => path === PREFERENCES_FILE
+const PROTECTED_FILES = new Set([PREFERENCES_FILE, SETTINGS_FILE])
+
+export const isProtectedFile = (path: string): boolean => PROTECTED_FILES.has(path)
+
+export const isHiddenFile = (path: string): boolean => path.includes(".hidden.")
 
 export const normalizeFilename = (name: string): string =>
   name.toLowerCase().replace(/ /g, "_")
 
 export const toDisplayName = (filename: string): string =>
   filename
+    .replace(/\.hidden\.md$/, ".md")
     .replace(/\.md$/, "")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())

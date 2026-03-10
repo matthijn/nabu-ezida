@@ -6,7 +6,7 @@ import type { RadixColor } from "~/lib/colors/radix"
 import { blockTypes } from "~/domain/blocks/registry"
 import { findSingletonBlock, findBlocksByLanguage, type CalloutBlock } from "~/domain/blocks"
 import { createCappedCache } from "~/lib/utils"
-import { PREFERENCES_FILE, toDisplayName } from "./filename"
+import { SETTINGS_FILE, toDisplayName } from "./filename"
 
 type BlockTypeMap = {
   "json-attributes": DocumentMeta
@@ -151,7 +151,7 @@ export const getSettings = (raw: string): Settings | null =>
   getBlock(raw, "json-settings")
 
 export const getTagDefinitions = (files: Record<string, string>): TagDefinition[] =>
-  getSettings(files[PREFERENCES_FILE] ?? "")?.tags ?? []
+  getSettings(files[SETTINGS_FILE] ?? "")?.tags ?? []
 
 export const findTagDefinitionById = (files: Record<string, string>, id: string): TagDefinition | undefined =>
   getTagDefinitions(files).find((t) => t.id === id)

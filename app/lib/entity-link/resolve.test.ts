@@ -62,7 +62,7 @@ describe("resolveEntityLink", () => {
     {
       name: "resolves tag ref",
       href: "file://tag-abc12345",
-      files: { "preferences.md": fileWithTagDefinition("tag-abc12345", "interview", "Interview", "green", "mic") },
+      files: { "settings.hidden.md": fileWithTagDefinition("tag-abc12345", "interview", "Interview", "green", "mic") },
       expected: {
         kind: "tag",
         colors: { text: "var(--green-11)", icon: "var(--green-9)", background: "var(--green-3)", backgroundHover: "var(--green-4)" },

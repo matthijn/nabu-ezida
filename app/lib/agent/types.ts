@@ -54,7 +54,7 @@ export type DebugPauseBlock = {
   type: "debug_pause"
 }
 
-export type Block = (TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock | DebugPauseBlock) & { timestamp?: number }
+export type Block = (TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock | DebugPauseBlock) & { timestamp?: number; source?: string }
 
 export type ToolDeps = {
   project?: { id: string }

@@ -69,12 +69,14 @@ export const toRenderMessages = (history: Block[], files: Files = {}): RenderMes
   return indexed.sort(byIndex).map((item) => item.message)
 }
 
+export type AskScope = "local" | "codebook" | "preferences"
+
 export type AskMessage = {
   type: "ask"
   question: string
   options: string[]
   selected: string | null
-  persist: boolean
+  scope: AskScope
 }
 
 type AskExtraction = {
@@ -108,11 +110,12 @@ const findConsumedUserIndices = (history: Block[], askIndex: number, callId: str
   return indices
 }
 
-type ParsedAskArgs = { question: string; options: string[]; persist: boolean }
+type ParsedAskArgs = { question: string; options: string[]; scope: AskScope }
 
 const parseAskArgs = (args: Record<string, unknown>): ParsedAskArgs | null => {
   const parsed = AskArgs.safeParse(args)
-  return parsed.success ? { ...parsed.data, persist: parsed.data.persist ?? false } : null
+  if (!parsed.success) return null
+  return { question: parsed.data.question, options: parsed.data.options ?? [], scope: parsed.data.scope }
 }
 
 const extractSingleAsk = (
@@ -138,7 +141,7 @@ const extractSingleAsk = (
       question: args.question,
       options: args.options,
       selected,
-      persist: args.persist,
+      scope: args.scope,
     },
   }]
 }

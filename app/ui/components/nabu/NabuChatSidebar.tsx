@@ -5,19 +5,18 @@ import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
-  FeatherBookmark,
-  FeatherBookmarkCheck,
+  FeatherBookOpen,
   FeatherCheck,
   FeatherChevronRight,
   FeatherCircle,
   FeatherLoader2,
+  FeatherMessageCircle,
   FeatherMessageSquare,
-  FeatherPin,
   FeatherSend,
+  FeatherSlidersHorizontal,
   FeatherSparkles,
   FeatherX,
 } from "@subframe/core"
-import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { IconButton } from "~/ui/components/IconButton"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
@@ -29,7 +28,7 @@ import { useChat } from "~/lib/chat"
 import { derive } from "~/lib/agent"
 import { pushBlocks } from "~/lib/agent/block-store"
 import { toGroupedMessages, type GroupedMessage, type LeafMessage, type PlanHeader, type PlanItem, type PlanChild, type PlanStep, type StepStatus } from "~/lib/chat/group"
-import type { AskMessage } from "~/lib/chat/messages"
+import type { AskMessage, AskScope } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/hooks/useFiles"
@@ -40,9 +39,6 @@ import { linkifyEntityIds, linkifyTags, linkifyQuotes, normalizeBacktickQuotes }
 import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
-import { isAnswerSaved, toggleAnswer } from "~/lib/chat/save-answer"
-import { updateFileRaw, getFileRaw } from "~/lib/files"
-import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { useNabu } from "./context"
 import { pickGreeting } from "~/lib/chat/greetings"
 
@@ -189,22 +185,10 @@ type OptionCardProps = {
   children: ReactNode
   selected: boolean
   dimmed: boolean
-  saved: boolean
   onClick?: () => void
-  onToggleSave?: () => void
 }
 
-const SaveBadge = ({ saved, onToggle }: { saved: boolean; onToggle: () => void }) => (
-  <button onClick={(e) => { e.stopPropagation(); onToggle() }} className="flex-none cursor-pointer">
-    {saved ? (
-      <Badge variant="success" icon={<FeatherBookmarkCheck />}>Saved</Badge>
-    ) : (
-      <Badge variant="neutral" icon={<FeatherBookmark />}>Save</Badge>
-    )}
-  </button>
-)
-
-const OptionCard = ({ children, selected, dimmed, saved, onClick, onToggleSave }: OptionCardProps) => {
+const OptionCard = ({ children, selected, dimmed, onClick }: OptionCardProps) => {
   const className = [
     "flex w-full items-center gap-2 rounded-lg border-2 px-3 py-2",
     selected
@@ -227,7 +211,6 @@ const OptionCard = ({ children, selected, dimmed, saved, onClick, onToggleSave }
     <div className={className}>
       {icon}
       {text}
-      {onToggleSave && <SaveBadge saved={saved} onToggle={onToggleSave} />}
     </div>
   )
 
@@ -241,43 +224,47 @@ const OptionCard = ({ children, selected, dimmed, saved, onClick, onToggleSave }
 
 type AskRendererProps = {
   message: AskMessage
-  memoryContent: string | undefined
   files: Record<string, string>
   projectId: string | null
   currentFile: string | null
   currentFileContent: string | null
   navigate?: (url: string) => void
   onSelect: (option: string) => void
-  onToggleSave: (question: string, answer: string) => void
 }
 
 const isTypedAnswer = (message: AskMessage): boolean =>
   message.selected !== null && !message.options.includes(message.selected)
 
-const PersistBadge = () => (
-  <span className="flex items-center gap-1 text-caption font-caption text-subtext-color">
-    <FeatherPin className="w-3 h-3" />
-    <span>Project-wide</span>
-  </span>
-)
+const scopeIcon: Record<AskScope, React.ComponentType<{ className?: string }>> = {
+  local: FeatherMessageCircle,
+  codebook: FeatherBookOpen,
+  preferences: FeatherSlidersHorizontal,
+}
 
-const AskRenderer = ({ message, memoryContent, files, projectId, currentFile, currentFileContent, navigate, onSelect, onToggleSave }: AskRendererProps) => {
-  const selectedSaved = message.selected !== null && isAnswerSaved(memoryContent, message.question, message.selected)
+const scopeLabel: Record<AskScope, string> = {
+  local: "This conversation",
+  codebook: "Codebook",
+  preferences: "Preferences",
+}
 
-  useEffect(() => {
-    if (message.persist && message.selected && !selectedSaved) {
-      onToggleSave(message.question, message.selected)
-    }
-  }, [message.persist, message.selected, selectedSaved, onToggleSave, message.question])
-
+const ScopeBadge = ({ scope }: { scope: AskScope }) => {
+  const Icon = scopeIcon[scope]
   return (
-    <div className="flex w-full flex-col items-start gap-2 mb-3">
-      <AssistantBubble>
-        <div className="flex flex-col gap-1">
-          <MessageContent content={message.question} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
-          {message.persist && <PersistBadge />}
-        </div>
-      </AssistantBubble>
+    <span className="flex items-center gap-1 text-caption font-caption text-subtext-color">
+      <Icon className="w-3 h-3" />
+      <span>{scopeLabel[scope]}</span>
+    </span>
+  )
+}
+
+const hasOptions = (message: AskMessage): boolean => message.options.length > 0
+
+const AskRenderer = ({ message, files, projectId, currentFile, currentFileContent, navigate, onSelect }: AskRendererProps) => (
+  <div className="flex w-full flex-col items-start gap-2 mb-3">
+    <AssistantBubble>
+      <MessageContent content={message.question} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} />
+    </AssistantBubble>
+    {hasOptions(message) && (
       <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
         {message.options.map((option) => {
           const selected = message.selected === option
@@ -286,19 +273,18 @@ const AskRenderer = ({ message, memoryContent, files, projectId, currentFile, cu
               key={option}
               selected={selected}
               dimmed={message.selected !== null && !selected}
-              saved={selected && isAnswerSaved(memoryContent, message.question, option)}
               onClick={message.selected === null ? () => onSelect(option) : undefined}
-              onToggleSave={selected ? () => onToggleSave(message.question, option) : undefined}
             >
               <InlineMarkdown files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent}>{option}</InlineMarkdown>
             </OptionCard>
           )
         })}
       </div>
-      {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} /></UserBubble>}
-    </div>
-  )
-}
+    )}
+    {isTypedAnswer(message) && <UserBubble><MessageContent content={message.selected!} files={files} projectId={projectId} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} /></UserBubble>}
+    <ScopeBadge scope={message.scope} />
+  </div>
+)
 
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isLeafMessage = (child: PlanChild): child is LeafMessage =>
@@ -551,13 +537,6 @@ export const NabuChatSidebar = () => {
   const waitingForInput = useMemo(() => isWaitingForAsk(history), [history])
   const segments = useMemo(() => collapseAfterPendingAsk(rawSegments, waitingForInput), [rawSegments, waitingForInput])
 
-  const memoryContent = files[PREFERENCES_FILE]
-
-  const handleToggleSave = useCallback((question: string, answer: string) => {
-    const current = getFileRaw(PREFERENCES_FILE)
-    updateFileRaw(PREFERENCES_FILE, toggleAnswer(current || undefined, question, answer))
-  }, [])
-
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
@@ -640,7 +619,7 @@ export const NabuChatSidebar = () => {
                   navigate={navigate}
                 />
               ) : isAskSegment(segment) ? (
-                <AskRenderer message={segment} memoryContent={memoryContent} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} onSelect={respond} onToggleSave={handleToggleSave} />
+                <AskRenderer message={segment} files={files} projectId={params.projectId ?? null} currentFile={currentFile} currentFileContent={currentFileContent} navigate={navigate} onSelect={respond} />
               ) : isCollapsedSteps(segment) ? (
                 <CollapsedStepsIndicator count={segment.count} />
               ) : (

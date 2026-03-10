@@ -18,6 +18,7 @@ export type CallerConfig = {
   callbacks?: ParseCallbacks
   readBlocks: () => Block[]
   transformBlocks?: (blocks: Block[]) => Block[]
+  source?: string
 }
 
 export type Caller = (signal?: AbortSignal) => Promise<Block[]>
@@ -90,14 +91,15 @@ export const buildCaller = (config: CallerConfig): Caller =>
 
     const blocks = config.transformBlocks ? config.transformBlocks(raw) : raw
     const schemas = config.toolSchemas ?? {}
+    const source = config.source ?? "base"
     const { committed, validCalls } = validateAndInterleave(blocks, schemas)
-    pushBlocks(committed)
+    pushBlocks(committed, source)
 
     const validationErrors = committed.filter((b): b is ToolResultBlock => b.type === "tool_result")
 
     if (validCalls.length > 0 && config.execute) {
       const results = await executeToolCalls(validCalls, config.execute)
-      pushBlocks(results)
+      pushBlocks(results, source)
       return [...blocks, ...validationErrors, ...results]
     }
 
