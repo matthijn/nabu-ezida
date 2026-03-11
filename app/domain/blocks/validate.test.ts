@@ -93,6 +93,7 @@ CATS are great.
         context: {
           documentProse: "This is a test.",
           availableCodes: [{ id: "abc123", name: "Theme" }],
+          availableTags: [],
         },
         expectValid: true,
       },
@@ -108,10 +109,60 @@ CATS are great.
         context: {
           documentProse: "This is a test.",
           availableCodes: [{ id: "abc123", name: "Theme" }],
+          availableTags: [],
         },
         expectValid: false,
         expectErrorContains: "not found",
         expectHint: { Theme: "abc123" },
+      },
+    ]
+
+    it.each(cases)("$name", ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
+      const result = validateMarkdownBlocks(markdown, { context })
+      expect(result.valid).toBe(expectValid)
+      if (!expectValid && expectErrorContains) {
+        expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+      }
+      if (expectHint) {
+        const errorWithHint = result.errors.find((e) => e.hint)
+        expect(errorWithHint?.hint).toEqual(expectHint)
+      }
+    })
+  })
+
+  describe("tag validation", () => {
+    const cases = [
+      {
+        name: "accepts tag when ID exists in settings",
+        markdown: `# Doc\n\n\`\`\`json-attributes\n{"tags": ["tag-abc"]}\n\`\`\``,
+        context: {
+          documentProse: "Doc",
+          availableCodes: [],
+          availableTags: [{ id: "tag-abc", label: "interview" }],
+        },
+        expectValid: true,
+      },
+      {
+        name: "rejects tag when ID not in settings",
+        markdown: `# Doc\n\n\`\`\`json-attributes\n{"tags": ["tag-unknown"]}\n\`\`\``,
+        context: {
+          documentProse: "Doc",
+          availableCodes: [],
+          availableTags: [{ id: "tag-abc", label: "interview" }],
+        },
+        expectValid: false,
+        expectErrorContains: "not defined in settings",
+        expectHint: { interview: "tag-abc" },
+      },
+      {
+        name: "skips validation when no tags defined",
+        markdown: `# Doc\n\n\`\`\`json-attributes\n{"tags": ["any-tag"]}\n\`\`\``,
+        context: {
+          documentProse: "Doc",
+          availableCodes: [],
+          availableTags: [],
+        },
+        expectValid: true,
       },
     ]
 

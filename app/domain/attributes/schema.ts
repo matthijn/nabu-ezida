@@ -42,7 +42,7 @@ export type AnnotationSuggestion = z.infer<typeof AnnotationSuggestionSchema>
 export type StoredAnnotation = Annotation
 export type AnnotationInput = Annotation
 
-const tagsSchema = z.array(slug).optional()
+const tagsSchema = z.array(slug).optional().describe("Tag IDs from settings")
 const annotationsSchema = z.array(AnnotationSchema).optional()
 
 export const DocumentMeta = z.object({

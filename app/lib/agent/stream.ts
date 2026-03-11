@@ -2,7 +2,7 @@ import { z } from "zod"
 import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
-import type { ToolDefinition } from "./executors/tool"
+import { toStrictSchema, type ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 
 type InputItem =
@@ -247,41 +247,6 @@ type ResponseFormat = {
     schema: unknown
     strict: boolean
   }
-}
-
-const isObjectWithProperties = (s: Record<string, unknown>): boolean =>
-  s.type === "object" && typeof s.properties === "object" && s.properties !== null
-
-export const toStrictSchema = (schema: unknown): unknown => {
-  if (typeof schema !== "object" || schema === null) return schema
-  const { $schema: _, ...s } = schema as Record<string, unknown>
-
-  if (s.type === "array" && s.items) {
-    return { ...s, items: toStrictSchema(s.items) }
-  }
-
-  if (isObjectWithProperties(s)) {
-    const properties = s.properties as Record<string, unknown>
-    const originalRequired = new Set(Array.isArray(s.required) ? (s.required as string[]) : [])
-    const allKeys = Object.keys(properties)
-
-    const wrapOptional = (key: string, prop: unknown): unknown =>
-      originalRequired.has(key) ? prop : { anyOf: [prop, { type: "null" }] }
-
-    const strictProperties = Object.fromEntries(
-      allKeys.map((key) => [key, wrapOptional(key, toStrictSchema(properties[key]))])
-    )
-
-    return { ...s, properties: strictProperties, required: allKeys, additionalProperties: false }
-  }
-
-  for (const key of ["anyOf", "oneOf", "allOf"]) {
-    if (Array.isArray(s[key])) {
-      return { ...s, [key]: (s[key] as unknown[]).map(toStrictSchema) }
-    }
-  }
-
-  return s
 }
 
 export const toResponseFormat = <T extends z.ZodType>(schema: T): ResponseFormat => ({

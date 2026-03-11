@@ -52,6 +52,9 @@ export const stepCompactHistory = (blocks: Block[]): Block[] => {
   return blocks.filter((_, i) => !compacted.has(i))
 }
 
+export const hasCompactedBlock = (blocks: Block[]): boolean =>
+  findLastCompactedResultIndex(blocks) !== -1
+
 const findLastCompactedResultIndex = (blocks: Block[]): number => {
   for (let i = blocks.length - 1; i >= 0; i--) {
     if (isCompactedResult(blocks[i])) return i
@@ -79,7 +82,7 @@ const findPendingBlock = (blocks: Block[], toolCallIndex: number): Block | null 
 
 const DIRECTIVE_PATTERN = /^<!--\s*(\w+):\s*(\w+)\s*-->$/
 
-const isDirectiveBlock = (block: Block): boolean =>
+export const isDirectiveBlock = (block: Block): boolean =>
   block.type === "system" && DIRECTIVE_PATTERN.test(block.content)
 
 const extractSummary = (blocks: Block[], toolCallIndex: number): string => {

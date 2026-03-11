@@ -62,22 +62,27 @@ const collectIndexKeys = (keys: readonly string[]): string[] => {
   return [...all].sort()
 }
 
-export const resolveApproaches = (keys: readonly string[], dict: Record<string, string>): string[] => {
+export type ApproachEntry = { key: string; content: string }
+
+export const resolveApproaches = (keys: readonly string[], dict: Record<string, string>): ApproachEntry[] => {
   const indexKeys = collectIndexKeys(keys)
   const selectedKeys = [...keys].sort()
   const ordered = [...indexKeys, ...selectedKeys]
   const seen = new Set<string>()
-  return ordered.reduce<string[]>((acc, key) => {
+  return ordered.reduce<ApproachEntry[]>((acc, key) => {
     if (seen.has(key)) return acc
     seen.add(key)
     const content = dict[key]
-    if (content) acc.push(content)
+    if (content) acc.push({ key, content })
     return acc
   }, [])
 }
 
+const toApproachBlock = ({ key, content }: ApproachEntry): Block =>
+  ({ type: "system", content: `[${key}]\n${content}` })
+
 const buildApproachBlocks = (keys: readonly string[]): Block[] =>
-  resolveApproaches(keys, approaches).map(toSystemBlock)
+  resolveApproaches(keys, approaches).map(toApproachBlock)
 
 const handlePreflight = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = PreflightArgs.safeParse(call.args)

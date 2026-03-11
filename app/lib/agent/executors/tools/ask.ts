@@ -3,9 +3,15 @@ import { AskArgs } from "./ask.def"
 import { registerSpecialHandler } from "../delegation"
 import { getAllBlocks, setLoading } from "../../block-store"
 import { findLastUserContent } from "../../derived"
-import { runScopeAgent, type AskScope } from "./ask-scope-agent"
+import { agentWithChatHistory } from "../../agent-with-chat-history"
 
-const isNonLocal = (scope: AskScope): boolean => scope !== "local"
+const SCOPE_CONTEXT: Record<"codebook" | "preferences", string> = {
+  codebook: "Update the codebook only. Do not touch preferences.md.",
+  preferences: "Update preferences.md only. Do not touch codebook files.",
+}
+
+const buildInstruction = (scope: "codebook" | "preferences", question: string, answer: string): string =>
+  `The user was asked: ${question}\nThey answered: ${answer}\n\n${SCOPE_CONTEXT[scope]}`
 
 const executeAsk = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = AskArgs.safeParse(call.args)
@@ -17,8 +23,8 @@ const executeAsk = async (call: { args: unknown }): Promise<ToolResult<unknown>>
   const answer = findLastUserContent(getAllBlocks())
   setLoading(true)
 
-  if (isNonLocal(parsed.data.scope)) {
-    await runScopeAgent(parsed.data.scope, parsed.data.question, answer)
+  if (parsed.data.scope !== "local") {
+    await agentWithChatHistory(buildInstruction(parsed.data.scope, parsed.data.question, answer))
   }
 
   return { status: "ok", output: answer }

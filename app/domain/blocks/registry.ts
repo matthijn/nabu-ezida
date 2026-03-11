@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { DocumentMeta, type StoredAnnotation } from "~/domain/attributes/schema"
-import { Settings } from "~/domain/settings/schema"
+import { Settings, type TagDefinition } from "~/domain/settings/schema"
 import { SETTINGS_FILE } from "~/lib/files/filename"
 import { CalloutSchema, type CalloutBlock } from "./callout"
 import type { ValidationError } from "./validate"
@@ -9,6 +9,7 @@ import { parsePath, type ParsedPath } from "./json"
 export type ValidationContext = {
   documentProse: string
   availableCodes: { id: string; name: string }[]
+  availableTags: { id: string; label: string }[]
 }
 
 type IdPathConfig = {
@@ -47,6 +48,28 @@ const codeExists = (codeId: string, codes: { id: string }[]): boolean =>
 
 const formatAvailableCodes = (codes: { id: string; name: string }[]): Record<string, string> =>
   Object.fromEntries(codes.map((c) => [c.name, c.id]))
+
+const tagIdExists = (id: string, available: { id: string; label: string }[]): boolean =>
+  available.some((t) => t.id === id)
+
+const formatAvailableTags = (tags: { id: string; label: string }[]): Record<string, string> =>
+  Object.fromEntries(tags.map((t) => [t.label, t.id]))
+
+const validateTags = (
+  tags: string[] | undefined,
+  context: ValidationContext
+): ValidationError[] => {
+  if (!tags || context.availableTags.length === 0) return []
+
+  return tags
+    .filter((tag) => !tagIdExists(tag, context.availableTags))
+    .map((tag) => ({
+      block: "json-attributes",
+      field: "tags",
+      message: `Tag "${tag}" is not defined in settings`,
+      hint: formatAvailableTags(context.availableTags),
+    }))
+}
 
 const validateAnnotations = (
   annotations: StoredAnnotation[] | undefined,
@@ -128,6 +151,7 @@ const jsonAttributes = defineBlock({
   readonly: [],
   immutable: {},
   constraints: [
+    "tags: must be tag IDs defined in settings",
     "annotations: each entry requires either 'color' or 'code', not both",
     "annotations.text: must be text from the document prose (fuzzy-matched automatically)",
   ],
@@ -136,18 +160,44 @@ const jsonAttributes = defineBlock({
   idPaths: [{ path: "annotations.*.id", prefix: "annotation" }],
   actorPaths: [{ path: "annotations.*.actor" }],
   patchSchema: patchAnnotationRequired,
-  validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
+  validate: (parsed, context) => [
+    ...validateTags(parsed.tags, context),
+    ...validateAnnotations(parsed.annotations, context),
+  ],
 })
+
+const findDuplicateLabels = (tags: TagDefinition[]): string[] => {
+  const seen = new Set<string>()
+  return tags.filter((t) =>
+    !seen.has(t.label) ? (seen.add(t.label), false) : true
+  ).map((t) => t.label)
+}
+
+const formatAllTags = (tags: TagDefinition[]): Record<string, string> =>
+  Object.fromEntries(tags.map((t) => [t.label, t.id]))
+
+const validateTagLabels = (parsed: Settings): ValidationError[] => {
+  if (!parsed.tags) return []
+  const dupes = findDuplicateLabels(parsed.tags)
+  if (dupes.length === 0) return []
+  return dupes.map((label) => ({
+    block: "json-settings",
+    field: "tags",
+    message: `Duplicate tag label "${label}". Existing tags:`,
+    hint: formatAllTags(parsed.tags!),
+  }))
+}
 
 const jsonSettings = defineBlock({
   schema: Settings,
   readonly: [],
   immutable: {},
-  constraints: [],
+  constraints: ["tags: each tag label must be unique"],
   renderer: "hidden",
   singleton: true,
   allowedFiles: [SETTINGS_FILE],
   idPaths: [{ path: "tags.*.id", prefix: "tag" }],
+  validate: validateTagLabels,
 })
 
 const jsonCallout = defineBlock({

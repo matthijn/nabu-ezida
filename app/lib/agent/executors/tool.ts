@@ -55,29 +55,89 @@ export type ToolDefinition = {
   type: "function"
   name: string
   description: string
+  strict?: true
   parameters: {
     type: "object"
     properties: Record<string, JsonSchemaProperty>
     required: string[]
+    additionalProperties?: false
   }
 }
 
-export const toToolDefinition = (t: AnyTool): ToolDefinition => {
-  const jsonSchema = t.schema.toJSONSchema() as {
-    type?: string
-    properties?: Record<string, JsonSchemaProperty>
-    required?: string[]
+const isObjectWithProperties = (s: Record<string, unknown>): boolean =>
+  s.type === "object" && typeof s.properties === "object" && s.properties !== null
+
+const isStrictCompatible = (schema: unknown): boolean => {
+  if (typeof schema !== "object" || schema === null) return true
+  const s = schema as Record<string, unknown>
+  const keys = Object.keys(s).filter((k) => k !== "$schema")
+  if (keys.length === 0 || (keys.length === 1 && keys[0] === "description")) return false
+
+  if (s.type === "array" && s.items) return isStrictCompatible(s.items)
+
+  if (s.type === "object" && typeof s.properties === "object" && s.properties !== null) {
+    return Object.values(s.properties as Record<string, unknown>).every(isStrictCompatible)
   }
 
+  for (const key of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(s[key])) return (s[key] as unknown[]).every(isStrictCompatible)
+  }
+
+  return true
+}
+
+export const toStrictSchema = (schema: unknown): unknown => {
+  if (typeof schema !== "object" || schema === null) return schema
+  const { $schema: _, ...s } = schema as Record<string, unknown>
+
+  if (s.type === "array" && s.items) {
+    return { ...s, items: toStrictSchema(s.items) }
+  }
+
+  if (isObjectWithProperties(s)) {
+    const properties = s.properties as Record<string, unknown>
+    const originalRequired = new Set(Array.isArray(s.required) ? (s.required as string[]) : [])
+    const allKeys = Object.keys(properties)
+
+    const wrapOptional = (key: string, prop: unknown): unknown =>
+      originalRequired.has(key) ? prop : { anyOf: [prop, { type: "null" }] }
+
+    const strictProperties = Object.fromEntries(
+      allKeys.map((key) => [key, wrapOptional(key, toStrictSchema(properties[key]))])
+    )
+
+    return { ...s, properties: strictProperties, required: allKeys, additionalProperties: false }
+  }
+
+  if (Array.isArray(s.oneOf)) {
+    const { oneOf: _, ...rest } = s
+    return { ...rest, anyOf: (s.oneOf as unknown[]).map(toStrictSchema) }
+  }
+
+  for (const key of ["anyOf", "allOf"]) {
+    if (Array.isArray(s[key])) {
+      return { ...s, [key]: (s[key] as unknown[]).map(toStrictSchema) }
+    }
+  }
+
+  return s
+}
+
+export const toToolDefinition = (t: AnyTool): ToolDefinition => {
+  const jsonSchema = t.schema.toJSONSchema()
+  const strict = isStrictCompatible(jsonSchema)
+  const parameters = strict
+    ? toStrictSchema(jsonSchema) as ToolDefinition["parameters"]
+    : {
+        type: "object" as const,
+        properties: { ...((jsonSchema as Record<string, unknown>).properties as Record<string, JsonSchemaProperty> ?? {}) },
+        required: [...((jsonSchema as Record<string, unknown>).required as string[] ?? [])],
+      }
   return {
     type: "function",
     name: t.name,
     description: t.description,
-    parameters: {
-      type: "object",
-      properties: { ...(jsonSchema.properties ?? {}) },
-      required: [...(jsonSchema.required ?? [])],
-    },
+    ...(strict ? { strict: true, parameters: { ...parameters, additionalProperties: false as const } } : { parameters }),
   }
 }
 

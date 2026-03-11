@@ -106,7 +106,7 @@ export const DefaultPageLayout = ({
   return (
     <div className={cn("flex h-screen w-full items-center", className)}>
       <div
-        className="relative flex h-full flex-none"
+        className="relative z-50 flex h-full flex-none"
         onMouseLeave={() => setHoveredNav(null)}
       >
         <div className="relative z-30">

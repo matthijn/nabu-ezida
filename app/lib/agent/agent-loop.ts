@@ -25,6 +25,7 @@ export type AgentLoopConfig = {
 export type IterationConfig = {
   endpoint: string
   tools: AnyTool[]
+  toolChoice?: string
   nudges: Nudger[]
   processBlocks?: (blocks: Block[]) => Block[]
   transformResponse?: (blocks: Block[]) => Block[]
@@ -37,8 +38,15 @@ export type AgentRunConfig = {
   callbacks?: ParseCallbacks
   signal?: AbortSignal
   maxTurns?: number
+  shouldContinue?: (newBlocks: Block[]) => boolean
   resolve: (blocks: Block[]) => IterationConfig
   afterTurn?: (newBlocks: Block[]) => Promise<void>
+}
+
+const withToolChoice = (endpoint: string, toolChoice?: string): string => {
+  if (!toolChoice) return endpoint
+  const sep = endpoint.includes("?") ? "&" : "?"
+  return `${endpoint}${sep}tool_choice=${toolChoice}`
 }
 
 export const excludeReasoning = (blocks: Block[]): Block[] =>
@@ -70,7 +78,7 @@ export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
     if (nonEmpty.length > 0) pushBlocks(nonEmpty, source)
 
     const caller = buildCaller({
-      endpoint: iter.endpoint,
+      endpoint: withToolChoice(iter.endpoint, iter.toolChoice),
       tools,
       toolSchemas: toSchemaMap(iter.tools),
       blockSchemas: iter.blockSchemas,
@@ -86,7 +94,8 @@ export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
 
     const newBlocks = await caller(signal)
     if (config.afterTurn) await config.afterTurn(newBlocks)
-    if (!shouldContinue(newBlocks)) return
+    const continueCheck = config.shouldContinue ?? shouldContinue
+    if (!continueCheck(newBlocks)) return
   }
 }
 

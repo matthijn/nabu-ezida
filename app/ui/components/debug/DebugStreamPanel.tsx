@@ -154,6 +154,11 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
   )
 }
 
+const shortId = (id: string): string => id.slice(-6)
+
+const toolCallIds = (calls: ToolCall[]): string =>
+  calls.map((c) => shortId(c.id)).join(",")
+
 const isSubagentBlock = (source: string): boolean => source !== "base"
 
 const sourceLabel = (source: string): string =>
@@ -193,7 +198,7 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
         : block.calls.map(formatToolCall).join("\n\n")
       return (
         <CollapsibleBlock
-          label={`tool_call${suffix}`}
+          label={`tool_call [${toolCallIds(block.calls)}]${suffix}`}
           content={content}
           copyContent={copy}
           borderColor="border-orange-400"
@@ -207,7 +212,7 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
     case "tool_result":
       return (
         <CollapsibleBlock
-          label={`tool_result${block.toolName ? ` (${block.toolName})` : ""}${suffix}`}
+          label={`tool_result [${shortId(block.callId)}]${block.toolName ? ` (${block.toolName})` : ""}${suffix}`}
           content={formatResult(block.result)}
           copyContent={copy}
           borderColor={isErrorResult(block.result) ? "border-red-400" : "border-purple-400"}
@@ -290,7 +295,7 @@ const isPaused = (blocks: Block[]): boolean =>
   blocks.some(isDebugPauseBlock)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
-  const { position, handleMouseDown } = useDraggable({ x: 16, y: 16 }, { x: "left" })
+  const { position, handleMouseDown } = useDraggable({ x: 106, y: 16 }, { x: "left" })
   const allBlocks = useBlockStore()
   const compacted = readStepCompaction() ? stepCompactedIndices(allBlocks) : new Set<number>()
   const mode = deriveMode(allBlocks)
@@ -325,7 +330,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   return (
     <div
       style={{ left: position.x, bottom: position.y }}
-      className="fixed z-50 flex h-[700px] w-[500px] flex-col rounded-lg border border-solid border-neutral-300 bg-white shadow-xl"
+      className="fixed z-40 flex h-[700px] w-[500px] flex-col rounded-lg border border-solid border-neutral-300 bg-white shadow-xl"
     >
       <div
         onMouseDown={handleMouseDown}

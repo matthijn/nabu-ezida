@@ -15,7 +15,7 @@ import {
   type GeneratedId,
 } from "~/domain/blocks"
 import { getFiles } from "./store"
-import { getAllCodes } from "./selectors"
+import { getAllCodes, getTagDefinitions } from "./selectors"
 
 export type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: GeneratedId[] }
@@ -54,6 +54,7 @@ const repairJsonBlocks = (markdown: string): string => {
 const buildValidationContext = (markdown: string): ValidationContext => ({
   documentProse: extractProse(markdown),
   availableCodes: getAllCodes(getFiles()).map((c) => ({ id: c.id, name: c.title })),
+  availableTags: getTagDefinitions(getFiles()).map((t) => ({ id: t.id, label: t.label })),
 })
 
 const formatBlockErrors = (errors: ValidationError[]): string =>

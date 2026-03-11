@@ -238,6 +238,7 @@ export const validateMarkdownBlocks = (
   const context = options.context ?? {
     documentProse: extractProse(markdown),
     availableCodes: [],
+    availableTags: [],
   }
 
   const originalBlocks = options.original ? parseCodeBlocks(options.original) : []

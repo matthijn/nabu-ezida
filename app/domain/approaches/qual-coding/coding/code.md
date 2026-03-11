@@ -1,34 +1,28 @@
 ## Constraints
 
-Analysis works in focused passes, not all-at-once scanning.
-When the task involves multiple lenses, dimensions, or perspectives,
-plan one pass per group — not a single pass looking for everything.
+The full codebook applies unless the user says otherwise. Do not ask
+whether to use the full codebook or a subset — that is the user's
+call to volunteer, not a question to pose.
+
+When the codebook has multiple themes or families, plan one pass per
+group — not a single pass looking for everything. This is about
+structuring the work, not selecting which codes to use.
 
 If lenses are provided explicitly, each is a pass. If they are
 numerous, group related ones and surface the grouping for approval.
 
 ## Before analysis
 
-Scope the material first. Surface anything that needs a decision:
+A project has one codebook — possibly spread across multiple files,
+possibly unfinished. Read existing codebook files first. They define
+what codes exist, what's in analytical scope, and what units to work
+with. Scope decisions already captured there do not need re-asking.
 
-Voice relevance
-Are all speakers or authors in scope, or only specific roles?
+If no codebook exists yet, treat the material as open coding ground
+and build one as codes emerge.
 
-Section relevance
-Are all parts in scope? Some sections may need different
-treatment or exclusion.
-
-Content fit
-Does the material match the analytical frame? Flag mismatches
-before starting.
-
-Unit of analysis
-What counts as a segment — a sentence, a paragraph, a
-thematic block? This affects where findings are anchored.
-
-Resolve scope decisions with the user before planning passes.
-
-Figure out if the material is already partially coded. If so, find out users intent for those segments.
+If the material is already partially coded, continue from where it
+left off — do not re-code existing segments unless the user asks.
 
 ## Analysis strategy
 
