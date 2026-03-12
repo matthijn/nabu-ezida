@@ -19,15 +19,27 @@ const CHARS_PER_TOKEN = 4
 const doneDef = {
   name: DONE_TOOL,
   description: "Signal that all updates are complete.",
-  schema: z.object({}),
+  schema: z.object({
+    result: z.string().describe("Summary of what was written and where, or note that no changes were needed."),
+  }),
 }
 
 const TOOLS = [patchJsonBlock, applyLocalPatch, runLocalShell, doneDef]
 
-const doneHandler: Handler = async () => ({ status: "ok", output: "done", mutations: [] })
+const doneHandler: Handler = async (_files, args) => ({ status: "ok", output: (args.result as string) ?? "", mutations: [] })
 
 const hasDoneResult = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_result" && b.toolName === DONE_TOOL)
+
+const findDoneResult = (blocks: Block[]): string => {
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i]
+    if (b.type !== "tool_call") continue
+    const doneCall = b.calls.find((c) => c.name === DONE_TOOL)
+    if (doneCall) return (doneCall.args.result as string) ?? ""
+  }
+  return ""
+}
 
 const estimateBlockChars = (b: Block): number => {
   if ("content" in b) return (b as { content: string }).content.length
@@ -106,7 +118,7 @@ const nextSource = (): string => `branch:${++counter}`
 const prependHistory = (history: Block[]) => (blocks: Block[]): Block[] =>
   [...history, ...blocks.filter((b) => !isDebugMarker(b))]
 
-export const agentWithChatHistory = async (instruction: string): Promise<void> => {
+export const agentWithChatHistory = async (instruction: string): Promise<string> => {
   const source = nextSource()
   const { history, debugMarker } = getChatHistory()
 
@@ -127,4 +139,6 @@ export const agentWithChatHistory = async (instruction: string): Promise<void> =
       processBlocks: prependHistory(history),
     }),
   })
+
+  return findDoneResult(filterBySource(getAllBlocks(), source))
 }

@@ -23,11 +23,13 @@ const executeAsk = async (call: { args: unknown }): Promise<ToolResult<unknown>>
   const answer = findLastUserContent(getAllBlocks())
   setLoading(true)
 
+  let writeResult = ""
   if (parsed.data.scope !== "local") {
-    await agentWithChatHistory(buildInstruction(parsed.data.scope, parsed.data.question, answer))
+    writeResult = await agentWithChatHistory(buildInstruction(parsed.data.scope, parsed.data.question, answer))
   }
 
-  return { status: "ok", output: answer }
+  const output = writeResult ? `${answer}\n\nPersisted: ${writeResult}` : answer
+  return { status: "ok", output }
 }
 
 registerSpecialHandler("ask", executeAsk)
