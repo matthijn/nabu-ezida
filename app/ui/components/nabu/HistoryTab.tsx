@@ -10,7 +10,6 @@ import { useMutationHistory, presentEntry, formatRelativeTime, groupByTime } fro
 import type { HistoryEntry } from "~/lib/mutation-history"
 import { subtleBackground, hoveredElementBackground, lowContrastText } from "~/lib/colors/radix"
 import { matchesAny } from "~/lib/filter/match"
-import { toDisplayName } from "~/lib/files/filename"
 
 const remarkPlugins = [remarkGfm]
 const stripP = { p: ({ children }: { children?: React.ReactNode }) => <>{children}</> }
@@ -71,7 +70,7 @@ const HistoryEntryRow = ({ entry, now, projectId, navigate }: HistoryEntryRowPro
           <div className="flex w-full items-center gap-1.5">
             <FeatherFileText className="text-caption font-caption text-subtext-color" />
             <span className="text-caption font-caption text-subtext-color">
-              {toDisplayName(subtitle)}
+              {subtitle}
             </span>
           </div>
         </div>

@@ -141,47 +141,41 @@ export function DocumentsSidebar({
         </TextField>
       </div>
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {groups.flatMap(({ tag, docs }, i) => {
-            const resolved = resolveTag(tagLookup, tag)
-            const TagIcon = resolved.icon
-            const isHovered = hoveredTag === tag
-            const isActive = activeTags.has(tag)
-            const highlighted = isHovered || isActive
-            const needsDivider = isActive && activeGroupCount > 0 && i === activeGroupCount - 1 && i < groups.length - 1
-            const row = (
-              <motion.div
-                key={tag}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
-                style={highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined}
-                onMouseEnter={() => setHoveredTag(tag)}
+        {groups.flatMap(({ tag, docs }, i) => {
+          const resolved = resolveTag(tagLookup, tag)
+          const TagIcon = resolved.icon
+          const isHovered = hoveredTag === tag
+          const isActive = activeTags.has(tag)
+          const highlighted = isHovered || isActive
+          const needsDivider = isActive && activeGroupCount > 0 && i === activeGroupCount - 1 && i < groups.length - 1
+          const row = (
+            <div
+              key={tag}
+              className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
+              style={highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined}
+              onMouseEnter={() => setHoveredTag(tag)}
+            >
+              {isActive && (
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1"
+                  style={{ backgroundColor: solidBackground(resolved.color) }}
+                />
+              )}
+              <span className="flex-none" style={highlighted ? { color: lowContrastText(resolved.color) } : undefined}>
+                <TagIcon className="text-body font-body" />
+              </span>
+              <span
+                className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
+                style={highlighted ? { color: highContrastText(resolved.color) } : undefined}
               >
-                {isActive && (
-                  <div
-                    className="absolute left-0 top-0 bottom-0 w-1"
-                    style={{ backgroundColor: solidBackground(resolved.color) }}
-                  />
-                )}
-                <span className="flex-none" style={highlighted ? { color: lowContrastText(resolved.color) } : undefined}>
-                  <TagIcon className="text-body font-body" />
-                </span>
-                <span
-                  className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
-                  style={highlighted ? { color: highContrastText(resolved.color) } : undefined}
-                >
-                  {resolved.display}
-                </span>
-                <Badge variant="neutral" className="flex-none">{docs.length}</Badge>
-              </motion.div>
-            )
-            if (needsDivider) return [row, <div key="active-divider" className="border-b border-solid border-neutral-border w-full" />]
-            return [row]
-          })}
-        </AnimatePresence>
+                {resolved.display}
+              </span>
+              <Badge variant="neutral" className="flex-none">{docs.length}</Badge>
+            </div>
+          )
+          if (needsDivider) return [row, <div key="active-divider" className="border-b border-solid border-neutral-border w-full" />]
+          return [row]
+        })}
       </div>
 
       <AnimatePresence>
@@ -212,27 +206,17 @@ export function DocumentsSidebar({
               </span>
             </div>
             <div className="flex w-full grow shrink-0 basis-0 flex-col items-start overflow-y-auto">
-              <AnimatePresence initial={false}>
-                {hoveredGroup.docs.map((doc) => (
-                  <motion.div
-                    key={doc.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                    className="w-full"
-                  >
-                    <DocumentItem
-                      title={doc.title}
-                      editedAt={doc.editedAt}
-                      annotationCount={doc.annotationCount}
-                      color={hoveredResolved?.color ?? DEFAULT_TAG_COLOR}
-                      selected={doc.id === selectedId}
-                      onClick={() => { onDocumentSelect?.(doc.id); setHoveredTag(null) }}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              {hoveredGroup.docs.map((doc) => (
+                <DocumentItem
+                  key={doc.id}
+                  title={doc.title}
+                  editedAt={doc.editedAt}
+                  annotationCount={doc.annotationCount}
+                  color={hoveredResolved?.color ?? DEFAULT_TAG_COLOR}
+                  selected={doc.id === selectedId}
+                  onClick={() => { onDocumentSelect?.(doc.id); setHoveredTag(null) }}
+                />
+              ))}
             </div>
           </motion.div>
         )}

@@ -1,4 +1,5 @@
 import type { HistoryEntry, ContentDiffer } from "./types"
+import { toDisplayName } from "~/lib/files/filename"
 import { diffAnnotations } from "./differs/annotations"
 import { diffCodes } from "./differs/codes"
 import { diffTags } from "./differs/tags"
@@ -15,7 +16,7 @@ export const fileCreatedEntry = (path: string, ts: number): HistoryEntry => ({
   entityId: null,
   path,
   timestamp: ts,
-  label: path,
+  label: toDisplayName(path),
 })
 
 export const fileDeletedEntry = (path: string, ts: number): HistoryEntry => ({
@@ -24,7 +25,7 @@ export const fileDeletedEntry = (path: string, ts: number): HistoryEntry => ({
   entityId: null,
   path,
   timestamp: ts,
-  label: path,
+  label: toDisplayName(path),
 })
 
 export const fileRenamedEntry = (path: string, newPath: string, ts: number): HistoryEntry => ({
@@ -33,6 +34,6 @@ export const fileRenamedEntry = (path: string, newPath: string, ts: number): His
   entityId: null,
   path,
   timestamp: ts,
-  label: path,
+  label: toDisplayName(path),
   newPath,
 })

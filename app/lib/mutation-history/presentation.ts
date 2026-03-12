@@ -9,6 +9,7 @@ import {
   FeatherArrowRight,
 } from "@subframe/core"
 import type { HistoryEntry, HistoryVerb } from "./types"
+import { toDisplayName } from "~/lib/files/filename"
 
 type IconVariant = "brand" | "neutral" | "error" | "success" | "warning"
 
@@ -66,7 +67,7 @@ export const presentEntry = (entry: HistoryEntry): EntryPresentation => ({
   variant: verbVariant[entry.verb],
   verbLabel: formatEntityVerb(entry),
   entityLabel: truncateLabel(entry.label),
-  subtitle: entry.newPath ?? entry.path,
+  subtitle: toDisplayName(entry.newPath ?? entry.path),
 })
 
 const MINUTE = 60_000

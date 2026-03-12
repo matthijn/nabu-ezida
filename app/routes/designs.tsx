@@ -30,6 +30,9 @@ export default function DesignsLayout() {
         <NavLink to="/designs/chat" className={navLinkClass}>
           Chat
         </NavLink>
+        <NavLink to="/designs/current" className={navLinkClass}>
+          Current
+        </NavLink>
       </nav>
       <div className="flex-1 overflow-auto">
         <Outlet />

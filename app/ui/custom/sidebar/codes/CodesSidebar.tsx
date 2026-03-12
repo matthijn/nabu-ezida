@@ -79,25 +79,15 @@ export const CodesSidebar = ({
             >
               {category.name}
             </span>
-            <AnimatePresence initial={false}>
-              {category.codes.map((code) => (
-                <motion.div
-                  key={code.id}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                  className="w-full"
-                >
-                  <CodeItem
-                    code={code}
-                    highlighted={code.id === hoveredCode?.id}
-                    onMouseEnter={() => setHoveredCode(code)}
-                    onClick={() => onEditCode?.(code)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {category.codes.map((code) => (
+              <CodeItem
+                key={code.id}
+                code={code}
+                highlighted={code.id === hoveredCode?.id}
+                onMouseEnter={() => setHoveredCode(code)}
+                onClick={() => onEditCode?.(code)}
+              />
+            ))}
           </div>
         ))}
       </div>
