@@ -37,7 +37,8 @@ import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds, linkifyTags, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
 import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
-import { truncateLabel } from "~/lib/mutation-history"
+import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-history"
+import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { useNabu } from "./context"
@@ -518,6 +519,31 @@ const LoadingBubble = ({ label }: LoadingBubbleProps) => (
   </div>
 )
 
+const findLastWriteEntry = (entries: HistoryEntry[]): HistoryEntry | null =>
+  entries.length > 0 ? entries[entries.length - 1] : null
+
+const formatLastWriteLabel = (entry: HistoryEntry, currentFile: string | null): string => {
+  const { verbLabel, subtitle } = presentEntry(entry)
+  const isCurrentFile = entry.path === currentFile
+  return isCurrentFile ? `${verbLabel} in current file` : `${verbLabel} in ${subtitle}`
+}
+
+type LastWriteBarProps = {
+  entry: HistoryEntry
+  currentFile: string | null
+  onClick: () => void
+}
+
+const LastWriteBar = ({ entry, currentFile, onClick }: LastWriteBarProps) => {
+  const { icon: Icon } = presentEntry(entry)
+  return (
+    <button onClick={onClick} className="flex items-center gap-2 bg-brand-100 px-4 py-1.5 text-left hover:bg-brand-200 transition-colors">
+      <Icon className="text-brand-500 w-3.5 h-3.5 flex-none" />
+      <span className="text-caption font-caption text-brand-700 truncate">{formatLastWriteLabel(entry, currentFile)}</span>
+    </button>
+  )
+}
+
 export const NabuChatSidebar = () => {
   const { startChat } = useNabu()
   const navigate = useNavigate()
@@ -528,6 +554,8 @@ export const NabuChatSidebar = () => {
     return { project, navigate }
   }, [navigate, params.projectId])
   const { chat, send, respond, cancel, loading, draft, history } = useChat()
+  const mutationHistory = useMutationHistory()
+  const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
   const { files, currentFile } = useFiles()
   const currentFileContent = currentFile ? files[currentFile] ?? null : null
 
@@ -587,6 +615,11 @@ export const NabuChatSidebar = () => {
     [handleSend, markTyping]
   )
 
+  const navigateToFile = useCallback((path: string) => {
+    if (!params.projectId) return
+    navigate(`/project/${params.projectId}/file/${encodeURIComponent(path)}`)
+  }, [navigate, params.projectId])
+
   if (!chat) {
     return (
       <div className="flex w-full grow flex-col rounded-xl bg-default-background overflow-hidden">
@@ -631,6 +664,8 @@ export const NabuChatSidebar = () => {
         </AnimatePresence>
         {!waitingForInput && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
       </AutoScroll>
+
+      {lastEntry && <LastWriteBar entry={lastEntry} currentFile={currentFile} onClick={() => navigateToFile(lastEntry.path)} />}
 
       <div className={`flex w-full items-end gap-2 border-t border-solid border-neutral-border px-4 py-3 ${loading && !waitingForInput ? "bg-neutral-50" : ""}`}>
         <TextFieldUnstyled className="grow min-h-5">
