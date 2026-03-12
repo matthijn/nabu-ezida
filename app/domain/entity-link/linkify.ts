@@ -1,4 +1,5 @@
 type NameResolver = (id: string) => string | null
+type MissingFormatter = (id: string) => string | null
 
 const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)-\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
@@ -52,7 +53,7 @@ const tryStripBefore = (before: string, name: string): number => {
   return 0
 }
 
-export const linkifyEntityIds = (text: string, resolveName: NameResolver): string => {
+export const linkifyEntityIds = (text: string, resolveName: NameResolver, formatMissing?: MissingFormatter): string => {
   const pattern = new RegExp(ENTITY_ID_PATTERN.source, "g")
   let result = ""
   let lastIndex = 0
@@ -71,8 +72,17 @@ export const linkifyEntityIds = (text: string, resolveName: NameResolver): strin
 
     const name = resolveName(bareId)
     if (!name) {
-      result += text.slice(lastIndex, match.index + match[0].length)
-      lastIndex = match.index + match[0].length
+      const fallback = formatMissing?.(bareId)
+      if (!fallback || isPartOfFileUrl(text, match.index)) {
+        result += text.slice(lastIndex, match.index + match[0].length)
+        lastIndex = match.index + match[0].length
+        continue
+      }
+
+      const [fwStart, fwEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
+      const [fStart, fEnd] = isFileEntity(bareId) ? expandQuotes(text, fwStart, fwEnd, lastIndex) : [fwStart, fwEnd]
+      result += text.slice(lastIndex, fStart) + fallback
+      lastIndex = fEnd
       continue
     }
 

@@ -36,10 +36,13 @@ const executeToolCalls = async (
   return results
 }
 
+const stripNullArgs = (args: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(args).filter(([, v]) => v !== null))
+
 const validateCallArgs = (call: ToolCall, schemas: Record<string, z.ZodType>): string | null => {
   const schema = schemas[call.name]
   if (!schema) return null
-  const parsed = schema.safeParse(call.args)
+  const parsed = schema.safeParse(stripNullArgs(call.args))
   return parsed.success ? null : formatZodError(parsed.error)
 }
 
@@ -52,8 +55,12 @@ const toValidationError = (call: ToolCall, message: string): ToolResultBlock => 
 
 type PartitionedCalls = { valid: ToolCall[]; errors: ToolResultBlock[] }
 
+const cleanCall = (call: ToolCall): ToolCall =>
+  ({ ...call, args: stripNullArgs(call.args) })
+
 const partitionCalls = (calls: ToolCall[], schemas: Record<string, z.ZodType>): PartitionedCalls => {
-  const tagged = calls.map((call) => ({ call, error: validateCallArgs(call, schemas) }))
+  const cleaned = calls.map(cleanCall)
+  const tagged = cleaned.map((call) => ({ call, error: validateCallArgs(call, schemas) }))
   return {
     valid: tagged.filter((t) => t.error === null).map((t) => t.call),
     errors: tagged

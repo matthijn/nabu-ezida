@@ -6,6 +6,7 @@ import {
   copyFile, renameFile, removeFile, runLocalShell,
   cancel,
   preflightTool,
+  getGuidanceTool,
   completeStep,
   askTool,
 } from "./tools"
@@ -45,18 +46,18 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, preflightTool, askTool],
+    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, preflightTool, getGuidanceTool, askTool],
     triggers: ["cancel"],
-    model: "gpt-5.2",
+    model: "gpt-5.4",
     reasoning: "low",
     verbosity: "low",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   plan: {
-    tools: [runLocalShell, preflightTool, submitPlanTool, cancel, askTool],
+    tools: [runLocalShell, preflightTool, getGuidanceTool, submitPlanTool, cancel, askTool],
     triggers: [],
     prompt: "planning",
-    model: "gpt-5.2",
+    model: "gpt-5.4",
     reasoning: "high",
     verbosity: "low",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
@@ -65,7 +66,7 @@ const raw: Record<ModeName, ModeConfig> = {
     tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, askTool],
     triggers: ["submit_plan"],
     prompt: "execution",
-    model: "gpt-5.2",
+    model: "gpt-5.4",
     reasoning: "medium",
     verbosity: "medium",
     nudges: [baselineNudge, memoryNudge, settingsNudge, stepStateNudge, planProgressNudge],

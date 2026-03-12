@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { FeatherLogOut, FeatherSettings, FeatherUser } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
+import { AnimatePresence, motion } from "framer-motion";
 import { Avatar } from "~/ui/components/Avatar";
 import { DropdownMenu } from "~/ui/components/DropdownMenu";
 import { SidebarRailWithLabels } from "~/ui/components/SidebarRailWithLabels";
@@ -54,17 +55,24 @@ export function MainSidebar({
   const handleUserMenuAction = (actionId: string) => () => onUserMenuAction?.(actionId);
 
   const renderNavItem = (item: NavItem) => (
-    <SidebarRailWithLabels.NavItem
+    <motion.div
       key={item.id}
-      icon={item.icon}
-      tooltip={item.tooltip}
-      selected={item.selected}
-      className={item.disabled ? "opacity-40 pointer-events-none" : undefined}
-      onClick={item.disabled ? undefined : handleNavItemClick(item.id)}
-      onMouseEnter={item.disabled ? undefined : handleNavItemHover(item.id)}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 500, damping: 35 }}
     >
-      {item.label}
-    </SidebarRailWithLabels.NavItem>
+      <SidebarRailWithLabels.NavItem
+        icon={item.icon}
+        tooltip={item.tooltip}
+        selected={item.selected}
+        className={item.disabled ? "opacity-40 pointer-events-none" : undefined}
+        onClick={item.disabled ? undefined : handleNavItemClick(item.id)}
+        onMouseEnter={item.disabled ? undefined : handleNavItemHover(item.id)}
+      >
+        {item.label}
+      </SidebarRailWithLabels.NavItem>
+    </motion.div>
   );
 
   const renderNavContent = () =>
@@ -122,7 +130,9 @@ export function MainSidebar({
         </div>
       }
     >
-      {renderNavContent()}
+      <AnimatePresence initial={false}>
+        {renderNavContent()}
+      </AnimatePresence>
     </SidebarRailWithLabels>
   );
 }

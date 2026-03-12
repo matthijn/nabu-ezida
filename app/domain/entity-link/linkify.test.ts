@@ -125,7 +125,7 @@ describe("linkifyEntityIds", () => {
       expected: "[Interview Notes](file://interview-notes.md)",
     },
     {
-      name: "leaves unknown document filename bare",
+      name: "leaves unknown document filename bare without formatMissing",
       input: "Check unknown-file.md here",
       expected: "Check unknown-file.md here",
     },
@@ -188,5 +188,40 @@ describe("linkifyEntityIds", () => {
 
   test.each(cases)("$name", ({ input, expected }) => {
     expect(linkifyEntityIds(input, resolve)).toBe(expected)
+  })
+
+  const formatMissing = (id: string): string | null =>
+    id.endsWith(".md") ? `**${id.replace(/\.md$/, "").replace(/_/g, " ")}**` : null
+
+  const missingCases: { name: string; input: string; expected: string }[] = [
+    {
+      name: "formats unknown .md file with formatMissing",
+      input: "Check unknown-file.md here",
+      expected: "Check **unknown-file** here",
+    },
+    {
+      name: "consumes quotes around unknown .md file",
+      input: 'removed "codebook_general.md" today',
+      expected: "removed **codebook general** today",
+    },
+    {
+      name: "ignores unknown non-file entity with formatMissing",
+      input: "Unknown callout-9z9z9z9z here",
+      expected: "Unknown callout-9z9z9z9z here",
+    },
+    {
+      name: "still resolves known files normally with formatMissing",
+      input: "See interview-notes.md for context",
+      expected: "See [interview-notes](file://interview-notes.md) for context",
+    },
+    {
+      name: "skips unknown .md inside file:// URL with formatMissing",
+      input: "href is file://unknown-file.md here",
+      expected: "href is file://unknown-file.md here",
+    },
+  ]
+
+  test.each(missingCases)("$name", ({ input, expected }) => {
+    expect(linkifyEntityIds(input, resolve, formatMissing)).toBe(expected)
   })
 })

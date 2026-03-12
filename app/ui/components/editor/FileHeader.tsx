@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode, ComponentType } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
@@ -41,11 +42,11 @@ type FileHeaderProps = {
 
 const renderTag = (tag: Tag) => {
   if (!tag.color) {
-    return <Badge key={tag.label} variant={tag.variant} icon={null}>{tag.label}</Badge>
+    return <Badge variant={tag.variant} icon={null}>{tag.label}</Badge>
   }
   const Icon = tag.icon
   return (
-    <span key={tag.label} style={{ '--tag-bg': elementBackground(tag.color), '--tag-icon': solidBackground(tag.color), '--tag-fg': lowContrastText(tag.color) } as React.CSSProperties}>
+    <span style={{ '--tag-bg': elementBackground(tag.color), '--tag-icon': solidBackground(tag.color), '--tag-fg': lowContrastText(tag.color) } as React.CSSProperties}>
       <Badge
         variant={tag.variant}
         icon={Icon ? <span style={{ color: 'var(--tag-icon)' }}><Icon className="h-3 w-3" /></span> : null}
@@ -195,7 +196,19 @@ export const FileHeader = ({
       </div>
       {(tags.length > 0 || onAddTag) && (
         <div className="flex w-full flex-wrap items-center gap-2">
-          {tags.map((tag) => renderTag(tag))}
+          <AnimatePresence initial={false}>
+            {tags.map((tag) => (
+              <motion.span
+                key={tag.label}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              >
+                {renderTag(tag)}
+              </motion.span>
+            ))}
+          </AnimatePresence>
           {onAddTag && (
             <Button
               variant="neutral-tertiary"

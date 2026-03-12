@@ -13,3 +13,6 @@ assumptions into plan steps and hope they're right.
 
 Do not ask questions the system context already answers.
 Do not offer choices when only one option is functionally valid.
+
+Important you must know in which stage () the project is and adjust your scope
+accordingly. 

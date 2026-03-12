@@ -25,14 +25,14 @@ type DefaultPageLayoutProps = {
   dismissSidebarRef?: MutableRefObject<(() => void) | null>;
 };
 
-const buildNavItems = (activeNav: ActiveNav, showCodes: boolean): NavItem[][] => {
+const buildNavItems = (hoveredNav: ActiveNav | null, showCodes: boolean): NavItem[][] => {
   const primary: NavItem[] = [
-    { id: "documents", icon: <FeatherFiles />, label: "Documents", tooltip: "Browse all your documents", selected: activeNav === "documents" },
+    { id: "documents", icon: <FeatherFiles />, label: "Documents", tooltip: "Browse all your documents", selected: hoveredNav === "documents" },
     { id: "search", icon: <FeatherSearch />, label: "Search", tooltip: "Search across documents", disabled: true },
   ];
 
   const secondary: NavItem[] = showCodes
-    ? [{ id: "codes", icon: <FeatherBook />, label: "Codes", tooltip: "Your qualitative codebook", selected: activeNav === "codes" }]
+    ? [{ id: "codes", icon: <FeatherBook />, label: "Codes", tooltip: "Your qualitative codebook", selected: hoveredNav === "codes" }]
     : [];
 
   return secondary.length > 0 ? [primary, secondary] : [primary];
@@ -111,7 +111,7 @@ export const DefaultPageLayout = ({
       >
         <div className="relative z-30">
           <MainSidebar
-            navItemGroups={buildNavItems(activeNav, showCodes)}
+            navItemGroups={buildNavItems(hoveredNav, showCodes)}
             onNavItemClick={onNavChange ? (id) => onNavChange(id as ActiveNav) : undefined}
             onNavItemHover={(id) => setHoveredNav(id as ActiveNav)}
           />

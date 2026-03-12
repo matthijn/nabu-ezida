@@ -5,7 +5,6 @@ import { registerSpecialHandler } from "../delegation"
 import { segmentContent, type SegmentResult } from "./segment-file"
 import { readFileContent } from "./file-content"
 import { getFile } from "~/lib/files"
-import { approaches } from "~/domain/approaches"
 import { pushBlocks } from "../../block-store"
 import { modeSystemBlocks } from "../modes"
 
@@ -45,50 +44,11 @@ const buildFileBlocks = async (entries: FileEntry[]): Promise<Block[]> => {
   return [...segmented, ...inlined]
 }
 
-const parentIndexKeys = (key: string): string[] => {
-  const parts = key.split("/")
-  const keys: string[] = []
-  for (let i = 1; i < parts.length; i++) {
-    keys.push(parts.slice(0, i).join("/") + "/index")
-  }
-  return keys
-}
-
-const collectIndexKeys = (keys: readonly string[]): string[] => {
-  const all = new Set<string>(["index"])
-  for (const key of keys) {
-    for (const idx of parentIndexKeys(key)) all.add(idx)
-  }
-  return [...all].sort()
-}
-
-export type ApproachEntry = { key: string; content: string }
-
-export const resolveApproaches = (keys: readonly string[], dict: Record<string, string>): ApproachEntry[] => {
-  const indexKeys = collectIndexKeys(keys)
-  const selectedKeys = [...keys].sort()
-  const ordered = [...indexKeys, ...selectedKeys]
-  const seen = new Set<string>()
-  return ordered.reduce<ApproachEntry[]>((acc, key) => {
-    if (seen.has(key)) return acc
-    seen.add(key)
-    const content = dict[key]
-    if (content) acc.push({ key, content })
-    return acc
-  }, [])
-}
-
-const toApproachBlock = ({ key, content }: ApproachEntry): Block =>
-  ({ type: "system", content: `[${key}]\n${content}` })
-
-const buildApproachBlocks = (keys: readonly string[]): Block[] =>
-  resolveApproaches(keys, approaches).map(toApproachBlock)
-
 const handlePreflight = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = PreflightArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
-  const { files, approaches: approachKeys } = parsed.data
+  const { files } = parsed.data
 
   const missing = files.filter((f) => getFile(f.path) === undefined).map((f) => f.path)
   if (missing.length > 0) return { status: "error", output: `Files not found: ${missing.join(", ")}` }
@@ -96,9 +56,8 @@ const handlePreflight = async (call: { args: unknown }): Promise<ToolResult<unkn
   const entries = files.map(readEntry)
 
   const fileBlocks = await buildFileBlocks(entries)
-  const approachBlocks = buildApproachBlocks(approachKeys)
 
-  pushBlocks([...fileBlocks, ...approachBlocks, ...modeSystemBlocks("plan")])
+  pushBlocks([...fileBlocks, ...modeSystemBlocks("plan")])
   return { status: "ok", output: "ok" }
 }
 

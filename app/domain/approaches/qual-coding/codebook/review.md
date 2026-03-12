@@ -1,3 +1,7 @@
+---
+description: Coding is done or paused and review flags have piled up. Time to step back and ask whether the codebook still fits what the data is actually showing.
+---
+
 ## Codebook review
 
 A dedicated pass to resolve accumulated review flags and refine the codebook. Blocking patterns may have been surfaced and resolved during coding — this pass handles what remains.

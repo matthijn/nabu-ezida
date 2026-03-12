@@ -15,6 +15,7 @@ import "./tools/ask"
 import "./tools/submit-plan"
 import "./tools/compact"
 import "./tools/preflight"
+import "./tools/get-guidance"
 
 export type { ToolDeps }
 export { getToolDefinitions }

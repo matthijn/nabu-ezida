@@ -1,3 +1,7 @@
+---
+description: The researcher wants to work on their codebook — creating it, reshaping it, splitting codes, or checking whether it holds up. The codebook is the object of attention.
+---
+
 ## Constraints
 
 Codebook files use the workspace's codebook-code entry format (json-callout blocks).

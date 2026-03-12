@@ -1,3 +1,7 @@
+---
+description: There is material to code and a codebook (or lens) to code it with. The researcher wants to get through the data systematically.
+---
+
 ## Constraints
 
 The full codebook applies unless the user says otherwise. Do not ask

@@ -8,6 +8,7 @@ const toolLabels: Record<string, string> = {
   rename_file: "Writing",
   remove_file: "Writing",
   preflight: "Preparing",
+  get_guidance: "Reading instructions manual",
   submit_plan: "Starting execution",
   complete_step: "Working",
   cancel: "Cancelling",

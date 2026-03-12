@@ -16,3 +16,6 @@ export const toDisplayName = (filename: string): string =>
     .replace(/\.md$/, "")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
+
+export const boldMissingFile = (id: string): string | null =>
+  id.endsWith(".md") ? `**${toDisplayName(id)}**` : null

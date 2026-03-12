@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { normalizeFilename, toDisplayName, isProtectedFile, isHiddenFile, PREFERENCES_FILE, SETTINGS_FILE } from "./filename"
+import { normalizeFilename, toDisplayName, boldMissingFile, isProtectedFile, isHiddenFile, PREFERENCES_FILE, SETTINGS_FILE } from "./filename"
 
 describe("normalizeFilename", () => {
   const cases = [
@@ -26,6 +26,19 @@ describe("toDisplayName", () => {
   ]
   cases.forEach(({ input, expected }) =>
     it(`"${input}" → "${expected}"`, () => expect(toDisplayName(input)).toBe(expected))
+  )
+})
+
+describe("boldMissingFile", () => {
+  const cases = [
+    { input: "codebook_general.md", expected: "**Codebook General**" },
+    { input: "interview-notes.md", expected: "**Interview-Notes**" },
+    { input: "annotation-1a2b3c4d", expected: null },
+    { input: "callout-7xk2m9p1", expected: null },
+    { input: "not_a_file", expected: null },
+  ]
+  cases.forEach(({ input, expected }) =>
+    it(`"${input}" → ${expected ?? "null"}`, () => expect(boldMissingFile(input)).toBe(expected))
   )
 })
 

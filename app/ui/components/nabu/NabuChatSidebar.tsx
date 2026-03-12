@@ -38,6 +38,7 @@ import { createEntityLinkComponents } from "~/ui/components/markdown/createEntit
 import { linkifyEntityIds, linkifyTags, linkifyQuotes, normalizeBacktickQuotes } from "~/domain/entity-link"
 import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel } from "~/lib/mutation-history"
+import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { useNabu } from "./context"
 import { pickGreeting } from "~/lib/chat/greetings"
@@ -79,7 +80,7 @@ const ScrollableTable = ({ node, ...props }: React.ComponentProps<"table"> & { n
 
 const MessageContent = ({ content, files, projectId, currentFile, currentFileContent, navigate }: MessageContentProps) => (
   <Markdown remarkPlugins={remarkPlugins} components={{ ...createEntityLinkComponents({ files, projectId, navigate }), table: ScrollableTable }} urlTransform={allowFileProtocol}>
-    {fixMarkdownUrls(linkifyTags(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id)), (label) => resolveTagForLinkify(files, label)))}
+    {fixMarkdownUrls(linkifyTags(linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent), (id) => resolveAndTruncateName(files, id), boldMissingFile), (label) => resolveTagForLinkify(files, label)))}
   </Markdown>
 )
 
