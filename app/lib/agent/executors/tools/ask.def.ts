@@ -3,7 +3,7 @@ import type { AnyTool } from "../tool"
 
 export const AskArgs = z.object({
   question: z.string().describe("A focused question with enough context for the user to decide."),
-  options: z.array(z.string()).min(2).optional().describe("Concrete, actionable choices. Omit for open-ended questions where the user types freely."),
+  options: z.array(z.string()).min(2).nullish().describe("Concrete, actionable choices. Omit for open-ended questions where the user types freely."),
   scope: z.enum(["local", "codebook", "preferences"]).describe("local = this conversation only. codebook = answer shapes how analysis is done (codes, density, granularity, which speakers/sections to code, unit of analysis, inclusion criteria). preferences = lasting non-analytical decision (user name, language, output format)."),
 })
 
