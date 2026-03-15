@@ -4,6 +4,7 @@ import { setDraft, getDraft, clearDraft, pushBlocks, setLoading } from "~/lib/ag
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
+import { fetchApproachMeta } from "~/domain/approaches"
 import { getChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 
@@ -76,6 +77,7 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
   if (active) return
   active = true
   try {
+    await fetchApproachMeta()
     await runAgent(deps)
   } catch (e) {
     if (!isAbortError(e)) {

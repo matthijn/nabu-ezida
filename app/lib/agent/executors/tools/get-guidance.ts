@@ -1,7 +1,6 @@
 import type { Block, ToolResult } from "../../types"
-import { GetGuidanceArgs } from "./get-guidance.def"
+import { buildSchema } from "./get-guidance.def"
 import { registerSpecialHandler } from "../delegation"
-import { approaches, resolveApproaches } from "~/domain/approaches"
 import { pushBlocks } from "../../block-store"
 
 const PROJECT_PREFIX = "qual-coding/project/"
@@ -12,20 +11,19 @@ const isProjectPhaseKey = (key: string): boolean =>
 const hasProjectPhase = (keys: readonly string[]): boolean =>
   keys.some(isProjectPhaseKey)
 
-const toApproachBlock = ({ key, content }: { key: string; content: string }): Block =>
-  ({ type: "system", content: `[${key}]\n${content}` })
+const toMarkerBlock = (key: string): Block =>
+  ({ type: "system", content: `<!-- approach: ${key} -->` })
 
 const handleGetGuidance = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
-  const parsed = GetGuidanceArgs.safeParse(call.args)
+  const parsed = buildSchema().safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
-  const keys = parsed.data.for
-  const entries = resolveApproaches(keys, approaches)
-  if (entries.length === 0) return { status: "error", output: "No matching guidance found for the given keys." }
+  const keys: string[] = parsed.data.for
+  if (keys.length === 0) return { status: "error", output: "No guidance keys provided." }
 
-  pushBlocks(entries.map(toApproachBlock))
+  pushBlocks(keys.map(toMarkerBlock))
 
-  const loaded = entries.map((e) => e.key).join(", ")
+  const loaded = keys.join(", ")
 
   if (!hasProjectPhase(keys)) {
     return { status: "partial", output: `Loaded: ${loaded}. Missing project phase — include one of the project/* keys for the current project state.` }
