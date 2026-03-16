@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { AnyTool } from "../tool"
-import { getApproachMeta } from "~/domain/approaches"
+import { getApproachMeta } from "~/lib/modes/approaches"
 
 const formatKeyDescriptions = (keys: string[], descriptions: Record<string, string>): string =>
   keys.map((k) => {

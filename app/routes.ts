@@ -1,4 +1,4 @@
-import { type RouteConfig, index, route, layout } from "@react-router/dev/routes";
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
@@ -8,11 +8,6 @@ export default [
   ]),
   route("designs", "routes/designs.tsx", [
     index("routes/designs._index.tsx"),
-    route("documents2", "routes/designs.documents2.tsx"),
-    route("documents3", "routes/designs.documents3.tsx"),
-    route("codes2", "routes/designs.codes2.tsx"),
-    route("inbox", "routes/designs.inbox.tsx"),
-    route("chat", "routes/designs.chat.tsx"),
-    route("current", "routes/designs.current.tsx"),
+    route(":page", "routes/designs.page.tsx"),
   ]),
 ] satisfies RouteConfig;

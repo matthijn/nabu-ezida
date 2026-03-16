@@ -4,7 +4,7 @@ import { setDraft, getDraft, clearDraft, pushBlocks, setLoading } from "~/lib/ag
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
-import { fetchApproachMeta } from "~/domain/approaches"
+import { fetchApproachMeta } from "~/lib/modes/approaches"
 import { getChat } from "./store"
 import { isAbortError } from "~/lib/utils"
 

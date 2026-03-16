@@ -101,7 +101,7 @@ const SidebarRailWithLabelsRoot = ({
       </div>
     ) : null}
     {children ? (
-      <div className="flex w-full grow shrink-0 basis-0 flex-col items-center gap-1 px-2 py-2 overflow-auto">
+      <div className="flex w-full grow shrink-0 basis-0 flex-col items-center gap-1 px-2 py-2 overflow-y-auto overflow-x-hidden">
         {children}
       </div>
     ) : null}
