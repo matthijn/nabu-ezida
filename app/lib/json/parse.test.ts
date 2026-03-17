@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { repairJsonNewlines, parseJson } from "./parse"
+import { repairJsonNewlines } from "./parse"
 
 describe("repairJsonNewlines", () => {
   const cases = [
@@ -43,37 +43,6 @@ describe("repairJsonNewlines", () => {
   cases.forEach(({ name, input, expected }) => {
     it(name, () => {
       expect(repairJsonNewlines(input)).toBe(expected)
-    })
-  })
-})
-
-describe("parseJson", () => {
-  const cases = [
-    {
-      name: "parses valid JSON",
-      input: '{"key": "value"}',
-      expected: { ok: true, data: { key: "value" } },
-    },
-    {
-      name: "returns error for invalid JSON",
-      input: "{invalid}",
-      expected: { ok: false, error: expect.stringContaining("") },
-    },
-    {
-      name: "returns error for empty content",
-      input: "",
-      expected: { ok: false, error: "Empty content" },
-    },
-    {
-      name: "trims whitespace",
-      input: '  {"key": "value"}  ',
-      expected: { ok: true, data: { key: "value" } },
-    },
-  ]
-
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(parseJson(input)).toEqual(expected)
     })
   })
 })

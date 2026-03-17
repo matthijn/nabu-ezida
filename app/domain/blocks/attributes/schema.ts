@@ -38,15 +38,3 @@ export const DocumentMeta = z.object({
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
-type DocumentMetaField = keyof DocumentMeta
-
-const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } =
-  DocumentMeta.shape as { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> }
-
-const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {}
-
-export const documentMetaFieldConfig = {
-  schema: DocumentMeta,
-  fieldSchemas,
-  readonlyHints: READONLY_FIELD_HINTS,
-} as const

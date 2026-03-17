@@ -1,9 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest"
-import { fillMissingIds, replaceUuidPlaceholders, clearPersistentIds, isSystemId } from "./uuid"
-
-beforeEach(() => {
-  clearPersistentIds()
-})
+import { describe, it, expect } from "vitest"
+import { fillMissingIds, replaceUuidPlaceholders, isSystemId } from "./uuid"
 
 describe("isSystemId", () => {
   const cases = [
@@ -331,17 +327,6 @@ describe("replaceUuidPlaceholders", () => {
       const second = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
 
       expect(first.generated["callout"]).toBe(second.generated["callout"])
-    })
-
-    it("returns different IDs after clear", () => {
-      const first = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
-      const firstId = first.generated["callout"]
-      clearPersistentIds()
-      const second = replaceUuidPlaceholders('{"id": "[uuid-callout]"}')
-
-      expect(firstId).toBeDefined()
-      expect(second.generated["callout"]).toBeDefined()
-      expect(firstId).not.toBe(second.generated["callout"])
     })
   })
 })

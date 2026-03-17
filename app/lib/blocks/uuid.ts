@@ -16,11 +16,6 @@ interface FillIdsResult {
   generated: GeneratedId[]
 }
 
-export const clearPersistentIds = (): void => {
-  persistentIdMap = {}
-  shownIds = new Set()
-}
-
 export const isSystemId = (id: string, prefix: string): boolean => {
   if (!id.startsWith(`${prefix}-`)) return false
   return SYSTEM_ID_SUFFIX_RE.test(id.slice(prefix.length + 1))
@@ -117,8 +112,8 @@ export const formatGeneratedIds = (ids: GeneratedId[]): string => {
 const UUID_PLACEHOLDER_REGEX = /\[uuid-([^\]]+)\]/g
 const SYSTEM_ID_SUFFIX_RE = /^(?=.*\d)[a-z0-9]{6,10}$/
 
-let persistentIdMap: UuidMapping = {}
-let shownIds = new Set<string>()
+const persistentIdMap: UuidMapping = {}
+const shownIds = new Set<string>()
 
 const generateShortId = (): string => {
   const digit = Math.floor(Math.random() * 10).toString()
