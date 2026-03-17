@@ -1,8 +1,9 @@
 import { Plugin, PluginKey } from "prosemirror-state"
 import { DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import type { Annotation, ResolvedAnnotation } from "~/domain/document/annotations"
-import { segmentByOverlap } from "~/domain/document/annotations"
+import type { Annotation } from "~/domain/blocks/attributes/annotations/selectors"
+import type { ResolvedAnnotation } from "./types"
+import { segmentByOverlap } from "./overlap"
 import {
   createDecorationSet,
   createMarkerDecorations,

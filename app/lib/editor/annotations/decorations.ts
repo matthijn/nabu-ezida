@@ -1,7 +1,7 @@
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import type { OverlapSegment, ResolvedAnnotation } from "~/domain/document/annotations"
-import { createBackground } from "~/domain/document/annotations"
+import type { OverlapSegment, ResolvedAnnotation } from "./types"
+import { createBackground } from "./gradient"
 
 const toRadixVar = (color: string): string => `var(--${color}-3)`
 

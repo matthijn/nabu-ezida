@@ -1,7 +1,8 @@
 import type { Annotation as StoredAnnotation } from "../schema"
-import type { Annotation } from "~/domain/document/annotations"
 import { findCodeById } from "~/domain/blocks/callout/codes/selectors"
 import { getAttributes } from "../selectors"
+
+export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }
 
 export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
   getAttributes(raw)?.annotations ?? []

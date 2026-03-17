@@ -1,8 +1,8 @@
 "use client"
 
 import { memo, useEffect, useState, type RefObject } from "react"
-import type { GutterMark } from "~/domain/document/gutter"
-import { calculateGutterMarks } from "~/domain/document/gutter"
+import type { GutterMark } from "~/lib/editor/gutter/types"
+import { calculateGutterMarks } from "~/lib/editor/gutter/calculate"
 import { measureAnnotationSpans } from "~/lib/editor/gutter"
 import { solidBackground } from "~/lib/colors/radix"
 

@@ -1,4 +1,4 @@
-import type { AnnotationMeasurement } from "~/domain/document/gutter"
+import type { AnnotationMeasurement } from "./types"
 
 const getTopInScrollContainer = (element: HTMLElement, scrollContainer: HTMLElement): number => {
   const elementRect = element.getBoundingClientRect()

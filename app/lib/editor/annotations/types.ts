@@ -1,13 +1,3 @@
-export interface Annotation {
-  id?: string
-  text: string
-  color: string
-  reason?: string
-  code?: string
-  actor?: "ai" | "user"
-  review?: string
-}
-
 export interface ResolvedAnnotation {
   id?: string
   index: number
