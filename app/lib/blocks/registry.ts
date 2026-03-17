@@ -34,6 +34,10 @@ export const getActorPaths = (language: string): ActorPathConfig[] =>
 export const getAllowedFiles = (language: string): string[] | undefined =>
   blockTypes[language]?.allowedFiles
 
+export const getEntityPrefixes = (): string[] => [
+  ...new Set(Object.values(blockTypes).flatMap((c) => c.idPaths?.map((p) => p.prefix) ?? [])),
+]
+
 export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
   Object.entries(blockTypes).map(([language, config]) => ({
     language,

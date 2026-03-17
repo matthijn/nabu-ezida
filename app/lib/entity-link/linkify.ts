@@ -1,8 +1,16 @@
+import { getEntityPrefixes } from "~/lib/blocks/registry"
+
 type NameResolver = (id: string) => string | null
 type MissingFormatter = (id: string) => string | null
 
-const ENTITY_ID_PATTERN =
-  /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)-\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
+const buildEntityIdPattern = (prefixes: string[]): RegExp => {
+  const prefixAlt = prefixes.join("|")
+  return new RegExp(
+    `\\[[^\\]]*\\]\\([^)]+\\)|((?:${prefixAlt})-\\d[a-z0-9]{7}|[\\w][\\w-]*\\.md)`,
+    "g"
+  )
+}
+
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const QUOTES = new Set(['"', "'"])
 const FILE_PROTOCOL = "file://"
@@ -70,7 +78,7 @@ export const linkifyEntityIds = (
   resolveName: NameResolver,
   formatMissing?: MissingFormatter
 ): string => {
-  const pattern = new RegExp(ENTITY_ID_PATTERN.source, "g")
+  const pattern = buildEntityIdPattern(getEntityPrefixes())
   let result = ""
   let lastIndex = 0
 
