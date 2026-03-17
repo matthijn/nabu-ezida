@@ -58,7 +58,8 @@ import {
   linkifyQuotes,
   normalizeBacktickQuotes,
 } from "~/domain/entity-link"
-import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
+import { findTagDefinitionByLabel } from "~/domain/blocks/settings/tags/selectors"
+import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-history"
 import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"

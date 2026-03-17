@@ -1,0 +1,44 @@
+import type { BlockTypeConfig, ActorPathConfig, IdPathConfig } from "./definition"
+import { toBlockSchema, type BlockSchemaDefinition } from "./json-schema"
+import { jsonAttributes } from "~/domain/blocks/attributes/definition"
+import { jsonSettings } from "~/domain/blocks/settings/definition"
+import { jsonCallout } from "~/domain/blocks/callout/definition"
+
+type AnyBlockConfig = BlockTypeConfig
+
+const blockTypes: Record<string, AnyBlockConfig> = {
+  "json-attributes": jsonAttributes as AnyBlockConfig,
+  "json-settings": jsonSettings as AnyBlockConfig,
+  "json-callout": jsonCallout as AnyBlockConfig,
+}
+
+export const getBlockConfig = (language: string): AnyBlockConfig | undefined => blockTypes[language]
+
+export const isKnownBlockType = (language: string): boolean => language in blockTypes
+
+export const isHiddenRenderer = (language: string): boolean =>
+  blockTypes[language]?.renderer === "hidden"
+
+export const isSingleton = (language: string): boolean => blockTypes[language]?.singleton ?? false
+
+export const getLabelKey = (language: string): string | undefined => blockTypes[language]?.labelKey
+
+export const getImmutableFields = (language: string): Record<string, string> =>
+  blockTypes[language]?.immutable ?? {}
+
+export const getIdPaths = (language: string): IdPathConfig[] => blockTypes[language]?.idPaths ?? []
+
+export const getActorPaths = (language: string): ActorPathConfig[] =>
+  blockTypes[language]?.actorPaths ?? []
+
+export const getAllowedFiles = (language: string): string[] | undefined =>
+  blockTypes[language]?.allowedFiles
+
+export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
+  Object.entries(blockTypes).map(([language, config]) => ({
+    language,
+    jsonSchema: toBlockSchema(config),
+    singleton: config.singleton,
+    immutable: Object.keys(config.immutable),
+    constraints: config.constraints,
+  }))

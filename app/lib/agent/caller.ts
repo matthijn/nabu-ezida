@@ -5,7 +5,7 @@ import { callLlm, blocksToMessages } from "./stream"
 import { pushBlocks } from "./block-store"
 import { executeTool, type ToolExecutor } from "./turn"
 import { formatZodError, type ToolDefinition } from "./executors/tool"
-import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
+import type { BlockSchemaDefinition } from "~/lib/blocks/json-schema"
 import { isToolCallBlock } from "./derived"
 
 interface CallerConfig {

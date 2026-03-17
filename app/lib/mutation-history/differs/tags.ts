@@ -1,4 +1,4 @@
-import { getTags } from "~/lib/files/selectors"
+import { getTags } from "~/domain/blocks/attributes/tags/selectors"
 import type { HistoryEntry, ContentDiffer } from "../types"
 
 const toTagEntry = (

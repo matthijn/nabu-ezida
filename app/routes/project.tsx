@@ -15,7 +15,8 @@ import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor
 
 import { createWebSocket, applyCommand } from "~/lib/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
-import { findDocumentForCallout, getAnnotationCount } from "~/lib/files/selectors"
+import { getAnnotationCount } from "~/domain/blocks/attributes/annotations/selectors"
+import { findDocumentForCallout } from "~/domain/blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"

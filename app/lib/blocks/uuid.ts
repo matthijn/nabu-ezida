@@ -1,5 +1,6 @@
 import { parseCodeBlocks, type CodeBlock } from "./parse"
-import { getLabelKey, getIdPaths, type IdPathConfig } from "~/domain/blocks/registry"
+import { getLabelKey, getIdPaths } from "~/lib/blocks/registry"
+import type { IdPathConfig } from "~/lib/blocks/definition"
 import { tryParseJson, isObject, parsePath } from "./json"
 
 export interface GeneratedId {

@@ -7,9 +7,10 @@ import { parseCodeBlocks } from "~/lib/blocks/parse"
 import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/blocks/uuid"
 import { validateMarkdownBlocks, extractProse, type ValidationError } from "~/lib/blocks/validate"
 import { stampActors } from "~/lib/blocks/actor"
-import type { ValidationContext } from "~/domain/blocks/registry"
+import type { ValidationContext } from "~/lib/blocks/validate"
 import { getFiles } from "./store"
-import { getAllCodes, getTagDefinitions } from "./selectors"
+import { getAllCodes } from "~/domain/blocks/callout/codes/selectors"
+import { getTagDefinitions } from "~/domain/blocks/settings/tags/selectors"
 
 type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: GeneratedId[] }

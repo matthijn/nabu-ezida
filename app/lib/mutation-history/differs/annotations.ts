@@ -1,15 +1,15 @@
-import type { StoredAnnotation } from "~/domain/blocks/attributes/schema"
-import { getStoredAnnotations } from "~/lib/files/selectors"
+import type { Annotation } from "~/domain/blocks/attributes/schema"
+import { getStoredAnnotations } from "~/domain/blocks/attributes/annotations/selectors"
 import type { HistoryEntry, HistoryVerb, ContentDiffer } from "../types"
 import { diffById, hasChangedExcluding } from "../diff-by-id"
 
-const getId = (a: StoredAnnotation): string => a.id ?? ""
+const getId = (a: Annotation): string => a.id ?? ""
 
-const hasChanged = hasChangedExcluding<StoredAnnotation>(["id", "actor"])
+const hasChanged = hasChangedExcluding<Annotation>(["id", "actor"])
 
 const toEntry =
   (path: string, ts: number) =>
-  (verb: HistoryVerb, a: StoredAnnotation): HistoryEntry => ({
+  (verb: HistoryVerb, a: Annotation): HistoryEntry => ({
     verb,
     entityKind: "annotation",
     entityId: a.id ?? null,

@@ -4,10 +4,15 @@ import {
   isSingleton,
   getImmutableFields,
   getAllowedFiles,
-  type ValidationContext,
-} from "~/domain/blocks/registry"
+} from "~/lib/blocks/registry"
 import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
+
+export interface ValidationContext {
+  documentProse: string
+  availableCodes: { id: string; name: string }[]
+  availableTags: { id: string; label: string }[]
+}
 
 export interface ValidationError {
   block: string

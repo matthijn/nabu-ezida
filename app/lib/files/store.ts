@@ -1,4 +1,7 @@
-import { getCodebook as computeCodebook, type Codebook } from "./selectors"
+import {
+  getCodebook as computeCodebook,
+  type Codebook,
+} from "~/domain/blocks/callout/codes/selectors"
 import {
   stripPendingRefs,
   markPendingRefs,

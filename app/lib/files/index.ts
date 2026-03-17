@@ -17,7 +17,10 @@ export {
   withoutPersist,
 } from "./store"
 
-export { getTags, getCodeTitle, getAnnotations, getTagDefinitions } from "./selectors"
+export { getTags } from "~/domain/blocks/attributes/tags/selectors"
+export { getAnnotations } from "~/domain/blocks/attributes/annotations/selectors"
+export { getCodeTitle } from "~/domain/blocks/callout/codes/selectors"
+export { getTagDefinitions } from "~/domain/blocks/settings/tags/selectors"
 
 export { applyFilePatch, finalizeContent } from "./patch"
 

@@ -14,12 +14,11 @@ import {
 import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import {
   findAnnotationById,
-  findCalloutById,
   findDocumentForAnnotation,
-  findDocumentForCallout,
-  findTagDefinitionById,
   resolveAnnotationColor,
-} from "~/lib/files/selectors"
+} from "~/domain/blocks/attributes/annotations/selectors"
+import { findCalloutById, findDocumentForCallout } from "~/domain/blocks/callout/selectors"
+import { findTagDefinitionById } from "~/domain/blocks/settings/tags/selectors"
 
 export interface ResolvedColors {
   text: string
