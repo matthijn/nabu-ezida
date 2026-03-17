@@ -25,7 +25,7 @@ const RenameFileOp = z.object({
 
 const OperationSchema = z.discriminatedUnion("type", [CreateFileOp, UpdateFileOp, DeleteFileOp, RenameFileOp])
 
-export const PatchArgs = z.object({
+const PatchArgs = z.object({
   operation: OperationSchema.describe("The file operation to perform"),
 })
 

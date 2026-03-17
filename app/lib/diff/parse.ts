@@ -11,7 +11,7 @@ export type Hunk = {
   parts: HunkPart[]
 }
 
-export type DiffResult =
+type DiffResult =
   | { ok: true; content: string }
   | { ok: false; error: string }
 

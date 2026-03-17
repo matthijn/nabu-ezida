@@ -81,7 +81,7 @@ const AbortBox = ({ message = "Pivoted plan" }: AbortBoxProps) => (
   </div>
 )
 
-export type StepsBlockProps = {
+type StepsBlockProps = {
   steps: StepItem[]
   aborted?: boolean
   files: Record<string, string>
@@ -94,7 +94,7 @@ export type StepsBlockProps = {
 const toCancelledIfAborted = (step: StepItem, aborted: boolean): StepItem =>
   aborted && step.type === "active" ? { ...step, type: "cancelled" } : step
 
-export const StepsBlock = ({ steps, aborted, files, projectId, currentFile, currentFileContent, navigate }: StepsBlockProps) => {
+const StepsBlock = ({ steps, aborted, files, projectId, currentFile, currentFileContent, navigate }: StepsBlockProps) => {
   const context: MarkdownContext = { files, projectId, currentFile, currentFileContent, navigate }
   const displaySteps = steps.map((step) => toCancelledIfAborted(step, !!aborted))
 
@@ -108,5 +108,4 @@ export const StepsBlock = ({ steps, aborted, files, projectId, currentFile, curr
   )
 }
 
-export { StepRow, AbortBox }
-export type { StepItem, StepType }
+export { AbortBox }

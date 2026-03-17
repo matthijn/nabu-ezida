@@ -88,7 +88,7 @@ export const processCompleteStep = (plan: DerivedPlan, internal: string | null, 
   return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
 }
 
-export type StepGuard = { allowed: true } | { allowed: false; reason: string }
+type StepGuard = { allowed: true } | { allowed: false; reason: string }
 
 const allowed: StepGuard = { allowed: true }
 const denied = (reason: string): StepGuard => ({ allowed: false, reason })

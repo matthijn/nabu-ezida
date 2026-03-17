@@ -1,5 +1,3 @@
 export type { Annotation, ResolvedAnnotation, OverlapSegment } from "./types"
-export type { TextPosition } from "./text"
-export { findTextPosition, findAllTextPositions, resolveTextAnnotations } from "./text"
 export { segmentByOverlap } from "./overlap"
 export { createBackground } from "./gradient"

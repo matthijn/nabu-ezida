@@ -9,7 +9,7 @@ import { compactHistory, hasCompactedBlock } from "./compact"
 import { baselineNudge } from "./steering/nudges/baseline"
 import { getFiles } from "~/lib/files/store"
 
-export const DONE_TOOL = "done"
+const DONE_TOOL = "done"
 
 const WRITE_ANSWER_ENDPOINT = "/write-answer?chat=true"
 const MAX_TURNS = 10

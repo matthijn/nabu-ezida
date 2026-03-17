@@ -25,4 +25,4 @@ function setSetting<K extends keyof NabuSettings>(key: K, value: NabuSettings[K]
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
-export { getSettings, setSetting, type NabuSettings };
+export { getSettings, setSetting };

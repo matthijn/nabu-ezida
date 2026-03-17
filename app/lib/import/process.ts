@@ -5,7 +5,7 @@ import { readFileContent, isMarkdownFile } from "./read"
 import { normalizeFilename } from "~/lib/files/filename"
 import type { ImportFile, ImportStatus } from "./types"
 
-export type ProcessResult = {
+type ProcessResult = {
   status: ImportStatus
   error?: string
   finalPath?: string
@@ -59,7 +59,7 @@ const processMarkdownFile = (
   return { status: "completed", finalPath }
 }
 
-export const processFile = async (
+const processFile = async (
   file: File,
   onStatus: StatusCallback,
   tags: string[] = []

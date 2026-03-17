@@ -32,7 +32,7 @@ export const findSingletonBlock = (markdown: string, language: string): CodeBloc
 export const countBlocksByLanguage = (markdown: string, language: string): number =>
   findBlocksByLanguage(markdown, language).length
 
-export type ParseJsonResult<T> =
+type ParseJsonResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; raw: string }
 
@@ -55,7 +55,7 @@ type BlockIdRecord = { id: string; [key: string]: unknown }
 const hasId = (data: unknown): data is BlockIdRecord =>
   typeof data === "object" && data !== null && "id" in data && typeof (data as Record<string, unknown>).id === "string"
 
-export type BlockWithData<T = unknown> = { block: CodeBlock; data: T }
+type BlockWithData<T = unknown> = { block: CodeBlock; data: T }
 
 export const findBlockById = (markdown: string, language: string, id: string): BlockWithData | undefined => {
   const blocks = findBlocksByLanguage(markdown, language)

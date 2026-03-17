@@ -1,5 +1,5 @@
-export type { HistoryEntry, HistoryVerb, ContentDiffer } from "./types"
+export type { HistoryEntry } from "./types"
 export { diffFileContent, fileCreatedEntry, fileDeletedEntry, fileRenamedEntry } from "./diff"
-export { pushEntries, getEntries, clearEntries, subscribeEntries } from "./store"
+export { pushEntries, clearEntries } from "./store"
 export { useMutationHistory } from "./useMutationHistory"
-export { presentEntry, truncateLabel, formatRelativeTime, groupByTime, type TimeGroup } from "./presentation"
+export { presentEntry, truncateLabel } from "./presentation"

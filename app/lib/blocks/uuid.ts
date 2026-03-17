@@ -9,9 +9,9 @@ export type GeneratedId = {
   source: string
 }
 
-export type UuidMapping = Record<string, string>
+type UuidMapping = Record<string, string>
 
-export type FillIdsResult = {
+type FillIdsResult = {
   content: string
   generated: GeneratedId[]
 }
@@ -41,7 +41,7 @@ export const replaceUuidPlaceholders = (content: string): { result: string; gene
   return { result, generated }
 }
 
-export const hasUuidPlaceholders = (content: string): boolean =>
+const hasUuidPlaceholders = (content: string): boolean =>
   UUID_PLACEHOLDER_REGEX.test(content)
 
 export const fillMissingIds = (markdown: string, originalContent?: string): FillIdsResult => {

@@ -16,13 +16,13 @@ import { getFiles } from "~/lib/files/store"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { compactHistory, stepCompactHistory } from "./compact"
 
-export type AgentLoopConfig = {
+type AgentLoopConfig = {
   executor: ToolExecutor
   callbacks?: ParseCallbacks
   signal?: AbortSignal
 }
 
-export type IterationConfig = {
+type IterationConfig = {
   endpoint: string
   tools: AnyTool[]
   toolChoice?: string
@@ -32,7 +32,7 @@ export type IterationConfig = {
   blockSchemas?: BlockSchemaDefinition[]
 }
 
-export type AgentRunConfig = {
+type AgentRunConfig = {
   source: string
   executor: ToolExecutor
   callbacks?: ParseCallbacks
@@ -55,7 +55,7 @@ export const excludeReasoning = (blocks: Block[]): Block[] =>
 export const hasToolCalls = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_call")
 
-export const extractLastText = (blocks: Block[]): string =>
+const extractLastText = (blocks: Block[]): string =>
   blocks.filter((b) => b.type === "text").map((b) => b.content).join("\n") || ""
 
 export const shouldContinue = (newBlocks: Block[]): boolean =>

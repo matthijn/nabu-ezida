@@ -1,4 +1,4 @@
-export type JsonResult<T = unknown> =
+type JsonResult<T = unknown> =
   | { ok: true; data: T }
   | { ok: false; error: string }
 

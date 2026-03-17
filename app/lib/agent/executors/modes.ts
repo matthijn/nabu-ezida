@@ -20,9 +20,9 @@ import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
 // off is for gpt mini, none is for gpt regular (or its 5.2 vs 5... unclear)
-export type ReasoningLevel = "none" | "low" | "medium" | "high"
+type ReasoningLevel = "none" | "low" | "medium" | "high"
 
-export type ModeConfig = {
+type ModeConfig = {
   tools: AnyTool[]
   triggers: string[]
   prompt?: string
@@ -32,7 +32,7 @@ export type ModeConfig = {
   nudges: Nudger[]
 }
 
-export type ModeName = "chat" | "plan" | "exec"
+type ModeName = "chat" | "plan" | "exec"
 
 const toolNudges = buildToolNudges(getFiles)
 const memoryNudge = createMemoryNudge(getFiles)

@@ -2,7 +2,7 @@ import { tool, registerTool, ok, err } from "../tool"
 import { renameFile as def } from "./rename-file.def"
 import { normalizeFilename, isProtectedFile } from "~/lib/files/filename"
 
-export const renameFile = registerTool(
+const renameFile = registerTool(
   tool({
     ...def,
     handler: async (files, { source, destination }) => {

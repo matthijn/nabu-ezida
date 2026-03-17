@@ -9,32 +9,32 @@ export type SchemaIssue = {
   expected?: string
 }
 
-export type SchemaSuccess<T> = {
+type SchemaSuccess<T> = {
   success: true
   data: T
 }
 
-export type SchemaError = {
+type SchemaError = {
   success: false
   issues: SchemaIssue[]
   current: Record<string, unknown>
 }
 
-export type SchemaResult<T> = SchemaSuccess<T> | SchemaError
+type SchemaResult<T> = SchemaSuccess<T> | SchemaError
 
 export type FieldRejection<K extends string = string> =
   | { field: K; reason: "readonly"; hint: string }
   | { field: K; reason: "invalid"; issues: SchemaIssue[] }
 
-export type FieldValidationResult<T> = {
+type FieldValidationResult<T> = {
   accepted: Partial<T>
   rejected: FieldRejection<string & keyof T>[]
 }
 
-export type FieldSchemas<T> = { [K in keyof T]: z.ZodType<T[K]> }
-export type ReadonlyHints<T> = Partial<Record<keyof T, string>>
+type FieldSchemas<T> = { [K in keyof T]: z.ZodType<T[K]> }
+type ReadonlyHints<T> = Partial<Record<keyof T, string>>
 
-export type FieldValidateConfig<T> = {
+type FieldValidateConfig<T> = {
   schema: z.ZodType<T>
   fieldSchemas: FieldSchemas<T>
   readonlyHints: ReadonlyHints<T>

@@ -7,7 +7,7 @@ import {
 } from "~/lib/colors/radix"
 import { annotationIcon as AnnotationIcon } from "~/domain/blocks/attributes/schema"
 
-export type DocumentItemProps = {
+type DocumentItemProps = {
   title: string
   editedAt: string
   annotationCount?: number

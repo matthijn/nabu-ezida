@@ -1,6 +1,6 @@
 import type { Annotation, ResolvedAnnotation } from "./types"
 
-export type TextPosition = { from: number; to: number }
+type TextPosition = { from: number; to: number }
 
 export const findAllTextPositions = (
   fullText: string,

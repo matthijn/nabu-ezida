@@ -5,7 +5,7 @@ import { getChat, subscribe, type ChatState } from "./store"
 import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
 
-export type UseChatResult = {
+type UseChatResult = {
   chat: ChatState | null
   send: (content: string, deps?: RunnerDeps) => void
   respond: (content: string) => void
@@ -16,7 +16,7 @@ export type UseChatResult = {
   history: Block[]
 }
 
-export const useChat = (): UseChatResult => {
+export const useChat = () => {
   const chat = useSyncExternalStore(subscribe, getChat)
   const history = useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
   const draft = useSyncExternalStore(subscribeBlocks, getDraft, getDraft)

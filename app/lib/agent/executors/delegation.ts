@@ -5,7 +5,7 @@ import { getFiles } from "~/lib/files/store"
 import { derive, lastPlan, guardCompleteStep } from "../derived"
 import { deriveMode, modeSystemBlocks } from "./modes"
 
-export type SpecialHandler = (call: { args: unknown }) => Promise<ToolResult<unknown>>
+type SpecialHandler = (call: { args: unknown }) => Promise<ToolResult<unknown>>
 
 const specialHandlers = new Map<string, SpecialHandler>()
 

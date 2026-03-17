@@ -62,7 +62,7 @@ const scoreTokenWindow = (needleWords: Set<string>, windowTokens: Token[]): numb
   return hits / needleWords.size
 }
 
-export type MatchOffset = { start: number; end: number }
+type MatchOffset = { start: number; end: number }
 
 const findUniqueTokenMatch = (
   docTokens: Token[],
@@ -146,7 +146,7 @@ const collectFuzzyPatterns = (patch: string): FuzzyMatch[] => {
   return matches
 }
 
-export type FuzzyResult = {
+type FuzzyResult = {
   patch: string
   resolved: number
   unresolved: string[]

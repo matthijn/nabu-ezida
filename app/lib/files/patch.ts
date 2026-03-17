@@ -11,13 +11,9 @@ import type { ValidationContext } from "~/domain/blocks/registry"
 import { getFiles } from "./store"
 import { getAllCodes, getTagDefinitions } from "./selectors"
 
-export type FileResult =
+type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: GeneratedId[] }
   | { path: string; status: "error"; error: string; blockErrors?: ValidationError[] }
-
-export type MultiPatchResult = {
-  results: FileResult[]
-}
 
 const isMdFile = (path: string): boolean => path.endsWith(".md")
 const isJsonBlock = (language: string): boolean => language.startsWith("json")
@@ -66,7 +62,7 @@ type ApplyMdPatchOptions = {
   actor?: "ai" | "user"
 }
 
-export type FinalizeContentOptions = {
+type FinalizeContentOptions = {
   original: string
   actor?: "ai" | "user"
   skipImmutableCheck?: boolean
@@ -152,7 +148,7 @@ const applyMdPatch = (path: string, content: string, patch: string, options: App
   return finalizeContent(path, repairedContent, { original: content, ...options })
 }
 
-export type ApplyFilePatchOptions = {
+type ApplyFilePatchOptions = {
   skipImmutableCheck?: boolean
   skipCodeValidation?: boolean
   placeholderIds?: Record<string, string>
@@ -164,16 +160,3 @@ export const applyFilePatch = (path: string, content: string, patch: string, opt
     ? applyMdPatch(path, content, patch, options)
     : { path, status: "error", error: `only .md files allowed: ${path}` }
 
-export type FilePatch = {
-  path: string
-  content: string
-  patch: string
-}
-
-export const applyFilePatches = (patches: FilePatch[]): MultiPatchResult => ({
-  results: patches.map(({ path, content, patch }) => applyFilePatch(path, content, patch)),
-})
-
-// Re-export for convenience
-export { applyDiff as applyPatch } from "~/lib/diff"
-export { generateDiff as computeJsonDiff } from "~/lib/diff"

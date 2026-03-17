@@ -1,0 +1,5 @@
+{
+  "entry": [
+    "app/lib/agent/steering/nudges/scenarios/regenerate.ts"
+  ]
+}

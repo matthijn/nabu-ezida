@@ -2,7 +2,6 @@ import { useSyncExternalStore } from "react"
 import {
   getFiles,
   getCurrentFile,
-  getFileRaw,
   getFileLineCount,
   getCodebook,
   setCurrentFile,
@@ -24,14 +23,4 @@ export const useFiles = () => {
   const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
 
   return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount: getFileLineCountFn, getFileAnnotations, tagDefinitions }
-}
-
-export const useCurrentFileContent = () => {
-  const currentFile = useSyncExternalStore(subscribe, getCurrentFile)
-  const content = useSyncExternalStore(
-    subscribe,
-    () => (currentFile ? getFileRaw(currentFile) : "")
-  )
-
-  return { currentFile, content }
 }

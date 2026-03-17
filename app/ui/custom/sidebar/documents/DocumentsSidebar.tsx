@@ -21,7 +21,7 @@ import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import { humanize } from "./TagGroupHeader"
 import { DocumentItem } from "./DocumentItem"
 
-export type ListItem = {
+type ListItem = {
   id: string
   title: string
   editedAt: string

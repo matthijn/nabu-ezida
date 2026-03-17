@@ -258,7 +258,7 @@ export const toResponseFormat = <T extends z.ZodType>(schema: T): ResponseFormat
   },
 })
 
-export type CallLlmOptions = {
+type CallLlmOptions = {
   endpoint: string
   messages: InputItem[]
   tools?: ToolDefinition[]
@@ -359,4 +359,4 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
 export const blocksToMessages = (blocks: Block[]): InputItem[] =>
   blocks.flatMap(blockToInputItem)
 
-export type { InputItem, ParseCallbacks, ResponseFormat }
+export type { ParseCallbacks, ResponseFormat }

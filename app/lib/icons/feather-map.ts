@@ -220,7 +220,7 @@ import {
   FeatherZap,
 } from "@subframe/core"
 
-export type FeatherIcon = ComponentType<{ className?: string }>
+type FeatherIcon = ComponentType<{ className?: string }>
 
 const FEATHER_ICONS: Record<IconName, FeatherIcon> = {
   "activity": FeatherActivity,

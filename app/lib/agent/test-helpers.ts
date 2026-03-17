@@ -97,11 +97,6 @@ export const userBlock = (content: string): Block => ({
   content,
 })
 
-export const systemBlock = (content: string): Block => ({
-  type: "system",
-  content,
-})
-
 export const toolCallBlock = (name: string, id = "1", args: Record<string, unknown> = {}): Block => ({
   type: "tool_call",
   calls: [{ id, name, args }],

@@ -12,7 +12,7 @@ export type Derived = {
   plans: DerivedPlan[]
 }
 
-export type Mode = "chat" | "plan" | "exec"
+type Mode = "chat" | "plan" | "exec"
 
 type EnrichedToolCall = ToolCall & { succeeded: boolean }
 type EnrichedToolCallBlock = { type: "tool_call"; calls: EnrichedToolCall[] }
@@ -59,7 +59,7 @@ const enrichWithResults = (history: Block[]): EnrichedBlock[] => {
 export const findCall = (block: Block, name: string): ToolCall | undefined =>
   isToolCallBlock(block) ? block.calls.find((c) => c.name === name) : undefined
 
-export const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
+const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
 
 const isSubmitPlan = (call: EnrichedToolCall): boolean => call.name === "submit_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
@@ -169,9 +169,6 @@ export {
   type Step,
   type StepDef,
   type StepDefObject,
-  type StepDefNested,
-
-  type StepGuard,
   type Files,
   lastPlan,
   hasActivePlan,

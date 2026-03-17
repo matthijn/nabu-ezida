@@ -8,7 +8,7 @@ import { formatZodError, type ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 import { isToolCallBlock } from "./derived"
 
-export type CallerConfig = {
+type CallerConfig = {
   endpoint: string
   tools?: ToolDefinition[]
   toolSchemas?: Record<string, z.ZodType>
@@ -21,9 +21,9 @@ export type CallerConfig = {
   source?: string
 }
 
-export type Caller = (signal?: AbortSignal) => Promise<Block[]>
+type Caller = (signal?: AbortSignal) => Promise<Block[]>
 
-export type TypedCaller<T> = (signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
+type TypedCaller<T> = (signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
 
 const executeToolCalls = async (
   calls: ToolCall[],
@@ -113,7 +113,7 @@ export const buildCaller = (config: CallerConfig): Caller =>
     return [...blocks, ...validationErrors]
   }
 
-export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>
+const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>
   async (signal) => {
     const newBlocks = await caller(signal)
     const text = extractText(newBlocks)
@@ -127,7 +127,7 @@ export const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller
     }
   }
 
-export const buildTypedCaller = <T>(config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
+const buildTypedCaller = <T>(config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
   withSchema(
     buildCaller({ ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
     schema

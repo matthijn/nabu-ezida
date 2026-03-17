@@ -11,7 +11,7 @@ export type ValidationError = {
   hint?: Record<string, string>
 }
 
-export type ValidationResult = {
+type ValidationResult = {
   valid: boolean
   errors: ValidationError[]
 }
@@ -98,7 +98,7 @@ export const validateMarkdownBlocks = (
   return { valid: errors.length === 0, errors }
 }
 
-export const wouldViolateSingleton = (
+const wouldViolateSingleton = (
   currentMarkdown: string,
   newMarkdown: string,
   language: string

@@ -19,5 +19,5 @@ export const executeTool = async (call: ToolCall, execute: ToolExecutor): Promis
   return { type: "tool_result", callId: call.id, toolName: call.name, result: res }
 }
 
-export const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
+const executeTools = (calls: ToolCall[], execute: ToolExecutor): Promise<ToolResultBlock[]> =>
   Promise.all(calls.map((call) => executeTool(call, execute)))

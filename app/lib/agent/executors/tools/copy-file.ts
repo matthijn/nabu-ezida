@@ -2,7 +2,7 @@ import { tool, registerTool, ok, err } from "../tool"
 import { copyFile as def } from "./copy-file.def"
 import { getFile } from "~/lib/files"
 
-export const copyFile = registerTool(
+const copyFile = registerTool(
   tool({
     ...def,
     handler: async (files, { source, destination }) => {

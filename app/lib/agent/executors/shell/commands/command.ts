@@ -9,7 +9,7 @@ export type Operation =
 
 export type Result = { output: string; error?: string; exitCode?: number; operations?: Operation[] }
 
-export type Command = CommandDef & {
+type Command = CommandDef & {
   createHandler: (files: Files) => (args: string[], stdin: string) => Result
 }
 

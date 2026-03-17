@@ -1,2 +1,2 @@
 export { MainSidebar } from "./MainSidebar";
-export type { MainSidebarProps, NavItem, UserMenuAction } from "./MainSidebar";
+export type { NavItem } from "./MainSidebar";

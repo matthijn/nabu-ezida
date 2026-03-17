@@ -1,14 +1,14 @@
 import { getApiUrl } from "../env"
 
-export type Command = {
+type Command = {
   type: string
   aggregate_id?: string
   payload: unknown
 }
 
-export type ActorType = "human" | "llm" | "system"
+type ActorType = "human" | "llm" | "system"
 
-export type Actor = {
+type Actor = {
   user_id: string
   actor_type: ActorType
 }
@@ -26,17 +26,17 @@ export type DomainEvent = {
   actor: Actor
 }
 
-export type CommandResult = {
+type CommandResult = {
   status: number
   result: DomainEvent
 }
 
-export type ErrorResponse = {
+type ErrorResponse = {
   message: string
   fields?: Record<string, string>
 }
 
-export type CommandError = {
+type CommandError = {
   status: number
   statusText: string
   body: ErrorResponse | null
@@ -50,20 +50,7 @@ const parseErrorBody = async (response: Response): Promise<ErrorResponse | null>
   }
 }
 
-export const isCommandError = (error: unknown): error is CommandError =>
-  typeof error === "object" && error !== null && "status" in error && "statusText" in error
-
-export const formatCommandError = (error: CommandError): { title: string; description: string } => ({
-  title: `${error.status} ${error.statusText}`,
-  description: error.body?.message ?? "Unknown error",
-})
-
-export const formatNetworkError = (): { title: string; description: string } => ({
-  title: "Network Error",
-  description: "Could not connect to server",
-})
-
-export const sendCommand = async (command: Command): Promise<CommandResult> => {
+const sendCommand = async (command: Command): Promise<CommandResult> => {
   const url = getApiUrl("/commands")
 
   const response = await fetch(url, {
@@ -88,25 +75,20 @@ export const sendCommand = async (command: Command): Promise<CommandResult> => {
   }
 }
 
-export const send = async (command: Command): Promise<{ success: true; event: DomainEvent }> => {
-  const result = await sendCommand(command)
-  return { success: true, event: result.result }
-}
-
-export type BatchResult = {
+type BatchResult = {
   index: number
   success: boolean
   error?: string
   result?: DomainEvent
 }
 
-export type BatchResponse = {
+type BatchResponse = {
   results: BatchResult[]
   successCount: number
   failureCount: number
 }
 
-export const sendCommands = async (commands: Command[]): Promise<BatchResponse> => {
+const sendCommands = async (commands: Command[]): Promise<BatchResponse> => {
   if (commands.length === 0) return { results: [], successCount: 0, failureCount: 0 }
   if (commands.length === 1) {
     const result = await sendCommand(commands[0])

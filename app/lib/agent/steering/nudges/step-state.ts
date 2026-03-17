@@ -2,7 +2,7 @@ import { afterToolResult, alreadyFired, systemNudge, type Nudger } from "../nudg
 import type { Files, DerivedPlan, Step } from "../../derived"
 import { derive, lastPlan, hasActivePlan } from "../../derived"
 
-export const formatStepLine = (step: Step): string =>
+const formatStepLine = (step: Step): string =>
   step.done ? `[done] ${step.description}` : `[    ] ${step.description}`
 
 export const formatStepProgress = (plan: DerivedPlan): string =>

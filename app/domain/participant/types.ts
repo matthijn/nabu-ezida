@@ -30,7 +30,7 @@ export const CURRENT_USER: Participant = {
   initial: "M",
 }
 
-export const PARTICIPANTS: Participant[] = [
+const PARTICIPANTS: Participant[] = [
   NABU,
   { id: "jane", type: "human", name: "Jane", description: "Data analyst", variant: "warning", initial: "J" },
   { id: "alex", type: "human", name: "Alex", description: "Content strategist", variant: "success", initial: "A" },

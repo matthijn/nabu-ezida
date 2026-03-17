@@ -17,13 +17,13 @@ export interface NavItem {
   disabled?: boolean;
 }
 
-export interface UserMenuAction {
+interface UserMenuAction {
   id: string;
   icon: ReactNode;
   label: string;
 }
 
-export interface MainSidebarProps {
+interface MainSidebarProps {
   logoSrc?: string;
   navItemGroups: NavItem[][];
   userAvatarSrc?: string;

@@ -82,7 +82,7 @@ const findPendingBlock = (blocks: Block[], toolCallIndex: number): Block | null 
 
 const DIRECTIVE_PATTERN = /^<!--\s*(\w+):\s*(\w+)\s*-->$/
 
-export const isDirectiveBlock = (block: Block): boolean =>
+const isDirectiveBlock = (block: Block): boolean =>
   block.type === "system" && DIRECTIVE_PATTERN.test(block.content)
 
 const extractSummary = (blocks: Block[], toolCallIndex: number): string => {

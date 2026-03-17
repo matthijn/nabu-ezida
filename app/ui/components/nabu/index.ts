@@ -1,2 +1,2 @@
-export { NabuProvider, useNabu } from "./context"
+export { NabuProvider } from "./context"
 export { NabuChatSidebar } from "./NabuChatSidebar"

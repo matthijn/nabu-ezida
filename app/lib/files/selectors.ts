@@ -2,7 +2,6 @@ import type { z } from "zod"
 import type { DocumentMeta, StoredAnnotation } from "~/domain/blocks/attributes/schema"
 import type { Annotation } from "~/domain/document/annotations"
 import type { Settings, TagDefinition } from "~/domain/blocks/settings/schema"
-import type { RadixColor } from "~/lib/colors/radix"
 import { blockTypes } from "~/domain/blocks/registry"
 import { findSingletonBlock, findBlocksByLanguage } from "~/lib/blocks/parse"
 import type { CalloutBlock } from "~/domain/blocks/callout/schema"
@@ -43,7 +42,7 @@ const parseWithCache = <T>(language: string, content: string, schema: z.ZodType<
   }
 }
 
-export const getBlock = <K extends BlockLanguage>(raw: string, language: K): BlockTypeMap[K] | null => {
+const getBlock = <K extends BlockLanguage>(raw: string, language: K): BlockTypeMap[K] | null => {
   const config = blockTypes[language]
   if (!config) return null
 
@@ -53,7 +52,7 @@ export const getBlock = <K extends BlockLanguage>(raw: string, language: K): Blo
   return parseWithCache(language, block.content, config.schema) as BlockTypeMap[K]
 }
 
-export const getBlocks = <K extends BlockLanguage>(raw: string, language: K): BlockTypeMap[K][] => {
+const getBlocks = <K extends BlockLanguage>(raw: string, language: K): BlockTypeMap[K][] => {
   const config = blockTypes[language]
   if (!config) return []
 
@@ -62,7 +61,7 @@ export const getBlocks = <K extends BlockLanguage>(raw: string, language: K): Bl
     .filter((b): b is BlockTypeMap[K] => b !== null)
 }
 
-export const getAttributes = (raw: string): DocumentMeta | null =>
+const getAttributes = (raw: string): DocumentMeta | null =>
   getBlock(raw, "json-attributes")
 
 export const getTags = (raw: string): string[] =>
@@ -74,7 +73,7 @@ export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
 export const getAnnotationCount = (raw: string): number =>
   getStoredAnnotations(raw).length
 
-export const getCallouts = (raw: string): CalloutBlock[] =>
+const getCallouts = (raw: string): CalloutBlock[] =>
   getBlocks(raw, "json-callout")
 
 export const getCodes = (raw: string): CalloutBlock[] =>
@@ -83,19 +82,11 @@ export const getCodes = (raw: string): CalloutBlock[] =>
 export const getAllCodes = (files: Record<string, string>): CalloutBlock[] =>
   Object.values(files).flatMap(getCodes)
 
-export const getCodebookFiles = (files: Record<string, string>): string[] =>
-  Object.entries(files)
-    .filter(([_, raw]) => getCodes(raw).length > 0)
-    .map(([name]) => name)
-
 const findCodeById = (files: Record<string, string>, id: string): CalloutBlock | undefined =>
   getAllCodes(files).find((c) => c.id === id)
 
 export const getCodeTitle = (files: Record<string, string>, id: string): string | undefined =>
   findCodeById(files, id)?.title
-
-export const getCodeMapping = (files: Record<string, string>): Record<string, string> =>
-  Object.fromEntries(getAllCodes(files).map((c) => [c.id, c.title]))
 
 const calloutToCode = (callout: CalloutBlock): Code => ({
   id: callout.id,
@@ -148,7 +139,7 @@ export const findDocumentForAnnotation = (files: Record<string, string>, id: str
 export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
 
-export const getSettings = (raw: string): Settings | null =>
+const getSettings = (raw: string): Settings | null =>
   getBlock(raw, "json-settings")
 
 export const getTagDefinitions = (files: Record<string, string>): TagDefinition[] =>
@@ -159,9 +150,6 @@ export const findTagDefinitionById = (files: Record<string, string>, id: string)
 
 export const findTagDefinitionByLabel = (files: Record<string, string>, label: string): TagDefinition | undefined =>
   getTagDefinitions(files).find((t) => t.label === label)
-
-export const getTagColorMap = (files: Record<string, string>): Record<string, RadixColor> =>
-  Object.fromEntries(getTagDefinitions(files).map((t) => [t.id, t.color]))
 
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
   id.startsWith("annotation-") ? findAnnotationById(files, id)?.text ?? null

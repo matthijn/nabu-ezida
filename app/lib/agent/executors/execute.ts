@@ -5,12 +5,12 @@ import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
 import { pushEntries, diffFileContent, fileCreatedEntry, fileDeletedEntry, fileRenamedEntry } from "~/lib/mutation-history"
 
-export const extractFiles = (): Map<string, string> =>
+const extractFiles = (): Map<string, string> =>
   new Map(Object.entries(getFilesStripped()).map(([k, v]) => [k, toExtraPretty(v)]))
 
 type ResolvedOp = { op: Operation; placeholderIds: Record<string, string> }
 
-export const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
+const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
   if (!("diff" in op)) return { op, placeholderIds: {} }
   const { result, generated } = replaceUuidPlaceholders(op.diff)
   return { op: { ...op, diff: result }, placeholderIds: generated }
@@ -32,7 +32,7 @@ const applyPatchAndStore = (path: string, content: string, diff: string, options
   return { ids }
 }
 
-export const applyMutation = (op: Operation, placeholderIds: Record<string, string>): MutationResult => {
+const applyMutation = (op: Operation, placeholderIds: Record<string, string>): MutationResult => {
   const ts = Date.now()
   switch (op.type) {
     case "create_file": {
@@ -83,7 +83,7 @@ export const applyMutation = (op: Operation, placeholderIds: Record<string, stri
   }
 }
 
-export const applyMutations = (mutations: Operation[]): MutationErr | MutationOk | null => {
+const applyMutations = (mutations: Operation[]): MutationErr | MutationOk | null => {
   if (mutations.length === 0) return null
   const allIds: string[] = []
   for (const op of mutations) {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { FeatherBug, FeatherCloud, FeatherCode, FeatherActivity, FeatherSparkles, FeatherFilter } from "@subframe/core"
 
-export type DebugToggle = {
+type DebugToggle = {
   key: string
   label: string
   icon: ReactNode

@@ -272,4 +272,4 @@ export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
     constraints: config.constraints,
   }))
 
-export type { IdPathConfig, ActorPathConfig }
+export type { IdPathConfig }

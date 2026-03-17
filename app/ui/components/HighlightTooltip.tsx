@@ -11,7 +11,7 @@ export type HighlightEntry = {
   onDelete?: () => void
 }
 
-export type HighlightTooltipProps = {
+type HighlightTooltipProps = {
   entries: HighlightEntry[]
 }
 

@@ -8,7 +8,7 @@ export const mdToPlainText = (markdown: string): string => {
   return toString(ast)
 }
 
-export type MarkdownBlock = {
+type MarkdownBlock = {
   type: string
   lang: string | null
   depth: number | null

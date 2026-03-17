@@ -12,7 +12,7 @@ import { cn } from "~/ui/utils"
 import { elementBackground, solidBackground, lowContrastText, type RadixColor } from "~/lib/colors/radix"
 import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
-export type Tag = {
+type Tag = {
   label: string
   variant: "brand" | "neutral"
   color?: RadixColor

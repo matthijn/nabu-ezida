@@ -1,1 +1,1 @@
-export { matchesFilter, matchesAny } from "./match"
+export { matchesAny } from "./match"

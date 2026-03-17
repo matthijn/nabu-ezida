@@ -23,7 +23,7 @@ export const CalloutSchema = z.object({
 })
 
 export type CalloutBlock = z.infer<typeof CalloutSchema>
-export type CalloutType = z.infer<typeof calloutType>
+type CalloutType = z.infer<typeof calloutType>
 
 export const calloutTypeIcons: Record<CalloutType, ComponentType<{ className?: string }>> = {
   "codebook-code": FeatherBook,

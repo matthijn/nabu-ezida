@@ -26,7 +26,7 @@ const findLastBoldText = (text: string): string | null => {
   return matches.length > 0 ? matches[matches.length - 1][1].trim() : null
 }
 
-export const blockToSpinnerLabel = (block: Block): string | null => {
+const blockToSpinnerLabel = (block: Block): string | null => {
   if (block.type === "reasoning") return findLastBoldText(block.content) ?? DEFAULT_LABEL
   if (block.type === "tool_call" && block.calls.length > 0) return toLabel(block.calls[block.calls.length - 1].name)
   if (block.type === "tool_result") return toLabel(block.toolName ?? null)

@@ -6,7 +6,7 @@ import { FeatherFileText, FeatherMapPin } from "@subframe/core"
 import { resolveEntityLink, type EntityIcons } from "~/lib/entity-link"
 import { EntityLink } from "./EntityLink"
 
-export type EntityLinkContext = {
+type EntityLinkContext = {
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void

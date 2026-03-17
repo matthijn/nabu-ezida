@@ -1,4 +1,4 @@
-export type ReadResult =
+type ReadResult =
   | { ok: true; content: string }
   | { ok: false; error: string }
 

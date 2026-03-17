@@ -3,7 +3,7 @@
 import type { ComponentType } from "react"
 import type { ResolvedColors } from "~/lib/entity-link"
 
-export type EntityLinkProps = {
+type EntityLinkProps = {
   href: string
   children: React.ReactNode
   colors: ResolvedColors

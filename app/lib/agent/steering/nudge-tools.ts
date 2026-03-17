@@ -1,6 +1,6 @@
 import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
 
-export type NudgeContext = string | { text: string; blocks: Block[] }
+type NudgeContext = string | { text: string; blocks: Block[] }
 
 export type NudgeBlock = {
   type: "system" | "empty"
@@ -10,13 +10,13 @@ export type NudgeBlock = {
 
 export type Nudger = (history: Block[]) => NudgeBlock | null
 
-export type MultiNudger = (history: Block[]) => Promise<Block[]>
+type MultiNudger = (history: Block[]) => Promise<Block[]>
 
 export const systemNudge = (content: string): NudgeBlock => ({ type: "system", content })
 
 export const emptyNudge = (): NudgeBlock => ({ type: "empty", content: "" })
 
-export const withContext = (nudge: NudgeBlock, context: () => Promise<NudgeContext>): NudgeBlock => ({
+const withContext = (nudge: NudgeBlock, context: () => Promise<NudgeContext>): NudgeBlock => ({
   ...nudge,
   context,
 })
@@ -88,7 +88,7 @@ export const lastToolResultStatus = (history: Block[]): ToolResultStatus => {
 export const alreadyFired = (history: Block[], marker: string): boolean =>
   blocksSinceMarker(history, marker) !== -1
 
-export const firedWithin = (history: Block[], marker: string, n: number): boolean => {
+const firedWithin = (history: Block[], marker: string, n: number): boolean => {
   const since = blocksSinceMarker(history, marker)
   if (since === -1) return false
   return since <= n
@@ -119,7 +119,7 @@ export const withCooldown =
     return result
   }
 
-export const buildToolNudge =
+const buildToolNudge =
   (toolName: string, prompt: string): Nudger =>
   (history) => {
     if (!afterToolResult(history)) return null

@@ -88,7 +88,7 @@ const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEdit
   )
 }
 
-export type MilkdownEditorProps = {
+type MilkdownEditorProps = {
   content: string
   debugMode?: boolean
   spotlight?: Spotlight | null

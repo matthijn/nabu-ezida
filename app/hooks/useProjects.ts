@@ -42,7 +42,7 @@ export const shouldAutoSelect = (
 export const getFirstProjectId = (projects: ProjectSummary[]): string | null =>
   projects.length > 0 ? projects[0].id : null
 
-export type SelectorState = "loading" | "error" | "empty" | "ready"
+type SelectorState = "loading" | "error" | "empty" | "ready"
 
 export const resolveState = (
   loading: boolean,

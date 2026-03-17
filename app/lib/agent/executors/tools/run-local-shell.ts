@@ -9,7 +9,7 @@ export type ShellCommandOutput = {
   outcome: { type: "exit"; exit_code: number }
 }
 
-export const runLocalShell = registerTool(
+const runLocalShell = registerTool(
   tool({
     ...def,
     handler: async (files, { commands }) => {

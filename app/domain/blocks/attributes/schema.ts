@@ -27,12 +27,7 @@ export const AnnotationSchema = AnnotationBase
   })
   .refine(hasColorOrCode, "Either color or code must be set, not both")
 
-export const AnnotationSuggestionSchema = AnnotationBase
-  .extend({ deleteSuggested: z.boolean().describe("Whether this annotation should be removed") })
-  .refine(hasColorOrCode, "Either color or code must be set, not both")
-
 export type Annotation = z.infer<typeof AnnotationSchema>
-export type AnnotationSuggestion = z.infer<typeof AnnotationSuggestionSchema>
 
 export type StoredAnnotation = Annotation
 
@@ -42,12 +37,12 @@ export const DocumentMeta = z.object({
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
-export type DocumentMetaField = keyof DocumentMeta
+type DocumentMetaField = keyof DocumentMeta
 
-export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } =
+const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } =
   DocumentMeta.shape as { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> }
 
-export const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {}
+const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {}
 
 export const documentMetaFieldConfig = {
   schema: DocumentMeta,

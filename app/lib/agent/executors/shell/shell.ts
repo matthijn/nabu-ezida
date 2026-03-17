@@ -3,9 +3,7 @@ import type { Files } from "./types"
 import type { Result, Operation } from "./commands/command"
 import * as commands from "./commands"
 
-export type { Files, Operation }
-
-export type ExecResult = { output: string; operations: Operation[]; isError: boolean; exitCode?: number }
+type ExecResult = { output: string; operations: Operation[]; isError: boolean; exitCode?: number }
 
 export const createShell = (files: Files) => {
   const handlers = Object.fromEntries(
@@ -22,7 +20,7 @@ const categories: CommandCategory[] = [
   { name: "Text Processing", commands: ["cut", "sort", "uniq", "tr", "sed", "echo"] },
 ]
 
-export const getCommandNames = (): string[] => categories.flatMap((c) => c.commands)
+const getCommandNames = (): string[] => categories.flatMap((c) => c.commands)
 
 const formatCommandDoc = (name: string): string => {
   const cmd = commands[name as keyof typeof commands]

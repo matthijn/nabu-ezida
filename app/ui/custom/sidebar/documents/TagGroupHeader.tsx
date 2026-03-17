@@ -27,7 +27,7 @@ export const humanize = (tag: string): string =>
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
-export function TagGroupHeader({ tag, display, count, expanded, color = "lime", icon, onClick }: TagGroupHeaderProps) {
+function TagGroupHeader({ tag, display, count, expanded, color = "lime", icon, onClick }: TagGroupHeaderProps) {
   const Chevron = expanded ? FeatherChevronUp : FeatherChevronDown
   const TagIcon = icon ?? FeatherHash
   const accentStyle = expanded ? { color: lowContrastText(color) } : undefined

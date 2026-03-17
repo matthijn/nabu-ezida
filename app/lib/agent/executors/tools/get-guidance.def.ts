@@ -16,7 +16,7 @@ export const buildSchema = () => {
   })
 }
 
-export type GetGuidanceArgs = z.infer<ReturnType<typeof buildSchema>>
+type GetGuidanceArgs = z.infer<ReturnType<typeof buildSchema>>
 
 export const getGuidanceTool: AnyTool = {
   name: "get_guidance",

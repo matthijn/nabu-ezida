@@ -1,2 +1,2 @@
 export { CodesSidebar } from "./CodesSidebar"
-export type { Codebook, CodeCategory, Code } from "./types"
+export type { Code } from "./types"

@@ -10,24 +10,24 @@ export type ProjectSummary = {
   pinned: boolean
 }
 
-export type PaginationQuery = {
+type PaginationQuery = {
   page?: number
   page_size?: number
 }
 
-export type PaginationResult<T> = {
+type PaginationResult<T> = {
   items: T[]
   total: number
   page: number
   page_size: number
 }
 
-export type QueryError = {
+type QueryError = {
   status: number
   statusText: string
 }
 
-export const isQueryError = (error: unknown): error is QueryError =>
+const isQueryError = (error: unknown): error is QueryError =>
   typeof error === "object" && error !== null && "status" in error && "statusText" in error
 
 const buildQueryString = (params: Record<string, unknown>): string => {
@@ -59,5 +59,5 @@ export const getProjects = async (
   return results[0]
 }
 
-export const getProjectEvents = async (projectId: string): Promise<DomainEvent[]> =>
+const getProjectEvents = async (projectId: string): Promise<DomainEvent[]> =>
   fetchQuery<DomainEvent[]>(`/queries/projects/${projectId}/events`)

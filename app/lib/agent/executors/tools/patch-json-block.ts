@@ -102,7 +102,7 @@ const expandOpWithSelector = (op: JsonPatchOp, indices: number[], selector: Sele
   }))
 }
 
-export type ResolveResult =
+type ResolveResult =
   | { ok: true; ops: JsonPatchOp[] }
   | { ok: false; error: string }
 

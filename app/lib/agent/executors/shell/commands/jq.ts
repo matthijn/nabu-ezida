@@ -1,6 +1,6 @@
 import { command, ok, err } from "./command"
 
-export type JqInstance = {
+type JqInstance = {
   raw: (input: string, filter: string, flags?: string[]) => string
 }
 

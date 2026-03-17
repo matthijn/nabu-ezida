@@ -118,7 +118,7 @@ const serializeJson = (obj: JsonValue, indent: number, expandMultiline: boolean)
   return String(obj)
 }
 
-export const collapseTripleQuotes = (content: string): string =>
+const collapseTripleQuotes = (content: string): string =>
   content.replace(TRIPLE_QUOTE_REGEX, (_, inner) => JSON.stringify(inner))
 
 export const parsePrettyJson = <T>(content: string): T | null => {

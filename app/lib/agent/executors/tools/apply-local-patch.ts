@@ -4,7 +4,7 @@ import { applyLocalPatch as def } from "./apply-local-patch.def"
 import { detectHint } from "./apply-local-patch.hints"
 import { isProtectedFile } from "~/lib/files/filename"
 
-export const applyLocalPatch = registerTool(
+const applyLocalPatch = registerTool(
   tool({
     ...def,
     handler: async (files, { operation }) => {
@@ -20,7 +20,7 @@ export const applyLocalPatch = registerTool(
   })
 )
 
-export const patchHandler = applyLocalPatch.handle
+const patchHandler = applyLocalPatch.handle
 
 const validateOperation = (files: Map<string, string>, op: Operation): string | null => {
   switch (op.type) {

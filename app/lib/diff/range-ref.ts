@@ -1,7 +1,7 @@
 import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
 
-export type RangeRefResult =
+type RangeRefResult =
   | { ok: true; patch: string }
   | { ok: false; error: string }
 
