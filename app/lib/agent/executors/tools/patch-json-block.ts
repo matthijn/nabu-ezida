@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { tool, registerTool, ok, partial, err } from "../tool"
 import { patchJsonBlock as def } from "./patch-json-block.def"
-import { findSingletonBlock, findBlockById, summarizeBlocks, parseBlockJson, replaceBlock, replaceSingletonBlock, type CodeBlock } from "~/domain/blocks/parse"
+import { findSingletonBlock, findBlockById, summarizeBlocks, parseBlockJson, replaceBlock, replaceSingletonBlock, type CodeBlock } from "~/lib/blocks/parse"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
 import { hasFuzzyPatterns, resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"

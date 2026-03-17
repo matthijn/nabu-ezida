@@ -11,7 +11,7 @@ import {
   getAnnotations,
   getTagDefinitions,
 } from "~/lib/files"
-import type { TagDefinition } from "~/domain/settings"
+import type { TagDefinition } from "~/domain/blocks/settings/schema"
 
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)

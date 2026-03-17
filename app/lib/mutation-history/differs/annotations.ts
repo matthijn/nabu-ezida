@@ -1,4 +1,4 @@
-import type { StoredAnnotation } from "~/domain/attributes"
+import type { StoredAnnotation } from "~/domain/blocks/attributes/schema"
 import { getStoredAnnotations } from "~/lib/files/selectors"
 import type { HistoryEntry, HistoryVerb, ContentDiffer } from "../types"
 import { diffById, hasChangedExcluding } from "../diff-by-id"

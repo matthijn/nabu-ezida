@@ -1,0 +1,8 @@
+export type RadixColor = string
+
+export const BLOCK_COLORS: RadixColor[] = [
+  'tomato', 'red', 'ruby', 'crimson', 'pink', 'plum', 'purple', 'violet',
+  'iris', 'indigo', 'blue', 'sky', 'cyan', 'teal', 'jade', 'green',
+  'grass', 'lime', 'mint', 'yellow', 'amber', 'orange', 'brown', 'bronze',
+  'gold', 'sand', 'olive', 'sage', 'mauve', 'slate', 'gray',
+]

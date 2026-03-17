@@ -6,7 +6,7 @@ import {
   FeatherChevronDown,
   FeatherChevronRight,
 } from "@subframe/core"
-import { calloutTypeIcons, type CalloutType } from "~/domain/blocks/callout"
+import { calloutTypeIcons, type CalloutType } from "~/domain/blocks/callout/schema"
 import { cn } from "~/ui/utils"
 import { type RadixColor, solidBackground } from "~/lib/colors/radix"
 import { DropdownMenu } from "./DropdownMenu"

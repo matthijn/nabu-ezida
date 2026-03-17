@@ -56,6 +56,6 @@ export {
   type FileResult,
 } from "./patch"
 
-export { formatGeneratedIds, type GeneratedId } from "~/domain/blocks"
+export { formatGeneratedIds, type GeneratedId } from "~/lib/blocks/uuid"
 
 export { PREFERENCES_FILE, SETTINGS_FILE, normalizeFilename, toDisplayName, isHiddenFile } from "./filename"

@@ -3,17 +3,11 @@ import { expandRangeRefs, type FileReader } from "~/lib/diff/range-ref"
 import { resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { repairJsonNewlines, toExtraPretty, fromExtraPretty, PrettyJsonError } from "~/lib/json"
 import { stripPendingRefs } from "./pending-refs"
-import { parseCodeBlocks } from "~/domain/blocks"
-import {
-  fillMissingIds,
-  buildGeneratedIdsList,
-  validateMarkdownBlocks,
-  extractProse,
-  stampActors,
-  type ValidationContext,
-  type ValidationError,
-  type GeneratedId,
-} from "~/domain/blocks"
+import { parseCodeBlocks } from "~/lib/blocks/parse"
+import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/blocks/uuid"
+import { validateMarkdownBlocks, extractProse, type ValidationError } from "~/lib/blocks/validate"
+import { stampActors } from "~/lib/blocks/actor"
+import type { ValidationContext } from "~/domain/blocks/registry"
 import { getFiles } from "./store"
 import { getAllCodes, getTagDefinitions } from "./selectors"
 

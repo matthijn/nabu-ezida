@@ -2,7 +2,7 @@
 
 import { createElement } from "react"
 import * as SubframeCore from "@subframe/core"
-import { calloutTypeIcons, type CalloutBlock } from "~/domain/blocks/callout"
+import { calloutTypeIcons, type CalloutBlock } from "~/domain/blocks/callout/schema"
 import { MarkdownContent } from "~/ui/components/editor/MarkdownContent"
 
 type CalloutContentProps = {

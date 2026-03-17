@@ -1,7 +1,7 @@
 "use client"
 
 import { FeatherTrash2 } from "@subframe/core"
-import type { CalloutBlock } from "~/domain/blocks/callout"
+import type { CalloutBlock } from "~/domain/blocks/callout/schema"
 import type { RadixColor } from "~/lib/colors/radix"
 import { solidBackground } from "~/lib/colors/radix"
 import { IconButton } from "~/ui/components/IconButton"

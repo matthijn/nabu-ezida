@@ -1,9 +1,41 @@
 import equal from "fast-deep-equal"
 import { parseCodeBlocks, type CodeBlock } from "./parse"
-import { getActorPaths, isSingleton } from "./registry"
+import { getActorPaths, isSingleton } from "~/domain/blocks/registry"
 import { parsePath, tryParseJson, isObject, type ParsedPath } from "./json"
 
+export const stampActors = (original: string, updated: string, actor: Actor): string => {
+  const newBlocks = parseCodeBlocks(updated)
+  const oldBlocks = parseCodeBlocks(original)
+
+  const updates: BlockUpdate[] = []
+
+  for (const newBlock of newBlocks) {
+    const actorPaths = getActorPaths(newBlock.language)
+    if (actorPaths.length === 0) continue
+
+    const newParsed = tryParseJson(newBlock.content)
+    if (!newParsed) continue
+
+    const oldParsed = findOldParsed(newBlock, newParsed, oldBlocks)
+
+    for (const config of actorPaths) {
+      stampActorPath(oldParsed, newParsed, parsePath(config.path), actor)
+    }
+
+    const newContent = JSON.stringify(newParsed, null, 2)
+    if (newContent !== newBlock.content) {
+      updates.push({ block: newBlock, newContent })
+    }
+  }
+
+  if (updates.length === 0) return updated
+
+  return applyBlockUpdates(updated, updates)
+}
+
 type Actor = "ai" | "user"
+
+type BlockUpdate = { block: CodeBlock; newContent: string }
 
 const withoutField = (obj: Record<string, unknown>, field: string): Record<string, unknown> => {
   const { [field]: _, ...rest } = obj
@@ -105,8 +137,6 @@ const stampActorPath = (
   }
 }
 
-type BlockUpdate = { block: CodeBlock; newContent: string }
-
 const applyBlockUpdates = (markdown: string, updates: BlockUpdate[]): string => {
   let result = markdown
   let offset = 0
@@ -122,34 +152,4 @@ const applyBlockUpdates = (markdown: string, updates: BlockUpdate[]): string => 
   }
 
   return result
-}
-
-export const stampActors = (original: string, updated: string, actor: Actor): string => {
-  const newBlocks = parseCodeBlocks(updated)
-  const oldBlocks = parseCodeBlocks(original)
-
-  const updates: BlockUpdate[] = []
-
-  for (const newBlock of newBlocks) {
-    const actorPaths = getActorPaths(newBlock.language)
-    if (actorPaths.length === 0) continue
-
-    const newParsed = tryParseJson(newBlock.content)
-    if (!newParsed) continue
-
-    const oldParsed = findOldParsed(newBlock, newParsed, oldBlocks)
-
-    for (const config of actorPaths) {
-      stampActorPath(oldParsed, newParsed, parsePath(config.path), actor)
-    }
-
-    const newContent = JSON.stringify(newParsed, null, 2)
-    if (newContent !== newBlock.content) {
-      updates.push({ block: newBlock, newContent })
-    }
-  }
-
-  if (updates.length === 0) return updated
-
-  return applyBlockUpdates(updated, updates)
 }

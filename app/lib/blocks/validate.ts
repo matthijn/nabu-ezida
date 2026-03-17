@@ -1,5 +1,5 @@
 import equal from "fast-deep-equal"
-import { getBlockConfig, isSingleton, getImmutableFields, getAllowedFiles, type ValidationContext } from "./registry"
+import { getBlockConfig, isSingleton, getImmutableFields, getAllowedFiles, type ValidationContext } from "~/domain/blocks/registry"
 import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 
@@ -16,10 +16,14 @@ export type ValidationResult = {
   errors: ValidationError[]
 }
 
-const formatBlock = (language: string, content: string): string =>
-  `\`\`\`${language}\n${content}\n\`\`\``
+export type ValidateOptions = {
+  path?: string
+  context?: ValidationContext
+  original?: string
+  skipImmutableCheck?: boolean
+}
 
-const extractProse = (markdown: string): string => {
+export const extractProse = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown)
   let prose = markdown
 
@@ -30,6 +34,85 @@ const extractProse = (markdown: string): string => {
 
   return prose
 }
+
+export const validateMarkdownBlocks = (
+  markdown: string,
+  options: ValidateOptions = {}
+): ValidationResult => {
+  const blocks = parseCodeBlocks(markdown)
+  const errors: ValidationError[] = []
+
+  errors.push(...validateSingletons(markdown))
+
+  const context = options.context ?? {
+    documentProse: extractProse(markdown),
+    availableCodes: [],
+    availableTags: [],
+  }
+
+  const originalBlocks = options.original ? parseCodeBlocks(options.original) : []
+  const originalBlocksByLanguage = groupBlocksByLanguage(originalBlocks)
+
+  for (const block of blocks) {
+    const config = getBlockConfig(block.language)
+    if (!config) continue
+
+    const fileError = validateFileConstraint(block.language, options.path)
+    if (fileError) {
+      errors.push(fileError)
+      continue
+    }
+
+    const schemaErrors = validateBlockSchema(block.language, block.content)
+    const semanticErrors = validateBlockSemantic(block.language, block.content, context)
+    const blockErrors = [...schemaErrors, ...semanticErrors]
+
+    if (options.original) {
+      const findResult = findOriginalBlock(block, originalBlocksByLanguage)
+
+      if (findResult.found) {
+        if (!options.skipImmutableCheck) {
+          const immutableErrors = validateImmutableFields(block.language, block, findResult.block)
+          errors.push(...immutableErrors)
+        }
+
+        if (blockErrors.length > 0) {
+          const currentBlock = formatBlock(block.language, findResult.block.content)
+          for (const error of blockErrors) {
+            error.currentBlock = currentBlock
+          }
+        }
+      } else if (blockErrors.length > 0 && !options.skipImmutableCheck) {
+        errors.push(findResult.error)
+        continue
+      }
+    }
+
+    errors.push(...blockErrors)
+  }
+
+  if (options.original && !options.skipImmutableCheck) {
+    errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+export const wouldViolateSingleton = (
+  currentMarkdown: string,
+  newMarkdown: string,
+  language: string
+): boolean => {
+  if (!isSingleton(language)) return false
+
+  const currentCount = countBlocksByLanguage(currentMarkdown, language)
+  const newCount = countBlocksByLanguage(newMarkdown, language)
+
+  return currentCount > 0 && newCount > currentCount
+}
+
+const formatBlock = (language: string, content: string): string =>
+  `\`\`\`${language}\n${content}\n\`\`\``
 
 const validateFileConstraint = (language: string, path: string | undefined): ValidationError | null => {
   const allowed = getAllowedFiles(language)
@@ -149,9 +232,6 @@ const DEFAULT_IMMUTABLE_MESSAGE = (field: string) => `Field "${field}" is immuta
 const normalizeEmpty = (value: unknown): unknown =>
   value === "" ? undefined : value
 
-// Deep equality needed because JSON.parse creates new object instances each time.
-// Comparing original vs new parsed JSON with === always fails for arrays/objects
-// even when content is identical, since they're different references.
 const valuesEqual = (a: unknown, b: unknown): boolean => {
   const aNorm = normalizeEmpty(a)
   const bNorm = normalizeEmpty(b)
@@ -218,88 +298,3 @@ const detectOrphanedIds = (
 
   return errors
 }
-
-export type ValidateOptions = {
-  path?: string
-  context?: ValidationContext
-  original?: string
-  skipImmutableCheck?: boolean
-}
-
-export const validateMarkdownBlocks = (
-  markdown: string,
-  options: ValidateOptions = {}
-): ValidationResult => {
-  const blocks = parseCodeBlocks(markdown)
-  const errors: ValidationError[] = []
-
-  errors.push(...validateSingletons(markdown))
-
-  const context = options.context ?? {
-    documentProse: extractProse(markdown),
-    availableCodes: [],
-    availableTags: [],
-  }
-
-  const originalBlocks = options.original ? parseCodeBlocks(options.original) : []
-  const originalBlocksByLanguage = groupBlocksByLanguage(originalBlocks)
-
-  for (const block of blocks) {
-    const config = getBlockConfig(block.language)
-    if (!config) continue
-
-    const fileError = validateFileConstraint(block.language, options.path)
-    if (fileError) {
-      errors.push(fileError)
-      continue
-    }
-
-    const schemaErrors = validateBlockSchema(block.language, block.content)
-    const semanticErrors = validateBlockSemantic(block.language, block.content, context)
-    const blockErrors = [...schemaErrors, ...semanticErrors]
-
-    if (options.original) {
-      const findResult = findOriginalBlock(block, originalBlocksByLanguage)
-
-      if (findResult.found) {
-        if (!options.skipImmutableCheck) {
-          const immutableErrors = validateImmutableFields(block.language, block, findResult.block)
-          errors.push(...immutableErrors)
-        }
-
-        if (blockErrors.length > 0) {
-          const currentBlock = formatBlock(block.language, findResult.block.content)
-          for (const error of blockErrors) {
-            error.currentBlock = currentBlock
-          }
-        }
-      } else if (blockErrors.length > 0 && !options.skipImmutableCheck) {
-        errors.push(findResult.error)
-        continue
-      }
-    }
-
-    errors.push(...blockErrors)
-  }
-
-  if (options.original && !options.skipImmutableCheck) {
-    errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
-  }
-
-  return { valid: errors.length === 0, errors }
-}
-
-export const wouldViolateSingleton = (
-  currentMarkdown: string,
-  newMarkdown: string,
-  language: string
-): boolean => {
-  if (!isSingleton(language)) return false
-
-  const currentCount = countBlocksByLanguage(currentMarkdown, language)
-  const newCount = countBlocksByLanguage(newMarkdown, language)
-
-  return currentCount > 0 && newCount > currentCount
-}
-
-export { extractProse }

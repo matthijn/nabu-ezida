@@ -3,8 +3,8 @@
 import { useRef, useMemo, useEffect } from "react"
 import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapter/react"
 import { DecorationSet } from "prosemirror-view"
-import { getBlockConfig } from "~/domain/blocks"
-import { parseCallout } from "~/domain/blocks/callout"
+import { getBlockConfig } from "~/domain/blocks/registry"
+import { parseCallout } from "~/domain/blocks/callout/schema"
 import { CalloutBlockView } from "./view"
 import { applyDOMHighlights, type HighlightEntry } from "./highlight"
 

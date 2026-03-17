@@ -1,10 +1,9 @@
 import { z } from "zod"
-import { DocumentMeta, type StoredAnnotation } from "~/domain/attributes/schema"
-import { Settings, type TagDefinition } from "~/domain/settings/schema"
-import { SETTINGS_FILE } from "~/lib/files/filename"
-import { CalloutSchema, type CalloutBlock } from "./callout"
-import type { ValidationError } from "./validate"
-import { parsePath, type ParsedPath } from "./json"
+import { DocumentMeta, type StoredAnnotation } from "./attributes/schema"
+import { Settings, type TagDefinition } from "./settings/schema"
+import { CalloutSchema, type CalloutBlock } from "./callout/schema"
+import type { ValidationError } from "~/lib/blocks/validate"
+import { parsePath, type ParsedPath } from "~/lib/blocks/json"
 
 export type ValidationContext = {
   documentProse: string
@@ -195,7 +194,7 @@ const jsonSettings = defineBlock({
   constraints: ["tags: each tag label must be unique"],
   renderer: "hidden",
   singleton: true,
-  allowedFiles: [SETTINGS_FILE],
+  allowedFiles: ["settings.hidden.md"],
   idPaths: [{ path: "tags.*.id", prefix: "tag" }],
   validate: validateTagLabels,
 })

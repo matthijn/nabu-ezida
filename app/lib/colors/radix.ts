@@ -1,26 +1,19 @@
-export type RadixColor = string
+export { BLOCK_COLORS, type RadixColor } from "~/domain/colors"
 
-export const BLOCK_COLORS: RadixColor[] = [
-  'tomato', 'red', 'ruby', 'crimson', 'pink', 'plum', 'purple', 'violet',
-  'iris', 'indigo', 'blue', 'sky', 'cyan', 'teal', 'jade', 'green',
-  'grass', 'lime', 'mint', 'yellow', 'amber', 'orange', 'brown', 'bronze',
-  'gold', 'sand', 'olive', 'sage', 'mauve', 'slate', 'gray',
-]
+const toVar = (color: string, shade: number): string => `var(--${color}-${shade})`
 
-const toVar = (color: RadixColor, shade: number): string => `var(--${color}-${shade})`
-
-export const appBackground = (color: RadixColor): string => toVar(color, 1)
-export const subtleBackground = (color: RadixColor): string => toVar(color, 2)
-export const elementBackground = (color: RadixColor): string => toVar(color, 3)
-export const hoveredElementBackground = (color: RadixColor): string => toVar(color, 4)
-export const activeElementBackground = (color: RadixColor): string => toVar(color, 5)
-export const subtleBorder = (color: RadixColor): string => toVar(color, 6)
-export const elementBorder = (color: RadixColor): string => toVar(color, 7)
-export const hoveredElementBorder = (color: RadixColor): string => toVar(color, 8)
-export const solidBackground = (color: RadixColor): string => toVar(color, 9)
-export const hoveredSolidBackground = (color: RadixColor): string => toVar(color, 10)
-export const lowContrastText = (color: RadixColor): string => toVar(color, 11)
-export const highContrastText = (color: RadixColor): string => toVar(color, 12)
+export const appBackground = (color: string): string => toVar(color, 1)
+export const subtleBackground = (color: string): string => toVar(color, 2)
+export const elementBackground = (color: string): string => toVar(color, 3)
+export const hoveredElementBackground = (color: string): string => toVar(color, 4)
+export const activeElementBackground = (color: string): string => toVar(color, 5)
+export const subtleBorder = (color: string): string => toVar(color, 6)
+export const elementBorder = (color: string): string => toVar(color, 7)
+export const hoveredElementBorder = (color: string): string => toVar(color, 8)
+export const solidBackground = (color: string): string => toVar(color, 9)
+export const hoveredSolidBackground = (color: string): string => toVar(color, 10)
+export const lowContrastText = (color: string): string => toVar(color, 11)
+export const highContrastText = (color: string): string => toVar(color, 12)
 
 type ColorScale = {
   background: string
@@ -30,7 +23,7 @@ type ColorScale = {
   borderStrong: string
 }
 
-export const colorScale = (color: RadixColor): ColorScale => ({
+export const colorScale = (color: string): ColorScale => ({
   background: elementBackground(color),
   contrast: highContrastText(color),
   border: subtleBorder(color),
@@ -38,11 +31,11 @@ export const colorScale = (color: RadixColor): ColorScale => ({
   borderStrong: hoveredElementBorder(color),
 })
 
-export const contrastForColors = (colors: RadixColor[]): string =>
+export const contrastForColors = (colors: string[]): string =>
   colors.length === 0 ? highContrastText('gray') : highContrastText(colors[0])
 
-export const borderForColors = (colors: RadixColor[]): string =>
+export const borderForColors = (colors: string[]): string =>
   colors.length === 0 ? subtleBorder('gray') : subtleBorder(colors[0])
 
-export const backgroundForColors = (colors: RadixColor[]): string[] =>
+export const backgroundForColors = (colors: string[]): string[] =>
   colors.length === 0 ? [elementBackground('gray')] : colors.map(elementBackground)

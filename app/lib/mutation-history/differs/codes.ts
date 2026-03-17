@@ -1,4 +1,4 @@
-import type { CalloutBlock } from "~/domain/blocks"
+import type { CalloutBlock } from "~/domain/blocks/callout/schema"
 import { getCodes } from "~/lib/files/selectors"
 import type { HistoryEntry, HistoryVerb, ContentDiffer } from "../types"
 import { diffById, hasChangedExcluding } from "../diff-by-id"

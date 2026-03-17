@@ -1,7 +1,7 @@
 import type { ComponentType } from "react"
 import { z } from "zod"
 import { FeatherBook } from "@subframe/core"
-import { BLOCK_COLORS } from "~/lib/colors/radix"
+import { BLOCK_COLORS } from "~/domain/colors"
 
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 

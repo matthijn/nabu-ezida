@@ -5,7 +5,7 @@ import {
   solidBackground,
   type RadixColor,
 } from "~/lib/colors/radix"
-import { annotationIcon as AnnotationIcon } from "~/domain/attributes/schema"
+import { annotationIcon as AnnotationIcon } from "~/domain/blocks/attributes/schema"
 
 export type DocumentItemProps = {
   title: string

@@ -1,6 +1,6 @@
 import type { ToolCall, ToolResult, Operation, Handler } from "../types"
 import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, finalizeContent, formatGeneratedIds } from "~/lib/files"
-import { replaceUuidPlaceholders } from "~/domain/blocks"
+import { replaceUuidPlaceholders } from "~/lib/blocks/uuid"
 import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
 import { pushEntries, diffFileContent, fileCreatedEntry, fileDeletedEntry, fileRenamedEntry } from "~/lib/mutation-history"

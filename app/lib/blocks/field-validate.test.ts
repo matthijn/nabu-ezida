@@ -1,18 +1,21 @@
 import { describe, it, expect } from "vitest"
 import {
-  validateDocumentMeta,
+  validateSchema,
   getChangedFields,
   validateField,
   validateFieldChanges,
   validateFieldChangesInternal,
   type FieldRejection,
-} from "./validate"
-import type { DocumentMeta, Annotation } from "./schema"
+} from "./field-validate"
+import { documentMetaFieldConfig } from "~/domain/blocks/attributes/schema"
+import type { DocumentMeta, Annotation } from "~/domain/blocks/attributes/schema"
+
+const config = documentMetaFieldConfig
 
 const testAnnotation = (overrides: Partial<Annotation> = {}): Annotation =>
   ({ text: "test", reason: "note", color: "red", code: undefined, ...overrides }) as Annotation
 
-describe("validateDocumentMeta", () => {
+describe("validateSchema", () => {
   const cases = [
     {
       name: "valid with tags",
@@ -75,7 +78,7 @@ describe("validateDocumentMeta", () => {
   ]
 
   it.each(cases)("$name", (testCase) => {
-    const result = validateDocumentMeta(testCase.input)
+    const result = validateSchema(config.schema, testCase.input)
 
     if (testCase.expectSuccess) {
       expect(result.success).toBe(true)
@@ -190,7 +193,7 @@ describe("validateField", () => {
   ]
 
   it.each(cases)("$name", ({ field, value, expectOk }) => {
-    const result = validateField(field, value as DocumentMeta[typeof field])
+    const result = validateField(config.fieldSchemas, field, value as DocumentMeta[typeof field])
     expect(result.ok).toBe(expectOk)
   })
 })
@@ -266,7 +269,7 @@ describe("validateFieldChanges", () => {
   it.each(cases)(
     "$name",
     ({ original, patched, expectAccepted, expectRejectedFields, expectRejectedReasons }) => {
-      const result = validateFieldChanges(original, patched)
+      const result = validateFieldChanges(config, original, patched)
 
       expect(result.accepted).toEqual(expectAccepted)
 
@@ -285,14 +288,14 @@ describe("validateFieldChangesInternal", () => {
     const patched = {
       annotations: [testAnnotation()],
     }
-    const result = validateFieldChangesInternal({}, patched)
+    const result = validateFieldChangesInternal(config, {}, patched)
     expect(result.rejected).toEqual([])
     expect(result.accepted).toEqual(patched)
   })
 
   it("still rejects invalid annotations", () => {
     const patched = { annotations: [{ text: "missing reason" }] as unknown }
-    const result = validateFieldChangesInternal({}, patched as Partial<DocumentMeta>)
+    const result = validateFieldChangesInternal(config, {}, patched as Partial<DocumentMeta>)
     expect(result.rejected[0].field).toBe("annotations")
     expect(result.rejected[0].reason).toBe("invalid")
   })

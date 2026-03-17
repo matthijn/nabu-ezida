@@ -1,20 +1,16 @@
 import type { ComponentType } from "react"
 import { z } from "zod"
 import { FeatherHighlighter } from "@subframe/core"
-import { BLOCK_COLORS } from "~/lib/colors/radix"
+import { BLOCK_COLORS } from "~/domain/colors"
+import { emptyToUndefined } from "~/lib/blocks/field-validate"
 
 export const annotationIcon: ComponentType<{ className?: string }> = FeatherHighlighter
 
 export const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 export const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 
-const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
-  z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>
-
-const colorOrCodeRefinement = (a: { color?: unknown; code?: unknown }) =>
+const hasColorOrCode = (a: { color?: unknown; code?: unknown }) =>
   (a.color !== undefined) !== (a.code !== undefined)
-
-const colorOrCodeMessage = { message: "Either color or code must be set, not both" }
 
 const AnnotationBase = z.object({
   text: z.string().describe("Exact text from the document"),
@@ -29,33 +25,32 @@ export const AnnotationSchema = AnnotationBase
     id: z.string().optional(),
     actor: z.enum(["ai", "user"]).optional(),
   })
-  .refine(colorOrCodeRefinement, colorOrCodeMessage)
+  .refine(hasColorOrCode, "Either color or code must be set, not both")
 
 export const AnnotationSuggestionSchema = AnnotationBase
   .extend({ deleteSuggested: z.boolean().describe("Whether this annotation should be removed") })
-  .refine(colorOrCodeRefinement, colorOrCodeMessage)
+  .refine(hasColorOrCode, "Either color or code must be set, not both")
 
 export type Annotation = z.infer<typeof AnnotationSchema>
 export type AnnotationSuggestion = z.infer<typeof AnnotationSuggestionSchema>
 
-// Backwards compat aliases
 export type StoredAnnotation = Annotation
-export type AnnotationInput = Annotation
-
-const tagsSchema = z.array(slug).optional().describe("Tag IDs from settings")
-const annotationsSchema = z.array(AnnotationSchema).optional()
 
 export const DocumentMeta = z.object({
-  tags: tagsSchema,
-  annotations: annotationsSchema,
+  tags: z.array(slug).optional().describe("Tag IDs from settings"),
+  annotations: z.array(AnnotationSchema).optional(),
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>
 export type DocumentMetaField = keyof DocumentMeta
 
-export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } = {
-  tags: tagsSchema,
-  annotations: annotationsSchema,
-}
+export const fieldSchemas: { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> } =
+  DocumentMeta.shape as { [K in DocumentMetaField]: z.ZodType<DocumentMeta[K]> }
 
 export const READONLY_FIELD_HINTS: Partial<Record<DocumentMetaField, string>> = {}
+
+export const documentMetaFieldConfig = {
+  schema: DocumentMeta,
+  fieldSchemas,
+  readonlyHints: READONLY_FIELD_HINTS,
+} as const

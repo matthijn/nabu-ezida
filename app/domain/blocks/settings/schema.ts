@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { slug, radixColor } from "~/domain/attributes/schema"
+import { slug, radixColor } from "~/domain/blocks/attributes/schema"
 import { ICON_NAMES } from "~/domain/icons"
 
 export const TagDefinition = z.object({
