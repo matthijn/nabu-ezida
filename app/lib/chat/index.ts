@@ -1,2 +1,2 @@
-export { closeChat } from "./store"
+export { openChat, closeChat } from "./store"
 export { useChat } from "./useChat"

@@ -1,4 +1,4 @@
-import type { Spotlight } from "~/domain/spotlight"
+import type { Spotlight } from "~/lib/editor/spotlight"
 
 export type EntityKind = "annotation" | "callout" | "tag" | "text"
 

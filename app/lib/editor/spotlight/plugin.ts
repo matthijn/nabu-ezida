@@ -1,7 +1,7 @@
 import { Plugin, PluginKey } from "prosemirror-state"
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import type { Spotlight } from "~/domain/spotlight"
+import type { Spotlight } from "./types"
 import { getBlockConfig } from "~/lib/blocks/registry"
 import { proseTextContent, textOffsetToPos } from "~/lib/editor/text"
 import type { TextRange } from "~/lib/editor/text"

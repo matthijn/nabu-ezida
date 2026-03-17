@@ -1,4 +1,4 @@
-import type { Spotlight } from "~/domain/spotlight"
+import type { Spotlight } from "~/lib/editor/spotlight"
 import type { EntityKind, EntityRef } from "./types"
 import { getEntityPrefixes } from "~/lib/blocks/registry"
 

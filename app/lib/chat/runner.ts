@@ -5,7 +5,7 @@ import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
 import { fetchApproachMeta } from "~/lib/modes/approaches"
-import { getChat } from "./store"
+import { isChatOpen } from "./store"
 import { isAbortError } from "~/lib/utils"
 
 export type RunnerDeps = ToolDeps
@@ -61,8 +61,7 @@ const buildCallbacks = () => ({
 })
 
 const runAgent = async (deps: RunnerDeps): Promise<void> => {
-  const chat = getChat()
-  if (!chat) return
+  if (!isChatOpen()) return
 
   controller = new AbortController()
   const executor = createToolExecutor(deps)

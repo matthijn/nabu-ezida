@@ -1,5 +1,5 @@
 import { findMatchOffset } from "~/lib/diff/fuzzy-inline"
-import { serializeSpotlight } from "~/domain/spotlight/serialize"
+import { serializeSpotlight } from "~/lib/editor/spotlight"
 
 const QUOTE_PATTERN =
   /\[([^\]]*)\]\([^)]*\)|[\u201C\u201D""]([^"\u201C\u201D""]+?)[\u201C\u201D""]/g

@@ -18,7 +18,7 @@ import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 import { useFiles } from "~/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
-import type { Spotlight } from "~/domain/spotlight"
+import type { Spotlight } from "~/lib/editor/spotlight"
 
 interface MilkdownEditorCoreProps {
   defaultValue: string

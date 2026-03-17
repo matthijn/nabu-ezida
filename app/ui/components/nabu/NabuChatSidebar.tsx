@@ -840,7 +840,7 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chat, send, respond, cancel, loading, draft, history } = useChat()
+  const { chatOpen, send, respond, cancel, loading, draft, history } = useChat()
   const mutationHistory = useMutationHistory()
   const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
   const { files, currentFile } = useFiles()
@@ -862,14 +862,14 @@ export const NabuChatSidebar = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (chat) {
+    if (chatOpen) {
       requestAnimationFrame(() => inputRef.current?.focus())
     }
-  }, [chat])
+  }, [chatOpen])
 
   const didAutoSend = useRef(false)
   useEffect(() => {
-    if (chat && history.length === 0 && !didAutoSend.current) {
+    if (chatOpen && history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
       pushBlocks([
@@ -879,7 +879,7 @@ export const NabuChatSidebar = () => {
         },
       ])
     }
-  }, [chat, history.length, send, getDeps])
+  }, [chatOpen, history.length, send, getDeps])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
@@ -918,7 +918,7 @@ export const NabuChatSidebar = () => {
     [navigate, params.projectId]
   )
 
-  if (!chat) {
+  if (!chatOpen) {
     return (
       <div className="flex w-full grow flex-col rounded-xl bg-default-background overflow-hidden">
         <EmptyState onStart={startChat} />
@@ -926,7 +926,6 @@ export const NabuChatSidebar = () => {
     )
   }
 
-  const { recipient } = chat
   const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
 
   return (
@@ -994,9 +993,7 @@ export const NabuChatSidebar = () => {
         <TextFieldUnstyled className="grow min-h-5">
           <TextFieldUnstyled.Textarea
             ref={inputRef}
-            placeholder={
-              waitingForInput ? "Or type your own answer..." : `Message ${recipient.name}...`
-            }
+            placeholder={waitingForInput ? "Or type your own answer..." : "Message Nabu..."}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}

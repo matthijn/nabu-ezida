@@ -1,26 +1,19 @@
-import type { Participant } from "~/domain/participant"
-
-export interface ChatState {
-  initiator: Participant
-  recipient: Participant
-}
-
-let chat: ChatState | null = null
+let open = false
 const listeners = new Set<() => void>()
 
 const notify = (): void => {
   listeners.forEach((l) => l())
 }
 
-export const openChat = (initiator: Participant, recipient: Participant): void => {
-  chat = { initiator, recipient }
+export const openChat = (): void => {
+  open = true
   notify()
 }
 
-export const getChat = (): ChatState | null => chat
+export const isChatOpen = (): boolean => open
 
 export const closeChat = (): void => {
-  chat = null
+  open = false
   notify()
 }
 

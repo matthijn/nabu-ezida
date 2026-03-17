@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from "react"
 import { useSearchParams } from "react-router"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
-import { parseSpotlight } from "~/domain/spotlight"
+import { parseSpotlight } from "~/lib/editor/spotlight"
 import { useProject } from "./project"
 import { linkifyEntityIds } from "~/lib/entity-link/linkify"
 import { linkifyTags } from "~/lib/entity-link/linkify-tags"

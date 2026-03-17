@@ -2,7 +2,7 @@ import type { ComponentType } from "react"
 import type { RadixColor } from "~/lib/colors/radix"
 import type { EntityKind, EntityRef } from "./types"
 import { parseEntityLink } from "./parse"
-import { serializeSpotlight } from "~/domain/spotlight"
+import { serializeSpotlight } from "~/lib/editor/spotlight"
 import { calloutTypeIcons } from "~/domain/blocks/callout/schema"
 import { annotationIcon } from "~/domain/blocks/attributes/schema"
 import {

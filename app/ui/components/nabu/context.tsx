@@ -1,12 +1,11 @@
 "use client"
 
 import { createContext, useContext, useCallback, useEffect, type ReactNode } from "react"
-import { openChat, closeChat as closeChatStore } from "~/lib/chat/store"
+import { openChat, closeChat as closeChatStore } from "~/lib/chat"
 import { clearBlocks } from "~/lib/agent/block-store"
 import { clearEntries } from "~/lib/mutation-history"
 import { setEditorContext } from "~/lib/chat/context"
 import { getCurrentFile } from "~/lib/files"
-import { CURRENT_USER, NABU } from "~/domain/participant"
 import { getSettings, setSetting } from "~/lib/storage"
 
 interface NabuContextValue {
@@ -34,14 +33,14 @@ export const NabuProvider = ({ children }: NabuProviderProps) => {
 
   useEffect(() => {
     if (getSettings().chatOpen) {
-      openChat(CURRENT_USER, NABU)
+      openChat()
     }
   }, [])
 
   const startChat = useCallback(() => {
     clearBlocks()
     clearEntries()
-    openChat(CURRENT_USER, NABU)
+    openChat()
     setSetting("chatOpen", true)
   }, [])
 
