@@ -1,4 +1,4 @@
-type FileWithPath = {
+interface FileWithPath {
   file: File
   pathTags: string[]
 }
@@ -10,16 +10,15 @@ const getPathTags = (path: string): string[] => {
 
 const readFileEntry = (entry: FileSystemFileEntry, path: string): Promise<FileWithPath> =>
   new Promise((resolve, reject) => {
-    entry.file(
-      (file) => resolve({ file, pathTags: getPathTags(path) }),
-      reject
-    )
+    entry.file((file) => resolve({ file, pathTags: getPathTags(path) }), reject)
   })
 
 const readDirectoryEntries = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
   new Promise((resolve, reject) => reader.readEntries(resolve, reject))
 
-const readAllDirectoryEntries = async (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> => {
+const readAllDirectoryEntries = async (
+  reader: FileSystemDirectoryReader
+): Promise<FileSystemEntry[]> => {
   const entries: FileSystemEntry[] = []
   let batch = await readDirectoryEntries(reader)
   while (batch.length > 0) {
@@ -38,9 +37,7 @@ const readEntry = async (entry: FileSystemEntry, path: string): Promise<FileWith
   const reader = dirEntry.createReader()
   const entries = await readAllDirectoryEntries(reader)
 
-  const nested = await Promise.all(
-    entries.map((e) => readEntry(e, `${path}/${e.name}`))
-  )
+  const nested = await Promise.all(entries.map((e) => readEntry(e, `${path}/${e.name}`)))
   return nested.flat()
 }
 
@@ -55,9 +52,7 @@ export const readDroppedItems = async (dataTransfer: DataTransfer): Promise<File
     return Array.from(dataTransfer.files).map((file) => ({ file, pathTags: [] }))
   }
 
-  const nested = await Promise.all(
-    entries.map((entry) => readEntry(entry, entry.name))
-  )
+  const nested = await Promise.all(entries.map((entry) => readEntry(entry, entry.name)))
   return nested.flat()
 }
 

@@ -1,6 +1,10 @@
 import { command, ok, noMatch, err, normalizePath, isGlob, resolveFiles } from "./command"
 
-type ContextMatch = { lineNum: number; line: string; isMatch: boolean }
+interface ContextMatch {
+  lineNum: number
+  line: string
+  isMatch: boolean
+}
 
 const grepWithContext = (
   lines: string[],
@@ -81,8 +85,8 @@ export const grep = command({
     const onlyMatching = flags.has("-o")
     const invert = flags.has("-v")
     const results: string[] = []
-    const fileCounts: Map<string, number> = new Map()
-    const filesWithMatches: Set<string> = new Set()
+    const fileCounts = new Map<string, number>()
+    const filesWithMatches = new Set<string>()
 
     const searchFile = (filePath: string | null, content: string) => {
       const lines = content.split("\n")
@@ -117,7 +121,9 @@ export const grep = command({
                 const prefix = filePath ? `${filePath}:` : ""
                 allMatches.forEach((m) => results.push(prefix + m))
               } else {
-                results.push(formatMatch(filePath, { lineNum: i + 1, line, isMatch: true }, showLineNumbers))
+                results.push(
+                  formatMatch(filePath, { lineNum: i + 1, line, isMatch: true }, showLineNumbers)
+                )
               }
             }
           }
@@ -140,7 +146,11 @@ export const grep = command({
     if (filename) {
       const resolved = resolveFiles(files, filename)
       if (resolved.length === 0 && !isGlob(filename)) return err(`grep: ${filename}: No such file`)
-      for (const filePath of resolved) { searchFile(filePath, files.get(filePath)!) }
+      for (const filePath of resolved) {
+        const content = files.get(filePath)
+        if (content === undefined) continue
+        searchFile(filePath, content)
+      }
     } else {
       for (const [filePath, content] of files) {
         searchFile(filePath, content)
@@ -149,7 +159,8 @@ export const grep = command({
 
     if (filesWithMatches.size === 0) return noMatch()
     if (listOnly) return ok([...filesWithMatches].join("\n"))
-    if (countOnly || countMatches) return ok([...fileCounts].map(([f, c]) => `${f}:${c}`).join("\n"))
+    if (countOnly || countMatches)
+      return ok([...fileCounts].map(([f, c]) => `${f}:${c}`).join("\n"))
     return ok(results.join("\n"))
   },
 })

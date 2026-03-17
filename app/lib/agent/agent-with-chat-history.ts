@@ -20,13 +20,19 @@ const doneDef = {
   name: DONE_TOOL,
   description: "Signal that all updates are complete.",
   schema: z.object({
-    result: z.string().describe("Summary of what was written and where, or note that no changes were needed."),
+    result: z
+      .string()
+      .describe("Summary of what was written and where, or note that no changes were needed."),
   }),
 }
 
 const TOOLS = [patchJsonBlock, applyLocalPatch, runLocalShell, doneDef]
 
-const doneHandler: Handler = async (_files, args) => ({ status: "ok", output: (args.result as string) ?? "", mutations: [] })
+const doneHandler: Handler = async (_files, args) => ({
+  status: "ok",
+  output: (args.result as string) ?? "",
+  mutations: [],
+})
 
 const hasDoneResult = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_result" && b.toolName === DONE_TOOL)
@@ -48,8 +54,7 @@ const estimateBlockChars = (b: Block): number => {
   return 0
 }
 
-const isSafeBudgetBoundary = (b: Block): boolean =>
-  b.type !== "tool_result"
+const isSafeBudgetBoundary = (b: Block): boolean => b.type !== "tool_result"
 
 const takeWithinBudget = (blocks: Block[], tokenBudget: number): Block[] => {
   const charBudget = tokenBudget * CHARS_PER_TOKEN
@@ -115,8 +120,9 @@ const getChatHistory = (): { history: Block[]; debugMarker: Block } => {
 let counter = 0
 const nextSource = (): string => `branch:${++counter}`
 
-const prependHistory = (history: Block[]) => (blocks: Block[]): Block[] =>
-  [...history, ...blocks.filter((b) => !isDebugMarker(b))]
+const prependHistory =
+  (history: Block[]) =>
+  (blocks: Block[]): Block[] => [...history, ...blocks.filter((b) => !isDebugMarker(b))]
 
 export const agentWithChatHistory = async (instruction: string): Promise<string> => {
   const source = nextSource()

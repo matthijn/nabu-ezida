@@ -9,7 +9,7 @@ import { initJq } from "../commands/jq"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-type Scenario = {
+interface Scenario {
   files: Record<string, string>
   args: { commands: string[] }
   expected: {
@@ -19,8 +19,7 @@ type Scenario = {
   }
 }
 
-const readJson = <T>(path: string): T =>
-  JSON.parse(readFileSync(path, "utf-8")) as T
+const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf-8")) as T
 
 const loadScenarios = (): { name: string; scenario: Scenario }[] =>
   readdirSync(__dirname)

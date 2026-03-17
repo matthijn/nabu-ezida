@@ -6,7 +6,7 @@ import { FeatherFileText, FeatherMapPin } from "@subframe/core"
 import { resolveEntityLink, type EntityIcons } from "~/lib/entity-link"
 import { EntityLink } from "./EntityLink"
 
-type EntityLinkContext = {
+interface EntityLinkContext {
   files: Record<string, string>
   projectId: string | null
   navigate?: (url: string) => void
@@ -17,7 +17,8 @@ const entityIcons: EntityIcons = {
   spotlight: FeatherMapPin,
 }
 
-const createAnchorComponent = ({ files, projectId, navigate }: EntityLinkContext): Components["a"] =>
+const createAnchorComponent =
+  ({ files, projectId, navigate }: EntityLinkContext): Components["a"] =>
   (props) => {
     const href = props.href as string | undefined
     if (!href) return createElement("a", props)

@@ -1,0 +1,10 @@
+node_modules
+build
+.react-router
+storybook-static
+public
+app/designs
+app/lib/diff/scenarios
+app/lib/diff/json-block/scenarios
+app/lib/files/scenarios
+app/lib/text/scenarios

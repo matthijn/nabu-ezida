@@ -7,7 +7,7 @@ import { FileImportList } from "./FileImportList"
 import { FeatherX } from "@subframe/core"
 import type { ImportFile, ImportProgress } from "~/lib/import"
 
-type FileDropOverlayProps = {
+interface FileDropOverlayProps {
   isVisible: boolean
   isDragging: boolean
   files: ImportFile[]
@@ -48,16 +48,9 @@ export const FileDropOverlay = ({
     >
       <div className="flex w-full max-w-2xl flex-col items-start gap-6 rounded-xl bg-default-background p-8 shadow-2xl mx-4">
         <div className="flex w-full items-center justify-between">
-          <span className="text-heading-2 font-heading-2 text-default-font">
-            Import Documents
-          </span>
+          <span className="text-heading-2 font-heading-2 text-default-font">Import Documents</span>
           {canDismiss && (
-            <Button
-              variant="neutral-tertiary"
-              size="small"
-              icon={<FeatherX />}
-              onClick={onDismiss}
-            >
+            <Button variant="neutral-tertiary" size="small" icon={<FeatherX />} onClick={onDismiss}>
               Close
             </Button>
           )}
@@ -70,11 +63,7 @@ export const FileDropOverlay = ({
         />
 
         {showList && (
-          <FileImportList
-            files={files}
-            progress={progress}
-            isProcessing={isProcessing}
-          />
+          <FileImportList files={files} progress={progress} isProcessing={isProcessing} />
         )}
       </div>
     </div>

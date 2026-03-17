@@ -1,9 +1,15 @@
 import equal from "fast-deep-equal"
-import { getBlockConfig, isSingleton, getImmutableFields, getAllowedFiles, type ValidationContext } from "~/domain/blocks/registry"
-import { parseCodeBlocks, countBlocksByLanguage, type CodeBlock } from "./parse"
+import {
+  getBlockConfig,
+  isSingleton,
+  getImmutableFields,
+  getAllowedFiles,
+  type ValidationContext,
+} from "~/domain/blocks/registry"
+import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 
-export type ValidationError = {
+export interface ValidationError {
   block: string
   field?: string
   message: string
@@ -11,12 +17,12 @@ export type ValidationError = {
   hint?: Record<string, string>
 }
 
-type ValidationResult = {
+interface ValidationResult {
   valid: boolean
   errors: ValidationError[]
 }
 
-export type ValidateOptions = {
+export interface ValidateOptions {
   path?: string
   context?: ValidationContext
   original?: string
@@ -98,27 +104,20 @@ export const validateMarkdownBlocks = (
   return { valid: errors.length === 0, errors }
 }
 
-const wouldViolateSingleton = (
-  currentMarkdown: string,
-  newMarkdown: string,
-  language: string
-): boolean => {
-  if (!isSingleton(language)) return false
-
-  const currentCount = countBlocksByLanguage(currentMarkdown, language)
-  const newCount = countBlocksByLanguage(newMarkdown, language)
-
-  return currentCount > 0 && newCount > currentCount
-}
-
 const formatBlock = (language: string, content: string): string =>
   `\`\`\`${language}\n${content}\n\`\`\``
 
-const validateFileConstraint = (language: string, path: string | undefined): ValidationError | null => {
+const validateFileConstraint = (
+  language: string,
+  path: string | undefined
+): ValidationError | null => {
   const allowed = getAllowedFiles(language)
   if (!allowed || !path) return null
   if (allowed.includes(path)) return null
-  return { block: language, message: `\`${language}\` blocks can only exist in: ${allowed.join(", ")}` }
+  return {
+    block: language,
+    message: `\`${language}\` blocks can only exist in: ${allowed.join(", ")}`,
+  }
 }
 
 const validateBlockSchema = (language: string, content: string): ValidationError[] => {
@@ -194,9 +193,7 @@ const groupBlocksByLanguage = (blocks: CodeBlock[]): BlocksByLanguage =>
 const getBlockId = (block: CodeBlock): string | null =>
   tryParseJson(block.content)?.id as string | null
 
-type FindBlockResult =
-  | { found: true; block: CodeBlock }
-  | { found: false; error: ValidationError }
+type FindBlockResult = { found: true; block: CodeBlock } | { found: false; error: ValidationError }
 
 const findOriginalBlock = (
   block: CodeBlock,
@@ -224,13 +221,16 @@ const findOriginalBlock = (
   const original = originalBlocks.find((b) => getBlockId(b) === id)
   return original
     ? { found: true, block: original }
-    : { found: false, error: { block: block.language, message: `No original block found with id "${id}"` } }
+    : {
+        found: false,
+        error: { block: block.language, message: `No original block found with id "${id}"` },
+      }
 }
 
-const DEFAULT_IMMUTABLE_MESSAGE = (field: string) => `Field "${field}" is immutable and cannot be changed`
+const DEFAULT_IMMUTABLE_MESSAGE = (field: string) =>
+  `Field "${field}" is immutable and cannot be changed`
 
-const normalizeEmpty = (value: unknown): unknown =>
-  value === "" ? undefined : value
+const normalizeEmpty = (value: unknown): unknown => (value === "" ? undefined : value)
 
 const valuesEqual = (a: unknown, b: unknown): boolean => {
   const aNorm = normalizeEmpty(a)

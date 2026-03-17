@@ -3,9 +3,7 @@
     "text.txt": "the cat\ncaterpillar\nthe cat sat"
   },
   "args": {
-    "commands": [
-      "grep -w cat text.txt"
-    ]
+    "commands": ["grep -w cat text.txt"]
   },
   "expected": {
     "status": "ok",

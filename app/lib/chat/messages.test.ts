@@ -1,9 +1,13 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
-import { toRenderMessages, extractAskMessages, isWaitingForAsk, type RenderMessage, type AskMessage } from "./messages"
+import {
+  toRenderMessages,
+  extractAskMessages,
+  isWaitingForAsk,
+  type RenderMessage,
+} from "./messages"
 import {
   submitPlanCall,
-  submitPlanCallPending,
   completeStepCall,
   cancelCall,
   askCall,
@@ -224,10 +228,7 @@ describe("extractAskMessages", () => {
     },
     {
       name: "multiple sequential ask calls all extracted",
-      history: [
-        ...askCall("Q1", ["A", "B"], "A"),
-        ...askCall("Q2", ["C", "D"], "D"),
-      ],
+      history: [...askCall("Q1", ["A", "B"], "A"), ...askCall("Q2", ["C", "D"], "D")],
       check: (result: ReturnType<typeof extractAskMessages>) => {
         expect(result.messages).toHaveLength(2)
         expect(result.messages[0].message.question).toBe("Q1")
@@ -241,7 +242,12 @@ describe("extractAskMessages", () => {
       history: (() => {
         const id = "99"
         return [
-          { type: "tool_call" as const, calls: [{ id, name: "ask", args: { question: "Pick", options: ["A", "B"], scope: "local" } }] },
+          {
+            type: "tool_call" as const,
+            calls: [
+              { id, name: "ask", args: { question: "Pick", options: ["A", "B"], scope: "local" } },
+            ],
+          },
           { type: "user" as const, content: "A" },
         ]
       })(),
@@ -287,16 +293,17 @@ describe("isWaitingForAsk", () => {
     },
     {
       name: "answered ask then new pending ask returns true",
-      history: [
-        ...askCall("Q1", ["A", "B"], "A"),
-        ...askCallPending("Q2", ["C", "D"]),
-      ],
+      history: [...askCall("Q1", ["A", "B"], "A"), ...askCallPending("Q2", ["C", "D"])],
       expected: true,
     },
     {
       name: "draft ask tool call returns false",
       history: [
-        { type: "tool_call" as const, calls: [{ id: "", name: "ask", args: {} }], draft: true as const },
+        {
+          type: "tool_call" as const,
+          calls: [{ id: "", name: "ask", args: {} }],
+          draft: true as const,
+        },
       ],
       expected: false,
     },

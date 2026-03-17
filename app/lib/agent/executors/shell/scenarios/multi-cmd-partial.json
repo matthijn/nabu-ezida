@@ -3,11 +3,7 @@
     "exists.md": "content"
   },
   "args": {
-    "commands": [
-      "cat exists.md",
-      "cat ghost.md",
-      "ls"
-    ]
+    "commands": ["cat exists.md", "cat ghost.md", "ls"]
   },
   "expected": {
     "status": "partial",

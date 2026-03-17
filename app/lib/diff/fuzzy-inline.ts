@@ -5,13 +5,13 @@ const TOKEN_OVERLAP_THRESHOLD = 0.8
 const MIN_FUZZY_WORDS = 4
 const MIN_UNIQUE_FUZZY_WORDS = 2
 
-type FuzzyMatch = {
+interface FuzzyMatch {
   placeholder: string
   needle: string
   replacement: string | null
 }
 
-type Token = {
+interface Token {
   word: string
   start: number
   end: number
@@ -62,12 +62,15 @@ const scoreTokenWindow = (needleWords: Set<string>, windowTokens: Token[]): numb
   return hits / needleWords.size
 }
 
-type MatchOffset = { start: number; end: number }
+interface MatchOffset {
+  start: number
+  end: number
+}
 
 const findUniqueTokenMatch = (
   docTokens: Token[],
   needleSet: Set<string>,
-  windowSize: number,
+  windowSize: number
 ): MatchOffset | null => {
   let found: MatchOffset | null = null
   for (let i = 0; i <= docTokens.length - windowSize; i++) {
@@ -146,7 +149,7 @@ const collectFuzzyPatterns = (patch: string): FuzzyMatch[] => {
   return matches
 }
 
-type FuzzyResult = {
+interface FuzzyResult {
   patch: string
   resolved: number
   unresolved: string[]

@@ -13,9 +13,15 @@ const isPermitted = (): boolean =>
 
 const fireNotification = (title: string, body: string): void => {
   if (!document.hidden && document.hasFocus()) return
-  if (!isPermitted()) { ensurePermission(); return }
+  if (!isPermitted()) {
+    ensurePermission()
+    return
+  }
   const n = new Notification(title, { body })
-  n.onclick = () => { window.focus(); n.close() }
+  n.onclick = () => {
+    window.focus()
+    n.close()
+  }
 }
 
 const TEXT_DEBOUNCE_MS = 2000

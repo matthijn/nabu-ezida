@@ -3,9 +3,7 @@
     "my file.txt": "content"
   },
   "args": {
-    "commands": [
-      "cat \"my file.txt\""
-    ]
+    "commands": ["cat \"my file.txt\""]
   },
   "expected": {
     "status": "ok",

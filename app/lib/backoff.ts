@@ -1,4 +1,4 @@
-type BackoffConfig = {
+interface BackoffConfig {
   baseDelay?: number
   maxDelay: number
   jitter?: number

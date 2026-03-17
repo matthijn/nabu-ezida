@@ -3,9 +3,7 @@
     "a.md": ""
   },
   "args": {
-    "commands": [
-      "find /docs -name *.md"
-    ]
+    "commands": ["find /docs -name *.md"]
   },
   "expected": {
     "status": "partial",

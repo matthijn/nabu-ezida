@@ -35,7 +35,10 @@ export const stampActors = (original: string, updated: string, actor: Actor): st
 
 type Actor = "ai" | "user"
 
-type BlockUpdate = { block: CodeBlock; newContent: string }
+interface BlockUpdate {
+  block: CodeBlock
+  newContent: string
+}
 
 const withoutField = (obj: Record<string, unknown>, field: string): Record<string, unknown> => {
   const { [field]: _, ...rest } = obj
@@ -47,7 +50,7 @@ const findOldParsed = (
   newParsed: Record<string, unknown>,
   oldBlocks: CodeBlock[]
 ): Record<string, unknown> | null => {
-  const sameLanguage = oldBlocks.filter(b => b.language === newBlock.language)
+  const sameLanguage = oldBlocks.filter((b) => b.language === newBlock.language)
   if (sameLanguage.length === 0) return null
 
   if (isSingleton(newBlock.language)) {
@@ -79,9 +82,7 @@ const stampRootActor = (
   const oldWithout = withoutField(oldParsed, field)
   const newWithout = withoutField(newParsed, field)
 
-  newParsed[field] = equal(oldWithout, newWithout)
-    ? oldParsed[field]
-    : actor
+  newParsed[field] = equal(oldWithout, newWithout) ? oldParsed[field] : actor
 }
 
 const stampArrayActors = (
@@ -99,8 +100,8 @@ const stampArrayActors = (
     ? new Map(
         oldArr
           .filter(isObject)
-          .filter(item => item.id)
-          .map(item => [item.id as string, item])
+          .filter((item) => item.id)
+          .map((item) => [item.id as string, item])
       )
     : new Map<string, Record<string, unknown>>()
 
@@ -115,9 +116,7 @@ const stampArrayActors = (
       const oldWithout = withoutField(oldItem, itemField)
       const newWithout = withoutField(item, itemField)
 
-      item[itemField] = equal(oldWithout, newWithout)
-        ? oldItem[itemField]
-        : actor
+      item[itemField] = equal(oldWithout, newWithout) ? oldItem[itemField] : actor
     }
   }
 }

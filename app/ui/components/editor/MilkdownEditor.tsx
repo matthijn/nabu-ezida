@@ -20,7 +20,7 @@ import { useFiles } from "~/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
 import type { Spotlight } from "~/domain/spotlight"
 
-type MilkdownEditorCoreProps = {
+interface MilkdownEditorCoreProps {
   defaultValue: string
   debugMode: boolean
   spotlight: Spotlight | null
@@ -88,13 +88,17 @@ const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEdit
   )
 }
 
-type MilkdownEditorProps = {
+interface MilkdownEditorProps {
   content: string
   debugMode?: boolean
   spotlight?: Spotlight | null
 }
 
-export const MilkdownEditor = ({ content, debugMode = false, spotlight = null }: MilkdownEditorProps) => {
+export const MilkdownEditor = ({
+  content,
+  debugMode = false,
+  spotlight = null,
+}: MilkdownEditorProps) => {
   return (
     <div className="w-full max-w-[768px] text-default-font">
       <MilkdownProvider>

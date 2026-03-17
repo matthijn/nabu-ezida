@@ -14,7 +14,7 @@ export type LeafMessage = TextMessage
 
 export type StepStatus = "completed" | "active" | "pending" | "cancelled"
 
-export type PlanStep = {
+export interface PlanStep {
   type: "plan-step"
   description: string
   summary: string | null
@@ -25,14 +25,14 @@ export type PlanStep = {
 
 export type PlanChild = PlanStep | LeafMessage
 
-export type PlanHeader = {
+export interface PlanHeader {
   type: "plan-header"
   task: string
   completed: boolean
   aborted: boolean
 }
 
-export type PlanItem = {
+export interface PlanItem {
   type: "plan-item"
   child: PlanChild
   dimmed: boolean
@@ -40,13 +40,16 @@ export type PlanItem = {
 
 export type GroupedMessage = LeafMessage | AskMessage | PlanHeader | PlanItem
 
-type PlanRange = {
+interface PlanRange {
   plan: DerivedPlan
   startIndex: number
   endIndex: number
 }
 
-type FlatEntry = { blockIndex: number; item: PlanHeader | PlanItem }
+interface FlatEntry {
+  blockIndex: number
+  item: PlanHeader | PlanItem
+}
 
 const collectResultStatuses = (history: Block[]): Map<string, string> => {
   const statuses = new Map<string, string>()
@@ -61,9 +64,7 @@ const collectResultStatuses = (history: Block[]): Map<string, string> => {
 
 const isSuccessfulCompleteStep = (block: Block, statuses: Map<string, string>): boolean => {
   if (block.type !== "tool_call") return false
-  return block.calls.some((call) =>
-    call.name === "complete_step" && statuses.get(call.id) === "ok"
-  )
+  return block.calls.some((call) => call.name === "complete_step" && statuses.get(call.id) === "ok")
 }
 
 const isTerminatingResult = (block: Block, plan: DerivedPlan): boolean => {
@@ -73,7 +74,12 @@ const isTerminatingResult = (block: Block, plan: DerivedPlan): boolean => {
   return false
 }
 
-const findTerminationIndex = (history: Block[], plan: DerivedPlan, start: number, bound: number): number => {
+const findTerminationIndex = (
+  history: Block[],
+  plan: DerivedPlan,
+  start: number,
+  bound: number
+): number => {
   if (!plan.aborted && !isPlanCompleted(plan)) return bound
   for (let i = bound - 1; i >= start; i--) {
     if (isTerminatingResult(history[i], plan)) return i + 1
@@ -90,22 +96,29 @@ const buildPlanRanges = (history: Block[], plans: DerivedPlan[]): PlanRange[] =>
   })
 }
 
-const isPlanCompleted = (plan: DerivedPlan): boolean =>
-  plan.currentStep === null && !plan.aborted
+const isPlanCompleted = (plan: DerivedPlan): boolean => plan.currentStep === null && !plan.aborted
 
-const getStepStatus = (step: Step, flatIndex: number, currentStep: number | null, aborted: boolean): StepStatus => {
+const getStepStatus = (
+  step: Step,
+  flatIndex: number,
+  currentStep: number | null,
+  aborted: boolean
+): StepStatus => {
   if (step.done) return "completed"
   if (aborted && currentStep === flatIndex) return "cancelled"
   if (currentStep === flatIndex) return "active"
   return "pending"
 }
 
-type StepTransition = { blockIndex: number; newStep: number }
+interface StepTransition {
+  blockIndex: number
+  newStep: number
+}
 
 const findStepTransitions = (
   history: Block[],
   planStart: number,
-  planEnd: number,
+  planEnd: number
 ): StepTransition[] => {
   const statuses = collectResultStatuses(history)
   const transitions: StepTransition[] = []
@@ -118,15 +131,6 @@ const findStepTransitions = (
   }
 
   return transitions
-}
-
-const getStepAtIndex = (blockIndex: number, transitions: StepTransition[]): number => {
-  let step = 0
-  for (const t of transitions) {
-    if (blockIndex < t.blockIndex) break
-    step = t.newStep
-  }
-  return step
 }
 
 const toItem = (child: PlanChild, dimmed: boolean): PlanItem => ({
@@ -157,9 +161,11 @@ const buildPlanEntries = (
   }
 
   const stepActivations: FlatEntry[] = plan.steps.map((step, i) => {
-    const activation = i === 0
-      ? startIndex
-      : transitions.find((t) => t.newStep === i)?.blockIndex ?? endIndex - (totalSteps - i) * 0.001
+    const activation =
+      i === 0
+        ? startIndex
+        : (transitions.find((t) => t.newStep === i)?.blockIndex ??
+          endIndex - (totalSteps - i) * 0.001)
     return {
       blockIndex: activation,
       item: toItem(
@@ -171,7 +177,7 @@ const buildPlanEntries = (
           nested: step.id.includes("."),
           checkpoint: step.checkpoint,
         },
-        false,
+        false
       ),
     }
   })
@@ -190,10 +196,7 @@ const isInRange = (index: number, range: PlanRange): boolean =>
 const isConsumedLeaf = (leaf: Indexed<LeafMessage>, consumed: Set<number>): boolean =>
   leaf.message.role === "user" && consumed.has(leaf.index)
 
-export const toGroupedMessages = (
-  history: Block[],
-  derived: Derived,
-): GroupedMessage[] => {
+export const toGroupedMessages = (history: Block[], derived: Derived): GroupedMessage[] => {
   const planRanges = buildPlanRanges(history, derived.plans)
   const { messages: askMessages, consumedUserIndices } = extractAskMessages(history)
 
@@ -201,7 +204,7 @@ export const toGroupedMessages = (
     .filter((l) => !isConsumedLeaf(l, consumedUserIndices))
     .sort(byIndex)
 
-  const planLeaves: Map<number, Indexed<LeafMessage>[]> = new Map()
+  const planLeaves = new Map<number, Indexed<LeafMessage>[]>()
   const outsideLeaves: Indexed<LeafMessage>[] = []
 
   for (const leaf of allLeaves) {
@@ -215,7 +218,10 @@ export const toGroupedMessages = (
     }
   }
 
-  type OrderedEntry = { blockIndex: number; item: GroupedMessage }
+  interface OrderedEntry {
+    blockIndex: number
+    item: GroupedMessage
+  }
 
   const outsideEntries: OrderedEntry[] = outsideLeaves.map((l) => ({
     blockIndex: l.index,

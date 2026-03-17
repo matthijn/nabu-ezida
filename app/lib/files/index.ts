@@ -17,16 +17,8 @@ export {
   withoutPersist,
 } from "./store"
 
-export {
-  getTags,
-  getCodeTitle,
-  getAnnotations,
-  getTagDefinitions,
-} from "./selectors"
+export { getTags, getCodeTitle, getAnnotations, getTagDefinitions } from "./selectors"
 
-export {
-  applyFilePatch,
-  finalizeContent,
-} from "./patch"
+export { applyFilePatch, finalizeContent } from "./patch"
 
 export { formatGeneratedIds } from "~/lib/blocks/uuid"

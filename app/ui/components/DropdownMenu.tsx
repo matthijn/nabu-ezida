@@ -1,103 +1,86 @@
-"use client";
+"use client"
 
-import { forwardRef, type HTMLAttributes, type ReactNode, type ComponentProps } from "react";
-import { FeatherStar } from "@subframe/core";
-import * as SubframeCore from "@subframe/core";
-import { cn } from "~/ui/utils";
+import { forwardRef, type HTMLAttributes, type ReactNode, type ComponentProps } from "react"
+import { FeatherStar } from "@subframe/core"
+import * as SubframeCore from "@subframe/core"
+import { cn } from "~/ui/utils"
 
 interface DropdownDividerProps extends HTMLAttributes<HTMLDivElement> {
-  className?: string;
+  className?: string
 }
 
-const DropdownDivider = forwardRef<HTMLDivElement, DropdownDividerProps>(
-  function DropdownDivider(
-    { className, ...otherProps }: DropdownDividerProps,
-    ref
-  ) {
-    return (
+const DropdownDivider = forwardRef<HTMLDivElement, DropdownDividerProps>(function DropdownDivider(
+  { className, ...otherProps }: DropdownDividerProps,
+  ref
+) {
+  return (
+    <div
+      className={cn("flex w-full items-start gap-2 px-1 py-1", className)}
+      ref={ref}
+      {...otherProps}
+    >
+      <div className="flex h-px grow shrink-0 basis-0 flex-col items-center gap-2 bg-neutral-200" />
+    </div>
+  )
+})
+
+interface DropdownItemProps extends ComponentProps<typeof SubframeCore.DropdownMenu.Item> {
+  children?: ReactNode
+  icon?: ReactNode
+  className?: string
+}
+
+const DropdownItem = forwardRef<HTMLDivElement, DropdownItemProps>(function DropdownItem(
+  { children, icon = <FeatherStar />, className, ...otherProps }: DropdownItemProps,
+  ref
+) {
+  return (
+    <SubframeCore.DropdownMenu.Item asChild={true} {...otherProps}>
       <div
         className={cn(
-          "flex w-full items-start gap-2 px-1 py-1",
+          "group/adcae8d6 flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-3 hover:bg-neutral-100 active:bg-neutral-50 data-[highlighted]:bg-neutral-100",
+          className
+        )}
+        ref={ref}
+      >
+        {icon ? (
+          <SubframeCore.IconWrapper className="text-body font-body text-default-font">
+            {icon}
+          </SubframeCore.IconWrapper>
+        ) : null}
+        {children ? (
+          <span className="line-clamp-1 grow shrink-0 basis-0 text-body font-body text-default-font">
+            {children}
+          </span>
+        ) : null}
+      </div>
+    </SubframeCore.DropdownMenu.Item>
+  )
+})
+
+interface DropdownMenuRootProps extends HTMLAttributes<HTMLDivElement> {
+  children?: ReactNode
+  className?: string
+}
+
+const DropdownMenuRoot = forwardRef<HTMLDivElement, DropdownMenuRootProps>(
+  function DropdownMenuRoot({ children, className, ...otherProps }: DropdownMenuRootProps, ref) {
+    return children ? (
+      <div
+        className={cn(
+          "z-50 flex min-w-[192px] flex-col items-start rounded-md border border-solid border-neutral-border bg-default-background px-1 py-1 shadow-lg",
           className
         )}
         ref={ref}
         {...otherProps}
       >
-        <div className="flex h-px grow shrink-0 basis-0 flex-col items-center gap-2 bg-neutral-200" />
+        {children}
       </div>
-    );
+    ) : null
   }
-);
-
-interface DropdownItemProps
-  extends ComponentProps<typeof SubframeCore.DropdownMenu.Item> {
-  children?: ReactNode;
-  icon?: ReactNode;
-  className?: string;
-}
-
-const DropdownItem = forwardRef<HTMLDivElement, DropdownItemProps>(
-  function DropdownItem(
-    {
-      children,
-      icon = <FeatherStar />,
-      className,
-      ...otherProps
-    }: DropdownItemProps,
-    ref
-  ) {
-    return (
-      <SubframeCore.DropdownMenu.Item asChild={true} {...otherProps}>
-        <div
-          className={cn(
-            "group/adcae8d6 flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-3 hover:bg-neutral-100 active:bg-neutral-50 data-[highlighted]:bg-neutral-100",
-            className
-          )}
-          ref={ref}
-        >
-          {icon ? (
-            <SubframeCore.IconWrapper className="text-body font-body text-default-font">
-              {icon}
-            </SubframeCore.IconWrapper>
-          ) : null}
-          {children ? (
-            <span className="line-clamp-1 grow shrink-0 basis-0 text-body font-body text-default-font">
-              {children}
-            </span>
-          ) : null}
-        </div>
-      </SubframeCore.DropdownMenu.Item>
-    );
-  }
-);
-
-interface DropdownMenuRootProps extends HTMLAttributes<HTMLDivElement> {
-  children?: ReactNode;
-  className?: string;
-}
-
-const DropdownMenuRoot = forwardRef<
-  HTMLDivElement,
-  DropdownMenuRootProps
->(function DropdownMenuRoot(
-  { children, className, ...otherProps }: DropdownMenuRootProps,
-  ref
-) {
-  return children ? (
-    <div
-      className={cn(
-        "z-50 flex min-w-[192px] flex-col items-start rounded-md border border-solid border-neutral-border bg-default-background px-1 py-1 shadow-lg",
-        className
-      )}
-      ref={ref}
-      {...otherProps}
-    >
-      {children}
-    </div>
-  ) : null;
-});
+)
 
 export const DropdownMenu = Object.assign(DropdownMenuRoot, {
   DropdownDivider,
   DropdownItem,
-});
+})

@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { IconButton } from "~/ui/components/IconButton"
 import { cn } from "~/ui/utils"
 
-type ToolbarItem = {
+interface ToolbarItem {
   icon: ReactNode
   onClick?: () => void
   active?: boolean
@@ -12,7 +12,7 @@ type ToolbarItem = {
 
 type ToolbarGroup = ToolbarItem[]
 
-type EditorToolbarProps = {
+interface EditorToolbarProps {
   groups: ToolbarGroup[]
   className?: string
 }

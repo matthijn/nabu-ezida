@@ -4,16 +4,28 @@ import { stampActors } from "./actor"
 const md = (block: string, language = "json-attributes") =>
   `# Doc\n\n\`\`\`${language}\n${block}\n\`\`\``
 
-const attrs = (obj: Record<string, unknown>) =>
-  JSON.stringify(obj, null, 2)
+const attrs = (obj: Record<string, unknown>) => JSON.stringify(obj, null, 2)
 
 const callout = (obj: Record<string, unknown>) =>
-  JSON.stringify({ id: "c_1", type: "codebook-code", title: "T", content: "C", color: "blue", collapsed: false, ...obj }, null, 2)
+  JSON.stringify(
+    {
+      id: "c_1",
+      type: "codebook-code",
+      title: "T",
+      content: "C",
+      color: "blue",
+      collapsed: false,
+      ...obj,
+    },
+    null,
+    2
+  )
 
 const parseBlock = (markdown: string, language = "json-attributes"): Record<string, unknown> => {
   const regex = new RegExp(`\`\`\`${language}\\n([\\s\\S]*?)\\n\`\`\``)
   const match = markdown.match(regex)
-  return JSON.parse(match![1])
+  if (!match) throw new Error("expected block match")
+  return JSON.parse(match[1])
 }
 
 describe("stampActors", () => {
@@ -22,11 +34,11 @@ describe("stampActors", () => {
       {
         name: "stamps actor on new annotations (no original)",
         original: "",
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue" },
-          ],
-        })),
+        updated: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue" }],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -36,17 +48,19 @@ describe("stampActors", () => {
       },
       {
         name: "stamps actor on new annotation (has original without this id)",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "existing", color: "red", actor: "user" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "existing", color: "red", actor: "user" },
-            { id: "a_2", text: "new one", color: "blue" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "existing", color: "red", actor: "user" }],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [
+              { id: "a_1", text: "existing", color: "red", actor: "user" },
+              { id: "a_2", text: "new one", color: "blue" },
+            ],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -57,16 +71,16 @@ describe("stampActors", () => {
       },
       {
         name: "preserves actor on unchanged annotation",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "user" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "user" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "user" }],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "user" }],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -76,16 +90,16 @@ describe("stampActors", () => {
       },
       {
         name: "stamps actor on changed annotation",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "user" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "red", actor: "user" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "user" }],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "red", actor: "user" }],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -95,16 +109,16 @@ describe("stampActors", () => {
       },
       {
         name: "overwrites LLM-set actor value on changed annotation",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "ai" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "changed", color: "blue", actor: "user" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "ai" }],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "changed", color: "blue", actor: "user" }],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -114,16 +128,16 @@ describe("stampActors", () => {
       },
       {
         name: "overwrites LLM-set actor on unchanged annotation (preserves old)",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "ai" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "hello", color: "blue", actor: "user" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "ai" }],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [{ id: "a_1", text: "hello", color: "blue", actor: "user" }],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -133,19 +147,23 @@ describe("stampActors", () => {
       },
       {
         name: "handles mixed: new, changed, and unchanged annotations",
-        original: md(attrs({
-          annotations: [
-            { id: "a_1", text: "unchanged", color: "blue", actor: "user" },
-            { id: "a_2", text: "will-change", color: "red", actor: "user" },
-          ],
-        })),
-        updated: md(attrs({
-          annotations: [
-            { id: "a_1", text: "unchanged", color: "blue" },
-            { id: "a_2", text: "changed!", color: "red" },
-            { id: "a_3", text: "brand-new", color: "green" },
-          ],
-        })),
+        original: md(
+          attrs({
+            annotations: [
+              { id: "a_1", text: "unchanged", color: "blue", actor: "user" },
+              { id: "a_2", text: "will-change", color: "red", actor: "user" },
+            ],
+          })
+        ),
+        updated: md(
+          attrs({
+            annotations: [
+              { id: "a_1", text: "unchanged", color: "blue" },
+              { id: "a_2", text: "changed!", color: "red" },
+              { id: "a_3", text: "brand-new", color: "green" },
+            ],
+          })
+        ),
         actor: "ai" as const,
         expected: (result: string) => {
           const parsed = parseBlock(result)
@@ -216,7 +234,7 @@ describe("stampActors", () => {
   describe("no actor paths", () => {
     it("returns updated unchanged for unknown block types", () => {
       const original = "# Doc\n\n```json-unknown\n{}\n```"
-      const updated = "# Doc\n\n```json-unknown\n{\"x\": 1}\n```"
+      const updated = '# Doc\n\n```json-unknown\n{"x": 1}\n```'
       expect(stampActors(original, updated, "ai")).toBe(updated)
     })
 

@@ -44,18 +44,34 @@ describe("diffFileContent", () => {
     {
       name: "empty → one annotation (added with color + text updated)",
       oldRaw: "",
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })),
+      newRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })
+      ),
       expected: [
-        { verb: "added", entityKind: "annotation", entityId: "annotation-1", label: "hello world", color: "red" },
+        {
+          verb: "added",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "hello world",
+          color: "red",
+        },
         { verb: "updated", entityKind: "text", entityId: null, label: "test.md" },
       ],
     },
     {
       name: "one annotation → empty (removed + text updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })),
+      oldRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })
+      ),
       newRaw: "",
       expected: [
-        { verb: "removed", entityKind: "annotation", entityId: "annotation-1", label: "hello world", color: "red" },
+        {
+          verb: "removed",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "hello world",
+          color: "red",
+        },
         { verb: "updated", entityKind: "text", entityId: null, label: "test.md" },
       ],
     },
@@ -63,39 +79,105 @@ describe("diffFileContent", () => {
       name: "annotation text changed (updated)",
       oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "old text")] })),
       newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "new text")] })),
-      expected: [{ verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "new text", color: "red" }],
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "new text",
+          color: "red",
+        },
+      ],
     },
     {
       name: "annotation color changed (updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "red" })] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "blue" })] })),
-      expected: [{ verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text", color: "blue" }],
+      oldRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "red" })] })
+      ),
+      newRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "blue" })] })
+      ),
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "text",
+          color: "blue",
+        },
+      ],
     },
     {
       name: "annotation code changed (updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { code: "code_1", color: undefined })] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { code: "code_2", color: undefined })] })),
-      expected: [{ verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text" }],
+      oldRaw: buildDoc(
+        buildAttributes({
+          annotations: [annotation("annotation-1", "text", { code: "code_1", color: undefined })],
+        })
+      ),
+      newRaw: buildDoc(
+        buildAttributes({
+          annotations: [annotation("annotation-1", "text", { code: "code_2", color: undefined })],
+        })
+      ),
+      expected: [
+        { verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text" },
+      ],
     },
     {
       name: "annotation reason changed (updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "old" })] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "new" })] })),
-      expected: [{ verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text", color: "red" }],
+      oldRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "old" })] })
+      ),
+      newRaw: buildDoc(
+        buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "new" })] })
+      ),
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "text",
+          color: "red",
+        },
+      ],
     },
     {
       name: "annotation review changed (updated)",
       oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text")] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text", { review: "needs check" })] })),
-      expected: [{ verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text", color: "red" }],
+      newRaw: buildDoc(
+        buildAttributes({
+          annotations: [annotation("annotation-1", "text", { review: "needs check" })],
+        })
+      ),
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "text",
+          color: "red",
+        },
+      ],
     },
     {
       name: "two annotations: one added, one removed",
       oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "keep me")] })),
       newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-2", "new one")] })),
       expected: [
-        { verb: "removed", entityKind: "annotation", entityId: "annotation-1", label: "keep me", color: "red" },
-        { verb: "added", entityKind: "annotation", entityId: "annotation-2", label: "new one", color: "red" },
+        {
+          verb: "removed",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "keep me",
+          color: "red",
+        },
+        {
+          verb: "added",
+          entityKind: "annotation",
+          entityId: "annotation-2",
+          label: "new one",
+          color: "red",
+        },
       ],
     },
     {
@@ -108,25 +190,57 @@ describe("diffFileContent", () => {
       name: "code added (carries code color)",
       oldRaw: buildDoc(),
       newRaw: buildDoc(buildCallout(code("callout-1", "My Code"))),
-      expected: [{ verb: "added", entityKind: "code", entityId: "callout-1", label: "My Code", color: "blue" }],
+      expected: [
+        {
+          verb: "added",
+          entityKind: "code",
+          entityId: "callout-1",
+          label: "My Code",
+          color: "blue",
+        },
+      ],
     },
     {
       name: "code removed",
       oldRaw: buildDoc(buildCallout(code("callout-1", "My Code"))),
       newRaw: buildDoc(),
-      expected: [{ verb: "removed", entityKind: "code", entityId: "callout-1", label: "My Code", color: "blue" }],
+      expected: [
+        {
+          verb: "removed",
+          entityKind: "code",
+          entityId: "callout-1",
+          label: "My Code",
+          color: "blue",
+        },
+      ],
     },
     {
       name: "code title updated",
       oldRaw: buildDoc(buildCallout(code("callout-1", "Old Title"))),
       newRaw: buildDoc(buildCallout(code("callout-1", "New Title"))),
-      expected: [{ verb: "updated", entityKind: "code", entityId: "callout-1", label: "New Title", color: "blue" }],
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "code",
+          entityId: "callout-1",
+          label: "New Title",
+          color: "blue",
+        },
+      ],
     },
     {
       name: "code content updated",
       oldRaw: buildDoc(buildCallout(code("callout-1", "Title", { content: "old desc" }))),
       newRaw: buildDoc(buildCallout(code("callout-1", "Title", { content: "new desc" }))),
-      expected: [{ verb: "updated", entityKind: "code", entityId: "callout-1", label: "Title", color: "blue" }],
+      expected: [
+        {
+          verb: "updated",
+          entityKind: "code",
+          entityId: "callout-1",
+          label: "Title",
+          color: "blue",
+        },
+      ],
     },
     {
       name: "tag added (no color)",
@@ -143,9 +257,17 @@ describe("diffFileContent", () => {
     {
       name: "composite: annotation + tag in same diff",
       oldRaw: buildDoc(buildAttributes({ tags: ["old-tag"] })),
-      newRaw: buildDoc(buildAttributes({ tags: ["new-tag"], annotations: [annotation("annotation-1", "hello")] })),
+      newRaw: buildDoc(
+        buildAttributes({ tags: ["new-tag"], annotations: [annotation("annotation-1", "hello")] })
+      ),
       expected: [
-        { verb: "added", entityKind: "annotation", entityId: "annotation-1", label: "hello", color: "red" },
+        {
+          verb: "added",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "hello",
+          color: "red",
+        },
         { verb: "removed", entityKind: "tag", entityId: null, label: "old-tag" },
         { verb: "added", entityKind: "tag", entityId: null, label: "new-tag" },
       ],
@@ -171,9 +293,17 @@ describe("diffFileContent", () => {
     {
       name: "annotation added + prose changed emits both",
       oldRaw: "# Title\n\nOld text.\n\n" + buildAttributes({}),
-      newRaw: "# Title\n\nNew text.\n\n" + buildAttributes({ annotations: [annotation("annotation-1", "New text.")] }),
+      newRaw:
+        "# Title\n\nNew text.\n\n" +
+        buildAttributes({ annotations: [annotation("annotation-1", "New text.")] }),
       expected: [
-        { verb: "added", entityKind: "annotation", entityId: "annotation-1", label: "New text.", color: "red" },
+        {
+          verb: "added",
+          entityKind: "annotation",
+          entityId: "annotation-1",
+          label: "New text.",
+          color: "red",
+        },
         { verb: "updated", entityKind: "text", entityId: null, label: "test.md" },
       ],
     },

@@ -6,7 +6,12 @@ const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
     paragraph: { group: "block", content: "inline*" },
-    code_block: { group: "block", content: "text*", code: true, attrs: { language: { default: null } } },
+    code_block: {
+      group: "block",
+      content: "text*",
+      code: true,
+      attrs: { language: { default: null } },
+    },
     text: { group: "inline" },
     hard_break: { group: "inline", inline: true, selectable: false },
   },
@@ -21,16 +26,18 @@ const toNode = (def: BlockDef) =>
   isCodeDef(def)
     ? schema.nodes.code_block.create(
         { language: def.language ?? null },
-        def.code ? schema.text(def.code) : null,
+        def.code ? schema.text(def.code) : null
       )
     : schema.nodes.paragraph.create(null, def ? schema.text(def) : null)
 
-const createDoc = (blocks: BlockDef[]) =>
-  schema.nodes.doc.create(null, blocks.map(toNode))
+const createDoc = (blocks: BlockDef[]) => schema.nodes.doc.create(null, blocks.map(toNode))
 
 const createDocWithBreaks = (content: (string | "br")[]) => {
   const children: ReturnType<typeof schema.nodes.paragraph.create>[] = []
-  let currentPara: Array<ReturnType<typeof schema.text> | ReturnType<typeof schema.nodes.hard_break.create>> = []
+  let currentPara: (
+    | ReturnType<typeof schema.text>
+    | ReturnType<typeof schema.nodes.hard_break.create>
+  )[] = []
 
   const flushPara = () => {
     if (currentPara.length > 0) {
@@ -130,10 +137,10 @@ describe("textOffsetToPos", () => {
       const doc = createDoc(["AB", "CD"])
       expect(doc.textContent).toBe("ABCD")
 
-      expect(textOffsetToPos(doc, 0)).toBe(1)  // 'A'
-      expect(textOffsetToPos(doc, 1)).toBe(2)  // 'B'
-      expect(textOffsetToPos(doc, 2)).toBe(5)  // 'C' - crosses paragraph boundary
-      expect(textOffsetToPos(doc, 3)).toBe(6)  // 'D'
+      expect(textOffsetToPos(doc, 0)).toBe(1) // 'A'
+      expect(textOffsetToPos(doc, 1)).toBe(2) // 'B'
+      expect(textOffsetToPos(doc, 2)).toBe(5) // 'C' - crosses paragraph boundary
+      expect(textOffsetToPos(doc, 3)).toBe(6) // 'D'
     })
   })
 
@@ -141,7 +148,11 @@ describe("textOffsetToPos", () => {
     const cases = [
       {
         name: "proseTextContent excludes hidden block text",
-        blocks: ["Hello", { code: '{"tags": ["interview"]}', language: "json-attributes" }, "World"] as BlockDef[],
+        blocks: [
+          "Hello",
+          { code: '{"tags": ["interview"]}', language: "json-attributes" },
+          "World",
+        ] as BlockDef[],
         expectedProseText: "HelloWorld",
       },
       {
@@ -156,7 +167,11 @@ describe("textOffsetToPos", () => {
       },
       {
         name: "proseTextContent includes non-hidden code block text",
-        blocks: ["Hello", { code: "callout content", language: "json-callout" }, "World"] as BlockDef[],
+        blocks: [
+          "Hello",
+          { code: "callout content", language: "json-callout" },
+          "World",
+        ] as BlockDef[],
         expectedProseText: "Hellocallout contentWorld",
       },
       {
@@ -172,7 +187,10 @@ describe("textOffsetToPos", () => {
     })
 
     it("textOffsetToPos skips hidden block and maps to correct paragraph", () => {
-      const doc = createDoc([{ code: '{"annotations": []}', language: "json-attributes" }, "Target text"])
+      const doc = createDoc([
+        { code: '{"annotations": []}', language: "json-attributes" },
+        "Target text",
+      ])
       expect(proseTextContent(doc)).toBe("Target text")
       const pos = textOffsetToPos(doc, 0)
       const resolvedText = doc.textBetween(pos, pos + "Target".length)
@@ -180,7 +198,11 @@ describe("textOffsetToPos", () => {
     })
 
     it("offset after hidden block maps to second paragraph", () => {
-      const doc = createDoc(["Before", { code: "code content", language: "json-attributes" }, "After"])
+      const doc = createDoc([
+        "Before",
+        { code: "code content", language: "json-attributes" },
+        "After",
+      ])
       expect(proseTextContent(doc)).toBe("BeforeAfter")
       const afterOffset = "Before".length
       const pos = textOffsetToPos(doc, afterOffset)

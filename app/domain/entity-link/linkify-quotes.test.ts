@@ -7,13 +7,20 @@ several usability issues with the navigation menu.
 Overall satisfaction was moderate despite the complaints.`
 
 describe("linkifyQuotes", () => {
-  const cases: { name: string; text: string; documentId: string | null; fileContent: string | null; expected: string }[] = [
+  const cases: {
+    name: string
+    text: string
+    documentId: string | null
+    fileContent: string | null
+    expected: string
+  }[] = [
     {
       name: "replaces quoted text found in file with spotlight link",
       text: 'They said "the signup process takes too long" during the interview.',
       documentId: "notes.md",
       fileContent: FILE_CONTENT,
-      expected: 'They said [the signup process takes too long](file://notes.md/the%20signup%20process%20takes%20too%20long) during the interview.',
+      expected:
+        "They said [the signup process takes too long](file://notes.md/the%20signup%20process%20takes%20too%20long) during the interview.",
     },
     {
       name: "leaves quoted text unchanged when not found in file",
@@ -31,17 +38,19 @@ describe("linkifyQuotes", () => {
     },
     {
       name: "handles curly quotes",
-      text: 'They said \u201Cthe signup process takes too long\u201D during the interview.',
+      text: "They said \u201Cthe signup process takes too long\u201D during the interview.",
       documentId: "notes.md",
       fileContent: FILE_CONTENT,
-      expected: 'They said [the signup process takes too long](file://notes.md/the%20signup%20process%20takes%20too%20long) during the interview.',
+      expected:
+        "They said [the signup process takes too long](file://notes.md/the%20signup%20process%20takes%20too%20long) during the interview.",
     },
     {
       name: "resolves multiple quotes independently",
       text: 'Found "frustration with the onboarding flow" and "usability issues with the navigation menu" in the data.',
       documentId: "notes.md",
       fileContent: FILE_CONTENT,
-      expected: 'Found [frustration with the onboarding flow](file://notes.md/frustration%20with%20the%20onboarding%20flow) and [usability issues with the navigation menu](file://notes.md/usability%20issues%20with%20the%20navigation%20menu) in the data.',
+      expected:
+        "Found [frustration with the onboarding flow](file://notes.md/frustration%20with%20the%20onboarding%20flow) and [usability issues with the navigation menu](file://notes.md/usability%20issues%20with%20the%20navigation%20menu) in the data.",
     },
     {
       name: "returns unchanged when documentId is null",
@@ -62,7 +71,7 @@ describe("linkifyQuotes", () => {
       text: 'The word "moderate" appears in the text.',
       documentId: "notes.md",
       fileContent: FILE_CONTENT,
-      expected: 'The word [moderate](file://notes.md/moderate) appears in the text.',
+      expected: "The word [moderate](file://notes.md/moderate) appears in the text.",
     },
     {
       name: "returns empty string unchanged",

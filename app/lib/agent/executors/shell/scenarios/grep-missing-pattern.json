@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "grep"
-    ]
+    "commands": ["grep"]
   },
   "expected": {
     "status": "partial",

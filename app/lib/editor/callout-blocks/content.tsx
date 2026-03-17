@@ -5,7 +5,7 @@ import * as SubframeCore from "@subframe/core"
 import { calloutTypeIcons, type CalloutBlock } from "~/domain/blocks/callout/schema"
 import { MarkdownContent } from "~/ui/components/editor/MarkdownContent"
 
-type CalloutContentProps = {
+interface CalloutContentProps {
   data: CalloutBlock
 }
 
@@ -24,9 +24,7 @@ export const CalloutContent = ({ data }: CalloutContentProps) => {
       </div>
       {!collapsed && (
         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
-          <span className="text-heading-2 font-heading-2 text-default-font">
-            {title}
-          </span>
+          <span className="text-heading-2 font-heading-2 text-default-font">{title}</span>
           <MarkdownContent content={content} />
         </div>
       )}

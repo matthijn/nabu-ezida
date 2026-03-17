@@ -3,9 +3,7 @@
     "f.txt": "a\nb\nc\nd\ne"
   },
   "args": {
-    "commands": [
-      "tail -n 3 f.txt"
-    ]
+    "commands": ["tail -n 3 f.txt"]
   },
   "expected": {
     "status": "ok",

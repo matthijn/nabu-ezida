@@ -3,7 +3,7 @@
 import type { ComponentType } from "react"
 import type { ResolvedColors } from "~/lib/entity-link"
 
-type EntityLinkProps = {
+interface EntityLinkProps {
   href: string
   children: React.ReactNode
   colors: ResolvedColors
@@ -20,8 +20,12 @@ export const EntityLink = ({ href, children, colors, icon: Icon, onClick }: Enti
       color: colors.text,
       backgroundColor: colors.background,
     }}
-    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.backgroundHover }}
-    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.background }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.backgroundColor = colors.backgroundHover
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.backgroundColor = colors.background
+    }}
   >
     <span className="inline-flex align-[-0.15em] mr-1" style={{ color: colors.icon }}>
       <Icon className="h-3.5 w-3.5" />

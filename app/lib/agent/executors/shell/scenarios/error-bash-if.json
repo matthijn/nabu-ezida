@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "if true"
-    ]
+    "commands": ["if true"]
   },
   "expected": {
     "status": "partial",

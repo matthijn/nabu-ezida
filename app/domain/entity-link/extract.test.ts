@@ -65,7 +65,7 @@ describe("extractEntityIdCandidates", () => {
     },
     {
       name: "ID in code block",
-      input: "```json\n{\"id\": \"annotation-abc12345\"}\n```",
+      input: '```json\n{"id": "annotation-abc12345"}\n```',
       expected: ["annotation-abc12345"],
     },
   ] as const

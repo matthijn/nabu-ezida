@@ -23,7 +23,14 @@ const loadScenarios = (subdir: string) =>
     const errorPath = join(dir, "error.txt")
 
     if (existsSync(expectedPath)) {
-      return { name, path, content, patch, expected: readFileSync(expectedPath, "utf-8"), error: null }
+      return {
+        name,
+        path,
+        content,
+        patch,
+        expected: readFileSync(expectedPath, "utf-8"),
+        error: null,
+      }
     }
     if (existsSync(errorPath)) {
       return { name, path, content, patch, expected: null, error: readFileSync(errorPath, "utf-8") }
@@ -55,18 +62,18 @@ describe("range ref resolves against pretty content", () => {
     "",
     "Some prose here.",
     "",
-    '```json-attributes',
-    '{',
+    "```json-attributes",
+    "{",
     '\t"summary": "Line one.\\nLine two continues.\\nLine three wraps up."',
-    '}',
-    '```',
+    "}",
+    "```",
     "",
     "## Section B",
     "",
-    "More prose.",
+    "More prose."
   )
 
-  type Case = {
+  interface Case {
     name: string
     store: Record<string, string>
     targetPath: string
@@ -88,7 +95,7 @@ describe("range ref resolves against pretty content", () => {
         "+  ## Section A",
         "+  ...",
         "+  // end json-attributes",
-        "+  ```",
+        "+  ```"
       ),
       expected: j(
         "# Target",
@@ -96,11 +103,11 @@ describe("range ref resolves against pretty content", () => {
         "",
         "Some prose here.",
         "",
-        '```json-attributes',
-        '{',
+        "```json-attributes",
+        "{",
         '\t"summary": "Line one.\\nLine two continues.\\nLine three wraps up."',
-        '}',
-        '```',
+        "}",
+        "```"
       ),
     },
   ]

@@ -1,5 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest"
-import { patchJsonBlock, autoFuzzyAnnotationText, resolveSelectors, partitionNumericIndices } from "./tools/patch-json-block"
+import {
+  patchJsonBlock,
+  autoFuzzyAnnotationText,
+  resolveSelectors,
+  partitionNumericIndices,
+} from "./tools/patch-json-block"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { setFiles } from "~/lib/files"
 
@@ -12,7 +17,7 @@ const multiBlockDoc = (blocks: { id: string; title: string; content: string }[])
 describe("patch_json_block", () => {
   afterEach(() => setFiles({}))
 
-  type Case = {
+  interface Case {
     name: string
     files: Record<string, string>
     args: Record<string, unknown>
@@ -25,7 +30,7 @@ describe("patch_json_block", () => {
   const cases: Case[] = [
     {
       name: "replace a field produces update_file operation",
-      files: ({ "doc.md": doc({ color: "red", count: 1 }) }),
+      files: { "doc.md": doc({ color: "red", count: 1 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -37,7 +42,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "add a field",
-      files: ({ "doc.md": doc({ name: "test" }) }),
+      files: { "doc.md": doc({ name: "test" }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -49,7 +54,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "remove a field",
-      files: ({ "doc.md": doc({ a: 1, b: 2 }) }),
+      files: { "doc.md": doc({ a: 1, b: 2 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -61,7 +66,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "no-op when result is identical",
-      files: ({ "doc.md": doc({ x: 1 }) }),
+      files: { "doc.md": doc({ x: 1 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -73,7 +78,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error when file not found",
-      files: ({}),
+      files: {},
       args: {
         path: "missing.md",
         language: "json-attributes",
@@ -84,7 +89,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error when block not found for unknown language",
-      files: ({ "doc.md": "# No blocks here\n" }),
+      files: { "doc.md": "# No blocks here\n" },
       args: {
         path: "doc.md",
         language: "json-unknown",
@@ -95,11 +100,17 @@ describe("patch_json_block", () => {
     },
     {
       name: "auto-creates block for known language",
-      files: ({ "doc.md": "# No blocks here\n" }),
+      files: { "doc.md": "# No blocks here\n" },
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{ op: "add", path: "/annotations/-", value: { text: "No blocks here", reason: "r", color: "red" } }],
+        operations: [
+          {
+            op: "add",
+            path: "/annotations/-",
+            value: { text: "No blocks here", reason: "r", color: "red" },
+          },
+        ],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -107,7 +118,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "double extension resolves to correct file",
-      files: ({ "doc.md": doc({ color: "red" }) }),
+      files: { "doc.md": doc({ color: "red" }) },
       args: {
         path: "doc.md.md",
         language: "json-attributes",
@@ -119,7 +130,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error on invalid json pointer path",
-      files: ({ "doc.md": doc({ a: 1 }) }),
+      files: { "doc.md": doc({ a: 1 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -130,7 +141,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "different block language",
-      files: ({ "doc.md": doc({ id: "callout_1", key: "old" }, "json-callout") }),
+      files: { "doc.md": doc({ id: "callout_1", key: "old" }, "json-callout") },
       args: {
         path: "doc.md",
         language: "json-callout",
@@ -143,7 +154,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "multiple operations in sequence",
-      files: ({ "doc.md": doc({ items: ["a"], count: 0 }) }),
+      files: { "doc.md": doc({ items: ["a"], count: 0 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -158,14 +169,14 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector removes by id",
-      files: ({
+      files: {
         "doc.md": doc({
           annotations: [
             { id: "ann_1", text: "first" },
             { id: "ann_2", text: "second" },
           ],
         }),
-      }),
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -177,14 +188,14 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector replaces nested field",
-      files: ({
+      files: {
         "doc.md": doc({
           annotations: [
             { id: "ann_1", code: "old" },
             { id: "ann_2", code: "keep" },
           ],
         }),
-      }),
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -196,9 +207,9 @@ describe("patch_json_block", () => {
     },
     {
       name: "selector error on no match",
-      files: ({
+      files: {
         "doc.md": doc({ annotations: [{ id: "ann_1" }] }),
-      }),
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -209,7 +220,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "all numeric indices — error",
-      files: ({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      files: { "doc.md": doc({ annotations: [{ id: "ann_1" }] }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -220,7 +231,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "mixed: applies valid ops, reports rejected numeric index",
-      files: ({ "doc.md": doc({ color: "red", annotations: [{ id: "ann_1", code: "x" }] }) }),
+      files: { "doc.md": doc({ color: "red", annotations: [{ id: "ann_1", code: "x" }] }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -236,11 +247,17 @@ describe("patch_json_block", () => {
     },
     {
       name: "allows append with /-",
-      files: ({ "doc.md": doc({ annotations: [] }) }),
+      files: { "doc.md": doc({ annotations: [] }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{ op: "add", path: "/annotations/-", value: { id: "new", text: "Some text", reason: "r", color: "red" } }],
+        operations: [
+          {
+            op: "add",
+            path: "/annotations/-",
+            value: { id: "new", text: "Some text", reason: "r", color: "red" },
+          },
+        ],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -248,17 +265,24 @@ describe("patch_json_block", () => {
     },
     {
       name: "annotation text fuzzy-resolved against document",
-      files: ({
-        "doc.md": "# Verslag\n\nDe minister kondigde aan dat er stappen worden genomen om het beleid te wijzigen.\n\n```json-attributes\n{\n\t\"annotations\": []\n}\n```\n",
-      }),
+      files: {
+        "doc.md":
+          '# Verslag\n\nDe minister kondigde aan dat er stappen worden genomen om het beleid te wijzigen.\n\n```json-attributes\n{\n\t"annotations": []\n}\n```\n',
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{
-          op: "add",
-          path: "/annotations/-",
-          value: { text: "De minister kondigde aan dat er stappn worden genomen om het beleid te wijzigen", reason: "typo in quote", code: "x" },
-        }],
+        operations: [
+          {
+            op: "add",
+            path: "/annotations/-",
+            value: {
+              text: "De minister kondigde aan dat er stappn worden genomen om het beleid te wijzigen",
+              reason: "typo in quote",
+              code: "x",
+            },
+          },
+        ],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -266,23 +290,33 @@ describe("patch_json_block", () => {
     },
     {
       name: "annotation text not found in document — error",
-      files: ({ "doc.md": doc({ annotations: [] }) }),
+      files: { "doc.md": doc({ annotations: [] }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [{ op: "add", path: "/annotations/-", value: { text: "completely nonexistent phrase that appears nowhere", reason: "r", code: "x" } }],
+        operations: [
+          {
+            op: "add",
+            path: "/annotations/-",
+            value: {
+              text: "completely nonexistent phrase that appears nowhere",
+              reason: "r",
+              code: "x",
+            },
+          },
+        ],
       },
       expectStatus: "error",
       expectOutput: /Text not found in document/,
     },
     {
       name: "partial: one op fails selector, other succeeds",
-      files: ({
+      files: {
         "doc.md": doc({
           color: "red",
           annotations: [{ id: "ann_1", code: "x" }],
         }),
-      }),
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -298,7 +332,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "partial: one op fails application, other succeeds",
-      files: ({ "doc.md": doc({ a: 1, b: 2 }) }),
+      files: { "doc.md": doc({ a: 1, b: 2 }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -314,7 +348,7 @@ describe("patch_json_block", () => {
     },
     {
       name: "error: all ops fail",
-      files: ({ "doc.md": doc({ annotations: [{ id: "ann_1" }] }) }),
+      files: { "doc.md": doc({ annotations: [{ id: "ann_1" }] }) },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -328,12 +362,12 @@ describe("patch_json_block", () => {
     },
     {
       name: "partial: numeric rejection + op failure + success",
-      files: ({
+      files: {
         "doc.md": doc({
           color: "red",
           annotations: [{ id: "ann_1", code: "x" }],
         }),
-      }),
+      },
       args: {
         path: "doc.md",
         language: "json-attributes",
@@ -350,12 +384,12 @@ describe("patch_json_block", () => {
     },
     {
       name: "multi-block: patches correct block by id",
-      files: ({
+      files: {
         "codebook.md": multiBlockDoc([
           { id: "callout_a", title: "Alpha", content: "old" },
           { id: "callout_b", title: "Beta", content: "keep" },
         ]),
-      }),
+      },
       args: {
         path: "codebook.md",
         language: "json-callout",
@@ -368,12 +402,12 @@ describe("patch_json_block", () => {
     },
     {
       name: "multi-block: error when block_id missing",
-      files: ({
+      files: {
         "codebook.md": multiBlockDoc([
           { id: "callout_a", title: "Alpha", content: "x" },
           { id: "callout_b", title: "Beta", content: "y" },
         ]),
-      }),
+      },
       args: {
         path: "codebook.md",
         language: "json-callout",
@@ -384,11 +418,9 @@ describe("patch_json_block", () => {
     },
     {
       name: "multi-block: error when block_id not found lists available",
-      files: ({
-        "codebook.md": multiBlockDoc([
-          { id: "callout_a", title: "Alpha", content: "x" },
-        ]),
-      }),
+      files: {
+        "codebook.md": multiBlockDoc([{ id: "callout_a", title: "Alpha", content: "x" }]),
+      },
       args: {
         path: "codebook.md",
         language: "json-callout",
@@ -400,12 +432,12 @@ describe("patch_json_block", () => {
     },
     {
       name: "multi-block: does not modify other blocks",
-      files: ({
+      files: {
         "codebook.md": multiBlockDoc([
           { id: "callout_a", title: "Alpha", content: "stay" },
           { id: "callout_b", title: "Beta", content: "old" },
         ]),
-      }),
+      },
       args: {
         path: "codebook.md",
         language: "json-callout",
@@ -418,29 +450,32 @@ describe("patch_json_block", () => {
     },
   ]
 
-  it.each(cases)("$name", async ({ files, args, expectStatus, expectOutput, expectMessage, expectMutations }) => {
-    setFiles(files)
-    const result = await patchJsonBlock.handle(new Map(), args)
-    expect(result.status).toBe(expectStatus)
-    if (expectOutput instanceof RegExp) {
-      expect(result.output).toMatch(expectOutput)
-    } else {
-      expect(result.output).toBe(expectOutput)
+  it.each(cases)(
+    "$name",
+    async ({ files, args, expectStatus, expectOutput, expectMessage, expectMutations }) => {
+      setFiles(files)
+      const result = await patchJsonBlock.handle(new Map(), args)
+      expect(result.status).toBe(expectStatus)
+      if (expectOutput instanceof RegExp) {
+        expect(result.output).toMatch(expectOutput)
+      } else {
+        expect(result.output).toBe(expectOutput)
+      }
+      if (expectMessage) {
+        expect(result.message).toMatch(expectMessage)
+      }
+      if (expectMutations !== undefined) {
+        expect(result.mutations).toHaveLength(expectMutations)
+      }
+      if (expectMutations && expectMutations > 0) {
+        expect(result.mutations[0].type).toBe("write_file")
+      }
     }
-    if (expectMessage) {
-      expect(result.message).toMatch(expectMessage)
-    }
-    if (expectMutations !== undefined) {
-      expect(result.mutations).toHaveLength(expectMutations)
-    }
-    if (expectMutations && expectMutations > 0) {
-      expect(result.mutations[0].type).toBe("write_file")
-    }
-  })
+  )
 })
 
 describe("autoFuzzyAnnotationText", () => {
-  type Case = {
+  interface Case {
     name: string
     op: Parameters<typeof autoFuzzyAnnotationText>[0]
     expected: Parameters<typeof autoFuzzyAnnotationText>[0]
@@ -450,7 +485,11 @@ describe("autoFuzzyAnnotationText", () => {
     {
       name: "wraps text in annotation entry add",
       op: { op: "add", path: "/annotations/-", value: { text: "some phrase", code: "x" } },
-      expected: { op: "add", path: "/annotations/-", value: { text: "FUZZY[[some phrase]]", code: "x" } },
+      expected: {
+        op: "add",
+        path: "/annotations/-",
+        value: { text: "FUZZY[[some phrase]]", code: "x" },
+      },
     },
     {
       name: "wraps text in annotation entry replace",
@@ -513,7 +552,7 @@ describe("resolveSelectors", () => {
   ]
   const docJson = { annotations }
 
-  type Case = {
+  interface Case {
     name: string
     ops: JsonPatchOp[]
     doc: unknown
@@ -537,7 +576,10 @@ describe("resolveSelectors", () => {
       name: "single match with rest path",
       ops: [{ op: "replace", path: "/annotations[id=ann_1]/code", value: "code_new" }],
       doc: docJson,
-      expected: { ok: true, ops: [{ op: "replace", path: "/annotations/0/code", value: "code_new" }] },
+      expected: {
+        ok: true,
+        ops: [{ op: "replace", path: "/annotations/0/code", value: "code_new" }],
+      },
     },
     {
       name: "nested key selector",
@@ -549,19 +591,25 @@ describe("resolveSelectors", () => {
       name: "multi-match remove — descending indices",
       ops: [{ op: "remove", path: "/annotations[color=blue]" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "remove", path: "/annotations/2" },
-        { op: "remove", path: "/annotations/1" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "remove", path: "/annotations/2" },
+          { op: "remove", path: "/annotations/1" },
+        ],
+      },
     },
     {
       name: "multi-match replace — ascending indices",
       ops: [{ op: "replace", path: "/annotations[code=code_a]/code", value: "code_x" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "replace", path: "/annotations/0/code", value: "code_x" },
-        { op: "replace", path: "/annotations/2/code", value: "code_x" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "replace", path: "/annotations/0/code", value: "code_x" },
+          { op: "replace", path: "/annotations/2/code", value: "code_x" },
+        ],
+      },
     },
     {
       name: "no matches — error",
@@ -576,10 +624,13 @@ describe("resolveSelectors", () => {
         { op: "add", path: "/annotations/-", value: { id: "ann_5" } },
       ],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "replace", path: "/annotations/0/code", value: "code_z" },
-        { op: "add", path: "/annotations/-", value: { id: "ann_5" } },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "replace", path: "/annotations/0/code", value: "code_z" },
+          { op: "add", path: "/annotations/-", value: { id: "ann_5" } },
+        ],
+      },
     },
     {
       name: "selector on non-array path — no matches",
@@ -591,45 +642,55 @@ describe("resolveSelectors", () => {
       name: "rest path after selector",
       ops: [{ op: "replace", path: "/annotations[id=ann_2]/color", value: "red" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "replace", path: "/annotations/1/color", value: "red" },
-      ]},
+      expected: { ok: true, ops: [{ op: "replace", path: "/annotations/1/color", value: "red" }] },
     },
     {
       name: "exists — matches items with truthy field",
       ops: [{ op: "remove", path: "/annotations[review]" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "remove", path: "/annotations/3" },
-        { op: "remove", path: "/annotations/1" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "remove", path: "/annotations/3" },
+          { op: "remove", path: "/annotations/1" },
+        ],
+      },
     },
     {
       name: "not_exists — matches items without field",
       ops: [{ op: "remove", path: "/annotations[!review]" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "remove", path: "/annotations/2" },
-        { op: "remove", path: "/annotations/0" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "remove", path: "/annotations/2" },
+          { op: "remove", path: "/annotations/0" },
+        ],
+      },
     },
     {
       name: "neq — matches items where field differs",
       ops: [{ op: "remove", path: "/annotations[code!=code_a]" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "remove", path: "/annotations/3" },
-        { op: "remove", path: "/annotations/1" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "remove", path: "/annotations/3" },
+          { op: "remove", path: "/annotations/1" },
+        ],
+      },
     },
     {
       name: "exists with rest path",
       ops: [{ op: "replace", path: "/annotations[review]/color", value: "yellow" }],
       doc: docJson,
-      expected: { ok: true, ops: [
-        { op: "replace", path: "/annotations/1/color", value: "yellow" },
-        { op: "replace", path: "/annotations/3/color", value: "yellow" },
-      ]},
+      expected: {
+        ok: true,
+        ops: [
+          { op: "replace", path: "/annotations/1/color", value: "yellow" },
+          { op: "replace", path: "/annotations/3/color", value: "yellow" },
+        ],
+      },
     },
     {
       name: "exists — no matches when no items have field",
@@ -657,7 +718,7 @@ describe("resolveSelectors", () => {
 })
 
 describe("partitionNumericIndices", () => {
-  type Case = {
+  interface Case {
     name: string
     ops: JsonPatchOp[]
     expectedAccepted: JsonPatchOp[]

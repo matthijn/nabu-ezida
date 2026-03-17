@@ -25,7 +25,7 @@ describe("filterCodeBlocks", () => {
     },
     {
       name: "unclosed block with partial JSON returns null",
-      input: "```json\n{\"type\":",
+      input: '```json\n{"type":',
       expected: null,
     },
     {
@@ -35,13 +35,13 @@ describe("filterCodeBlocks", () => {
     },
     {
       name: "text before unclosed block with content returns text",
-      input: "Planning now\n```json\n{\"plan\":",
+      input: 'Planning now\n```json\n{"plan":',
       expected: "Planning now",
     },
     {
       name: "complete code block returns full content",
-      input: "```json\n{\"done\": true}\n```",
-      expected: "```json\n{\"done\": true}\n```",
+      input: '```json\n{"done": true}\n```',
+      expected: '```json\n{"done": true}\n```',
     },
     {
       name: "text with complete code block returns full content",
@@ -60,7 +60,7 @@ describe("filterCodeBlocks", () => {
     },
     {
       name: "complete block then unclosed block returns text before unclosed",
-      input: "```json\n{}\n```\nNow:\n```json\n{\"partial\":",
+      input: '```json\n{}\n```\nNow:\n```json\n{"partial":',
       expected: "```json\n{}\n```\nNow:",
     },
     {

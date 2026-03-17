@@ -199,7 +199,6 @@ Maar concreet, heeft u wat kunnen toezeggen daarop? Dus bijvoorbeeld uw kinderop
 BRUINS  
 Nou, het gesprek was geloof ik aan het einde van de ochtend dus ik moet daar nog meer werk van maken en dat gaat gebeuren.
 
-
 ```json-attributes
 {
   "tags": [

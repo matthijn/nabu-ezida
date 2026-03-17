@@ -22,10 +22,13 @@ const isPreservedToolResult = (block: Block): boolean =>
   block.type === "tool_result" && PRESERVED_TOOLS.has(block.toolName ?? "")
 
 const isStructural = (block: Block): boolean =>
-  block.type === "user" || block.type === "system" || isPreservedToolCall(block) || isPreservedToolResult(block)
+  block.type === "user" ||
+  block.type === "system" ||
+  isPreservedToolCall(block) ||
+  isPreservedToolResult(block)
 
 const findBoundaryIndices = (blocks: Block[]): number[] =>
-  blocks.reduce<number[]>((acc, block, i) => isBoundaryResult(block) ? [...acc, i] : acc, [])
+  blocks.reduce<number[]>((acc, block, i) => (isBoundaryResult(block) ? [...acc, i] : acc), [])
 
 const buildCompactedSet = (blocks: Block[], boundaries: number[]): Set<number> => {
   const compacted = new Set<number>()

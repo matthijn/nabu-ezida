@@ -5,9 +5,7 @@
     "match.md": "hello again"
   },
   "args": {
-    "commands": [
-      "grep -l hello *.md"
-    ]
+    "commands": ["grep -l hello *.md"]
   },
   "expected": {
     "status": "ok",

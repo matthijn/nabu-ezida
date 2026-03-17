@@ -23,7 +23,7 @@ about the training process. She noted that older colleagues struggled significan
 transition and that the implementation timeline was unrealistic given the complexity of the system.`
 
 describe("resolveFuzzyPatterns", () => {
-  type TestCase = {
+  interface TestCase {
     name: string
     patch: string
     target: string
@@ -75,25 +75,31 @@ describe("resolveFuzzyPatterns", () => {
     },
     {
       name: "exact match handles newlines as spaces",
-      patch: '{ "text": "FUZZY[[the organizational culture at her first hospital was particularly supportive]]" }',
+      patch:
+        '{ "text": "FUZZY[[the organizational culture at her first hospital was particularly supportive]]" }',
       target: INTERVIEW_DOC,
-      expectedPatch: '{ "text": "the organizational culture at her first hospital was\nparticularly supportive" }',
+      expectedPatch:
+        '{ "text": "the organizational culture at her first hospital was\nparticularly supportive" }',
       expectedResolved: 1,
       expectedUnresolved: [],
     },
     {
       name: "fuzzy token match with one wrong word in longer phrase",
-      patch: '{ "text": "FUZZY[[felt that management was not adequately addressing the workload concerns]]" }',
+      patch:
+        '{ "text": "FUZZY[[felt that management was not adequately addressing the workload concerns]]" }',
       target: INTERVIEW_DOC,
-      expectedPatch: '{ "text": "colleagues. She felt that management was not adequately addressing the" }',
+      expectedPatch:
+        '{ "text": "colleagues. She felt that management was not adequately addressing the" }',
       expectedResolved: 1,
       expectedUnresolved: [],
     },
     {
       name: "fuzzy token match with dropped word in needle",
-      patch: '{ "text": "FUZZY[[expressed concerns about staffing levels and burnout among her colleagues]]" }',
+      patch:
+        '{ "text": "FUZZY[[expressed concerns about staffing levels and burnout among her colleagues]]" }',
       target: INTERVIEW_DOC,
-      expectedPatch: '{ "text": "she expressed significant concerns about staffing levels and\nburnout among" }',
+      expectedPatch:
+        '{ "text": "she expressed significant concerns about staffing levels and\nburnout among" }',
       expectedResolved: 1,
       expectedUnresolved: [],
     },
@@ -139,16 +145,19 @@ describe("resolveFuzzyPatterns", () => {
     },
   ]
 
-  it.each(cases)("$name", ({ patch, target, expectedPatch, expectedResolved, expectedUnresolved }) => {
-    const result = resolveFuzzyPatterns(patch, target)
-    expect(result.patch).toBe(expectedPatch)
-    expect(result.resolved).toBe(expectedResolved)
-    expect(result.unresolved).toEqual(expectedUnresolved)
-  })
+  it.each(cases)(
+    "$name",
+    ({ patch, target, expectedPatch, expectedResolved, expectedUnresolved }) => {
+      const result = resolveFuzzyPatterns(patch, target)
+      expect(result.patch).toBe(expectedPatch)
+      expect(result.resolved).toBe(expectedResolved)
+      expect(result.unresolved).toEqual(expectedUnresolved)
+    }
+  )
 })
 
 describe("hasFuzzyPatterns", () => {
-  type TestCase = {
+  interface TestCase {
     name: string
     content: string
     expected: boolean

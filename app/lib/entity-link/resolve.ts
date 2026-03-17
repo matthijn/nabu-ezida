@@ -5,7 +5,12 @@ import { parseEntityLink } from "~/domain/entity-link"
 import { serializeSpotlight } from "~/domain/spotlight"
 import { calloutTypeIcons } from "~/domain/blocks/callout/schema"
 import { annotationIcon } from "~/domain/blocks/attributes/schema"
-import { lowContrastText, solidBackground, elementBackground, hoveredElementBackground } from "~/lib/colors/radix"
+import {
+  lowContrastText,
+  solidBackground,
+  elementBackground,
+  hoveredElementBackground,
+} from "~/lib/colors/radix"
 import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import {
   findAnnotationById,
@@ -16,14 +21,14 @@ import {
   resolveAnnotationColor,
 } from "~/lib/files/selectors"
 
-export type ResolvedColors = {
+export interface ResolvedColors {
   text: string
   icon: string
   background: string
   backgroundHover: string
 }
 
-export type ResolvedLink = {
+export interface ResolvedLink {
   kind: EntityKind
   colors: ResolvedColors
   icon: ComponentType<{ className?: string }>
@@ -55,7 +60,11 @@ const SPOTLIGHT_COLORS: ResolvedColors = {
 const buildEntityUrl = (projectId: string, documentId: string, entityId: string): string =>
   `/project/${projectId}/file/${documentId}?entity=${entityId}`
 
-const buildTextUrl = (projectId: string, documentId: string, spotlight: { type: string } | null): string => {
+const buildTextUrl = (
+  projectId: string,
+  documentId: string,
+  spotlight: { type: string } | null
+): string => {
   const base = `/project/${projectId}/file/${documentId}`
   if (!spotlight) return base
   return `${base}?spotlight=${encodeURIComponent(serializeSpotlight(spotlight as Parameters<typeof serializeSpotlight>[0]))}`
@@ -64,7 +73,7 @@ const buildTextUrl = (projectId: string, documentId: string, spotlight: { type: 
 const resolveAnnotationRef = (
   ref: Extract<EntityRef, { kind: "annotation" }>,
   files: Record<string, string>,
-  projectId: string,
+  projectId: string
 ): ResolvedLink | null => {
   const annotation = findAnnotationById(files, ref.id)
   if (!annotation) return null
@@ -82,7 +91,7 @@ const resolveAnnotationRef = (
 const resolveCalloutRef = (
   ref: Extract<EntityRef, { kind: "callout" }>,
   files: Record<string, string>,
-  projectId: string,
+  projectId: string
 ): ResolvedLink | null => {
   const callout = findCalloutById(files, ref.id)
   if (!callout) return null
@@ -99,7 +108,7 @@ const resolveCalloutRef = (
 
 const resolveTagRef = (
   ref: Extract<EntityRef, { kind: "tag" }>,
-  files: Record<string, string>,
+  files: Record<string, string>
 ): ResolvedLink | null => {
   const tag = findTagDefinitionById(files, ref.id)
   if (!tag) return null
@@ -112,13 +121,12 @@ const resolveTagRef = (
   }
 }
 
-const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean =>
-  ref.spotlight !== null
+const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean => ref.spotlight !== null
 
 const resolveTextRef = (
   ref: Extract<EntityRef, { kind: "text" }>,
   projectId: string,
-  icons: EntityIcons,
+  icons: EntityIcons
 ): ResolvedLink => ({
   kind: "text",
   colors: hasSpotlight(ref) ? SPOTLIGHT_COLORS : FILE_COLORS,
@@ -127,7 +135,7 @@ const resolveTextRef = (
   label: ref.documentId,
 })
 
-export type EntityIcons = {
+export interface EntityIcons {
   file: ComponentType<{ className?: string }>
   spotlight: ComponentType<{ className?: string }>
 }
@@ -136,7 +144,7 @@ export const resolveEntityLink = (
   href: string,
   files: Record<string, string>,
   projectId: string,
-  icons: EntityIcons,
+  icons: EntityIcons
 ): ResolvedLink | null => {
   const ref = parseEntityLink(href)
   if (!ref) return null

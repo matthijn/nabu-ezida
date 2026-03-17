@@ -8,7 +8,7 @@ export const mdToPlainText = (markdown: string): string => {
   return toString(ast)
 }
 
-type MarkdownBlock = {
+interface MarkdownBlock {
   type: string
   lang: string | null
   depth: number | null
@@ -25,7 +25,7 @@ export const parseMarkdownBlocks = (raw: string): MarkdownBlock[] => {
 
   return ast.children.map((node) => ({
     type: node.type,
-    lang: node.type === "code" ? (node as Code).lang ?? null : null,
+    lang: node.type === "code" ? ((node as Code).lang ?? null) : null,
     depth: node.type === "heading" ? (node as Heading).depth : null,
     startLine: node.position?.start.line ?? 1,
     endLine: node.position?.end.line ?? 1,
@@ -36,8 +36,7 @@ export const parseMarkdownBlocks = (raw: string): MarkdownBlock[] => {
 const isAttributesBlock = (block: MarkdownBlock): boolean =>
   block.type === "code" && block.lang === "json-attributes"
 
-const isProseBlock = (block: MarkdownBlock): boolean =>
-  block.type !== "code"
+const isProseBlock = (block: MarkdownBlock): boolean => block.type !== "code"
 
 export const stripAttributesBlock = (raw: string): string =>
   parseMarkdownBlocks(raw)
@@ -46,8 +45,7 @@ export const stripAttributesBlock = (raw: string): string =>
     .join("\n\n")
     .trim()
 
-const blockLineCount = (block: MarkdownBlock): number =>
-  block.endLine - block.startLine + 1
+const blockLineCount = (block: MarkdownBlock): number => block.endLine - block.startLine + 1
 
 const isMajorHeading = (block: MarkdownBlock): boolean =>
   block.type === "heading" && (block.depth === 1 || block.depth === 2)
@@ -67,12 +65,16 @@ const canSplitBefore = (block: MarkdownBlock, prevBlock: MarkdownBlock | null): 
   return false
 }
 
-type SplitOptions = {
+interface SplitOptions {
   stripAttributes?: boolean
   proseOnly?: boolean
 }
 
-export const splitByLines = (raw: string, targetLines: number, options: SplitOptions = {}): string[] => {
+export const splitByLines = (
+  raw: string,
+  targetLines: number,
+  options: SplitOptions = {}
+): string[] => {
   const content = options.stripAttributes ? stripAttributesBlock(raw) : raw
   const allBlocks = parseMarkdownBlocks(content)
   const blocks = options.proseOnly ? allBlocks.filter(isProseBlock) : allBlocks

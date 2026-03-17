@@ -2,14 +2,11 @@ import type { Spotlight } from "./types"
 
 const RANGE_DELIMITER = "..."
 
-const normalizeEllipsis = (text: string): string =>
-  text.replace(/\u2026/g, "...")
+const normalizeEllipsis = (text: string): string => text.replace(/\u2026/g, "...")
 
-const decodeSpotlight = (param: string): string =>
-  normalizeEllipsis(param.replace(/\+/g, " "))
+const decodeSpotlight = (param: string): string => normalizeEllipsis(param.replace(/\+/g, " "))
 
-const isRange = (param: string): boolean =>
-  param.includes(RANGE_DELIMITER)
+const isRange = (param: string): boolean => param.includes(RANGE_DELIMITER)
 
 const parseRange = (param: string): Spotlight | null => {
   const idx = param.indexOf(RANGE_DELIMITER)
@@ -19,8 +16,7 @@ const parseRange = (param: string): Spotlight | null => {
   return { type: "range", from, to }
 }
 
-const parseSingle = (param: string): Spotlight =>
-  ({ type: "single", text: param })
+const parseSingle = (param: string): Spotlight => ({ type: "single", text: param })
 
 export const parseSpotlight = (param: string | null): Spotlight | null => {
   if (!param) return null

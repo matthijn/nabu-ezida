@@ -5,10 +5,7 @@ import type { Files } from "../derived"
 import type { Nudger } from "./nudge-tools"
 import { buildToolNudges } from "./nudges"
 import { baselineNudge } from "./nudges/baseline"
-import {
-  toolResult,
-  resetCallIdCounter,
-} from "../test-helpers"
+import { toolResult, resetCallIdCounter } from "../test-helpers"
 
 beforeEach(() => resetCallIdCounter())
 
@@ -24,17 +21,25 @@ const buildTestNudge = (files: Files = {}) => {
   return (history: Block[]) => nudge(excludeReasoning(history))
 }
 
-const toolCallBlock = (): Block => ({ type: "tool_call", calls: [{ id: "1", name: "test", args: {} }] })
+const toolCallBlock = (): Block => ({
+  type: "tool_call",
+  calls: [{ id: "1", name: "test", args: {} }],
+})
 const userMessage = (content = "Hello"): Block => ({ type: "user", content })
 const textBlock = (content = "Response"): Block => ({ type: "text", content })
-const shellErrorResult = (): Block => ({ type: "tool_result", callId: "1", toolName: "run_local_shell", result: { status: "error", output: "unknown command" } })
+const shellErrorResult = (): Block => ({
+  type: "tool_result",
+  callId: "1",
+  toolName: "run_local_shell",
+  result: { status: "error", output: "unknown command" },
+})
 
 type NudgeExpectation =
   | { type: "none" }
   | { type: "emptyNudge" }
   | { type: "contains"; text: string }
 
-type TestCase = {
+interface TestCase {
   name: string
   history: Block[]
   files?: Record<string, string>

@@ -1,6 +1,4 @@
-type JsonResult<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; error: string }
+type JsonResult<T = unknown> = { ok: true; data: T } | { ok: false; error: string }
 
 export const repairJsonNewlines = (json: string): string => {
   let result = ""

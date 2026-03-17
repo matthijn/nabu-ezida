@@ -4,9 +4,7 @@
     "other.md": "hello once"
   },
   "args": {
-    "commands": [
-      "grep -c hello"
-    ]
+    "commands": ["grep -c hello"]
   },
   "expected": {
     "status": "ok",

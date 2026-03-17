@@ -2,13 +2,18 @@ import { command, ok, err, normalizePath, isGlob, resolveFiles } from "./command
 import { findBlocksByLanguage } from "~/lib/blocks/parse"
 import { parsePrettyJson } from "~/lib/json"
 
-type BlockResult = { file: string; block: unknown }
+interface BlockResult {
+  file: string
+  block: unknown
+}
 
 export const blocks = command({
-  description: "Extract JSON from fenced code blocks (e.g. json-callout, json-attributes). Returns array.",
+  description:
+    "Extract JSON from fenced code blocks (e.g. json-callout, json-attributes). Returns array.",
   details: `Output: Without -p: [{...block}, ...]. With -p: [{file:"path", json:{...block}}, ...].
-Example: blocks json-callout -p doc.md | jq ".[0].json.title" or jq ".[] | select(.json.type==\"code\")"`,
-  usage: "blocks <language> [-p] [file-pattern]\n  blocks json-callout doc.md | jq \".[0].title\"\n  blocks json-callout -p \"*.md\" | jq \".[].json.annotations\"",
+Example: blocks json-callout -p doc.md | jq ".[0].json.title" or jq ".[] | select(.json.type=="code")"`,
+  usage:
+    'blocks <language> [-p] [file-pattern]\n  blocks json-callout doc.md | jq ".[0].title"\n  blocks json-callout -p "*.md" | jq ".[].json.annotations"',
   flags: {
     "-p": { alias: "--paths", description: "wrap output as {file, json} for cross-file queries" },
   },
@@ -31,8 +36,13 @@ Example: blocks json-callout -p doc.md | jq ".[0].json.title" or jq ".[] | selec
 
     if (rawPattern) {
       const resolved = resolveFiles(files, rawPattern)
-      if (resolved.length === 0 && !isGlob(rawPattern)) return err(`blocks: ${normalizePath(rawPattern)}: No such file`)
-      for (const filePath of resolved) { processFile(filePath, files.get(filePath)!) }
+      if (resolved.length === 0 && !isGlob(rawPattern))
+        return err(`blocks: ${normalizePath(rawPattern)}: No such file`)
+      for (const filePath of resolved) {
+        const content = files.get(filePath)
+        if (content === undefined) continue
+        processFile(filePath, content)
+      }
     } else {
       for (const [filePath, content] of files) {
         processFile(filePath, content)

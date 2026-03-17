@@ -2,7 +2,7 @@ export type ParticipantType = "human" | "llm"
 
 export type ParticipantVariant = "brand" | "neutral" | "error" | "success" | "warning"
 
-export type Participant = {
+export interface Participant {
   id: string
   type: ParticipantType
   name: string
@@ -29,9 +29,3 @@ export const CURRENT_USER: Participant = {
   variant: "brand",
   initial: "M",
 }
-
-const PARTICIPANTS: Participant[] = [
-  NABU,
-  { id: "jane", type: "human", name: "Jane", description: "Data analyst", variant: "warning", initial: "J" },
-  { id: "alex", type: "human", name: "Alex", description: "Content strategist", variant: "success", initial: "A" },
-]

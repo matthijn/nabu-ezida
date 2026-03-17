@@ -14,7 +14,10 @@ describe("findAllTextPositions", () => {
       name: "finds multiple occurrences",
       fullText: "abcabc",
       search: "abc",
-      expected: [{ from: 0, to: 3 }, { from: 3, to: 6 }],
+      expected: [
+        { from: 0, to: 3 },
+        { from: 3, to: 6 },
+      ],
     },
     {
       name: "returns empty when not found",
@@ -26,7 +29,10 @@ describe("findAllTextPositions", () => {
       name: "finds overlapping occurrences",
       fullText: "aaa",
       search: "aa",
-      expected: [{ from: 0, to: 2 }, { from: 1, to: 3 }],
+      expected: [
+        { from: 0, to: 2 },
+        { from: 1, to: 3 },
+      ],
     },
     {
       name: "returns empty for empty search text",
@@ -38,7 +44,10 @@ describe("findAllTextPositions", () => {
       name: "finds repeated text in document with duplication",
       fullText: "KOOLMEES said hello. Later, KOOLMEES said goodbye.",
       search: "KOOLMEES",
-      expected: [{ from: 0, to: 8 }, { from: 28, to: 36 }],
+      expected: [
+        { from: 0, to: 8 },
+        { from: 28, to: 36 },
+      ],
     },
   ]
 

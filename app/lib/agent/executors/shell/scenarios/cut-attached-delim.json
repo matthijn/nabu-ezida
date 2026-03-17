@@ -3,9 +3,7 @@
     "data.txt": "a:b:c\nx:y:z"
   },
   "args": {
-    "commands": [
-      "cat data.txt | cut -d: -f1"
-    ]
+    "commands": ["cat data.txt | cut -d: -f1"]
   },
   "expected": {
     "status": "ok",

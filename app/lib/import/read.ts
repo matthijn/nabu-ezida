@@ -1,6 +1,4 @@
-type ReadResult =
-  | { ok: true; content: string }
-  | { ok: false; error: string }
+type ReadResult = { ok: true; content: string } | { ok: false; error: string }
 
 export const readFileContent = (file: File): Promise<ReadResult> =>
   new Promise((resolve) => {
@@ -22,5 +20,4 @@ export const readFileContent = (file: File): Promise<ReadResult> =>
     reader.readAsText(file)
   })
 
-export const isMarkdownFile = (filename: string): boolean =>
-  filename.toLowerCase().endsWith(".md")
+export const isMarkdownFile = (filename: string): boolean => filename.toLowerCase().endsWith(".md")

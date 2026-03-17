@@ -19,7 +19,7 @@ const toolLabels: Record<string, string> = {
 const DEFAULT_LABEL = "Thought"
 
 const toLabel = (toolName: string | null): string =>
-  toolName ? toolLabels[toolName] ?? DEFAULT_LABEL : DEFAULT_LABEL
+  toolName ? (toolLabels[toolName] ?? DEFAULT_LABEL) : DEFAULT_LABEL
 
 const findLastBoldText = (text: string): string | null => {
   const matches = [...text.matchAll(/\*\*(.+?)\*\*/g)]
@@ -28,7 +28,8 @@ const findLastBoldText = (text: string): string | null => {
 
 const blockToSpinnerLabel = (block: Block): string | null => {
   if (block.type === "reasoning") return findLastBoldText(block.content) ?? DEFAULT_LABEL
-  if (block.type === "tool_call" && block.calls.length > 0) return toLabel(block.calls[block.calls.length - 1].name)
+  if (block.type === "tool_call" && block.calls.length > 0)
+    return toLabel(block.calls[block.calls.length - 1].name)
   if (block.type === "tool_result") return toLabel(block.toolName ?? null)
   return null
 }

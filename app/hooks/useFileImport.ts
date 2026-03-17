@@ -1,8 +1,15 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { produce } from "immer"
-import { processFiles, isMarkdownFile, readDroppedItems, type ImportFile, type ImportStatus, type FileWithPath } from "~/lib/import"
+import {
+  processFiles,
+  isMarkdownFile,
+  readDroppedItems,
+  type ImportFile,
+  type ImportStatus,
+  type FileWithPath,
+} from "~/lib/import"
 
-type ImportState = {
+interface ImportState {
   files: Record<string, ImportFile>
   isProcessing: boolean
 }

@@ -1,4 +1,11 @@
-import { updateFileRaw, deleteFile, renameFile, getFileRaw, applyFilePatch, withoutPersist } from "~/lib/files"
+import {
+  updateFileRaw,
+  deleteFile,
+  renameFile,
+  getFileRaw,
+  applyFilePatch,
+  withoutPersist,
+} from "~/lib/files"
 import type { Command } from "./types"
 
 const applyCommandInner = (command: Command): void => {

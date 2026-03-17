@@ -3,14 +3,14 @@ import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent
 import { isDraft } from "~/lib/agent/block-store"
 import { AskArgs } from "~/lib/agent/executors/tools/ask.def"
 
-export type TextMessage = {
+export interface TextMessage {
   type: "text"
   role: "user" | "assistant"
   content: string
   draft?: true
 }
 
-export type PlanMessage = {
+export interface PlanMessage {
   type: "plan"
   plan: DerivedPlan
   currentStep: number | null
@@ -19,7 +19,10 @@ export type PlanMessage = {
 
 export type RenderMessage = TextMessage | PlanMessage
 
-export type Indexed<T> = { index: number; message: T }
+export interface Indexed<T> {
+  index: number
+  message: T
+}
 
 const hasContent = (s: string): boolean => s.trim().length > 0
 
@@ -31,8 +34,11 @@ const hasDraft = (b: Block): boolean => "draft" in b && b.draft === true
 export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
-    .filter((item): item is { block: { type: "user" | "text" | "error"; content: string }; index: number } =>
-      isContentBlock(item.block) && hasContent(item.block.content)
+    .filter(
+      (
+        item
+      ): item is { block: { type: "user" | "text" | "error"; content: string }; index: number } =>
+        isContentBlock(item.block) && hasContent(item.block.content)
     )
     .map(({ block, index }) => ({
       index,
@@ -71,7 +77,7 @@ export const toRenderMessages = (history: Block[], files: Files = {}): RenderMes
 
 export type AskScope = "local" | "codebook" | "preferences"
 
-export type AskMessage = {
+export interface AskMessage {
   type: "ask"
   question: string
   options: string[]
@@ -79,7 +85,7 @@ export type AskMessage = {
   scope: AskScope
 }
 
-type AskExtraction = {
+interface AskExtraction {
   messages: Indexed<AskMessage>[]
   consumedUserIndices: Set<number>
 }
@@ -110,19 +116,27 @@ const findConsumedUserIndices = (history: Block[], askIndex: number, callId: str
   return indices
 }
 
-type ParsedAskArgs = { question: string; options: string[]; scope: AskScope }
+interface ParsedAskArgs {
+  question: string
+  options: string[]
+  scope: AskScope
+}
 
 const parseAskArgs = (args: Record<string, unknown>): ParsedAskArgs | null => {
   const parsed = AskArgs.safeParse(args)
   if (!parsed.success) return null
-  return { question: parsed.data.question, options: parsed.data.options ?? [], scope: parsed.data.scope }
+  return {
+    question: parsed.data.question,
+    options: parsed.data.options ?? [],
+    scope: parsed.data.scope,
+  }
 }
 
 const extractSingleAsk = (
   index: number,
   call: ToolCall,
   history: Block[],
-  consumed: Set<number>,
+  consumed: Set<number>
 ): Indexed<AskMessage>[] => {
   const args = parseAskArgs(call.args)
   if (!args) return []
@@ -131,25 +145,28 @@ const extractSingleAsk = (
   userIndices.forEach((i) => consumed.add(i))
 
   const resultOutput = findToolResult(history, call.id)
-  const userAnswer = userIndices.length > 0 ? (history[userIndices[0]] as { content: string }).content : null
+  const userAnswer =
+    userIndices.length > 0 ? (history[userIndices[0]] as { content: string }).content : null
   const selected = resultOutput ?? userAnswer
 
-  return [{
-    index,
-    message: {
-      type: "ask" as const,
-      question: args.question,
-      options: args.options,
-      selected,
-      scope: args.scope,
+  return [
+    {
+      index,
+      message: {
+        type: "ask" as const,
+        question: args.question,
+        options: args.options,
+        selected,
+        scope: args.scope,
+      },
     },
-  }]
+  ]
 }
 
 export const extractAskMessages = (history: Block[]): AskExtraction => {
   const consumed = new Set<number>()
   const messages = findAskCalls(history).flatMap(({ index, call }) =>
-    extractSingleAsk(index, call, history, consumed),
+    extractSingleAsk(index, call, history, consumed)
   )
   return { messages, consumedUserIndices: consumed }
 }
@@ -169,7 +186,8 @@ export const isWaitingForAsk = (history: Block[]): boolean => {
     if (isDraft(block)) continue
     if (block.type === "text" || block.type === "user") return false
     if (isAskToolCall(block)) {
-      const call = findAskCall(block)!
+      const call = findAskCall(block)
+      if (!call) return false
       return !hasMatchingResult(history, call.id)
     }
   }

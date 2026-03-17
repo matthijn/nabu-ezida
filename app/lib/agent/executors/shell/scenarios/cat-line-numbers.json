@@ -3,9 +3,7 @@
     "foo.txt": "line1\nline2\nline3"
   },
   "args": {
-    "commands": [
-      "cat -n foo.txt"
-    ]
+    "commands": ["cat -n foo.txt"]
   },
   "expected": {
     "status": "ok",

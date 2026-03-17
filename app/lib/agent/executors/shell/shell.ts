@@ -3,7 +3,12 @@ import type { Files } from "./types"
 import type { Result, Operation } from "./commands/command"
 import * as commands from "./commands"
 
-type ExecResult = { output: string; operations: Operation[]; isError: boolean; exitCode?: number }
+interface ExecResult {
+  output: string
+  operations: Operation[]
+  isError: boolean
+  exitCode?: number
+}
 
 export const createShell = (files: Files) => {
   const handlers = Object.fromEntries(
@@ -12,7 +17,10 @@ export const createShell = (files: Files) => {
   return { exec: exec(handlers), commands: handlers, helpText }
 }
 
-type CommandCategory = { name: string; commands: string[] }
+interface CommandCategory {
+  name: string
+  commands: string[]
+}
 
 const categories: CommandCategory[] = [
   { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
@@ -74,12 +82,18 @@ const helpText = (): string =>
 
 // ANSI-C quoting: $'\t' → literal tab, $'\n' → literal newline, etc.
 const ansiCEscapes: Record<string, string> = {
-  "\\\\": "\\", "\\n": "\n", "\\t": "\t", "\\r": "\r",
-  "\\a": "\x07", "\\b": "\b", "\\f": "\f", "\\v": "\v", "\\'": "'",
+  "\\\\": "\\",
+  "\\n": "\n",
+  "\\t": "\t",
+  "\\r": "\r",
+  "\\a": "\x07",
+  "\\b": "\b",
+  "\\f": "\f",
+  "\\v": "\v",
+  "\\'": "'",
 }
 
-const expandAnsiCEscape = (seq: string): string =>
-  ansiCEscapes[seq] ?? seq
+const expandAnsiCEscape = (seq: string): string => ansiCEscapes[seq] ?? seq
 
 const expandAnsiCQuoting = (input: string): string =>
   input.replace(/\$'((?:[^'\\]|\\.)*)'/g, (_match, inner: string) => {
@@ -92,13 +106,32 @@ const notBashError = (feature: string): string =>
   `This is not bash. '${feature}' is not supported.\nUse only: ${getCommandNames().join(", ")}`
 
 // Operator classifications
-const bashCommands = new Set(["if", "then", "else", "fi", "for", "while", "do", "done", "case", "esac", "set", "command", "test", "exit", "return", "export"])
+const bashCommands = new Set([
+  "if",
+  "then",
+  "else",
+  "fi",
+  "for",
+  "while",
+  "do",
+  "done",
+  "case",
+  "esac",
+  "set",
+  "command",
+  "test",
+  "exit",
+  "return",
+  "export",
+])
 const redirectOps = new Set([">", ">>", "<", ">&", "<("])
 const sequenceOps = new Set(["&&", "||", ";"])
 const unsupportedOps = new Set([";;", "|&", "&", "(", ")"])
 
 // Token type predicates
-type VarMarker = { __var: string }
+interface VarMarker {
+  __var: string
+}
 
 const isVarMarker = (x: unknown): x is VarMarker =>
   typeof x === "object" && x !== null && "__var" in x
@@ -107,7 +140,11 @@ const isGlob = (entry: ParseEntry | VarMarker): entry is { op: "glob"; pattern: 
   typeof entry === "object" && entry !== null && "op" in entry && entry.op === "glob"
 
 const isOp = (entry: ParseEntry | VarMarker): entry is { op: ControlOperator } =>
-  typeof entry === "object" && entry !== null && "op" in entry && !isVarMarker(entry) && !isGlob(entry)
+  typeof entry === "object" &&
+  entry !== null &&
+  "op" in entry &&
+  !isVarMarker(entry) &&
+  !isGlob(entry)
 
 // Token selectors
 const tokenToString = (token: ParseEntry | VarMarker): string | null =>
@@ -116,7 +153,10 @@ const tokenToString = (token: ParseEntry | VarMarker): string | null =>
 const isBareDollar = (token: VarMarker, next?: ParseEntry | VarMarker): boolean =>
   token.__var === "" && !(next && isOp(next) && next.op === "(")
 
-const validateToken = (token: ParseEntry | VarMarker, next?: ParseEntry | VarMarker): string | null => {
+const validateToken = (
+  token: ParseEntry | VarMarker,
+  next?: ParseEntry | VarMarker
+): string | null => {
   if (isVarMarker(token)) {
     if (isBareDollar(token, next)) return null
     const feature = token.__var === "" ? "$(" : `$${token.__var}`
@@ -148,7 +188,12 @@ const parseInput = (input: string): { tokens: (ParseEntry | VarMarker)[]; error?
 }
 
 // Pipeline state for reduce
-type PipelineAcc = { pipelines: string[][][]; ops: string[]; pipeline: string[][]; cmd: string[] }
+interface PipelineAcc {
+  pipelines: string[][][]
+  ops: string[]
+  pipeline: string[][]
+  cmd: string[]
+}
 
 const flushCmd = (acc: PipelineAcc): PipelineAcc =>
   acc.cmd.length > 0 ? { ...acc, pipeline: [...acc.pipeline, acc.cmd], cmd: [] } : acc
@@ -160,7 +205,9 @@ const flushPipeline = (acc: PipelineAcc): PipelineAcc => {
     : flushed
 }
 
-const splitIntoPipelines = (tokens: (ParseEntry | VarMarker)[]): { pipelines: string[][][]; ops: string[] } => {
+const splitIntoPipelines = (
+  tokens: (ParseEntry | VarMarker)[]
+): { pipelines: string[][][]; ops: string[] } => {
   const initial: PipelineAcc = { pipelines: [], ops: [], pipeline: [], cmd: [] }
 
   const result = tokens.reduce((acc, token) => {
@@ -182,41 +229,49 @@ const splitIntoPipelines = (tokens: (ParseEntry | VarMarker)[]): { pipelines: st
 
 // Execution predicates
 const shouldRunAfterOp = (prevOp: string | null, lastSuccess: boolean): boolean =>
-  prevOp === null || prevOp === ";" || (prevOp === "&&" && lastSuccess) || (prevOp === "||" && !lastSuccess)
+  prevOp === null ||
+  prevOp === ";" ||
+  (prevOp === "&&" && lastSuccess) ||
+  (prevOp === "||" && !lastSuccess)
 
-const exec = (handlers: Record<string, (args: string[], stdin: string) => Result>) => (input: string): ExecResult => {
-  const trimmed = input.trim().replace(/\s*(2>|>)\/dev\/null\s*/g, " ")
+const exec =
+  (handlers: Record<string, (args: string[], stdin: string) => Result>) =>
+  (input: string): ExecResult => {
+    const trimmed = input.trim().replace(/\s*(2>|>)\/dev\/null\s*/g, " ")
 
-  if (!trimmed) return { output: "", operations: [], isError: false }
-  if (trimmed === "help") return { output: helpText(), operations: [], isError: false }
+    if (!trimmed) return { output: "", operations: [], isError: false }
+    if (trimmed === "help") return { output: helpText(), operations: [], isError: false }
 
-  const { tokens, error } = parseInput(trimmed)
-  if (error) return { output: error, operations: [], isError: true }
+    const { tokens, error } = parseInput(trimmed)
+    if (error) return { output: error, operations: [], isError: true }
 
-  const { pipelines, ops } = splitIntoPipelines(tokens)
+    const { pipelines, ops } = splitIntoPipelines(tokens)
 
-  const outputs: string[] = []
-  const operations: Operation[] = []
-  let lastSuccess = true
-  let hasError = false
-  let lastExitCode: number | undefined
+    const outputs: string[] = []
+    const operations: Operation[] = []
+    let lastSuccess = true
+    let hasError = false
+    let lastExitCode: number | undefined
 
-  for (let i = 0; i < pipelines.length; i++) {
-    const prevOp = i > 0 ? ops[i - 1] : null
-    if (!shouldRunAfterOp(prevOp, lastSuccess)) continue
+    for (let i = 0; i < pipelines.length; i++) {
+      const prevOp = i > 0 ? ops[i - 1] : null
+      if (!shouldRunAfterOp(prevOp, lastSuccess)) continue
 
-    const result = runPipeline(handlers, pipelines[i])
-    if (result.operations) operations.push(...result.operations)
-    lastSuccess = !result.error && result.exitCode !== 1
-    if (result.error) hasError = true
-    if (result.exitCode !== undefined) lastExitCode = result.exitCode
-    outputs.push(result.error ?? result.output)
+      const result = runPipeline(handlers, pipelines[i])
+      if (result.operations) operations.push(...result.operations)
+      lastSuccess = !result.error && result.exitCode !== 1
+      if (result.error) hasError = true
+      if (result.exitCode !== undefined) lastExitCode = result.exitCode
+      outputs.push(result.error ?? result.output)
+    }
+
+    return { output: outputs.join("\n"), operations, isError: hasError, exitCode: lastExitCode }
   }
 
-  return { output: outputs.join("\n"), operations, isError: hasError, exitCode: lastExitCode }
-}
-
-const runPipeline = (handlers: Record<string, (args: string[], stdin: string) => Result>, pipeline: string[][]): Result => {
+const runPipeline = (
+  handlers: Record<string, (args: string[], stdin: string) => Result>,
+  pipeline: string[][]
+): Result => {
   let output = ""
   const operations: Operation[] = []
 
@@ -227,14 +282,22 @@ const runPipeline = (handlers: Record<string, (args: string[], stdin: string) =>
     if (bashCommands.has(name)) return { output: "", error: notBashError(name) }
 
     const handler = handlers[name]
-    if (!handler) return { output: "", error: `Unknown command: '${name}'\n\nAvailable commands:\n${helpText()}` }
+    if (!handler)
+      return {
+        output: "",
+        error: `Unknown command: '${name}'\n\nAvailable commands:\n${helpText()}`,
+      }
 
     const result = handler(args, output)
     if (result.operations) operations.push(...result.operations)
     if (result.error) return { ...result, operations }
     output = result.output
     if (result.exitCode !== undefined) {
-      return { output, exitCode: result.exitCode, operations: operations.length > 0 ? operations : undefined }
+      return {
+        output,
+        exitCode: result.exitCode,
+        operations: operations.length > 0 ? operations : undefined,
+      }
     }
   }
 

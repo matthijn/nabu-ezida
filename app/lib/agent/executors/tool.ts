@@ -1,7 +1,7 @@
-import { z } from "zod"
+import type { z } from "zod"
 import type { Handler, HandlerResult, RawFiles, Operation } from "../types"
 
-type ToolDef<TSchema extends z.ZodType, TOutput> = {
+interface ToolDef<TSchema extends z.ZodType, TOutput> {
   name: string
   description: string
   schema: TSchema
@@ -12,7 +12,7 @@ type Tool<TSchema extends z.ZodType, TOutput> = ToolDef<TSchema, TOutput> & {
   handle: Handler<TOutput>
 }
 
-export type AnyTool = {
+export interface AnyTool {
   name: string
   description: string
   schema: z.ZodType
@@ -37,10 +37,12 @@ export const tool = <TSchema extends z.ZodType, TOutput>(
 }
 
 export const formatZodError = (error: z.ZodError): string =>
-  error.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message)).join(", ")
+  error.issues
+    .map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message))
+    .join(", ")
 
 // JSON Schema generation for LLM tool definitions
-type JsonSchemaProperty = {
+interface JsonSchemaProperty {
   type: string
   description?: string
   items?: JsonSchemaProperty
@@ -51,7 +53,7 @@ type JsonSchemaProperty = {
   const?: unknown
 }
 
-export type ToolDefinition = {
+export interface ToolDefinition {
   type: "function"
   name: string
   description: string
@@ -127,17 +129,24 @@ export const toToolDefinition = (t: AnyTool): ToolDefinition => {
   const jsonSchema = t.schema.toJSONSchema()
   const strict = isStrictCompatible(jsonSchema)
   const parameters = strict
-    ? toStrictSchema(jsonSchema) as ToolDefinition["parameters"]
+    ? (toStrictSchema(jsonSchema) as ToolDefinition["parameters"])
     : {
         type: "object" as const,
-        properties: { ...((jsonSchema as Record<string, unknown>).properties as Record<string, JsonSchemaProperty> ?? {}) },
-        required: [...((jsonSchema as Record<string, unknown>).required as string[] ?? [])],
+        properties: {
+          ...(((jsonSchema as Record<string, unknown>).properties as Record<
+            string,
+            JsonSchemaProperty
+          >) ?? {}),
+        },
+        required: [...(((jsonSchema as Record<string, unknown>).required as string[]) ?? [])],
       }
   return {
     type: "function",
     name: t.name,
     description: t.description,
-    ...(strict ? { strict: true, parameters: { ...parameters, additionalProperties: false as const } } : { parameters }),
+    ...(strict
+      ? { strict: true, parameters: { ...parameters, additionalProperties: false as const } }
+      : { parameters }),
   }
 }
 
@@ -151,8 +160,7 @@ export const registerTool = <TSchema extends z.ZodType, TOutput>(
   return t
 }
 
-export const getToolDefinitions = (): ToolDefinition[] =>
-  registry.map((t) => toToolDefinition(t))
+export const getToolDefinitions = (): ToolDefinition[] => registry.map((t) => toToolDefinition(t))
 
 export const getToolHandlers = (): Record<string, Handler> =>
   Object.fromEntries(registry.map((t) => [t.name, t.handle]))
@@ -167,7 +175,11 @@ export const ok = <T>(output: T, mutations: Operation[] = []): HandlerResult<T> 
   mutations,
 })
 
-export const partial = <T>(output: T, message: string, mutations: Operation[] = []): HandlerResult<T> => ({
+export const partial = <T>(
+  output: T,
+  message: string,
+  mutations: Operation[] = []
+): HandlerResult<T> => ({
   status: "partial",
   output,
   message,

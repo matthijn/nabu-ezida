@@ -1,13 +1,9 @@
 "use client"
 
-import {
-  elementBackground,
-  solidBackground,
-  type RadixColor,
-} from "~/lib/colors/radix"
+import { elementBackground, solidBackground, type RadixColor } from "~/lib/colors/radix"
 import { annotationIcon as AnnotationIcon } from "~/domain/blocks/attributes/schema"
 
-type DocumentItemProps = {
+interface DocumentItemProps {
   title: string
   editedAt: string
   annotationCount?: number
@@ -16,10 +12,17 @@ type DocumentItemProps = {
   onClick?: () => void
 }
 
-export function DocumentItem({ title, editedAt, annotationCount = 0, color = "lime", selected = false, onClick }: DocumentItemProps) {
+export function DocumentItem({
+  title,
+  editedAt,
+  annotationCount = 0,
+  color = "lime",
+  selected = false,
+  onClick,
+}: DocumentItemProps) {
   return (
     <div
-      style={{ '--tag-element': elementBackground(color) } as React.CSSProperties}
+      style={{ "--tag-element": elementBackground(color) } as React.CSSProperties}
       className={`flex w-full flex-col items-start gap-1 px-3 py-2 cursor-pointer relative ${
         selected
           ? "bg-[var(--tag-element)] group-hover:bg-transparent hover:!bg-[var(--tag-element)]"
@@ -33,13 +36,9 @@ export function DocumentItem({ title, editedAt, annotationCount = 0, color = "li
           style={{ backgroundColor: solidBackground(color) }}
         />
       )}
-      <span className="line-clamp-1 text-body font-body text-default-font">
-        {title}
-      </span>
+      <span className="line-clamp-1 text-body font-body text-default-font">{title}</span>
       <div className="flex w-full items-center gap-1">
-        <span className="text-caption font-caption text-subtext-color">
-          {editedAt}
-        </span>
+        <span className="text-caption font-caption text-subtext-color">{editedAt}</span>
         {annotationCount > 0 && (
           <span className="flex items-center gap-0.5 text-caption font-caption text-subtext-color ml-auto">
             <AnnotationIcon className="w-3 h-3" />

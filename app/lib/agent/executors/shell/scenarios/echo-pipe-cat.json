@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo 'hello world' | cat"
-    ]
+    "commands": ["echo 'hello world' | cat"]
   },
   "expected": {
     "status": "ok",

@@ -3,9 +3,7 @@
     "doc.txt": "hello world"
   },
   "args": {
-    "commands": [
-      "grep xyz doc.txt"
-    ]
+    "commands": ["grep xyz doc.txt"]
   },
   "expected": {
     "status": "ok",

@@ -8,11 +8,12 @@ const PROJECT_PREFIX = "qual-coding/project/"
 const isProjectPhaseKey = (key: string): boolean =>
   key.startsWith(PROJECT_PREFIX) && !key.endsWith("/index")
 
-const hasProjectPhase = (keys: readonly string[]): boolean =>
-  keys.some(isProjectPhaseKey)
+const hasProjectPhase = (keys: readonly string[]): boolean => keys.some(isProjectPhaseKey)
 
-const toMarkerBlock = (key: string): Block =>
-  ({ type: "system", content: `<!-- approach: ${key} -->` })
+const toMarkerBlock = (key: string): Block => ({
+  type: "system",
+  content: `<!-- approach: ${key} -->`,
+})
 
 const handleGetGuidance = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = buildSchema().safeParse(call.args)
@@ -26,7 +27,10 @@ const handleGetGuidance = async (call: { args: unknown }): Promise<ToolResult<un
   const loaded = keys.join(", ")
 
   if (!hasProjectPhase(keys)) {
-    return { status: "partial", output: `Loaded: ${loaded}. Missing project phase — include one of the project/* keys for the current project state.` }
+    return {
+      status: "partial",
+      output: `Loaded: ${loaded}. Missing project phase — include one of the project/* keys for the current project state.`,
+    }
   }
 
   return { status: "ok", output: `Loaded: ${loaded}` }

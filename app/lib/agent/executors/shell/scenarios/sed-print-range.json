@@ -3,9 +3,7 @@
     "f.txt": "line1\nline2\nline3\nline4\nline5"
   },
   "args": {
-    "commands": [
-      "cat f.txt | sed -n '2,4p'"
-    ]
+    "commands": ["cat f.txt | sed -n '2,4p'"]
   },
   "expected": {
     "status": "ok",

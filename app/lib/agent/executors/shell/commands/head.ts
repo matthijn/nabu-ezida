@@ -16,7 +16,10 @@ export const head = command({
     const resolved: string[] = []
     for (const rawPath of paths) {
       const matches = resolveFiles(files, rawPath)
-      if (matches.length > 0) { resolved.push(...matches); continue }
+      if (matches.length > 0) {
+        resolved.push(...matches)
+        continue
+      }
       const path = normalizePath(rawPath)
       if (path && !isGlob(path)) return err(`head: ${path}: No such file`)
     }
@@ -27,7 +30,7 @@ export const head = command({
 
     const showHeaders = resolved.length > 1
     const results = resolved.map((path) => {
-      const content = files.get(path)!
+      const content = files.get(path) ?? ""
       const lines = content.split("\n").slice(0, count).join("\n")
       return showHeaders ? `==> ${path} <==\n${lines}` : lines
     })

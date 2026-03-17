@@ -3,9 +3,7 @@
     "f.txt": "one two three"
   },
   "args": {
-    "commands": [
-      "wc -w f.txt"
-    ]
+    "commands": ["wc -w f.txt"]
   },
   "expected": {
     "status": "ok",

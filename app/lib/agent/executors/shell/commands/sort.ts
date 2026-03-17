@@ -20,7 +20,7 @@ export const sort = command({
     if (filename && !files.has(filename)) {
       return err(`sort: ${filename}: No such file`)
     }
-    const content = filename ? files.get(filename)! : stdin
+    const content = filename ? (files.get(filename) ?? "") : stdin
     let lines = content.split("\n").filter((l) => l !== "")
 
     const numeric = flags.has("-n")

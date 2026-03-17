@@ -280,7 +280,6 @@ describe("validateFieldChanges", () => {
       expect(rejectedReasons.sort()).toEqual(expectRejectedReasons.sort())
     }
   )
-
 })
 
 describe("validateFieldChangesInternal", () => {

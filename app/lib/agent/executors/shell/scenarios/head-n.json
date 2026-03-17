@@ -3,9 +3,7 @@
     "f.txt": "a\nb\nc\nd\ne"
   },
   "args": {
-    "commands": [
-      "head -n 3 f.txt"
-    ]
+    "commands": ["head -n 3 f.txt"]
   },
   "expected": {
     "status": "ok",

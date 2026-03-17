@@ -6,7 +6,7 @@ import { FeatherLoader2, FeatherX } from "@subframe/core"
 import { FileImportItem } from "./FileImportItem"
 import type { ImportFile, ImportProgress } from "~/lib/import"
 
-type FileImportListProps = {
+interface FileImportListProps {
   files: ImportFile[]
   progress: ImportProgress & { processed: number }
   isProcessing: boolean
@@ -19,9 +19,8 @@ export const FileImportList = ({
   isProcessing,
   onCancel,
 }: FileImportListProps) => {
-  const progressPercent = progress.total > 0
-    ? Math.round((progress.processed / progress.total) * 100)
-    : 0
+  const progressPercent =
+    progress.total > 0 ? Math.round((progress.processed / progress.total) * 100) : 0
 
   return (
     <div className="flex w-full flex-col items-start gap-6 rounded-lg border-4 border-dashed border-neutral-200 bg-neutral-50 px-8 py-8">
@@ -59,12 +58,7 @@ export const FileImportList = ({
             {progress.unsupported > 0 && `, ${progress.unsupported} unsupported`}
           </span>
           {isProcessing && onCancel && (
-            <Button
-              variant="neutral-tertiary"
-              size="small"
-              icon={<FeatherX />}
-              onClick={onCancel}
-            >
+            <Button variant="neutral-tertiary" size="small" icon={<FeatherX />} onClick={onCancel}>
               Cancel all
             </Button>
           )}

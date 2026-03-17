@@ -1,6 +1,6 @@
 import type { Block, SystemBlock } from "~/lib/agent"
 
-export type EditorContext = {
+export interface EditorContext {
   documentId: string
   documentTitle: string
   above: string[]
@@ -16,16 +16,12 @@ export const setEditorContext = (fn: GetContextFn | undefined): void => {
   getContextFn = fn
 }
 
-export const getEditorContext = (): EditorContext | null =>
-  getContextFn?.() ?? null
+export const getEditorContext = (): EditorContext | null => getContextFn?.() ?? null
 
 const CONTEXT_PREFIX = "User is looking at:"
 
 export const contextToMessage = (ctx: EditorContext): string => {
-  const lines = [
-    CONTEXT_PREFIX,
-    `Document: ${ctx.documentTitle} (${ctx.documentId})`,
-  ]
+  const lines = [CONTEXT_PREFIX, `Document: ${ctx.documentTitle} (${ctx.documentId})`]
   if (ctx.above.length > 0) {
     lines.push("", "Above cursor:", ...ctx.above)
   }

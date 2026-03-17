@@ -16,7 +16,10 @@ export const registerSpecialHandler = (name: string, handler: SpecialHandler): v
 export const waitForUser = (signal?: AbortSignal): Promise<void> => {
   const before = getAllBlocks().length
   return new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) { reject(signal.reason); return }
+    if (signal?.aborted) {
+      reject(signal.reason)
+      return
+    }
 
     const cleanup = () => {
       unsub()
@@ -32,7 +35,7 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
 
     const onAbort = () => {
       cleanup()
-      reject(signal!.reason)
+      reject(signal?.reason)
     }
 
     if (signal) signal.addEventListener("abort", onAbort, { once: true })
@@ -48,8 +51,7 @@ const handleCancelInMode = (call: ToolCall): ToolResult<unknown> => {
   return { status: "ok", output: `Cancelled: ${reason}.` }
 }
 
-const isStepGuarded = (name: string): boolean =>
-  name === "complete_step"
+const isStepGuarded = (name: string): boolean => name === "complete_step"
 
 const guardMap = { complete_step: guardCompleteStep } as const
 
@@ -68,7 +70,8 @@ const checkStepGuard = (call: ToolCall): ToolResult<unknown> | null => {
   return null
 }
 
-export const withModeAwareness = (base: ToolExecutor): ToolExecutor =>
+export const withModeAwareness =
+  (base: ToolExecutor): ToolExecutor =>
   async (call) => {
     if (call.name === "cancel") return handleCancelInMode(call)
 

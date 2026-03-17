@@ -3,9 +3,7 @@
     "b.txt": "bbb"
   },
   "args": {
-    "commands": [
-      "cat missing.txt || cat b.txt"
-    ]
+    "commands": ["cat missing.txt || cat b.txt"]
   },
   "expected": {
     "status": "partial",

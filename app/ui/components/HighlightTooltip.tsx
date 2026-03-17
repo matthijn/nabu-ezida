@@ -2,7 +2,7 @@ import { Fragment } from "react"
 import { IconButton } from "~/ui/components/IconButton"
 import { FeatherX, FeatherAlertTriangle } from "@subframe/core"
 
-export type HighlightEntry = {
+export interface HighlightEntry {
   id: string
   color: string
   title?: string
@@ -11,7 +11,7 @@ export type HighlightEntry = {
   onDelete?: () => void
 }
 
-type HighlightTooltipProps = {
+interface HighlightTooltipProps {
   entries: HighlightEntry[]
 }
 
@@ -29,8 +29,7 @@ const Divider = () => (
   <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
 )
 
-const needsReview = (entry: HighlightEntry): boolean =>
-  !!entry.review
+const needsReview = (entry: HighlightEntry): boolean => !!entry.review
 
 const createHeaderBackground = (colors: string[]): string => {
   if (colors.length === 0) return "transparent"
@@ -45,20 +44,18 @@ const EntryContent = ({ entry }: { entry: HighlightEntry }) => (
       className="flex h-3 w-3 flex-none items-start rounded-full mt-0.5"
       style={{ backgroundColor: entry.color }}
     />
-    <div className={`flex grow shrink-0 basis-0 flex-col items-start ${needsReview(entry) ? "gap-2" : "gap-1"}`}>
+    <div
+      className={`flex grow shrink-0 basis-0 flex-col items-start ${needsReview(entry) ? "gap-2" : "gap-1"}`}
+    >
       {entry.title && (
         <div className="flex w-full items-center gap-2">
-          <span className="text-body-bold font-body-bold text-default-font">
-            {entry.title}
-          </span>
+          <span className="text-body-bold font-body-bold text-default-font">{entry.title}</span>
         </div>
       )}
       {entry.description && (
-        <span className="text-caption font-caption text-subtext-color">
-          {entry.description}
-        </span>
+        <span className="text-caption font-caption text-subtext-color">{entry.description}</span>
       )}
-      {needsReview(entry) && <ReviewBox text={entry.review!} />}
+      {entry.review && <ReviewBox text={entry.review} />}
     </div>
     {entry.onDelete && (
       <IconButton
@@ -74,7 +71,7 @@ const EntryContent = ({ entry }: { entry: HighlightEntry }) => (
 export const HighlightTooltip = ({ entries }: HighlightTooltipProps) => {
   if (entries.length === 0) return null
 
-  const colors = entries.map(e => e.color)
+  const colors = entries.map((e) => e.color)
   const headerBackground = createHeaderBackground(colors)
 
   return (

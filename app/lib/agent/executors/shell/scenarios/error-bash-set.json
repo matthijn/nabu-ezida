@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "set -euo pipefail"
-    ]
+    "commands": ["set -euo pipefail"]
   },
   "expected": {
     "status": "partial",

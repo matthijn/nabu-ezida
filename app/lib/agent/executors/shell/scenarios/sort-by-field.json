@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo 'bob:30\nalice:25\ncharlie:35' | sort -t: -k2 -n"
-    ]
+    "commands": ["echo 'bob:30\nalice:25\ncharlie:35' | sort -t: -k2 -n"]
   },
   "expected": {
     "status": "ok",

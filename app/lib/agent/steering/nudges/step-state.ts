@@ -8,21 +8,22 @@ const formatStepLine = (step: Step): string =>
 export const formatStepProgress = (plan: DerivedPlan): string =>
   plan.steps.map(formatStepLine).join("\n")
 
-const stepMarker = (stepIndex: number): string =>
-  `[step:${stepIndex}]`
+const stepMarker = (stepIndex: number): string => `[step:${stepIndex}]`
 
-export const createStepStateNudge = (getFiles: () => Files): Nudger => (history) => {
-  if (!afterToolResult(history)) return null
+export const createStepStateNudge =
+  (getFiles: () => Files): Nudger =>
+  (history) => {
+    if (!afterToolResult(history)) return null
 
-  const d = derive(history, getFiles())
-  if (!hasActivePlan(d.plans)) return null
+    const d = derive(history, getFiles())
+    if (!hasActivePlan(d.plans)) return null
 
-  const plan = lastPlan(d.plans)
-  if (!plan || plan.currentStep === null) return null
+    const plan = lastPlan(d.plans)
+    if (!plan || plan.currentStep === null) return null
 
-  const marker = stepMarker(plan.currentStep)
-  if (alreadyFired(history, marker)) return null
+    const marker = stepMarker(plan.currentStep)
+    if (alreadyFired(history, marker)) return null
 
-  const progress = formatStepProgress(plan)
-  return systemNudge([marker, progress].join("\n"))
-}
+    const progress = formatStepProgress(plan)
+    return systemNudge([marker, progress].join("\n"))
+  }

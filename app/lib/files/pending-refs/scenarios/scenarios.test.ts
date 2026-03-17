@@ -11,14 +11,13 @@ type Step =
   | { action: "check"; path: string; contains?: string; notContains?: string }
   | { action: "checkStripped"; path: string; contains?: string; notContains?: string }
 
-type Scenario = {
+interface Scenario {
   name: string
   description: string
   steps: Step[]
 }
 
-const readJson = <T>(path: string): T =>
-  JSON.parse(readFileSync(path, "utf-8")) as T
+const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf-8")) as T
 
 const loadScenarios = (): Scenario[] =>
   readdirSync(__dirname)
@@ -42,10 +41,15 @@ describe("pending-ref resolution scenarios", () => {
         case "check": {
           const content = getFiles()[step.path]
           if (step.contains) {
-            expect(content, `expected "${step.path}" to contain "${step.contains}"`).toContain(step.contains)
+            expect(content, `expected "${step.path}" to contain "${step.contains}"`).toContain(
+              step.contains
+            )
           }
           if (step.notContains) {
-            expect(content, `expected "${step.path}" to NOT contain "${step.notContains}"`).not.toContain(step.notContains)
+            expect(
+              content,
+              `expected "${step.path}" to NOT contain "${step.notContains}"`
+            ).not.toContain(step.notContains)
           }
           break
         }
@@ -53,10 +57,16 @@ describe("pending-ref resolution scenarios", () => {
         case "checkStripped": {
           const content = getFilesStripped()[step.path]
           if (step.contains) {
-            expect(content, `expected stripped "${step.path}" to contain "${step.contains}"`).toContain(step.contains)
+            expect(
+              content,
+              `expected stripped "${step.path}" to contain "${step.contains}"`
+            ).toContain(step.contains)
           }
           if (step.notContains) {
-            expect(content, `expected stripped "${step.path}" to NOT contain "${step.notContains}"`).not.toContain(step.notContains)
+            expect(
+              content,
+              `expected stripped "${step.path}" to NOT contain "${step.notContains}"`
+            ).not.toContain(step.notContains)
           }
           break
         }

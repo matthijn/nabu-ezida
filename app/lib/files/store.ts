@@ -1,5 +1,12 @@
 import { getCodebook as computeCodebook, type Codebook } from "./selectors"
-import { stripPendingRefs, markPendingRefs, resolvePendingRef, getAllDefinitions, findPendingRefs, findDefinitionIds } from "./pending-refs"
+import {
+  stripPendingRefs,
+  markPendingRefs,
+  resolvePendingRef,
+  getAllDefinitions,
+  findPendingRefs,
+  findDefinitionIds,
+} from "./pending-refs"
 import { debounce, createScopedDebounce } from "~/lib/utils"
 import { sendCommand } from "~/lib/sync/commands"
 import { normalizeContent } from "~/lib/diff/normalize"
@@ -22,13 +29,20 @@ let persistEnabled = true
 let persistSuppressed = false
 const persistDebounce = createScopedDebounce(500)
 
-export const setProjectId = (id: string | null): void => { projectId = id }
-export const setPersistEnabled = (enabled: boolean): void => { persistEnabled = enabled }
+export const setProjectId = (id: string | null): void => {
+  projectId = id
+}
+export const setPersistEnabled = (enabled: boolean): void => {
+  persistEnabled = enabled
+}
 
 export const withoutPersist = <T>(fn: () => T): T => {
   persistSuppressed = true
-  try { return fn() }
-  finally { persistSuppressed = false }
+  try {
+    return fn()
+  } finally {
+    persistSuppressed = false
+  }
 }
 
 const persistWrite = (path: string): void => {
@@ -44,13 +58,13 @@ const persistWrite = (path: string): void => {
 const persistDeleteCommand = (path: string): void => {
   if (!projectId || !persistEnabled || persistSuppressed) return
   persistDebounce.cancel(path)
-  sendCommand(projectId, { action: "DeleteFile", path }).catch(() => {})
+  sendCommand(projectId, { action: "DeleteFile", path }).catch(() => undefined)
 }
 
 const persistRenameCommand = (oldPath: string, newPath: string): void => {
   if (!projectId || !persistEnabled || persistSuppressed) return
   persistDebounce.cancel(oldPath)
-  sendCommand(projectId, { action: "RenameFile", path: oldPath, newPath }).catch(() => {})
+  sendCommand(projectId, { action: "RenameFile", path: oldPath, newPath }).catch(() => undefined)
 }
 
 export const getFiles = (): Files => files
@@ -89,7 +103,9 @@ export const setCurrentFile = (filename: string | null): void => {
 export const updateFileRaw = (filename: string, raw: string): void => {
   const normalized = normalizeContent(raw)
   const isNew = !(filename in files)
-  console.debug(`[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`)
+  console.debug(
+    `[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`
+  )
 
   const definitions = getAllDefinitions(files)
   const marked = markPendingRefs(normalized, definitions)

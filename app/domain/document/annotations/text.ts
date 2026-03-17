@@ -1,11 +1,11 @@
 import type { Annotation, ResolvedAnnotation } from "./types"
 
-type TextPosition = { from: number; to: number }
+interface TextPosition {
+  from: number
+  to: number
+}
 
-export const findAllTextPositions = (
-  fullText: string,
-  searchText: string
-): TextPosition[] => {
+export const findAllTextPositions = (fullText: string, searchText: string): TextPosition[] => {
   if (searchText.length === 0) return []
   const positions: TextPosition[] = []
   let start = 0
@@ -17,10 +17,7 @@ export const findAllTextPositions = (
   }
 }
 
-export const findTextPosition = (
-  fullText: string,
-  searchText: string
-): TextPosition | null => {
+export const findTextPosition = (fullText: string, searchText: string): TextPosition | null => {
   const all = findAllTextPositions(fullText, searchText)
   return all.length > 0 ? all[0] : null
 }

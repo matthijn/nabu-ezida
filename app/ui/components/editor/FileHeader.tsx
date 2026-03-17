@@ -6,26 +6,40 @@ import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
-import { FeatherBug, FeatherCheck, FeatherClipboard, FeatherMinimize, FeatherMoreHorizontal, FeatherPin, FeatherPlus, FeatherShare2 } from "@subframe/core"
+import {
+  FeatherBug,
+  FeatherCheck,
+  FeatherClipboard,
+  FeatherMinimize,
+  FeatherMoreHorizontal,
+  FeatherPin,
+  FeatherPlus,
+  FeatherShare2,
+} from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
-import { elementBackground, solidBackground, lowContrastText, type RadixColor } from "~/lib/colors/radix"
+import {
+  elementBackground,
+  solidBackground,
+  lowContrastText,
+  type RadixColor,
+} from "~/lib/colors/radix"
 import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
-type Tag = {
+interface Tag {
   label: string
   variant: "brand" | "neutral"
   color?: RadixColor
   icon?: ComponentType<{ className?: string }>
 }
 
-type MenuItem = {
+interface MenuItem {
   icon: ReactNode
   label: string
   onClick: () => void
 }
 
-type FileHeaderProps = {
+interface FileHeaderProps {
   title: string
   tags?: Tag[]
   pinned?: boolean
@@ -42,14 +56,32 @@ type FileHeaderProps = {
 
 const renderTag = (tag: Tag) => {
   if (!tag.color) {
-    return <Badge variant={tag.variant} icon={null}>{tag.label}</Badge>
+    return (
+      <Badge variant={tag.variant} icon={null}>
+        {tag.label}
+      </Badge>
+    )
   }
   const Icon = tag.icon
   return (
-    <span style={{ '--tag-bg': elementBackground(tag.color), '--tag-icon': solidBackground(tag.color), '--tag-fg': lowContrastText(tag.color) } as React.CSSProperties}>
+    <span
+      style={
+        {
+          "--tag-bg": elementBackground(tag.color),
+          "--tag-icon": solidBackground(tag.color),
+          "--tag-fg": lowContrastText(tag.color),
+        } as React.CSSProperties
+      }
+    >
       <Badge
         variant={tag.variant}
-        icon={Icon ? <span style={{ color: 'var(--tag-icon)' }}><Icon className="h-3 w-3" /></span> : null}
+        icon={
+          Icon ? (
+            <span style={{ color: "var(--tag-icon)" }}>
+              <Icon className="h-3 w-3" />
+            </span>
+          ) : null
+        }
         className="!border-[var(--tag-bg)] !bg-[var(--tag-bg)] [&_span]:!text-[var(--tag-fg)]"
       >
         {tag.label}
@@ -66,7 +98,7 @@ const renderToggleItem = (
   label: string,
   icon: ReactNode,
   active: boolean,
-  onToggle: (key: string) => void,
+  onToggle: (key: string) => void
 ) => (
   <DropdownMenu.DropdownItem
     key={key}
@@ -100,9 +132,7 @@ export const FileHeader = ({
     >
       <div className="flex w-full items-start gap-2">
         <div className="flex grow shrink-0 basis-0 items-center gap-2">
-          <span className="text-heading-2 font-heading-2 text-default-font">
-            {title}
-          </span>
+          <span className="text-heading-2 font-heading-2 text-default-font">{title}</span>
         </div>
         {onPin && (
           <IconButton
@@ -112,13 +142,7 @@ export const FileHeader = ({
             onClick={onPin}
           />
         )}
-        {onShare && (
-          <IconButton
-            size="small"
-            icon={<FeatherShare2 />}
-            onClick={onShare}
-          />
-        )}
+        {onShare && <IconButton size="small" icon={<FeatherShare2 />} onClick={onShare} />}
         {onToggleOption && (
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild>
@@ -129,15 +153,16 @@ export const FileHeader = ({
               />
             </SubframeCore.DropdownMenu.Trigger>
             <SubframeCore.DropdownMenu.Portal>
-              <SubframeCore.DropdownMenu.Content
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                asChild
-              >
+              <SubframeCore.DropdownMenu.Content side="bottom" align="end" sideOffset={4} asChild>
                 <DropdownMenu>
                   {DEBUG_TOGGLES.map((t) =>
-                    renderToggleItem(t.key, t.label, t.icon, isActive(debugOptions, t.key), onToggleOption)
+                    renderToggleItem(
+                      t.key,
+                      t.label,
+                      t.icon,
+                      isActive(debugOptions, t.key),
+                      onToggleOption
+                    )
                   )}
                   {onRequestCompaction && (
                     <DropdownMenu.DropdownItem
@@ -150,10 +175,7 @@ export const FileHeader = ({
                   {onCopyRaw && (
                     <>
                       <DropdownMenu.DropdownDivider />
-                      <DropdownMenu.DropdownItem
-                        icon={<FeatherClipboard />}
-                        onClick={onCopyRaw}
-                      >
+                      <DropdownMenu.DropdownItem icon={<FeatherClipboard />} onClick={onCopyRaw}>
                         Copy raw
                       </DropdownMenu.DropdownItem>
                     </>
@@ -166,18 +188,10 @@ export const FileHeader = ({
         {menuItems.length > 0 && (
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild>
-              <IconButton
-                size="small"
-                icon={<FeatherMoreHorizontal />}
-              />
+              <IconButton size="small" icon={<FeatherMoreHorizontal />} />
             </SubframeCore.DropdownMenu.Trigger>
             <SubframeCore.DropdownMenu.Portal>
-              <SubframeCore.DropdownMenu.Content
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                asChild
-              >
+              <SubframeCore.DropdownMenu.Content side="bottom" align="end" sideOffset={4} asChild>
                 <DropdownMenu>
                   {menuItems.map((item) => (
                     <DropdownMenu.DropdownItem

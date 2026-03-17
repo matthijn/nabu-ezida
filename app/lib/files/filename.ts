@@ -7,8 +7,7 @@ export const isProtectedFile = (path: string): boolean => PROTECTED_FILES.has(pa
 
 export const isHiddenFile = (path: string): boolean => path.includes(".hidden.")
 
-export const normalizeFilename = (name: string): string =>
-  name.toLowerCase().replace(/ /g, "_")
+export const normalizeFilename = (name: string): string => name.toLowerCase().replace(/ /g, "_")
 
 export const toDisplayName = (filename: string): string =>
   filename

@@ -4,10 +4,7 @@
     "b.md": "world"
   },
   "args": {
-    "commands": [
-      "cat a.md",
-      "cat b.md"
-    ]
+    "commands": ["cat a.md", "cat b.md"]
   },
   "expected": {
     "status": "ok",

@@ -2,7 +2,7 @@ import { tool, registerTool, ok, err } from "../tool"
 import { removeFile as def } from "./remove-file.def"
 import { isProtectedFile } from "~/lib/files/filename"
 
-const removeFile = registerTool(
+const _removeFile = registerTool(
   tool({
     ...def,
     handler: async (files, { path }) => {

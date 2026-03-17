@@ -1,7 +1,14 @@
 import type { ReactNode } from "react"
-import { FeatherBug, FeatherCloud, FeatherCode, FeatherActivity, FeatherSparkles, FeatherFilter } from "@subframe/core"
+import {
+  FeatherBug,
+  FeatherCloud,
+  FeatherCode,
+  FeatherActivity,
+  FeatherSparkles,
+  FeatherFilter,
+} from "@subframe/core"
 
-type DebugToggle = {
+interface DebugToggle {
   key: string
   label: string
   icon: ReactNode
@@ -10,10 +17,20 @@ type DebugToggle = {
 
 export const DEBUG_TOGGLES: DebugToggle[] = [
   { key: "expanded", label: "Hidden files", icon: <FeatherBug />, defaultValue: false },
-  { key: "persistToServer", label: "Server persistence", icon: <FeatherCloud />, defaultValue: true },
+  {
+    key: "persistToServer",
+    label: "Server persistence",
+    icon: <FeatherCloud />,
+    defaultValue: true,
+  },
   { key: "renderAsJson", label: "JSON rendering", icon: <FeatherCode />, defaultValue: false },
   { key: "showStreamPanel", label: "Stream panel", icon: <FeatherActivity />, defaultValue: false },
-  { key: "reasoningSummaryAuto", label: "Reasoning summary", icon: <FeatherSparkles />, defaultValue: false },
+  {
+    key: "reasoningSummaryAuto",
+    label: "Reasoning summary",
+    icon: <FeatherSparkles />,
+    defaultValue: false,
+  },
   { key: "stepCompaction", label: "Step compaction", icon: <FeatherFilter />, defaultValue: false },
 ]
 

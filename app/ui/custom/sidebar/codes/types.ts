@@ -1,16 +1,16 @@
-export type Code = {
+export interface Code {
   id: string
   name: string
   color: string
   detail: string
 }
 
-export type CodeCategory = {
+export interface CodeCategory {
   fileId: string
   name: string
   codes: Code[]
 }
 
-export type Codebook = {
+export interface Codebook {
   categories: CodeCategory[]
 }

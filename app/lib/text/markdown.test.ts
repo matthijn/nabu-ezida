@@ -46,7 +46,11 @@ describe("mdToPlainText", () => {
 })
 
 describe("parseMarkdownBlocks", () => {
-  const cases: { name: string; input: string; expected: { type: string; lines: [number, number] }[] }[] = [
+  const cases: {
+    name: string
+    input: string
+    expected: { type: string; lines: [number, number] }[]
+  }[] = [
     {
       name: "parses heading and paragraph",
       input: "# Title\n\nSome text here.",

@@ -5,7 +5,7 @@ import { commonmark } from "@milkdown/kit/preset/commonmark"
 import { gfm } from "@milkdown/kit/preset/gfm"
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react"
 
-type MarkdownContentCoreProps = {
+interface MarkdownContentCoreProps {
   content: string
 }
 
@@ -23,7 +23,7 @@ const MarkdownContentCore = ({ content }: MarkdownContentCoreProps) => {
   return <Milkdown />
 }
 
-type MarkdownContentProps = {
+interface MarkdownContentProps {
   content: string
   className?: string
 }

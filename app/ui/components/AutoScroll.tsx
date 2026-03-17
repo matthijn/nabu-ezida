@@ -7,7 +7,7 @@ const SCROLL_THRESHOLD = 100
 const isNearBottom = (el: HTMLElement): boolean =>
   el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD
 
-type AutoScrollProps = {
+interface AutoScrollProps {
   children: ReactNode
   className?: string
 }

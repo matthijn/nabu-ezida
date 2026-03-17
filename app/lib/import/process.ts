@@ -5,7 +5,7 @@ import { readFileContent, isMarkdownFile } from "./read"
 import { normalizeFilename } from "~/lib/files/filename"
 import type { ImportFile, ImportStatus } from "./types"
 
-type ProcessResult = {
+interface ProcessResult {
   status: ImportStatus
   error?: string
   finalPath?: string
@@ -38,11 +38,7 @@ const injectTags = (content: string, tags: string[]): string => {
 
 const getExistingNames = (): Set<string> => new Set(Object.keys(getFiles()))
 
-const processMarkdownFile = (
-  file: File,
-  content: string,
-  tags: string[]
-): ProcessResult => {
+const processMarkdownFile = (file: File, content: string, tags: string[]): ProcessResult => {
   const existingNames = getExistingNames()
   const finalPath = deduplicateName(normalizeFilename(file.name), existingNames)
   const contentWithTags = injectTags(content, tags)
@@ -90,7 +86,10 @@ const processFile = async (
   })
 }
 
-type FileWithTags = { file: File; tags: string[] }
+interface FileWithTags {
+  file: File
+  tags: string[]
+}
 
 export const processFiles = async (
   files: FileWithTags[],

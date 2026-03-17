@@ -1,6 +1,6 @@
 import { command, ok, err } from "./command"
 
-type JqInstance = {
+interface JqInstance {
   raw: (input: string, filter: string, flags?: string[]) => string
 }
 
@@ -23,9 +23,14 @@ const loadJqBrowser = async (): Promise<JqInstance> => {
 
 export const initJq = (provided?: JqInstance): Promise<void> => {
   if (instance) return Promise.resolve()
-  if (provided) { instance = provided; return Promise.resolve() }
+  if (provided) {
+    instance = provided
+    return Promise.resolve()
+  }
   if (pending) return pending
-  pending = loadJqBrowser().then((jq) => { instance = jq })
+  pending = loadJqBrowser().then((jq) => {
+    instance = jq
+  })
   return pending
 }
 

@@ -16,13 +16,13 @@ import { getFiles } from "~/lib/files/store"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { compactHistory, stepCompactHistory } from "./compact"
 
-type AgentLoopConfig = {
+interface AgentLoopConfig {
   executor: ToolExecutor
   callbacks?: ParseCallbacks
   signal?: AbortSignal
 }
 
-type IterationConfig = {
+interface IterationConfig {
   endpoint: string
   tools: AnyTool[]
   toolChoice?: string
@@ -32,7 +32,7 @@ type IterationConfig = {
   blockSchemas?: BlockSchemaDefinition[]
 }
 
-type AgentRunConfig = {
+interface AgentRunConfig {
   source: string
   executor: ToolExecutor
   callbacks?: ParseCallbacks
@@ -52,11 +52,13 @@ const withToolChoice = (endpoint: string, toolChoice?: string): string => {
 export const excludeReasoning = (blocks: Block[]): Block[] =>
   blocks.filter((b) => b.type !== "reasoning")
 
-export const hasToolCalls = (blocks: Block[]): boolean =>
-  blocks.some((b) => b.type === "tool_call")
+export const hasToolCalls = (blocks: Block[]): boolean => blocks.some((b) => b.type === "tool_call")
 
 const extractLastText = (blocks: Block[]): string =>
-  blocks.filter((b) => b.type === "text").map((b) => b.content).join("\n") || ""
+  blocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.content)
+    .join("\n") || ""
 
 export const shouldContinue = (newBlocks: Block[]): boolean =>
   hasToolCalls(newBlocks) || !extractLastText(newBlocks)
@@ -101,7 +103,7 @@ export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
 
 // --- main agent internals ---
 
-const readDebugOption = <T,>(key: string, fallback: T): T => {
+const readDebugOption = <T>(key: string, fallback: T): T => {
   if (typeof window === "undefined") return fallback
   try {
     const stored = localStorage.getItem("nabu-debug-options")
@@ -114,8 +116,7 @@ const readDebugOption = <T,>(key: string, fallback: T): T => {
 const readReasoningSummary = (): string =>
   readDebugOption("reasoningSummaryAuto", false) ? "auto" : "concise"
 
-const readStepCompaction = (): boolean =>
-  readDebugOption("stepCompaction", false)
+const readStepCompaction = (): boolean => readDebugOption("stepCompaction", false)
 
 const writeDebugOption = (key: string, value: unknown): void => {
   if (typeof window === "undefined") return
@@ -123,7 +124,9 @@ const writeDebugOption = (key: string, value: unknown): void => {
     const stored = localStorage.getItem("nabu-debug-options")
     const options = stored ? JSON.parse(stored) : {}
     localStorage.setItem("nabu-debug-options", JSON.stringify({ ...options, [key]: value }))
-  } catch {}
+  } catch (_) {
+    void _
+  }
 }
 
 const consumeForceCompaction = (): boolean => {
@@ -139,8 +142,7 @@ const shouldPauseOnError = (blocks: Block[]): boolean =>
 const hasToolError = (blocks: Block[]): boolean =>
   blocks.some((b) => b.type === "tool_result" && isErrorResult(b.result))
 
-const hasPauseBlock = (): boolean =>
-  getAllBlocks().some(isDebugPauseBlock)
+const hasPauseBlock = (): boolean => getAllBlocks().some(isDebugPauseBlock)
 
 const awaitResume = (signal?: AbortSignal): Promise<void> =>
   new Promise((resolve) => {
@@ -151,7 +153,10 @@ const awaitResume = (signal?: AbortSignal): Promise<void> =>
       }
     }
     const unsub = subscribeBlocks(tryResolve)
-    const onAbort = () => { cleanup(); resolve() }
+    const onAbort = () => {
+      cleanup()
+      resolve()
+    }
     const cleanup = () => {
       unsub()
       signal?.removeEventListener("abort", onAbort)

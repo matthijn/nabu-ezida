@@ -5,7 +5,9 @@ const shellReminder = `**Shell error** - Review the run_local_shell tool definit
 
 const isShellResult = (history: Block[]): boolean => {
   const last = history[history.length - 1]
-  return last.type === "tool_result" && (last as { toolName?: string }).toolName === "run_local_shell"
+  return (
+    last.type === "tool_result" && (last as { toolName?: string }).toolName === "run_local_shell"
+  )
 }
 
 export const shellNudge: Nudger = (history) => {

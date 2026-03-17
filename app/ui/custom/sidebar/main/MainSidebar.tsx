@@ -1,44 +1,44 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
-import { FeatherLogOut, FeatherSettings, FeatherUser } from "@subframe/core";
-import * as SubframeCore from "@subframe/core";
-import { AnimatePresence, motion } from "framer-motion";
-import { Avatar } from "~/ui/components/Avatar";
-import { DropdownMenu } from "~/ui/components/DropdownMenu";
-import { SidebarRailWithLabels } from "~/ui/components/SidebarRailWithLabels";
+import type { ReactNode } from "react"
+import { FeatherLogOut, FeatherSettings, FeatherUser } from "@subframe/core"
+import * as SubframeCore from "@subframe/core"
+import { AnimatePresence, motion } from "framer-motion"
+import { Avatar } from "~/ui/components/Avatar"
+import { DropdownMenu } from "~/ui/components/DropdownMenu"
+import { SidebarRailWithLabels } from "~/ui/components/SidebarRailWithLabels"
 
 export interface NavItem {
-  id: string;
-  icon: ReactNode;
-  label: string;
-  tooltip?: string;
-  selected?: boolean;
-  disabled?: boolean;
+  id: string
+  icon: ReactNode
+  label: string
+  tooltip?: string
+  selected?: boolean
+  disabled?: boolean
 }
 
 interface UserMenuAction {
-  id: string;
-  icon: ReactNode;
-  label: string;
+  id: string
+  icon: ReactNode
+  label: string
 }
 
 interface MainSidebarProps {
-  logoSrc?: string;
-  navItemGroups: NavItem[][];
-  userAvatarSrc?: string;
-  userInitials?: string;
-  userMenuActions?: UserMenuAction[];
-  onNavItemClick?: (id: string) => void;
-  onNavItemHover?: (id: string) => void;
-  onUserMenuAction?: (actionId: string) => void;
+  logoSrc?: string
+  navItemGroups: NavItem[][]
+  userAvatarSrc?: string
+  userInitials?: string
+  userMenuActions?: UserMenuAction[]
+  onNavItemClick?: (id: string) => void
+  onNavItemHover?: (id: string) => void
+  onUserMenuAction?: (actionId: string) => void
 }
 
 const defaultUserMenuActions: UserMenuAction[] = [
   { id: "account", icon: <FeatherUser />, label: "Account" },
   { id: "settings", icon: <FeatherSettings />, label: "Settings" },
   { id: "logout", icon: <FeatherLogOut />, label: "Log out" },
-];
+]
 
 export function MainSidebar({
   logoSrc = "https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/y2rsnhq3mex4auk54aye.png",
@@ -50,9 +50,9 @@ export function MainSidebar({
   onNavItemHover,
   onUserMenuAction,
 }: MainSidebarProps) {
-  const handleNavItemClick = (id: string) => () => onNavItemClick?.(id);
-  const handleNavItemHover = (id: string) => () => onNavItemHover?.(id);
-  const handleUserMenuAction = (actionId: string) => () => onUserMenuAction?.(actionId);
+  const handleNavItemClick = (id: string) => () => onNavItemClick?.(id)
+  const handleNavItemHover = (id: string) => () => onNavItemHover?.(id)
+  const handleUserMenuAction = (actionId: string) => () => onUserMenuAction?.(actionId)
 
   const renderNavItem = (item: NavItem) => (
     <motion.div
@@ -73,31 +73,27 @@ export function MainSidebar({
         {item.label}
       </SidebarRailWithLabels.NavItem>
     </motion.div>
-  );
+  )
 
   const renderNavContent = () =>
     navItemGroups.flatMap((group, groupIndex) => {
-      const items = group.map(renderNavItem);
-      const isLastGroup = groupIndex === navItemGroups.length - 1;
-      if (isLastGroup) return items;
+      const items = group.map(renderNavItem)
+      const isLastGroup = groupIndex === navItemGroups.length - 1
+      if (isLastGroup) return items
       return [
         ...items,
         <div
           key={`divider-${groupIndex}`}
           className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border"
         />,
-      ];
-    });
+      ]
+    })
 
   return (
     <SidebarRailWithLabels
       header={
         <div className="flex flex-col items-center justify-center gap-2 px-1 py-1">
-          <img
-            className="h-6 w-6 flex-none object-cover"
-            src={logoSrc}
-            alt="Logo"
-          />
+          <img className="h-6 w-6 flex-none object-cover" src={logoSrc} alt="Logo" />
         </div>
       }
       footer={
@@ -130,9 +126,7 @@ export function MainSidebar({
         </div>
       }
     >
-      <AnimatePresence initial={false}>
-        {renderNavContent()}
-      </AnimatePresence>
+      <AnimatePresence initial={false}>{renderNavContent()}</AnimatePresence>
     </SidebarRailWithLabels>
-  );
+  )
 }

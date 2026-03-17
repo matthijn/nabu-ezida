@@ -5,9 +5,7 @@
     "dir/c.md": "c"
   },
   "args": {
-    "commands": [
-      "ls"
-    ]
+    "commands": ["ls"]
   },
   "expected": {
     "status": "ok",

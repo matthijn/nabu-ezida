@@ -2,7 +2,7 @@ import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { getLabelKey, getIdPaths, type IdPathConfig } from "~/domain/blocks/registry"
 import { tryParseJson, isObject, parsePath } from "./json"
 
-export type GeneratedId = {
+export interface GeneratedId {
   id: string
   type: string
   label: string | null
@@ -11,7 +11,7 @@ export type GeneratedId = {
 
 type UuidMapping = Record<string, string>
 
-type FillIdsResult = {
+interface FillIdsResult {
   content: string
   generated: GeneratedId[]
 }
@@ -26,7 +26,9 @@ export const isSystemId = (id: string, prefix: string): boolean => {
   return SYSTEM_ID_SUFFIX_RE.test(id.slice(prefix.length + 1))
 }
 
-export const replaceUuidPlaceholders = (content: string): { result: string; generated: UuidMapping } => {
+export const replaceUuidPlaceholders = (
+  content: string
+): { result: string; generated: UuidMapping } => {
   const generated: UuidMapping = {}
 
   const result = content.replace(UUID_PLACEHOLDER_REGEX, (_, raw) => {
@@ -40,9 +42,6 @@ export const replaceUuidPlaceholders = (content: string): { result: string; gene
 
   return { result, generated }
 }
-
-const hasUuidPlaceholders = (content: string): boolean =>
-  UUID_PLACEHOLDER_REGEX.test(content)
 
 export const fillMissingIds = (markdown: string, originalContent?: string): FillIdsResult => {
   const updates = collectBlockUpdates(markdown, originalContent)
@@ -119,7 +118,7 @@ const UUID_PLACEHOLDER_REGEX = /\[uuid-([^\]]+)\]/g
 const SYSTEM_ID_SUFFIX_RE = /^(?=.*\d)[a-z0-9]{6,10}$/
 
 let persistentIdMap: UuidMapping = {}
-let shownIds: Set<string> = new Set()
+let shownIds = new Set<string>()
 
 const generateShortId = (): string => {
   const digit = Math.floor(Math.random() * 10).toString()
@@ -128,13 +127,16 @@ const generateShortId = (): string => {
 }
 
 const normalizePlaceholderName = (name: string): string =>
-  name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
 
-const extractPrefix = (name: string): string =>
-  name.split("-")[0]
+const extractPrefix = (name: string): string => name.split("-")[0]
 
-const generatePrefixedId = (name: string): string =>
-  `${extractPrefix(name)}-${generateShortId()}`
+const generatePrefixedId = (name: string): string => `${extractPrefix(name)}-${generateShortId()}`
 
 const shouldNormalizeId = (id: string, prefix: string, originalContent?: string): boolean => {
   if (isSystemId(id, prefix)) return false
@@ -150,12 +152,18 @@ const resolveOrGenerateId = (malformedId: string, prefix: string): string => {
   return newId
 }
 
-type ResolvedId = { newId: string; source: string }
+interface ResolvedId {
+  newId: string
+  source: string
+}
 
-const isMissingId = (id: unknown): boolean =>
-  id === undefined || id === null || id === ""
+const isMissingId = (id: unknown): boolean => id === undefined || id === null || id === ""
 
-const resolveId = (currentValue: unknown, prefix: string, originalContent?: string): ResolvedId | null => {
+const resolveId = (
+  currentValue: unknown,
+  prefix: string,
+  originalContent?: string
+): ResolvedId | null => {
   if (isMissingId(currentValue)) {
     return { newId: `${prefix}-${generateShortId()}`, source: "none" }
   }
@@ -172,7 +180,7 @@ const getBlockLabel = (parsed: Record<string, unknown>, language: string): strin
   return value.length > 40 ? value.slice(0, 40) + "..." : value
 }
 
-type BlockUpdate = {
+interface BlockUpdate {
   block: CodeBlock
   newContent: string
   ids: GeneratedId[]
@@ -182,7 +190,7 @@ const fillIdPath = (
   parsed: Record<string, unknown>,
   config: IdPathConfig,
   language: string,
-  originalContent?: string,
+  originalContent?: string
 ): GeneratedId[] => {
   const pathInfo = parsePath(config.path)
   if (!pathInfo) return []
@@ -251,8 +259,7 @@ const collectBlockUpdates = (markdown: string, originalContent?: string): BlockU
   return updates
 }
 
-const isUnshown = (entry: GeneratedId): boolean =>
-  !shownIds.has(entry.id)
+const isUnshown = (entry: GeneratedId): boolean => !shownIds.has(entry.id)
 
 const markShown = (entries: GeneratedId[]): void => {
   for (const entry of entries) shownIds.add(entry.id)

@@ -1,21 +1,20 @@
 import { findMatches, getMatchedText, type Match } from "./search"
 import { expandMatch, countLines } from "./context"
 
-type RangeRefResult =
-  | { ok: true; patch: string }
-  | { ok: false; error: string }
+type RangeRefResult = { ok: true; patch: string } | { ok: false; error: string }
 
 export type FileReader = (path: string) => string | undefined
 
-type RefHeader = { prefix: "+" | "-"; file: string | undefined }
+interface RefHeader {
+  prefix: "+" | "-"
+  file: string | undefined
+}
 
 type CollectedBody =
   | { ok: true; startAnchor: string; endAnchor: string; consumed: number }
   | { ok: false; error: string; consumed: number }
 
-type ResolvedRange =
-  | { ok: true; text: string }
-  | { ok: false; error: string }
+type ResolvedRange = { ok: true; text: string } | { ok: false; error: string }
 
 const REF_HEADER_RE = /^([+-])<<\s*(.*)$/
 
@@ -43,7 +42,8 @@ const collectRefBody = (lines: string[], start: number, prefix: string): Collect
   const ellipsisIdx = bodyLines.indexOf("...")
   if (ellipsisIdx === -1) return { ok: false, error: "range ref missing ... separator", consumed }
   if (ellipsisIdx === 0) return { ok: false, error: "range ref missing start anchor", consumed }
-  if (ellipsisIdx === bodyLines.length - 1) return { ok: false, error: "range ref missing end anchor", consumed }
+  if (ellipsisIdx === bodyLines.length - 1)
+    return { ok: false, error: "range ref missing end anchor", consumed }
 
   return {
     ok: true,
@@ -87,10 +87,9 @@ const formatAnchorError = (
   which: "start" | "end",
   content: string,
   anchor: string,
-  matches: Match[],
+  matches: Match[]
 ): string => {
-  if (matches.length === 0)
-    return `${which} anchor not found:\n  searching for: "${anchor}"`
+  if (matches.length === 0) return `${which} anchor not found:\n  searching for: "${anchor}"`
 
   const total = countLines(content)
   const expanded = matches.map((m, i) => {
@@ -111,7 +110,7 @@ const formatAnchorError = (
 export const expandRangeRefs = (
   patch: string,
   readFile: FileReader,
-  currentPath: string,
+  currentPath: string
 ): RangeRefResult => {
   const lines = patch.split("\n")
   const output: string[] = []

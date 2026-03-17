@@ -1,6 +1,6 @@
-import { Navigate } from "react-router";
-import { designPages } from "./designs";
+import { Navigate } from "react-router"
+import { designPages } from "./designs"
 
 export default function DesignsIndexRedirect() {
-  return <Navigate to={`/designs/${designPages[0].slug}`} replace />;
+  return <Navigate to={`/designs/${designPages[0].slug}`} replace />
 }

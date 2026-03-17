@@ -20,7 +20,7 @@ export const cat = command({
       return err(`cat: ${filename}: No such file`)
     }
 
-    const content = filename ? files.get(filename)! : stdin
+    const content = filename ? (files.get(filename) ?? "") : stdin
 
     let lines = content.split("\n")
     lines = lines.slice(offset - 1)

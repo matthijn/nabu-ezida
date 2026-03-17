@@ -3,9 +3,7 @@
     "foo.txt": "content"
   },
   "args": {
-    "commands": [
-      "ls /docs"
-    ]
+    "commands": ["ls /docs"]
   },
   "expected": {
     "status": "partial",

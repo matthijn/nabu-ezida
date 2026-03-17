@@ -3,9 +3,7 @@
     "f.txt": "hello world\nfoo bar"
   },
   "args": {
-    "commands": [
-      "wc f.txt"
-    ]
+    "commands": ["wc f.txt"]
   },
   "expected": {
     "status": "ok",

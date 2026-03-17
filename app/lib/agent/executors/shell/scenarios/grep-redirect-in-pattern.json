@@ -3,9 +3,7 @@
     "f.txt": "a>b\nc>d\ne"
   },
   "args": {
-    "commands": [
-      "grep \"a>b\" f.txt"
-    ]
+    "commands": ["grep \"a>b\" f.txt"]
   },
   "expected": {
     "status": "ok",

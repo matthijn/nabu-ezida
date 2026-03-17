@@ -35,20 +35,29 @@ const appendToToolArgsDraft = (chunk: string): void => {
   if (current?.type === "tool_call") {
     const call = current.calls[0]
     const argsStr = (call.args as unknown as string) + chunk
-    setDraft({ type: "tool_call", calls: [{ ...call, args: argsStr as unknown as Record<string, unknown> }] })
+    setDraft({
+      type: "tool_call",
+      calls: [{ ...call, args: argsStr as unknown as Record<string, unknown> }],
+    })
     return
   }
-  setDraft({ type: "tool_call", calls: [{ id: "", name: "", args: chunk as unknown as Record<string, unknown> }] })
+  setDraft({
+    type: "tool_call",
+    calls: [{ id: "", name: "", args: chunk as unknown as Record<string, unknown> }],
+  })
 }
 
 const buildCallbacks = () => ({
   onChunk: (chunk: string) => appendToTextDraft(chunk),
   onReasoningChunk: (chunk: string) => appendToReasoningDraft(chunk),
   onToolName: (name: string) => {
-    setDraft({ type: "tool_call", calls: [{ id: "", name, args: "" as unknown as Record<string, unknown> }] })
+    setDraft({
+      type: "tool_call",
+      calls: [{ id: "", name, args: "" as unknown as Record<string, unknown> }],
+    })
   },
   onToolArgsChunk: (chunk: string) => appendToToolArgsDraft(chunk),
-  onStreamEnd: () => {},
+  onStreamEnd: () => undefined,
 })
 
 const runAgent = async (deps: RunnerDeps): Promise<void> => {

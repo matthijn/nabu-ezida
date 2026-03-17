@@ -3,9 +3,7 @@
     "data.json": "[{\"file\":\"a.md\",\"tags\":[\"x\",\"y\"]},{\"file\":\"b.md\",\"tags\":null},{\"file\":\"c.md\",\"tags\":[\"z\"]}]"
   },
   "args": {
-    "commands": [
-      "jq -r '.[] | [.file, ((.tags // []) | join(\",\"))] | @tsv' data.json"
-    ]
+    "commands": ["jq -r '.[] | [.file, ((.tags // []) | join(\",\"))] | @tsv' data.json"]
   },
   "expected": {
     "status": "ok",

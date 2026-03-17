@@ -1,14 +1,32 @@
 import type { ToolCall, ToolResult, Operation, Handler } from "../types"
-import { getFilesStripped, getFileRaw, updateFileRaw, deleteFile, renameFile, applyFilePatch, finalizeContent, formatGeneratedIds } from "~/lib/files"
+import {
+  getFilesStripped,
+  getFileRaw,
+  updateFileRaw,
+  deleteFile,
+  renameFile,
+  applyFilePatch,
+  finalizeContent,
+  formatGeneratedIds,
+} from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/lib/blocks/uuid"
 import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
-import { pushEntries, diffFileContent, fileCreatedEntry, fileDeletedEntry, fileRenamedEntry } from "~/lib/mutation-history"
+import {
+  pushEntries,
+  diffFileContent,
+  fileCreatedEntry,
+  fileDeletedEntry,
+  fileRenamedEntry,
+} from "~/lib/mutation-history"
 
 const extractFiles = (): Map<string, string> =>
   new Map(Object.entries(getFilesStripped()).map(([k, v]) => [k, toExtraPretty(v)]))
 
-type ResolvedOp = { op: Operation; placeholderIds: Record<string, string> }
+interface ResolvedOp {
+  op: Operation
+  placeholderIds: Record<string, string>
+}
 
 const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
   if (!("diff" in op)) return { op, placeholderIds: {} }
@@ -16,15 +34,27 @@ const resolveOpPlaceholders = (op: Operation): ResolvedOp => {
   return { op: { ...op, diff: result }, placeholderIds: generated }
 }
 
-type PatchOptions = { skipImmutableCheck?: boolean; placeholderIds?: Record<string, string> }
+interface PatchOptions {
+  skipImmutableCheck?: boolean
+  placeholderIds?: Record<string, string>
+}
 
-type MutationOk = { ids: string | null }
-type MutationErr = { error: string }
+interface MutationOk {
+  ids: string | null
+}
+interface MutationErr {
+  error: string
+}
 type MutationResult = MutationOk | MutationErr
 
 const isMutationError = (r: MutationResult): r is MutationErr => "error" in r
 
-const applyPatchAndStore = (path: string, content: string, diff: string, options: PatchOptions): MutationResult => {
+const applyPatchAndStore = (
+  path: string,
+  content: string,
+  diff: string,
+  options: PatchOptions
+): MutationResult => {
   const result = applyFilePatch(path, content, diff, { ...options, actor: "ai" })
   if (result.status === "error") return { error: result.error }
   updateFileRaw(result.path, result.content)
@@ -36,11 +66,15 @@ const applyMutation = (op: Operation, placeholderIds: Record<string, string>): M
   const ts = Date.now()
   switch (op.type) {
     case "create_file": {
-      if (getFileRaw(op.path)) return { error: `${op.path}: already exists. Use update_file to modify it` }
+      if (getFileRaw(op.path))
+        return { error: `${op.path}: already exists. Use update_file to modify it` }
       const result = applyPatchAndStore(op.path, "", op.diff, { placeholderIds })
       if (!isMutationError(result)) {
         const newContent = getFileRaw(op.path) ?? ""
-        pushEntries([fileCreatedEntry(op.path, ts), ...diffFileContent("", newContent, op.path, ts)])
+        pushEntries([
+          fileCreatedEntry(op.path, ts),
+          ...diffFileContent("", newContent, op.path, ts),
+        ])
       }
       return result
     }
@@ -98,7 +132,8 @@ const applyMutations = (mutations: Operation[]): MutationErr | MutationOk | null
 const appendIds = (output: unknown, ids: string | null): unknown =>
   ids && typeof output === "string" ? `${output}\n${ids}` : output
 
-export const createExecutor = (handlers: Record<string, Handler>): ToolExecutor =>
+export const createExecutor =
+  (handlers: Record<string, Handler>): ToolExecutor =>
   async (call: ToolCall): Promise<ToolResult<unknown>> => {
     const handler = handlers[call.name]
     if (!handler) return { status: "error", output: `Unknown tool: ${call.name}` }
@@ -107,7 +142,8 @@ export const createExecutor = (handlers: Record<string, Handler>): ToolExecutor 
     const { status, output, message, hint, mutations } = await handler(files, call.args)
 
     const mutResult = applyMutations(mutations)
-    if (mutResult && isMutationError(mutResult)) return { status: "error", output: mutResult.error, hint }
+    if (mutResult && isMutationError(mutResult))
+      return { status: "error", output: mutResult.error, hint }
 
     const finalOutput = appendIds(output, mutResult?.ids ?? null)
     return { status, output: finalOutput, message, hint } as ToolResult<unknown>

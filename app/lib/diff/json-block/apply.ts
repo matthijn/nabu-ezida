@@ -2,9 +2,7 @@ import { applyPatch, deepClone, type Operation } from "fast-json-patch"
 
 export type JsonPatchOp = Operation
 
-type ApplyResult =
-  | { ok: true; result: unknown }
-  | { ok: false; error: string }
+type ApplyResult = { ok: true; result: unknown } | { ok: false; error: string }
 
 export const applyJsonPatchOps = (doc: unknown, ops: JsonPatchOp[]): ApplyResult => {
   try {

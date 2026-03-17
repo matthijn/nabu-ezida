@@ -1,4 +1,4 @@
-export type CodeBlock = {
+export interface CodeBlock {
   language: string
   content: string
   start: number
@@ -32,15 +32,11 @@ export const findSingletonBlock = (markdown: string, language: string): CodeBloc
 export const countBlocksByLanguage = (markdown: string, language: string): number =>
   findBlocksByLanguage(markdown, language).length
 
-type ParseJsonResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string; raw: string }
+type ParseJsonResult<T> = { ok: true; data: T } | { ok: false; error: string; raw: string }
 
-const errorMessage = (e: unknown): string =>
-  e instanceof Error ? e.message : String(e)
+const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
-const snippet = (s: string, max: number = 200): string =>
-  s.length <= max ? s : s.slice(0, max) + "…"
+const snippet = (s: string, max = 200): string => (s.length <= max ? s : s.slice(0, max) + "…")
 
 export const parseBlockJson = <T>(block: CodeBlock): ParseJsonResult<T> => {
   try {
@@ -50,14 +46,27 @@ export const parseBlockJson = <T>(block: CodeBlock): ParseJsonResult<T> => {
   }
 }
 
-type BlockIdRecord = { id: string; [key: string]: unknown }
+interface BlockIdRecord {
+  id: string
+  [key: string]: unknown
+}
 
 const hasId = (data: unknown): data is BlockIdRecord =>
-  typeof data === "object" && data !== null && "id" in data && typeof (data as Record<string, unknown>).id === "string"
+  typeof data === "object" &&
+  data !== null &&
+  "id" in data &&
+  typeof (data as Record<string, unknown>).id === "string"
 
-type BlockWithData<T = unknown> = { block: CodeBlock; data: T }
+interface BlockWithData<T = unknown> {
+  block: CodeBlock
+  data: T
+}
 
-export const findBlockById = (markdown: string, language: string, id: string): BlockWithData | undefined => {
+export const findBlockById = (
+  markdown: string,
+  language: string,
+  id: string
+): BlockWithData | undefined => {
   const blocks = findBlocksByLanguage(markdown, language)
   for (const block of blocks) {
     const parsed = parseBlockJson(block)
@@ -68,15 +77,23 @@ export const findBlockById = (markdown: string, language: string, id: string): B
   return undefined
 }
 
-type BlockSummary = { id: string; label: string | undefined }
+interface BlockSummary {
+  id: string
+  label: string | undefined
+}
 
-export const summarizeBlocks = (markdown: string, language: string, labelKey: string | undefined): BlockSummary[] =>
+export const summarizeBlocks = (
+  markdown: string,
+  language: string,
+  labelKey: string | undefined
+): BlockSummary[] =>
   findBlocksByLanguage(markdown, language).reduce<BlockSummary[]>((acc, block) => {
     const parsed = parseBlockJson(block)
     if (!parsed.ok || !hasId(parsed.data)) return acc
-    const label = labelKey && typeof (parsed.data as Record<string, unknown>)[labelKey] === "string"
-      ? (parsed.data as Record<string, unknown>)[labelKey] as string
-      : undefined
+    const label =
+      labelKey && typeof (parsed.data as Record<string, unknown>)[labelKey] === "string"
+        ? ((parsed.data as Record<string, unknown>)[labelKey] as string)
+        : undefined
     return [...acc, { id: parsed.data.id, label }]
   }, [])
 
@@ -84,7 +101,9 @@ const formatBlock = (language: string, content: string): string =>
   `\`\`\`${language}\n${content}\n\`\`\``
 
 export const replaceBlock = (markdown: string, block: CodeBlock, newContent: string): string =>
-  markdown.slice(0, block.start) + formatBlock(block.language, newContent) + markdown.slice(block.end)
+  markdown.slice(0, block.start) +
+  formatBlock(block.language, newContent) +
+  markdown.slice(block.end)
 
 export const replaceSingletonBlock = (
   markdown: string,

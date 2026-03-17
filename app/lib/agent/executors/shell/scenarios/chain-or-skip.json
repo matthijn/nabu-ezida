@@ -4,9 +4,7 @@
     "b.txt": "bbb"
   },
   "args": {
-    "commands": [
-      "cat a.txt || cat b.txt"
-    ]
+    "commands": ["cat a.txt || cat b.txt"]
   },
   "expected": {
     "status": "ok",

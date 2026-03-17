@@ -1,13 +1,18 @@
-export const isAbortError = (e: unknown): boolean =>
-  e instanceof Error && e.name === "AbortError"
+export const isAbortError = (e: unknown): boolean => e instanceof Error && e.name === "AbortError"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFn = (...args: any[]) => void
 type DebouncedFn<T extends AnyFn> = T & { cancel: () => void }
 
-type DebounceOptions = { maxWait?: number }
+interface DebounceOptions {
+  maxWait?: number
+}
 
-export const debounce = <T extends AnyFn>(fn: T, delay: number, options?: DebounceOptions): DebouncedFn<T> => {
+export const debounce = <T extends AnyFn>(
+  fn: T,
+  delay: number,
+  options?: DebounceOptions
+): DebouncedFn<T> => {
   let timeout: ReturnType<typeof setTimeout> | null = null
   let firstCall: number | null = null
   const maxWait = options?.maxWait
@@ -42,7 +47,7 @@ export const debounce = <T extends AnyFn>(fn: T, delay: number, options?: Deboun
   return debounced
 }
 
-type CappedCache<K, V> = {
+interface CappedCache<K, V> {
   get: (key: K) => V | undefined
   has: (key: K) => boolean
   set: (key: K, value: V) => void
@@ -55,8 +60,8 @@ export const createCappedCache = <K, V>(max: number): CappedCache<K, V> => {
     has: (key) => map.has(key),
     set: (key, value) => {
       if (map.size >= max && !map.has(key)) {
-        const firstKey = map.keys().next().value!
-        map.delete(firstKey)
+        const firstKey = map.keys().next().value
+        if (firstKey !== undefined) map.delete(firstKey)
       }
       map.set(key, value)
     },
@@ -64,7 +69,10 @@ export const createCappedCache = <K, V>(max: number): CappedCache<K, V> => {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const sampleAndHold = <A extends any[], R>(fn: (...args: A) => R, holdMs: number): (...args: A) => R => {
+export const sampleAndHold = <A extends any[], R>(
+  fn: (...args: A) => R,
+  holdMs: number
+): ((...args: A) => R) => {
   let heldValue: R | undefined
   let heldUntil = 0
 
@@ -77,12 +85,12 @@ export const sampleAndHold = <A extends any[], R>(fn: (...args: A) => R, holdMs:
   }
 }
 
-type ScopedEntry = {
+interface ScopedEntry {
   timer: ReturnType<typeof setTimeout>
   controller: AbortController | null
 }
 
-type ScopedDebounce = {
+interface ScopedDebounce {
   call: (key: string, fn: (signal: AbortSignal) => Promise<void>) => void
   cancel: (key: string) => void
   cancelAll: () => void
@@ -114,7 +122,7 @@ export const createScopedDebounce = (delay: number): ScopedDebounce => {
       if (entry) entry.controller = controller
 
       fn(controller.signal)
-        .catch(() => {})
+        .catch(() => undefined)
         .finally(() => entries.delete(key))
     }, delay)
 

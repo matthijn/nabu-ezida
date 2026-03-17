@@ -8,7 +8,7 @@ import type { ToolCall } from "../../types"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-type Scenario = {
+interface Scenario {
   name: string
   files: Record<string, string>
   call: ToolCall
@@ -19,8 +19,7 @@ type Scenario = {
   }
 }
 
-const readJson = <T>(path: string): T =>
-  JSON.parse(readFileSync(path, "utf-8")) as T
+const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf-8")) as T
 
 const loadScenarios = (): Scenario[] =>
   readdirSync(__dirname)

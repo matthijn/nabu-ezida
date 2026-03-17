@@ -3,9 +3,7 @@
     "doc.txt": "alpha\nbeta\nalpha\ngamma\nalpha"
   },
   "args": {
-    "commands": [
-      "grep -m 2 alpha doc.txt"
-    ]
+    "commands": ["grep -m 2 alpha doc.txt"]
   },
   "expected": {
     "status": "ok",

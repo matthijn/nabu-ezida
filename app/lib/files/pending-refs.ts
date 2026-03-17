@@ -24,7 +24,7 @@ export const findPendingRefs = (content: string): string[] => {
 }
 
 export const hasPendingRefs = (content: string): boolean =>
-  PENDING_REF_PATTERN.test(content) && (PENDING_REF_PATTERN.lastIndex = 0, true)
+  PENDING_REF_PATTERN.test(content) && ((PENDING_REF_PATTERN.lastIndex = 0), true)
 
 const findAllIds = (content: string): string[] => {
   const results: string[] = []

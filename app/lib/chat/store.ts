@@ -1,21 +1,18 @@
 import type { Participant } from "~/domain/participant"
 
-export type ChatState = {
+export interface ChatState {
   initiator: Participant
   recipient: Participant
 }
 
 let chat: ChatState | null = null
-let listeners: Set<() => void> = new Set()
+const listeners = new Set<() => void>()
 
 const notify = (): void => {
   listeners.forEach((l) => l())
 }
 
-export const openChat = (
-  initiator: Participant,
-  recipient: Participant
-): void => {
+export const openChat = (initiator: Participant, recipient: Participant): void => {
   chat = { initiator, recipient }
   notify()
 }

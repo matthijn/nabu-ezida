@@ -18,7 +18,10 @@ const isJsonBlock = (language: string): boolean => language.startsWith("json-")
 const isCommentLine = (line: string): boolean => line.trimStart().startsWith("//")
 
 const stripCommentLines = (content: string): string =>
-  content.split("\n").filter((line) => !isCommentLine(line)).join("\n")
+  content
+    .split("\n")
+    .filter((line) => !isCommentLine(line))
+    .join("\n")
 
 const extractId = (parsed: JsonValue): string | undefined =>
   parsed !== null &&
@@ -29,12 +32,18 @@ const extractId = (parsed: JsonValue): string | undefined =>
     ? parsed.id
     : undefined
 
-const buildBoundaryComment = (language: string, id: string | undefined, edge: "start" | "end"): string =>
-  id ? `// ${edge} ${language} ${id}` : `// ${edge} ${language}`
+const buildBoundaryComment = (
+  language: string,
+  id: string | undefined,
+  edge: "start" | "end"
+): string => (id ? `// ${edge} ${language} ${id}` : `// ${edge} ${language}`)
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
-type MultilineMarker = { __multiline__: string }
+interface MultilineMarker {
+  __multiline__: string
+  [key: string]: JsonValue
+}
 
 const isMultilineMarker = (value: JsonValue): value is MultilineMarker =>
   value !== null &&
@@ -51,9 +60,7 @@ const expandValue = (value: JsonValue): JsonValue => {
     return value.map(expandValue)
   }
   if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, expandValue(v)])
-    )
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, expandValue(v)]))
   }
   return value
 }
@@ -63,9 +70,7 @@ const collapseValue = (value: JsonValue): JsonValue => {
     return value.__multiline__
   }
   if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, collapseValue(v)])
-    )
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, collapseValue(v)]))
   }
   if (Array.isArray(value)) {
     return value.map(collapseValue)
@@ -74,11 +79,12 @@ const collapseValue = (value: JsonValue): JsonValue => {
 }
 
 const isSimpleArray = (arr: JsonValue[]): boolean =>
-  arr.every((item) =>
-    typeof item === "string" ||
-    typeof item === "number" ||
-    typeof item === "boolean" ||
-    item === null
+  arr.every(
+    (item) =>
+      typeof item === "string" ||
+      typeof item === "number" ||
+      typeof item === "boolean" ||
+      item === null
   )
 
 const serializeJson = (obj: JsonValue, indent: number, expandMultiline: boolean): string => {
@@ -138,7 +144,7 @@ const parseMultilineJson = (content: string): JsonValue => {
     const context = collapsed.slice(Math.max(0, position - 20), position + 30)
     throw new PrettyJsonError(
       `Malformed """ in JSON block. The """ multiline string was not properly closed. ` +
-      `Expected format: """|newline|content|newline|""". Found near: "${context}"`
+        `Expected format: """|newline|content|newline|""". Found near: "${context}"`
     )
   }
 
@@ -150,10 +156,7 @@ const parseMultilineJson = (content: string): JsonValue => {
   }
 }
 
-const transformBlock = (
-  content: string,
-  transform: (parsed: JsonValue) => string
-): string => {
+const transformBlock = (content: string, transform: (parsed: JsonValue) => string): string => {
   try {
     const parsed = JSON.parse(content) as JsonValue
     return transform(parsed)
@@ -181,7 +184,7 @@ const transformJsonBlocks = (
 
   for (const match of matches) {
     const [fullMatch, language, content] = match
-    const matchStart = match.index!
+    const matchStart = match.index ?? 0
 
     if (!isJsonBlock(language)) continue
 
@@ -215,7 +218,7 @@ const validateBalancedFences = (markdown: string): void => {
   if (fenceCount % 2 !== 0) {
     throw new PrettyJsonError(
       `Unbalanced code fences: found ${fenceCount} \`\`\` markers (expected even number). ` +
-      `Ensure all code blocks have closing \`\`\` markers.`
+        `Ensure all code blocks have closing \`\`\` markers.`
     )
   }
 }
@@ -243,7 +246,7 @@ export const fromExtraPretty = (markdown: string): string => {
   if (hasTripleQuote(result)) {
     throw new PrettyJsonError(
       `Found """ in output - likely an unclosed code block. ` +
-      `Ensure all code blocks have closing \`\`\` markers.`
+        `Ensure all code blocks have closing \`\`\` markers.`
     )
   }
 

@@ -8,25 +8,30 @@ import {
   hasActivePlan,
 } from "./plan"
 
-export type Derived = {
+export interface Derived {
   plans: DerivedPlan[]
 }
 
 type Mode = "chat" | "plan" | "exec"
 
 type EnrichedToolCall = ToolCall & { succeeded: boolean }
-type EnrichedToolCallBlock = { type: "tool_call"; calls: EnrichedToolCall[] }
+interface EnrichedToolCallBlock {
+  type: "tool_call"
+  calls: EnrichedToolCall[]
+}
 type EnrichedBlock = Exclude<Block, ToolCallBlock> | EnrichedToolCallBlock
 
 export const isToolCallBlock = (block: Block): block is { type: "tool_call"; calls: ToolCall[] } =>
   block.type === "tool_call"
 
-export const isDebugPauseBlock = (block: Block): boolean =>
-  block.type === "debug_pause"
+export const isDebugPauseBlock = (block: Block): boolean => block.type === "debug_pause"
 
 export const isErrorResult = (result: unknown): boolean =>
-  typeof result === "object" && result !== null && "status" in result &&
-  ((result as { status: string }).status === "error" || (result as { status: string }).status === "partial")
+  typeof result === "object" &&
+  result !== null &&
+  "status" in result &&
+  ((result as { status: string }).status === "error" ||
+    (result as { status: string }).status === "partial")
 
 const isEnrichedToolCallBlock = (block: EnrichedBlock): block is EnrichedToolCallBlock =>
   block.type === "tool_call"
@@ -92,10 +97,12 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
   return derived
 }
 
-const processBlock = (files: Files) => (derived: Derived, block: EnrichedBlock): Derived => {
-  if (!isEnrichedToolCallBlock(block)) return derived
-  return block.calls.reduce((d, call) => processToolCall(d, call, files), derived)
-}
+const processBlock =
+  (files: Files) =>
+  (derived: Derived, block: EnrichedBlock): Derived => {
+    if (!isEnrichedToolCallBlock(block)) return derived
+    return block.calls.reduce((d, call) => processToolCall(d, call, files), derived)
+  }
 
 export const derive = (history: Block[], files: Files = {}): Derived =>
   enrichWithResults(history).reduce(processBlock(files), { plans: [] })
@@ -108,8 +115,7 @@ export const getMode = (d: Derived): Mode => {
 const isStepBoundary = (block: Block): boolean =>
   hasCall(block, "submit_plan") || hasCall(block, "complete_step")
 
-const isAgentAction = (block: Block): boolean =>
-  block.type === "text" || block.type === "tool_call"
+const isAgentAction = (block: Block): boolean => block.type === "text" || block.type === "tool_call"
 
 const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => boolean): number => {
   let count = 0
@@ -121,7 +127,13 @@ const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => b
   return count
 }
 
-const WRITE_TOOLS = new Set(["patch_json_block", "apply_local_patch", "copy_file", "rename_file", "remove_file"])
+const WRITE_TOOLS = new Set([
+  "patch_json_block",
+  "apply_local_patch",
+  "copy_file",
+  "rename_file",
+  "remove_file",
+])
 
 const isSuccessfulWrite = (block: Block): boolean =>
   block.type === "tool_result" &&

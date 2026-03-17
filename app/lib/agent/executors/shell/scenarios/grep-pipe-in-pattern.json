@@ -3,9 +3,7 @@
     "doc.txt": "de jonge\nde jongen\nde oude\n"
   },
   "args": {
-    "commands": [
-      "grep \"jong(e|en)\" doc.txt"
-    ]
+    "commands": ["grep \"jong(e|en)\" doc.txt"]
   },
   "expected": {
     "status": "ok",

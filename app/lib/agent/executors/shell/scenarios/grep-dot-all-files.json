@@ -5,9 +5,7 @@
     "c.txt": "no match"
   },
   "args": {
-    "commands": [
-      "grep -l world ."
-    ]
+    "commands": ["grep -l world ."]
   },
   "expected": {
     "status": "ok",

@@ -12,7 +12,7 @@ import {
 } from "@subframe/core"
 import type { ImportFile, ImportStatus } from "~/lib/import"
 
-type StatusConfig = {
+interface StatusConfig {
   iconVariant: "success" | "brand" | "neutral" | "error" | "warning"
   label: string
   labelClass: string
@@ -60,13 +60,11 @@ const formatFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const isPending = (status: ImportStatus): boolean =>
-  status === "pending"
+const isPending = (status: ImportStatus): boolean => status === "pending"
 
-const isActive = (status: ImportStatus): boolean =>
-  status === "reading" || status === "processing"
+const isActive = (status: ImportStatus): boolean => status === "reading" || status === "processing"
 
-type StatusIconProps = {
+interface StatusIconProps {
   status: ImportStatus
   className: string
 }
@@ -89,7 +87,7 @@ const StatusIcon = ({ status, className }: StatusIconProps) => {
   }
 }
 
-type FileImportItemProps = {
+interface FileImportItemProps {
   file: ImportFile
 }
 
@@ -104,11 +102,7 @@ export const FileImportItem = ({ file }: FileImportItemProps) => {
     <div
       className={`flex w-full items-center gap-4 rounded-md border border-solid px-4 py-3 shadow-sm ${borderClass} ${opacity}`}
     >
-      <IconWithBackground
-        variant={config.iconVariant}
-        size="medium"
-        icon={<FeatherFileText />}
-      />
+      <IconWithBackground variant={config.iconVariant} size="medium" icon={<FeatherFileText />} />
       <div className="flex grow shrink-0 basis-0 flex-col items-start">
         <span className="text-body-bold font-body-bold text-default-font">
           {file.finalPath ?? file.name}
@@ -119,13 +113,8 @@ export const FileImportItem = ({ file }: FileImportItemProps) => {
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <StatusIcon
-          status={file.status}
-          className={`text-body font-body ${config.labelClass}`}
-        />
-        <span className={`text-body-bold font-body-bold ${config.labelClass}`}>
-          {config.label}
-        </span>
+        <StatusIcon status={file.status} className={`text-body font-body ${config.labelClass}`} />
+        <span className={`text-body-bold font-body-bold ${config.labelClass}`}>{config.label}</span>
       </div>
     </div>
   )

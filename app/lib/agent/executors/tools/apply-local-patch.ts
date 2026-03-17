@@ -4,7 +4,7 @@ import { applyLocalPatch as def } from "./apply-local-patch.def"
 import { detectHint } from "./apply-local-patch.hints"
 import { isProtectedFile } from "~/lib/files/filename"
 
-const applyLocalPatch = registerTool(
+const _applyLocalPatch = registerTool(
   tool({
     ...def,
     handler: async (files, { operation }) => {
@@ -12,15 +12,14 @@ const applyLocalPatch = registerTool(
       if (validationError) return err(validationError)
 
       const result = ok(formatSuccess(operation), [operation])
-      const hint = operation.type === "update_file"
-        ? detectHint({ fileContent: files.get(operation.path) ?? "", diff: operation.diff })
-        : null
+      const hint =
+        operation.type === "update_file"
+          ? detectHint({ fileContent: files.get(operation.path) ?? "", diff: operation.diff })
+          : null
       return withHint(result, hint)
     },
   })
 )
-
-const patchHandler = applyLocalPatch.handle
 
 const validateOperation = (files: Map<string, string>, op: Operation): string | null => {
   switch (op.type) {
@@ -50,4 +49,6 @@ const operationVerb: Record<Operation["type"], string> = {
 }
 
 const formatSuccess = (op: Operation): string =>
-  op.type === "rename_file" ? `Renamed ${op.path} → ${op.newPath}` : `${operationVerb[op.type]} ${op.path}`
+  op.type === "rename_file"
+    ? `Renamed ${op.path} → ${op.newPath}`
+    : `${operationVerb[op.type]} ${op.path}`

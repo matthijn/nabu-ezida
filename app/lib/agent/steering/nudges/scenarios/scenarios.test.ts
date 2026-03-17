@@ -14,16 +14,14 @@ const orchestratorToolNames = ["run_local_shell"]
 
 type Files = Record<string, string>
 
-const readJson = <T>(path: string): T =>
-  JSON.parse(readFileSync(path, "utf-8")) as T
+const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf-8")) as T
 
 const readFilesJson = (path: string): Files => {
   if (!existsSync(path)) return {}
   return readJson<Files>(path)
 }
 
-const shouldNudge = (block: Block): boolean =>
-  block.type === "user" || block.type === "tool_result"
+const shouldNudge = (block: Block): boolean => block.type === "user" || block.type === "tool_result"
 
 const buildNudge = (files: Files) => {
   const toolNudges = buildToolNudges(() => files)
@@ -55,9 +53,7 @@ const runScenario = async (name: string): Promise<{ actual: Block[]; expected: B
 
 const getScenarioNames = (): string[] => {
   const entries = readdirSync(__dirname, { withFileTypes: true })
-  return entries
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
+  return entries.filter((e) => e.isDirectory()).map((e) => e.name)
 }
 
 describe("nudge scenarios", () => {

@@ -2,22 +2,16 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import {
-  FeatherSearch,
-  FeatherPlus,
-} from "@subframe/core"
+import { FeatherSearch, FeatherPlus } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { TextField } from "~/ui/components/TextField"
 import { matchesAny } from "~/lib/filter"
-import {
-  solidBackground,
-  elementBackground,
-} from "~/lib/colors/radix"
+import { solidBackground, elementBackground } from "~/lib/colors/radix"
 import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeItem } from "./CodeItem"
 import { CodeDetail } from "./CodeDetail"
 
-type CodesSidebarProps = {
+interface CodesSidebarProps {
   codebook: Codebook
   onEditCode?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
@@ -32,11 +26,7 @@ const filterCategories = (categories: CodeCategory[], query: string): CodeCatego
   }, [])
 }
 
-export const CodesSidebar = ({
-  codebook,
-  onEditCode,
-  onFileSelect,
-}: CodesSidebarProps) => {
+export const CodesSidebar = ({ codebook, onEditCode, onFileSelect }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
 
@@ -47,13 +37,10 @@ export const CodesSidebar = ({
 
   return (
     <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
-
       <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
         <div className="flex w-full items-center justify-between">
-          <span className="text-heading-2 font-heading-2 text-default-font">
-            Codes
-          </span>
-          <IconButton size="small" icon={<FeatherPlus />} onClick={() => {}} />
+          <span className="text-heading-2 font-heading-2 text-default-font">Codes</span>
+          <IconButton size="small" icon={<FeatherPlus />} onClick={() => undefined} />
         </div>
         <TextField
           className="h-auto w-full flex-none"

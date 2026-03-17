@@ -1,7 +1,9 @@
 import { getApiUrl } from "../env"
 import type { Command, CommandResult } from "./types"
 
-type ErrorResponse = { error: string }
+interface ErrorResponse {
+  error: string
+}
 
 const parseErrorBody = async (response: Response): Promise<string> => {
   try {

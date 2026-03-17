@@ -14,7 +14,7 @@ export const diffById = <T>(
   newItems: T[],
   getId: (item: T) => string,
   toEntry: (verb: HistoryVerb, item: T) => HistoryEntry,
-  hasChanged: (a: T, b: T) => boolean,
+  hasChanged: (a: T, b: T) => boolean
 ): HistoryEntry[] => {
   const oldMap = new Map(oldItems.map((item) => [getId(item), item]))
   const newMap = new Map(newItems.map((item) => [getId(item), item]))

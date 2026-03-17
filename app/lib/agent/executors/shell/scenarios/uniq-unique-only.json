@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo 'a\na\nb\nc\nc\nc' | uniq -u"
-    ]
+    "commands": ["echo 'a\na\nb\nc\nc\nc' | uniq -u"]
   },
   "expected": {
     "status": "ok",

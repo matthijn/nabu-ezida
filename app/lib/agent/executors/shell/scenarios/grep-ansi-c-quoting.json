@@ -3,9 +3,7 @@
     "data.tsv": "name\tage\nalice\t30\nbob\t25"
   },
   "args": {
-    "commands": [
-      "grep $'\\t30' data.tsv"
-    ]
+    "commands": ["grep $'\\t30' data.tsv"]
   },
   "expected": {
     "status": "ok",

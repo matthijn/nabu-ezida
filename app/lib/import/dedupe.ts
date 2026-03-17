@@ -2,8 +2,9 @@ const SUFFIX_LENGTH = 4
 const SUFFIX_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 const generateSuffix = (): string =>
-  Array.from({ length: SUFFIX_LENGTH }, () =>
-    SUFFIX_CHARS[Math.floor(Math.random() * SUFFIX_CHARS.length)]
+  Array.from(
+    { length: SUFFIX_LENGTH },
+    () => SUFFIX_CHARS[Math.floor(Math.random() * SUFFIX_CHARS.length)]
   ).join("")
 
 const splitExtension = (filename: string): [string, string] => {
@@ -17,10 +18,7 @@ const appendSuffix = (filename: string, suffix: string): string => {
   return `${base}-${suffix}${ext}`
 }
 
-export const deduplicateName = (
-  name: string,
-  existingNames: Set<string>
-): string => {
+export const deduplicateName = (name: string, existingNames: Set<string>): string => {
   if (!existingNames.has(name)) return name
 
   let candidate = name

@@ -3,9 +3,7 @@
     "f.txt": "hello"
   },
   "args": {
-    "commands": [
-      "cat f.txt 2>/dev/null"
-    ]
+    "commands": ["cat f.txt 2>/dev/null"]
   },
   "expected": {
     "status": "ok",

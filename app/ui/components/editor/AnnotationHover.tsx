@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react"
+import { useCallback, useRef, useEffect, useLayoutEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import type { Annotation } from "~/domain/document/annotations"
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/lib/colors/radix"
 import { getCodeTitle, getFiles } from "~/lib/files"
 
-type HoverState = {
+interface HoverState {
   text: string
   rect: DOMRect
 }
 
-type AnnotationHoverProps = {
+interface AnnotationHoverProps {
   annotations: Annotation[]
   children: React.ReactNode
 }
@@ -25,13 +25,15 @@ const isDecoration = (el: HTMLElement): boolean =>
 const findMatchingAnnotations = (annotations: Annotation[], text: string): Annotation[] =>
   annotations.filter((a) => a.text.includes(text))
 
-const annotationToEntry = (files: Record<string, string>) => (annotation: Annotation, index: number): HighlightEntry => ({
-  id: String(index),
-  color: elementBorder(annotation.color),
-  title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
-  description: annotation.reason,
-  review: annotation.review,
-})
+const annotationToEntry =
+  (files: Record<string, string>) =>
+  (annotation: Annotation, index: number): HighlightEntry => ({
+    id: String(index),
+    color: elementBorder(annotation.color),
+    title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
+    description: annotation.reason,
+    review: annotation.review,
+  })
 
 export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -82,38 +84,38 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
   const files = getFiles()
   const entries = matchingAnnotations.map(annotationToEntry(files))
 
-  const [tooltipTop, setTooltipTop] = useState<number | null>(null)
-
   useLayoutEffect(() => {
-    if (!tooltipRef.current || !hover) {
-      setTooltipTop(null)
-      return
-    }
-    const tooltipHeight = tooltipRef.current.offsetHeight
+    const tooltip = tooltipRef.current
+    if (!tooltip || !hover) return
+    const tooltipHeight = tooltip.offsetHeight
     const belowTop = hover.rect.bottom + TOOLTIP_GAP
     const fitsBelow = belowTop + tooltipHeight <= window.innerHeight
-    setTooltipTop(fitsBelow ? belowTop : hover.rect.top - TOOLTIP_GAP - tooltipHeight)
+    const top = fitsBelow ? belowTop : hover.rect.top - TOOLTIP_GAP - tooltipHeight
+    tooltip.style.top = `${top}px`
+    tooltip.style.visibility = "visible"
   }, [hover])
 
   return (
     <div ref={containerRef} className="relative">
       {children}
-      {hover && entries.length > 0 && createPortal(
-        <div
-          ref={tooltipRef}
-          onMouseLeave={handleTooltipMouseLeave}
-          style={{
-            position: "fixed",
-            left: hover.rect.left,
-            top: tooltipTop ?? hover.rect.bottom + TOOLTIP_GAP,
-            zIndex: 50,
-            visibility: tooltipTop !== null ? "visible" : "hidden",
-          }}
-        >
-          <HighlightTooltip entries={entries} />
-        </div>,
-        document.body
-      )}
+      {hover &&
+        entries.length > 0 &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            onMouseLeave={handleTooltipMouseLeave}
+            style={{
+              position: "fixed",
+              left: hover.rect.left,
+              top: hover.rect.bottom + TOOLTIP_GAP,
+              zIndex: 50,
+              visibility: "hidden",
+            }}
+          >
+            <HighlightTooltip entries={entries} />
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

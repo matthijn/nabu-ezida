@@ -3,9 +3,7 @@
     "f.txt": "hello world\nhello there"
   },
   "args": {
-    "commands": [
-      "cat f.txt | sed 's/hello/hi/g'"
-    ]
+    "commands": ["cat f.txt | sed 's/hello/hi/g'"]
   },
   "expected": {
     "status": "ok",

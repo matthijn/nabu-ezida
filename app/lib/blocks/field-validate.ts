@@ -3,18 +3,18 @@ import { z } from "zod"
 export const emptyToUndefined = <T>(schema: z.ZodType<T>): z.ZodType<T | undefined> =>
   z.preprocess((v) => (v === "" ? undefined : v), schema.optional()) as z.ZodType<T | undefined>
 
-export type SchemaIssue = {
+export interface SchemaIssue {
   path: string
   message: string
   expected?: string
 }
 
-type SchemaSuccess<T> = {
+interface SchemaSuccess<T> {
   success: true
   data: T
 }
 
-type SchemaError = {
+interface SchemaError {
   success: false
   issues: SchemaIssue[]
   current: Record<string, unknown>
@@ -26,7 +26,7 @@ export type FieldRejection<K extends string = string> =
   | { field: K; reason: "readonly"; hint: string }
   | { field: K; reason: "invalid"; issues: SchemaIssue[] }
 
-type FieldValidationResult<T> = {
+interface FieldValidationResult<T> {
   accepted: Partial<T>
   rejected: FieldRejection<string & keyof T>[]
 }
@@ -34,7 +34,7 @@ type FieldValidationResult<T> = {
 type FieldSchemas<T> = { [K in keyof T]: z.ZodType<T[K]> }
 type ReadonlyHints<T> = Partial<Record<keyof T, string>>
 
-type FieldValidateConfig<T> = {
+interface FieldValidateConfig<T> {
   schema: z.ZodType<T>
   fieldSchemas: FieldSchemas<T>
   readonlyHints: ReadonlyHints<T>
@@ -43,10 +43,7 @@ type FieldValidateConfig<T> = {
 const formatExpected = (issue: z.ZodIssue): string | undefined =>
   issue.code === "invalid_type" ? issue.expected : undefined
 
-const extractAffectedFields = (
-  issues: z.ZodIssue[],
-  data: unknown
-): Record<string, unknown> => {
+const extractAffectedFields = (issues: z.ZodIssue[], data: unknown): Record<string, unknown> => {
   const current: Record<string, unknown> = {}
   const obj = data as Record<string, unknown> | null
 
@@ -80,8 +77,7 @@ export const validateSchema = <T>(schema: z.ZodType<T>, data: unknown): SchemaRe
   }
 }
 
-const deepEqual = (a: unknown, b: unknown): boolean =>
-  JSON.stringify(a) === JSON.stringify(b)
+const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
 
 export const getChangedFields = <T>(
   original: Partial<T>,
@@ -93,10 +89,11 @@ export const getChangedFields = <T>(
   ])
 
   return [...allFields].filter(
-    (field) => !deepEqual(
-      (original as Record<string, unknown>)[field],
-      (patched as Record<string, unknown>)[field]
-    )
+    (field) =>
+      !deepEqual(
+        (original as Record<string, unknown>)[field],
+        (patched as Record<string, unknown>)[field]
+      )
   ) as (string & keyof T)[]
 }
 
@@ -122,7 +119,7 @@ export const validateField = <T, K extends string & keyof T>(
   }
 }
 
-type ValidatedField<K extends string> = {
+interface ValidatedField<K extends string> {
   field: K
   value: unknown
   validation: { ok: true } | { ok: false; issues: SchemaIssue[] }

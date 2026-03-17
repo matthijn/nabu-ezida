@@ -7,7 +7,12 @@ export type Operation =
   | { type: "delete"; path: string }
   | { type: "rename"; path: string; newPath: string }
 
-export type Result = { output: string; error?: string; exitCode?: number; operations?: Operation[] }
+export interface Result {
+  output: string
+  error?: string
+  exitCode?: number
+  operations?: Operation[]
+}
 
 type Command = CommandDef & {
   createHandler: (files: Files) => (args: string[], stdin: string) => Result
@@ -27,8 +32,7 @@ export const normalizePath = (path: string | undefined): string | undefined => {
   return path
 }
 
-export const isGlob = (pattern: string): boolean =>
-  pattern.includes("*") || pattern.includes("?")
+export const isGlob = (pattern: string): boolean => pattern.includes("*") || pattern.includes("?")
 
 const expandGlob = (files: Map<string, string>, pattern: string): string[] =>
   Array.from(files.keys()).filter((f) => minimatch(f, pattern))
@@ -41,9 +45,18 @@ export const resolveFiles = (files: Map<string, string>, rawPattern: string): st
   return []
 }
 
-type FlagDef = { alias?: string; description: string; value?: boolean }
-type Handler = (args: string[], flags: Set<string>, stdin: string, flagValues: Record<string, string>) => Result
-type CommandDef = {
+interface FlagDef {
+  alias?: string
+  description: string
+  value?: boolean
+}
+type Handler = (
+  args: string[],
+  flags: Set<string>,
+  stdin: string,
+  flagValues: Record<string, string>
+) => Result
+interface CommandDef {
   description: string
   details?: string
   usage: string
@@ -53,7 +66,7 @@ type CommandDef = {
 
 const stripDash = (flag: string): string => flag.replace(/^-+/, "")
 
-type MriConfig = {
+interface MriConfig {
   options: mri.Options
   knownFlags: Set<string>
   multiCharFlags: Set<string>
@@ -91,7 +104,11 @@ const buildMriConfig = (flagDefs: Record<string, FlagDef>): MriConfig => {
   return { options: { boolean, string, alias }, knownFlags, multiCharFlags, stringFlags }
 }
 
-const normalizeArgs = (args: string[], multiCharFlags: Set<string>, stringFlags: Set<string>): string[] =>
+const normalizeArgs = (
+  args: string[],
+  multiCharFlags: Set<string>,
+  stringFlags: Set<string>
+): string[] =>
   args.flatMap((arg) => {
     if (!arg.startsWith("-") || arg.startsWith("--")) return [arg]
 
@@ -115,9 +132,14 @@ export const command = (def: CommandDef): Command => {
   const createHandler = (files: Files) => {
     const innerHandler = def.handler(files)
 
-    return (args: string[], stdin: string = ""): Result => {
+    return (args: string[], stdin = ""): Result => {
       // Build fresh config each call - mri mutates the options object
-      const { options: mriOptions, knownFlags, multiCharFlags, stringFlags } = buildMriConfig(def.flags)
+      const {
+        options: mriOptions,
+        knownFlags,
+        multiCharFlags,
+        stringFlags,
+      } = buildMriConfig(def.flags)
       const normalized = normalizeArgs(args, multiCharFlags, stringFlags)
       const parsed = mri(normalized, mriOptions)
       const flags = new Set<string>()
@@ -129,7 +151,10 @@ export const command = (def: CommandDef): Command => {
         if (!knownFlags.has(key)) {
           const cmdName = def.usage.split(" ")[0]
           const dashKey = key.length === 1 ? `-${key}` : `--${key}`
-          return { output: "", error: `${cmdName}: unsupported option '${dashKey}'\nSupported:\n${formatHelp(def.flags)}` }
+          return {
+            output: "",
+            error: `${cmdName}: unsupported option '${dashKey}'\nSupported:\n${formatHelp(def.flags)}`,
+          }
         }
 
         const canonicalFlag = `-${key}`

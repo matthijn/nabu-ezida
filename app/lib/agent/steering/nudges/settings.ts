@@ -4,14 +4,16 @@ import { SETTINGS_FILE } from "~/lib/files/filename"
 
 const READ_MARKER = "## READ SETTINGS"
 
-export const createSettingsNudge = (getFiles: () => Files): Nudger => (history) => {
-  if (!afterToolResult(history)) return null
-  if (alreadyFired(history, READ_MARKER)) return null
+export const createSettingsNudge =
+  (getFiles: () => Files): Nudger =>
+  (history) => {
+    if (!afterToolResult(history)) return null
+    if (alreadyFired(history, READ_MARKER)) return null
 
-  const settings = getFiles()[SETTINGS_FILE]
-  if (!settings) return null
+    const settings = getFiles()[SETTINGS_FILE]
+    if (!settings) return null
 
-  return systemNudge(`
+    return systemNudge(`
 ${READ_MARKER}
 <file ${SETTINGS_FILE}>
 ${settings}
@@ -19,4 +21,4 @@ ${settings}
 
 Continue.
 `)
-}
+  }

@@ -3,9 +3,7 @@
     "f.txt": "${HOME}\n$PATH\nfoo"
   },
   "args": {
-    "commands": [
-      "grep '\\$' f.txt"
-    ]
+    "commands": ["grep '\\$' f.txt"]
   },
   "expected": {
     "status": "ok",

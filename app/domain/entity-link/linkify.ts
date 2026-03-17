@@ -1,7 +1,8 @@
 type NameResolver = (id: string) => string | null
 type MissingFormatter = (id: string) => string | null
 
-const ENTITY_ID_PATTERN = /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)-\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
+const ENTITY_ID_PATTERN =
+  /\[[^\]]*\]\([^)]+\)|((?:annotation|callout)-\d[a-z0-9]{7}|[\w][\w-]*\.md)/g
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const QUOTES = new Set(['"', "'"])
 const FILE_PROTOCOL = "file://"
@@ -12,15 +13,26 @@ const isFileEntity = (id: string): boolean => id.endsWith(".md")
 const isQuoted = (text: string, start: number, end: number): boolean =>
   start > 0 && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]
 
-const expandQuotes = (text: string, start: number, end: number, floor: number): [number, number] => {
-  if (start > floor && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]) return [start - 1, end + 1]
+const expandQuotes = (
+  text: string,
+  start: number,
+  end: number,
+  floor: number
+): [number, number] => {
+  if (start > floor && QUOTES.has(text[start - 1]) && text[end] === text[start - 1])
+    return [start - 1, end + 1]
   return [start, end]
 }
 
 const isPartOfFileUrl = (text: string, start: number): boolean =>
   start >= FILE_PROTOCOL.length && text.slice(start - FILE_PROTOCOL.length, start) === FILE_PROTOCOL
 
-const expandWrappers = (text: string, start: number, end: number, floor: number): [number, number] => {
+const expandWrappers = (
+  text: string,
+  start: number,
+  end: number,
+  floor: number
+): [number, number] => {
   while (start > floor && WRAPPERS.has(text[start - 1])) start--
   while (end < text.length && WRAPPERS.has(text[end])) end++
   return [start, end]
@@ -53,7 +65,11 @@ const tryStripBefore = (before: string, name: string): number => {
   return 0
 }
 
-export const linkifyEntityIds = (text: string, resolveName: NameResolver, formatMissing?: MissingFormatter): string => {
+export const linkifyEntityIds = (
+  text: string,
+  resolveName: NameResolver,
+  formatMissing?: MissingFormatter
+): string => {
   const pattern = new RegExp(ENTITY_ID_PATTERN.source, "g")
   let result = ""
   let lastIndex = 0
@@ -79,14 +95,26 @@ export const linkifyEntityIds = (text: string, resolveName: NameResolver, format
         continue
       }
 
-      const [fwStart, fwEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
-      const [fStart, fEnd] = isFileEntity(bareId) ? expandQuotes(text, fwStart, fwEnd, lastIndex) : [fwStart, fwEnd]
+      const [fwStart, fwEnd] = expandWrappers(
+        text,
+        match.index,
+        match.index + match[0].length,
+        lastIndex
+      )
+      const [fStart, fEnd] = isFileEntity(bareId)
+        ? expandQuotes(text, fwStart, fwEnd, lastIndex)
+        : [fwStart, fwEnd]
       result += text.slice(lastIndex, fStart) + fallback
       lastIndex = fEnd
       continue
     }
 
-    const [wrapStart, wrapEnd] = expandWrappers(text, match.index, match.index + match[0].length, lastIndex)
+    const [wrapStart, wrapEnd] = expandWrappers(
+      text,
+      match.index,
+      match.index + match[0].length,
+      lastIndex
+    )
 
     if (isPartOfFileUrl(text, match.index)) {
       result += text.slice(lastIndex, match.index + match[0].length)

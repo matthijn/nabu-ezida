@@ -1,4 +1,4 @@
-export type Annotation = {
+export interface Annotation {
   id?: string
   text: string
   color: string
@@ -8,7 +8,7 @@ export type Annotation = {
   review?: string
 }
 
-export type ResolvedAnnotation = {
+export interface ResolvedAnnotation {
   id?: string
   index: number
   from: number
@@ -17,7 +17,7 @@ export type ResolvedAnnotation = {
   hasReview?: boolean
 }
 
-export type OverlapSegment = {
+export interface OverlapSegment {
   from: number
   to: number
   colors: string[]

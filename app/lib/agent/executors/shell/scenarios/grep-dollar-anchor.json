@@ -3,9 +3,7 @@
     "data.md": "### Color\n### Colors\n### Color scheme\nEnd Color"
   },
   "args": {
-    "commands": [
-      "grep \"^### Color$\" data.md"
-    ]
+    "commands": ["grep \"^### Color$\" data.md"]
   },
   "expected": {
     "status": "ok",

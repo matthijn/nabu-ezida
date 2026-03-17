@@ -3,9 +3,7 @@
     "doc.md": "# Heading\n```json-attributes\n{\"key\": \"value\"}\n```\ntext"
   },
   "args": {
-    "commands": [
-      "grep -n \"```json-attributes\" doc.md"
-    ]
+    "commands": ["grep -n \"```json-attributes\" doc.md"]
   },
   "expected": {
     "status": "ok",

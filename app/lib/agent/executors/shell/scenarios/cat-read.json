@@ -3,9 +3,7 @@
     "foo.txt": "hello world"
   },
   "args": {
-    "commands": [
-      "cat foo.txt"
-    ]
+    "commands": ["cat foo.txt"]
   },
   "expected": {
     "status": "ok",

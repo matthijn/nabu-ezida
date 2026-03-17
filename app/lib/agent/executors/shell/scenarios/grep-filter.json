@@ -3,9 +3,7 @@
     "doc.md": "line one\nfoo bar\nline three"
   },
   "args": {
-    "commands": [
-      "grep foo doc.md"
-    ]
+    "commands": ["grep foo doc.md"]
   },
   "expected": {
     "status": "ok",

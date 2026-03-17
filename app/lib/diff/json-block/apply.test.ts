@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 import { applyJsonPatchOps, type JsonPatchOp } from "./apply"
 
 describe("applyJsonPatchOps", () => {
-  type Case = {
+  interface Case {
     name: string
     doc: unknown
     ops: JsonPatchOp[]

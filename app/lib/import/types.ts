@@ -6,7 +6,7 @@ export type ImportStatus =
   | "unsupported"
   | "error"
 
-export type ImportFile = {
+export interface ImportFile {
   id: string
   name: string
   size: number
@@ -15,7 +15,7 @@ export type ImportFile = {
   finalPath?: string
 }
 
-export type ImportProgress = {
+export interface ImportProgress {
   total: number
   completed: number
   failed: number

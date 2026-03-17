@@ -45,8 +45,9 @@ describe("deduplicateName", () => {
       if (expectOriginal) {
         expect(result).toBe(input)
       } else {
+        if (!expectPattern) throw new Error("expected expectPattern")
         expect(result).not.toBe(input)
-        expect(result).toMatch(expectPattern!)
+        expect(result).toMatch(expectPattern)
         expect(existing.has(result)).toBe(false)
       }
     })

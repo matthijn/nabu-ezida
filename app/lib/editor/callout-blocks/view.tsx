@@ -7,7 +7,7 @@ import { solidBackground } from "~/lib/colors/radix"
 import { IconButton } from "~/ui/components/IconButton"
 import { CalloutContent } from "./content"
 
-type CalloutBlockViewProps = {
+interface CalloutBlockViewProps {
   data: CalloutBlock
   onDelete: () => void
 }

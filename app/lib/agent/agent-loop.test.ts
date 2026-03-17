@@ -28,7 +28,10 @@ describe("shouldContinue", () => {
     },
     {
       name: "non-terminal tool result → true (continue)",
-      blocks: [toolCallBlock("search", "c1"), toolResult("c1", { status: "ok", output: "found it" })],
+      blocks: [
+        toolCallBlock("search", "c1"),
+        toolResult("c1", { status: "ok", output: "found it" }),
+      ],
       expected: true,
     },
   ]
@@ -45,7 +48,11 @@ describe("hasToolCalls", () => {
     { name: "empty → false", blocks: [], expected: false },
     { name: "text only → false", blocks: [textBlock("hi")], expected: false },
     { name: "has tool_call → true", blocks: [toolCallBlock("search", "c1")], expected: true },
-    { name: "mixed → true", blocks: [textBlock("hi"), toolCallBlock("search", "c1")], expected: true },
+    {
+      name: "mixed → true",
+      blocks: [textBlock("hi"), toolCallBlock("search", "c1")],
+      expected: true,
+    },
   ]
 
   cases.forEach(({ name, blocks, expected }) => {
@@ -57,8 +64,16 @@ describe("hasToolCalls", () => {
 
 describe("excludeReasoning", () => {
   const cases: { name: string; blocks: Block[]; expected: Block[] }[] = [
-    { name: "removes reasoning", blocks: [textBlock("hi"), { type: "reasoning", content: "think" }], expected: [textBlock("hi")] },
-    { name: "keeps everything else", blocks: [textBlock("hi"), userBlock("yo")], expected: [textBlock("hi"), userBlock("yo")] },
+    {
+      name: "removes reasoning",
+      blocks: [textBlock("hi"), { type: "reasoning", content: "think" }],
+      expected: [textBlock("hi")],
+    },
+    {
+      name: "keeps everything else",
+      blocks: [textBlock("hi"), userBlock("yo")],
+      expected: [textBlock("hi"), userBlock("yo")],
+    },
   ]
 
   cases.forEach(({ name, blocks, expected }) => {
@@ -141,5 +156,3 @@ describe("deriveMode", () => {
     })
   })
 })
-
-

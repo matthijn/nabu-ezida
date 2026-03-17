@@ -13,7 +13,7 @@ import { toDisplayName } from "~/lib/files/filename"
 
 type IconVariant = "brand" | "neutral" | "error" | "success" | "warning"
 
-type EntryPresentation = {
+interface EntryPresentation {
   icon: ComponentType<{ className?: string }>
   variant: IconVariant
   verbLabel: string
@@ -43,8 +43,17 @@ const verbVariant: Record<HistoryVerb, IconVariant> = {
 }
 
 const entityKindVerb: Record<string, Record<string, string>> = {
-  annotation: { added: "Added annotation", removed: "Removed annotation", updated: "Updated annotation" },
-  code: { added: "Applied code", removed: "Removed code", updated: "Updated code", created: "Created code" },
+  annotation: {
+    added: "Added annotation",
+    removed: "Removed annotation",
+    updated: "Updated annotation",
+  },
+  code: {
+    added: "Applied code",
+    removed: "Removed code",
+    updated: "Updated code",
+    created: "Created code",
+  },
   tag: { added: "Added tag", removed: "Removed tag" },
   text: { updated: "Updated text" },
   file: { created: "Created file", deleted: "Deleted file", renamed: "Renamed file" },
@@ -69,4 +78,3 @@ export const presentEntry = (entry: HistoryEntry): EntryPresentation => ({
   entityLabel: truncateLabel(entry.label),
   subtitle: toDisplayName(entry.newPath ?? entry.path),
 })
-

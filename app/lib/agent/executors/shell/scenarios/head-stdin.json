@@ -3,9 +3,7 @@
     "f.txt": "1\n2\n3\n4\n5"
   },
   "args": {
-    "commands": [
-      "cat f.txt | head -n 2"
-    ]
+    "commands": ["cat f.txt | head -n 2"]
   },
   "expected": {
     "status": "ok",

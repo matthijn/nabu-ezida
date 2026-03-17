@@ -1,5 +1,5 @@
-import clsx, { type ClassValue } from "clsx";
-import { extendTailwindMerge } from "tailwind-merge";
+import clsx, { type ClassValue } from "clsx"
+import { extendTailwindMerge } from "tailwind-merge"
 
 const subframeTypography = [
   "caption",
@@ -10,7 +10,7 @@ const subframeTypography = [
   "heading-2",
   "heading-3",
   "monospace-body",
-] as const;
+] as const
 
 const twMerge = extendTailwindMerge<"sf-text-style" | "sf-font-family">({
   extend: {
@@ -19,6 +19,6 @@ const twMerge = extendTailwindMerge<"sf-text-style" | "sf-font-family">({
       "sf-font-family": [{ font: [...subframeTypography] }],
     },
   },
-});
+})
 
-export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))

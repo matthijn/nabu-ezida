@@ -1,14 +1,14 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
-import { cn } from "~/ui/utils";
+import type { ReactNode } from "react"
+import { cn } from "~/ui/utils"
 
-type IconWithBackgroundProps = {
-  variant?: "brand" | "neutral" | "error" | "success" | "warning";
-  size?: "x-large" | "large" | "medium" | "small" | "x-small";
-  icon?: ReactNode;
-  className?: string;
-};
+interface IconWithBackgroundProps {
+  variant?: "brand" | "neutral" | "error" | "success" | "warning"
+  size?: "x-large" | "large" | "medium" | "small" | "x-small"
+  icon?: ReactNode
+  className?: string
+}
 
 export const IconWithBackground = ({
   variant = "brand",
@@ -34,23 +34,20 @@ export const IconWithBackground = ({
   >
     {icon ? (
       <div
-        className={cn(
-          "text-brand-600",
-          {
-            "text-[12px]": size === "x-small",
-            "text-[14px]": size === "small",
-            "text-[16px]": size === "medium",
-            "text-[20px]": size === "large",
-            "text-[24px]": size === "x-large",
-            "text-warning-600": variant === "warning",
-            "text-success-600": variant === "success",
-            "text-error-600": variant === "error",
-            "text-neutral-600": variant === "neutral",
-          }
-        )}
+        className={cn("text-brand-600", {
+          "text-[12px]": size === "x-small",
+          "text-[14px]": size === "small",
+          "text-[16px]": size === "medium",
+          "text-[20px]": size === "large",
+          "text-[24px]": size === "x-large",
+          "text-warning-600": variant === "warning",
+          "text-success-600": variant === "success",
+          "text-error-600": variant === "error",
+          "text-neutral-600": variant === "neutral",
+        })}
       >
         {icon}
       </div>
     ) : null}
   </div>
-);
+)

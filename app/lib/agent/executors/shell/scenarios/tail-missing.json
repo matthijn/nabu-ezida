@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "tail missing.txt"
-    ]
+    "commands": ["tail missing.txt"]
   },
   "expected": {
     "status": "partial",

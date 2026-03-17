@@ -3,9 +3,7 @@
     "data.json": "[{\"tags\":[\"a\",\"b\"]},{\"tags\":null},{\"tags\":[\"b\",\"c\"]}]"
   },
   "args": {
-    "commands": [
-      "jq \"map(.tags // []) | flatten | unique\" data.json"
-    ]
+    "commands": ["jq \"map(.tags // []) | flatten | unique\" data.json"]
   },
   "expected": {
     "status": "ok",

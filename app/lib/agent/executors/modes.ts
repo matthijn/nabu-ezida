@@ -2,8 +2,12 @@ import type { AnyTool } from "./tool"
 import type { Nudger } from "../steering/nudge-tools"
 import type { Block } from "../types"
 import {
-  patchJsonBlock, applyLocalPatch,
-  copyFile, renameFile, removeFile, runLocalShell,
+  patchJsonBlock,
+  applyLocalPatch,
+  copyFile,
+  renameFile,
+  removeFile,
+  runLocalShell,
   cancel,
   preflightTool,
   getGuidanceTool,
@@ -22,7 +26,7 @@ import { getFiles } from "~/lib/files/store"
 // off is for gpt mini, none is for gpt regular (or its 5.2 vs 5... unclear)
 type ReasoningLevel = "none" | "low" | "medium" | "high"
 
-type ModeConfig = {
+interface ModeConfig {
   tools: AnyTool[]
   triggers: string[]
   prompt?: string
@@ -47,7 +51,18 @@ const resolveToolNudges = (tools: AnyTool[], nudges: Nudger[]): Nudger[] => {
 
 const raw: Record<ModeName, ModeConfig> = {
   chat: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, preflightTool, getGuidanceTool, askTool, recordDecisionTool],
+    tools: [
+      runLocalShell,
+      patchJsonBlock,
+      applyLocalPatch,
+      copyFile,
+      renameFile,
+      removeFile,
+      preflightTool,
+      getGuidanceTool,
+      askTool,
+      recordDecisionTool,
+    ],
     triggers: ["cancel"],
     model: "gpt-5.4",
     reasoning: "low",
@@ -55,7 +70,15 @@ const raw: Record<ModeName, ModeConfig> = {
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   plan: {
-    tools: [runLocalShell, preflightTool, getGuidanceTool, submitPlanTool, cancel, askTool, recordDecisionTool],
+    tools: [
+      runLocalShell,
+      preflightTool,
+      getGuidanceTool,
+      submitPlanTool,
+      cancel,
+      askTool,
+      recordDecisionTool,
+    ],
     triggers: [],
     prompt: "planning",
     model: "gpt-5.4",
@@ -64,7 +87,18 @@ const raw: Record<ModeName, ModeConfig> = {
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   exec: {
-    tools: [runLocalShell, patchJsonBlock, applyLocalPatch, copyFile, renameFile, removeFile, cancel, completeStep, askTool, recordDecisionTool],
+    tools: [
+      runLocalShell,
+      patchJsonBlock,
+      applyLocalPatch,
+      copyFile,
+      renameFile,
+      removeFile,
+      cancel,
+      completeStep,
+      askTool,
+      recordDecisionTool,
+    ],
     triggers: ["submit_plan"],
     prompt: "execution",
     model: "gpt-5.4",
@@ -122,4 +156,3 @@ export const modeSystemBlocks = (mode: ModeName): Block[] => {
   blocks.push({ type: "system", content: `<!-- verbosity: ${config.verbosity} -->` })
   return blocks
 }
-

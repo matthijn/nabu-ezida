@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { Outlet, useNavigate, useParams, useOutletContext } from "react-router"
 import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayout"
 import { useFiles } from "~/hooks/useFiles"
@@ -20,7 +20,7 @@ import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
-type SidebarDocument = {
+interface SidebarDocument {
   id: string
   title: string
   editedAt: string
@@ -31,7 +31,7 @@ type SidebarDocument = {
 const filesToSidebarDocuments = (
   files: Record<string, string>,
   getFileTags: (filename: string) => string[],
-  debugMode: boolean,
+  debugMode: boolean
 ): SidebarDocument[] =>
   Object.keys(files)
     .filter((filename) => debugMode || !isHiddenFile(filename))
@@ -51,7 +51,9 @@ const requestCompaction = (): void => {
     const stored = localStorage.getItem(DEBUG_STORAGE_KEY)
     const options = stored ? JSON.parse(stored) : {}
     localStorage.setItem(DEBUG_STORAGE_KEY, JSON.stringify({ ...options, forceCompaction: true }))
-  } catch {}
+  } catch (_) {
+    void _
+  }
 }
 
 const loadDebugOptions = (): DebugOptions => {
@@ -68,17 +70,21 @@ const saveDebugOptions = (options: DebugOptions): void => {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(DEBUG_STORAGE_KEY, JSON.stringify(options))
-  } catch {}
+  } catch (_) {
+    void _
+  }
 }
 
-export type ProjectContextValue = {
+export interface ProjectContextValue {
   files: Record<string, string>
   currentFile: string | null
   debugOptions: DebugOptions
   toggleDebugOption: (key: string) => void
   requestCompaction: () => void
   getFileTags: (filename: string) => string[]
-  getFileAnnotations: (filename: string) => { text: string; color: string; reason?: string; code?: string }[] | undefined
+  getFileAnnotations: (
+    filename: string
+  ) => { text: string; color: string; reason?: string; code?: string }[] | undefined
   tagDefinitions: TagDefinition[]
 }
 
@@ -101,8 +107,10 @@ export default function ProjectLayout() {
     setPersistEnabled(debugOptions.persistToServer)
   }, [debugOptions.persistToServer])
 
-  const toggleDebugOption = useCallback((key: string) =>
-    setDebugOptions((prev) => ({ ...prev, [key]: !prev[key] })), [])
+  const toggleDebugOption = useCallback(
+    (key: string) => setDebugOptions((prev) => ({ ...prev, [key]: !prev[key] })),
+    []
+  )
 
   useEffect(() => {
     return () => closeChat()
@@ -122,10 +130,21 @@ export default function ProjectLayout() {
     }
   }, [params.projectId])
 
-  const { files, currentFile, codebook, setCurrentFile, getFileTags, getFileAnnotations, tagDefinitions } = useFiles()
+  const {
+    files,
+    currentFile,
+    codebook,
+    setCurrentFile,
+    getFileTags,
+    getFileAnnotations,
+    tagDefinitions,
+  } = useFiles()
   const fileImport = useFileImport()
 
-  const fileNames = Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f))
+  const fileNames = useMemo(
+    () => Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f)),
+    [files, debugOptions.expanded]
+  )
 
   useEffect(() => {
     if (params.fileId) {
@@ -141,7 +160,7 @@ export default function ProjectLayout() {
       setCurrentFile(first)
       navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
     }
-  }, [params.fileId, fileNames.length, params.projectId])
+  }, [params.fileId, params.projectId, files, currentFile, fileNames, setCurrentFile, navigate])
 
   const documents = filesToSidebarDocuments(files, getFileTags, !!debugOptions.expanded)
 
@@ -156,7 +175,9 @@ export default function ProjectLayout() {
     const documentId = findDocumentForCallout(files, code.id)
     if (!documentId) return
     dismissSidebarRef.current?.()
-    navigate(`/project/${params.projectId}/file/${encodeURIComponent(documentId)}?entity=${code.id}`)
+    navigate(
+      `/project/${params.projectId}/file/${encodeURIComponent(documentId)}?entity=${code.id}`
+    )
   }
 
   const sidebarPanels = {
@@ -168,18 +189,20 @@ export default function ProjectLayout() {
         tagDefinitions={tagDefinitions}
         onSearchChange={setSearchValue}
         onDocumentSelect={handleDocumentSelect}
-        onNewDocument={() => {}}
+        onNewDocument={() => undefined}
       />
     ),
-    ...(codebook ? {
-      codes: (
-        <CodesSidebar
-          codebook={codebook}
-          onEditCode={handleEditCode}
-          onFileSelect={handleDocumentSelect}
-        />
-      ),
-    } : {}),
+    ...(codebook
+      ? {
+          codes: (
+            <CodesSidebar
+              codebook={codebook}
+              onEditCode={handleEditCode}
+              onFileSelect={handleDocumentSelect}
+            />
+          ),
+        }
+      : {}),
   }
 
   return (
@@ -195,10 +218,23 @@ export default function ProjectLayout() {
         >
           <div className="flex h-full w-full items-start bg-default-background">
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
-              <Outlet context={{ files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, getFileAnnotations, tagDefinitions }} />
+              <Outlet
+                context={{
+                  files,
+                  currentFile,
+                  debugOptions,
+                  toggleDebugOption,
+                  requestCompaction,
+                  getFileTags,
+                  getFileAnnotations,
+                  tagDefinitions,
+                }}
+              />
             </div>
           </div>
-          {debugOptions.showStreamPanel && <DebugStreamPanel onClose={() => toggleDebugOption("showStreamPanel")} />}
+          {debugOptions.showStreamPanel && (
+            <DebugStreamPanel onClose={() => toggleDebugOption("showStreamPanel")} />
+          )}
         </DefaultPageLayout>
         <FileDropOverlay
           isVisible={fileImport.isVisible}

@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
-import { cn } from "~/ui/utils";
+import type { ReactNode } from "react"
+import { cn } from "~/ui/utils"
 
-type AvatarProps = {
-  variant?: "brand" | "neutral" | "error" | "success" | "warning";
-  size?: "x-large" | "large" | "medium" | "small" | "x-small";
-  children?: ReactNode;
-  image?: string;
-  square?: boolean;
-  className?: string;
-};
+interface AvatarProps {
+  variant?: "brand" | "neutral" | "error" | "success" | "warning"
+  size?: "x-large" | "large" | "medium" | "small" | "x-small"
+  children?: ReactNode
+  image?: string
+  square?: boolean
+  className?: string
+}
 
 export const Avatar = ({
   variant = "brand",
@@ -60,17 +60,14 @@ export const Avatar = ({
     ) : null}
     {image ? (
       <img
-        className={cn(
-          "h-8 w-8 flex-none object-cover absolute",
-          {
-            "h-5 w-5 flex-none": size === "x-small",
-            "h-6 w-6 flex-none": size === "small",
-            "h-12 w-12 flex-none": size === "large",
-            "h-16 w-16 flex-none": size === "x-large",
-          }
-        )}
+        className={cn("h-8 w-8 flex-none object-cover absolute", {
+          "h-5 w-5 flex-none": size === "x-small",
+          "h-6 w-6 flex-none": size === "small",
+          "h-12 w-12 flex-none": size === "large",
+          "h-16 w-16 flex-none": size === "x-large",
+        })}
         src={image}
       />
     ) : null}
   </div>
-);
+)

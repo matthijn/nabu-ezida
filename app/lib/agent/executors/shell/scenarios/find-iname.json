@@ -5,9 +5,7 @@
     "other.md": ""
   },
   "args": {
-    "commands": [
-      "find -iname readme*"
-    ]
+    "commands": ["find -iname readme*"]
   },
   "expected": {
     "status": "ok",

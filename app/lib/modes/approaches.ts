@@ -1,6 +1,9 @@
 import { getLlmUrl } from "~/lib/env"
 
-type ApproachMeta = { keys: string[]; descriptions: Record<string, string> }
+interface ApproachMeta {
+  keys: string[]
+  descriptions: Record<string, string>
+}
 
 let cached: ApproachMeta | null = null
 

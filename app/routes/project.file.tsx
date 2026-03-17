@@ -9,7 +9,6 @@ import { toExtraPretty } from "~/lib/json"
 import { findTagDefinitionByLabel, resolveEntityName } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 import { resolveFeatherIcon } from "~/lib/icons/feather-map"
-import { truncateLabel } from "~/lib/mutation-history"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
@@ -45,7 +44,15 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, toggleDebugOption, requestCompaction, getFileTags, tagDefinitions } = useProject()
+  const {
+    files,
+    currentFile,
+    debugOptions,
+    toggleDebugOption,
+    requestCompaction,
+    getFileTags,
+    tagDefinitions,
+  } = useProject()
   const [searchParams] = useSearchParams()
   const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -67,12 +74,19 @@ export default function ProjectFile() {
     if (rawContent) navigator.clipboard.writeText(rawContent)
   }, [rawContent])
   const tagDefMap = useMemo(() => new Map(tagDefinitions.map((d) => [d.id, d])), [tagDefinitions])
-  const tags = currentFile ? getFileTags(currentFile).map((tagId) => {
-    const def = tagDefMap.get(tagId)
-    return def
-      ? { label: def.display, variant: "brand" as const, color: def.color, icon: resolveFeatherIcon(def.icon) }
-      : { label: tagId, variant: "neutral" as const }
-  }) : []
+  const tags = currentFile
+    ? getFileTags(currentFile).map((tagId) => {
+        const def = tagDefMap.get(tagId)
+        return def
+          ? {
+              label: def.display,
+              variant: "brand" as const,
+              color: def.color,
+              icon: resolveFeatherIcon(def.icon),
+            }
+          : { label: tagId, variant: "neutral" as const }
+      })
+    : []
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current
@@ -97,20 +111,23 @@ export default function ProjectFile() {
         tags={tags}
         pinned={false}
         debugOptions={debugOptions}
-        onPin={() => {}}
-        onShare={() => {}}
+        onPin={() => undefined}
+        onShare={() => undefined}
         onToggleOption={toggleDebugOption}
         onRequestCompaction={requestCompaction}
         onCopyRaw={copyRawMarkdown}
         menuItems={[
-          { icon: <FeatherCopy />, label: "Duplicate", onClick: () => {} },
-          { icon: <FeatherFileText />, label: "Export", onClick: () => {} },
-          { icon: <FeatherTrash />, label: "Delete", onClick: () => {} },
+          { icon: <FeatherCopy />, label: "Duplicate", onClick: () => undefined },
+          { icon: <FeatherFileText />, label: "Export", onClick: () => undefined },
+          { icon: <FeatherTrash />, label: "Delete", onClick: () => undefined },
         ]}
-        onAddTag={() => {}}
+        onAddTag={() => undefined}
       />
       <div className="flex w-full grow shrink basis-0 min-h-0 items-stretch overflow-hidden">
-        <div ref={scrollContainerRef} className="flex grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto">
+        <div
+          ref={scrollContainerRef}
+          className="flex grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto"
+        >
           <EditorToolbar
             groups={[
               [
@@ -133,11 +150,23 @@ export default function ProjectFile() {
               [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
             ]}
           />
-          <div ref={editorContainerRef} className="relative flex w-full grow flex-col items-start gap-8 pt-8">
-            <MilkdownEditor key={`${currentFile}-${debugOptions.renderAsJson}`} content={formatContent(content, currentFile)} debugMode={debugOptions.renderAsJson} spotlight={spotlight} />
+          <div
+            ref={editorContainerRef}
+            className="relative flex w-full grow flex-col items-start gap-8 pt-8"
+          >
+            <MilkdownEditor
+              key={`${currentFile}-${debugOptions.renderAsJson}`}
+              content={formatContent(content, currentFile)}
+              debugMode={debugOptions.renderAsJson}
+              spotlight={spotlight}
+            />
           </div>
         </div>
-        <ScrollGutter contentRef={editorContainerRef} scrollContainerRef={scrollContainerRef} onScrollTo={handleScrollTo} />
+        <ScrollGutter
+          contentRef={editorContainerRef}
+          scrollContainerRef={scrollContainerRef}
+          onScrollTo={handleScrollTo}
+        />
       </div>
     </>
   )

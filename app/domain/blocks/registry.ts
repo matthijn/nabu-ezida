@@ -1,28 +1,28 @@
 import { z } from "zod"
 import { DocumentMeta, type StoredAnnotation } from "./attributes/schema"
 import { Settings, type TagDefinition } from "./settings/schema"
-import { CalloutSchema, type CalloutBlock } from "./callout/schema"
+import { CalloutSchema } from "./callout/schema"
 import type { ValidationError } from "~/lib/blocks/validate"
 import { parsePath, type ParsedPath } from "~/lib/blocks/json"
 
-export type ValidationContext = {
+export interface ValidationContext {
   documentProse: string
   availableCodes: { id: string; name: string }[]
   availableTags: { id: string; label: string }[]
 }
 
-type IdPathConfig = {
-  path: string  // "id" for root, "annotations.*.id" for nested array items
+interface IdPathConfig {
+  path: string // "id" for root, "annotations.*.id" for nested array items
   prefix: string
 }
 
-type ActorPathConfig = {
-  path: string  // "actor" for root, "annotations.*.actor" for nested array items
+interface ActorPathConfig {
+  path: string // "actor" for root, "annotations.*.actor" for nested array items
 }
 
 type JsonSchema = Record<string, unknown>
 
-type BlockTypeConfig<T> = {
+interface BlockTypeConfig<T> {
   schema: z.ZodType<T>
   readonly: string[]
   immutable: Record<string, string>
@@ -130,9 +130,7 @@ const removeFromProperties = (schema: JsonSchema, path: string[], field: string)
   })
 
 const actorSchemaPath = (parsed: ParsedPath): string[] =>
-  parsed.type === "root"
-    ? []
-    : ["properties", parsed.arrayField, "items"]
+  parsed.type === "root" ? [] : ["properties", parsed.arrayField, "items"]
 
 const stripActorFields = (schema: JsonSchema, actorPaths: ActorPathConfig[]): JsonSchema =>
   actorPaths.reduce((s, { path }) => {
@@ -167,23 +165,24 @@ const jsonAttributes = defineBlock({
 
 const findDuplicateLabels = (tags: TagDefinition[]): string[] => {
   const seen = new Set<string>()
-  return tags.filter((t) =>
-    !seen.has(t.label) ? (seen.add(t.label), false) : true
-  ).map((t) => t.label)
+  return tags
+    .filter((t) => (!seen.has(t.label) ? (seen.add(t.label), false) : true))
+    .map((t) => t.label)
 }
 
 const formatAllTags = (tags: TagDefinition[]): Record<string, string> =>
   Object.fromEntries(tags.map((t) => [t.label, t.id]))
 
 const validateTagLabels = (parsed: Settings): ValidationError[] => {
-  if (!parsed.tags) return []
-  const dupes = findDuplicateLabels(parsed.tags)
+  const tags = parsed.tags
+  if (!tags) return []
+  const dupes = findDuplicateLabels(tags)
   if (dupes.length === 0) return []
   return dupes.map((label) => ({
     block: "json-settings",
     field: "tags",
     message: `Duplicate tag label "${label}". Existing tags:`,
-    hint: formatAllTags(parsed.tags!),
+    hint: formatAllTags(tags),
   }))
 }
 
@@ -203,7 +202,7 @@ const jsonCallout = defineBlock({
   schema: CalloutSchema,
   readonly: [],
   immutable: {
-    id: "Field \"id\" is immutable and cannot be changed",
+    id: 'Field "id" is immutable and cannot be changed',
   },
   constraints: [],
   renderer: "callout",
@@ -221,26 +220,21 @@ export const blockTypes: Record<string, AnyBlockConfig> = {
   "json-callout": jsonCallout as AnyBlockConfig,
 }
 
-export const getBlockConfig = (language: string): AnyBlockConfig | undefined =>
-  blockTypes[language]
+export const getBlockConfig = (language: string): AnyBlockConfig | undefined => blockTypes[language]
 
-export const isKnownBlockType = (language: string): boolean =>
-  language in blockTypes
+export const isKnownBlockType = (language: string): boolean => language in blockTypes
 
 export const isHiddenRenderer = (language: string): boolean =>
   blockTypes[language]?.renderer === "hidden"
 
-export const isSingleton = (language: string): boolean =>
-  blockTypes[language]?.singleton ?? false
+export const isSingleton = (language: string): boolean => blockTypes[language]?.singleton ?? false
 
-export const getLabelKey = (language: string): string | undefined =>
-  blockTypes[language]?.labelKey
+export const getLabelKey = (language: string): string | undefined => blockTypes[language]?.labelKey
 
 export const getImmutableFields = (language: string): Record<string, string> =>
   blockTypes[language]?.immutable ?? {}
 
-export const getIdPaths = (language: string): IdPathConfig[] =>
-  blockTypes[language]?.idPaths ?? []
+export const getIdPaths = (language: string): IdPathConfig[] => blockTypes[language]?.idPaths ?? []
 
 export const getActorPaths = (language: string): ActorPathConfig[] =>
   blockTypes[language]?.actorPaths ?? []
@@ -248,7 +242,7 @@ export const getActorPaths = (language: string): ActorPathConfig[] =>
 export const getAllowedFiles = (language: string): string[] | undefined =>
   blockTypes[language]?.allowedFiles
 
-export type BlockSchemaDefinition = {
+export interface BlockSchemaDefinition {
   language: string
   jsonSchema: unknown
   singleton: boolean

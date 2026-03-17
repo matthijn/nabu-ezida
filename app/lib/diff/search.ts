@@ -1,4 +1,8 @@
-export type Match = { start: number; end: number; fuzzy: boolean }
+export interface Match {
+  start: number
+  end: number
+  fuzzy: boolean
+}
 
 export const findMatches = (content: string, needle: string): Match[] => {
   const contentLines = toLines(content)
@@ -64,7 +68,11 @@ const findExactMatches = (contentLines: string[], needleLines: string[]): Match[
   return matches
 }
 
-const blockSimilarity = (contentLines: string[], needleLines: string[], startIndex: number): number => {
+const blockSimilarity = (
+  contentLines: string[],
+  needleLines: string[],
+  startIndex: number
+): number => {
   let totalScore = 0
 
   for (let i = 0; i < needleLines.length; i++) {
@@ -86,7 +94,5 @@ const findFuzzyMatches = (contentLines: string[], needleLines: string[]): Match[
     }
   }
 
-  return matches
-    .sort((a, b) => b.score - a.score)
-    .map((m) => m.match)
+  return matches.sort((a, b) => b.score - a.score).map((m) => m.match)
 }

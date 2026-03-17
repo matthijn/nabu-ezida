@@ -6,7 +6,7 @@ import { splitByLines } from "../markdown"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-type ScenarioConfig = {
+interface ScenarioConfig {
   targetLines: number
 }
 

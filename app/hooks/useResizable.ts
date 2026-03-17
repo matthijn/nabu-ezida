@@ -1,22 +1,25 @@
-import { useState, useCallback, useRef, type MouseEvent } from "react"
+import { useState, useCallback, useRef, useEffect, type MouseEvent } from "react"
 
-type Size = { width: number; height: number }
+interface Size {
+  width: number
+  height: number
+}
 
-type DragState = {
+interface DragState {
   startX: number
   startY: number
   startWidth: number
   startHeight: number
 }
 
-type Bounds = {
+interface Bounds {
   minWidth: number
   maxWidth: number
   minHeight: number
   maxHeight: number
 }
 
-type ResizableOptions = {
+interface ResizableOptions {
   bounds?: Partial<Bounds>
   storageKey?: string
 }
@@ -46,50 +49,65 @@ const writeStoredSize = (key: string, size: Size): void => {
 export const useResizable = (initialSize: Size, options: ResizableOptions = {}) => {
   const bounds = { ...DEFAULT_BOUNDS, ...options.bounds }
   const boundsRef = useRef(bounds)
-  boundsRef.current = bounds
+  useEffect(() => {
+    boundsRef.current = bounds
+  })
 
   const [size, setSize] = useState(() => readStoredSize(options.storageKey ?? "") ?? initialSize)
   const dragRef = useRef<DragState | null>(null)
   const sizeRef = useRef(size)
-  sizeRef.current = size
+  useEffect(() => {
+    sizeRef.current = size
+  })
 
-  const handleResizeMouseDown = useCallback((e: MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startWidth: sizeRef.current.width,
-      startHeight: sizeRef.current.height,
-    }
-
-    const handleMouseMove = (e: globalThis.MouseEvent) => {
-      if (!dragRef.current) return
-      const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
-      const deltaX = dragRef.current.startX - e.clientX
-      const deltaY = dragRef.current.startY - e.clientY
-      setSize({
-        width: clamp(dragRef.current.startWidth + deltaX, minWidth, maxWidth),
-        height: clamp(dragRef.current.startHeight + deltaY, minHeight, maxHeight),
-      })
-    }
-
-    const handleMouseUp = (e: globalThis.MouseEvent) => {
-      if (!dragRef.current) return
-      const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
-      const finalSize = {
-        width: clamp(dragRef.current.startWidth + (dragRef.current.startX - e.clientX), minWidth, maxWidth),
-        height: clamp(dragRef.current.startHeight + (dragRef.current.startY - e.clientY), minHeight, maxHeight),
+  const handleResizeMouseDown = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: sizeRef.current.width,
+        startHeight: sizeRef.current.height,
       }
-      dragRef.current = null
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-      if (options.storageKey) writeStoredSize(options.storageKey, finalSize)
-    }
 
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
-  }, [options.storageKey])
+      const handleMouseMove = (e: globalThis.MouseEvent) => {
+        if (!dragRef.current) return
+        const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
+        const deltaX = dragRef.current.startX - e.clientX
+        const deltaY = dragRef.current.startY - e.clientY
+        setSize({
+          width: clamp(dragRef.current.startWidth + deltaX, minWidth, maxWidth),
+          height: clamp(dragRef.current.startHeight + deltaY, minHeight, maxHeight),
+        })
+      }
+
+      const handleMouseUp = (e: globalThis.MouseEvent) => {
+        if (!dragRef.current) return
+        const { minWidth, maxWidth, minHeight, maxHeight } = boundsRef.current
+        const finalSize = {
+          width: clamp(
+            dragRef.current.startWidth + (dragRef.current.startX - e.clientX),
+            minWidth,
+            maxWidth
+          ),
+          height: clamp(
+            dragRef.current.startHeight + (dragRef.current.startY - e.clientY),
+            minHeight,
+            maxHeight
+          ),
+        }
+        dragRef.current = null
+        document.removeEventListener("mousemove", handleMouseMove)
+        document.removeEventListener("mouseup", handleMouseUp)
+        if (options.storageKey) writeStoredSize(options.storageKey, finalSize)
+      }
+
+      document.addEventListener("mousemove", handleMouseMove)
+      document.addEventListener("mouseup", handleMouseUp)
+    },
+    [options.storageKey]
+  )
 
   return { size, setSize, handleResizeMouseDown }
 }

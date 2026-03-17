@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "ls"
-    ]
+    "commands": ["ls"]
   },
   "expected": {
     "status": "ok",

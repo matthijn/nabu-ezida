@@ -1,7 +1,10 @@
 import type { Node } from "prosemirror-model"
 import { isHiddenRenderer } from "~/domain/blocks/registry"
 
-export type TextRange = { from: number; to: number }
+export interface TextRange {
+  from: number
+  to: number
+}
 
 type NodeFilter = (node: Node) => boolean
 

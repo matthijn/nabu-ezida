@@ -1,15 +1,10 @@
 export const isBlankLine = (s: string): boolean => /^[ \t]*$/.test(s)
 
-export const normalizeLine = (line: string): string =>
-  spacesToTabs(trimTrailing(line))
+export const normalizeLine = (line: string): string => spacesToTabs(trimTrailing(line))
 
 export const normalizeContent = (text: string): string =>
   trimTrailingBlanks(
-    collapseBlankLines(
-      ensureHeadingSpacing(
-        text.split("\n").map(normalizeLine)
-      )
-    )
+    collapseBlankLines(ensureHeadingSpacing(text.split("\n").map(normalizeLine)))
   ).join("\n")
 
 const isHeading = (s: string): boolean => /^#{1,6} /.test(s)

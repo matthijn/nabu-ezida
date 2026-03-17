@@ -9,13 +9,19 @@ const scrollToElement = (element: HTMLElement, block: ScrollBlock): void => {
   element.scrollIntoView({ behavior: "smooth", block })
 }
 
-type ScrollTarget = { selector: string; key: string; block: ScrollBlock }
+interface ScrollTarget {
+  selector: string
+  key: string
+  block: ScrollBlock
+}
 
 const deriveScrollTarget = (searchParams: URLSearchParams): ScrollTarget | null => {
   const entityId = searchParams.get("entity")
-  if (entityId) return { selector: `[data-id="${entityId}"]`, key: `entity:${entityId}`, block: "center" }
+  if (entityId)
+    return { selector: `[data-id="${entityId}"]`, key: `entity:${entityId}`, block: "center" }
   const spotlight = searchParams.get("spotlight")
-  if (spotlight) return { selector: "[data-spotlight]", key: `spotlight:${spotlight}`, block: "center" }
+  if (spotlight)
+    return { selector: "[data-spotlight]", key: `spotlight:${spotlight}`, block: "center" }
   return null
 }
 
@@ -49,19 +55,22 @@ const observeAndScroll = (
 export const useScrollToEntity = (containerRef: RefObject<HTMLElement | null>): void => {
   const [searchParams] = useSearchParams()
   const target = deriveScrollTarget(searchParams)
+  const selector = target?.selector
+  const block = target?.block
+  const key = target?.key
 
   useEffect(() => {
-    if (!target) return
+    if (!selector || !block) return
 
     const container = containerRef.current
     if (!container) return
 
-    const element = findElement(container, target.selector)
+    const element = findElement(container, selector)
     if (element) {
-      scrollToElement(element, target.block)
+      scrollToElement(element, block)
       return
     }
 
-    return observeAndScroll(container, target.selector, target.block)
-  }, [target?.key, containerRef])
+    return observeAndScroll(container, selector, block)
+  }, [key, selector, block, containerRef])
 }

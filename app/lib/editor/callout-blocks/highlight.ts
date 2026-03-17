@@ -1,4 +1,7 @@
-type TextNode = { node: Text; startInFull: number }
+interface TextNode {
+  node: Text
+  startInFull: number
+}
 
 const collectTextNodes = (container: HTMLElement): { nodes: TextNode[]; fullText: string } => {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
@@ -55,8 +58,7 @@ const findTextRangesInDOM = (container: HTMLElement, text: string): Range[] => {
   }
 }
 
-const supportsHighlightAPI = (): boolean =>
-  typeof CSS !== "undefined" && "highlights" in CSS
+const supportsHighlightAPI = (): boolean => typeof CSS !== "undefined" && "highlights" in CSS
 
 const highlightCSS = (name: string, css: string): HTMLStyleElement => {
   const style = document.createElement("style")
@@ -65,14 +67,17 @@ const highlightCSS = (name: string, css: string): HTMLStyleElement => {
   return style
 }
 
-export type HighlightEntry = { text: string; isSpotlight: boolean }
+export interface HighlightEntry {
+  text: string
+  isSpotlight: boolean
+}
 
 export const applyDOMHighlights = (
   container: HTMLElement,
   id: string,
-  entries: HighlightEntry[],
+  entries: HighlightEntry[]
 ): (() => void) => {
-  if (!supportsHighlightAPI() || entries.length === 0) return () => {}
+  if (!supportsHighlightAPI() || entries.length === 0) return () => undefined
 
   const spotlightTexts = entries.filter((e) => e.isSpotlight).map((e) => e.text)
   const annotationTexts = entries.filter((e) => !e.isSpotlight).map((e) => e.text)

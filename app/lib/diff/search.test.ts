@@ -6,7 +6,7 @@ import { normalizeContent } from "./normalize"
 
 type ExpectedMatch = Match & { content?: string }
 
-type Scenario = {
+interface Scenario {
   name: string
   needle: string
   expected: { matches: ExpectedMatch[] }

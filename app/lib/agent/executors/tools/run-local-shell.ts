@@ -3,7 +3,7 @@ import { runLocalShell as def } from "./run-local-shell.def"
 import { createShell } from "../shell/shell"
 import { initJq } from "../shell/commands/jq"
 
-export type ShellCommandOutput = {
+export interface ShellCommandOutput {
   stdout: string
   stderr: string
   outcome: { type: "exit"; exit_code: number }

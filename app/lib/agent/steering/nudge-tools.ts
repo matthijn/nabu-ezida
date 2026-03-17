@@ -2,7 +2,7 @@ import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
 
 type NudgeContext = string | { text: string; blocks: Block[] }
 
-export type NudgeBlock = {
+export interface NudgeBlock {
   type: "system" | "empty"
   content: string
   context?: () => Promise<NudgeContext>
@@ -15,11 +15,6 @@ type MultiNudger = (history: Block[]) => Promise<Block[]>
 export const systemNudge = (content: string): NudgeBlock => ({ type: "system", content })
 
 export const emptyNudge = (): NudgeBlock => ({ type: "empty", content: "" })
-
-const withContext = (nudge: NudgeBlock, context: () => Promise<NudgeContext>): NudgeBlock => ({
-  ...nudge,
-  context,
-})
 
 export const isEmptyNudgeBlock = (b: Block): b is EmptyNudgeBlock => b.type === "empty_nudge"
 
@@ -50,13 +45,15 @@ const resolveNudge = async (nudge: NudgeBlock): Promise<Block[]> => {
   }
 }
 
-const filterNonNull = <T>(results: (T | null)[]): T[] =>
-  results.filter((r): r is T => r !== null)
+const filterNonNull = <T>(results: (T | null)[]): T[] => results.filter((r): r is T => r !== null)
 
 const isSystem = (block: Block): block is SystemBlock => block.type === "system"
 
 const isActionBlock = (block: Block): boolean =>
-  block.type === "tool_call" || block.type === "tool_result" || block.type === "user" || block.type === "text"
+  block.type === "tool_call" ||
+  block.type === "tool_result" ||
+  block.type === "user" ||
+  block.type === "text"
 
 const blocksSinceMarker = (history: Block[], marker: string): number => {
   let actions = 0
@@ -94,19 +91,23 @@ const firedWithin = (history: Block[], marker: string, n: number): boolean => {
   return since <= n
 }
 
-export const combine = (...nudgers: Nudger[]): Nudger => (history) => {
-  for (const nudger of nudgers) {
-    const result = nudger(history)
-    if (result !== null) return result
+export const combine =
+  (...nudgers: Nudger[]): Nudger =>
+  (history) => {
+    for (const nudger of nudgers) {
+      const result = nudger(history)
+      if (result !== null) return result
+    }
+    return null
   }
-  return null
-}
 
-export const collect = (...nudgers: Nudger[]): MultiNudger => async (history) => {
-  const results = filterNonNull(nudgers.map((n) => n(history)))
-  const resolved = await Promise.all(results.map(resolveNudge))
-  return resolved.flat()
-}
+export const collect =
+  (...nudgers: Nudger[]): MultiNudger =>
+  async (history) => {
+    const results = filterNonNull(nudgers.map((n) => n(history)))
+    const resolved = await Promise.all(results.map(resolveNudge))
+    return resolved.flat()
+  }
 
 const getNudgeMarker = (nudge: NudgeBlock): string => nudge.content
 
@@ -119,17 +120,10 @@ export const withCooldown =
     return result
   }
 
-const buildToolNudge =
-  (toolName: string, prompt: string): Nudger =>
-  (history) => {
-    if (!afterToolResult(history)) return null
-    const last = history[history.length - 1]
-    if (last.type !== "tool_result") return null
-    if ((last as { toolName?: string }).toolName !== toolName) return null
-    return systemNudge(prompt)
-  }
-
-export const findToolCallArgs = (history: Block[], callId: string): Record<string, unknown> | null => {
+export const findToolCallArgs = (
+  history: Block[],
+  callId: string
+): Record<string, unknown> | null => {
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
     if (block.type === "tool_call") {

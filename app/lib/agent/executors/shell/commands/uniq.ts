@@ -1,6 +1,9 @@
 import { command, ok, err, normalizePath } from "./command"
 
-type Group = { line: string; count: number }
+interface Group {
+  line: string
+  count: number
+}
 
 const groupLines = (lines: string[]): Group[] => {
   const groups: Group[] = []
@@ -33,7 +36,7 @@ export const uniq = command({
     if (filename && !files.has(filename)) {
       return err(`uniq: ${filename}: No such file`)
     }
-    const content = filename ? files.get(filename)! : stdin
+    const content = filename ? (files.get(filename) ?? "") : stdin
     const groups = groupLines(content.split("\n"))
     const showCount = flags.has("-c")
     const dupsOnly = flags.has("-d")

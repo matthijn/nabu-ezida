@@ -1,7 +1,8 @@
 import { findMatchOffset } from "~/lib/diff/fuzzy-inline"
 import { serializeSpotlight } from "~/domain/spotlight/serialize"
 
-const QUOTE_PATTERN = /\[([^\]]*)\]\([^)]*\)|[\u201C\u201D""]([^"\u201C\u201D""]+?)[\u201C\u201D""]/g
+const QUOTE_PATTERN =
+  /\[([^\]]*)\]\([^)]*\)|[\u201C\u201D""]([^"\u201C\u201D""]+?)[\u201C\u201D""]/g
 
 const encodeSpotlightText = (text: string): string =>
   encodeURIComponent(serializeSpotlight({ type: "single", text }))
@@ -12,7 +13,7 @@ const buildSpotlightLink = (quoted: string, documentId: string): string =>
 export const linkifyQuotes = (
   text: string,
   documentId: string | null,
-  fileContent: string | null,
+  fileContent: string | null
 ): string => {
   if (!documentId || !fileContent) return text
 

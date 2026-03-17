@@ -51,7 +51,7 @@ const AMBIGUOUS_END = [
 
 const j = (...lines: string[]) => lines.join("\n")
 
-type Case = {
+interface Case {
   name: string
   patch: string
   files: Record<string, string>
@@ -70,7 +70,7 @@ describe("expandRangeRefs", () => {
         "+<< notes.md",
         "+  ## Participant Background",
         "+  ...",
-        "+  been vocal about staffing concerns since joining.",
+        "+  been vocal about staffing concerns since joining."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -82,7 +82,7 @@ describe("expandRangeRefs", () => {
         "+Sarah is a senior nurse with 12 years of experience",
         "+in the emergency department. She transitioned from",
         "+a smaller regional hospital three years ago and has",
-        "+been vocal about staffing concerns since joining.",
+        "+been vocal about staffing concerns since joining."
       ),
     },
     {
@@ -92,7 +92,7 @@ describe("expandRangeRefs", () => {
         "-<<",
         "-  ## Follow-up Questions",
         "-  ...",
-        "-  Clarify the timeline around the policy change.",
+        "-  Clarify the timeline around the policy change."
       ),
       files: { "notes.md": NOTES },
       currentPath: "notes.md",
@@ -101,7 +101,7 @@ describe("expandRangeRefs", () => {
         "-## Follow-up Questions",
         "-",
         "-Ask about the night shift incident from March.",
-        "-Clarify the timeline around the policy change.",
+        "-Clarify the timeline around the policy change."
       ),
     },
     {
@@ -111,7 +111,7 @@ describe("expandRangeRefs", () => {
         "+<<",
         "+  ## Key Observations",
         "+  ...",
-        "+  are strong among long-serving team members.",
+        "+  are strong among long-serving team members."
       ),
       files: { "notes.md": NOTES },
       currentPath: "notes.md",
@@ -122,7 +122,7 @@ describe("expandRangeRefs", () => {
         "+The ward operates on rotating shifts with minimal",
         "+handover time. Staff frequently skip breaks during",
         "+peak hours. Morale appears low but collegial bonds",
-        "+are strong among long-serving team members.",
+        "+are strong among long-serving team members."
       ),
     },
     {
@@ -141,7 +141,7 @@ describe("expandRangeRefs", () => {
         "+  ## Key Observations",
         "+  ...",
         "+  are strong among long-serving team members.",
-        "-old line",
+        "-old line"
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -154,7 +154,7 @@ describe("expandRangeRefs", () => {
         "+handover time. Staff frequently skip breaks during",
         "+peak hours. Morale appears low but collegial bonds",
         "+are strong among long-serving team members.",
-        "-old line",
+        "-old line"
       ),
     },
     {
@@ -165,7 +165,7 @@ describe("expandRangeRefs", () => {
         "+  Sarah is a senior nurse with 12 years of experience",
         "+  in the emergency department. She transitioned from",
         "+  ...",
-        "+  been vocal about staffing concerns since joining.",
+        "+  been vocal about staffing concerns since joining."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -174,7 +174,7 @@ describe("expandRangeRefs", () => {
         "+Sarah is a senior nurse with 12 years of experience",
         "+in the emergency department. She transitioned from",
         "+a smaller regional hospital three years ago and has",
-        "+been vocal about staffing concerns since joining.",
+        "+been vocal about staffing concerns since joining."
       ),
     },
     {
@@ -185,7 +185,7 @@ describe("expandRangeRefs", () => {
         "+  ## Participant Background",
         "+  ...",
         "+  a smaller regional hospital three years ago and has",
-        "+  been vocal about staffing concerns since joining.",
+        "+  been vocal about staffing concerns since joining."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -196,18 +196,12 @@ describe("expandRangeRefs", () => {
         "+Sarah is a senior nurse with 12 years of experience",
         "+in the emergency department. She transitioned from",
         "+a smaller regional hospital three years ago and has",
-        "+been vocal about staffing concerns since joining.",
+        "+been vocal about staffing concerns since joining."
       ),
     },
     {
       name: "start anchor not found",
-      patch: j(
-        "@@",
-        "+<< notes.md",
-        "+  ## Nonexistent Section",
-        "+  ...",
-        "+  some end anchor.",
-      ),
+      patch: j("@@", "+<< notes.md", "+  ## Nonexistent Section", "+  ...", "+  some end anchor."),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
       errorContains: "start anchor not found",
@@ -219,7 +213,7 @@ describe("expandRangeRefs", () => {
         "+<< notes.md",
         "+  ## Participant Background",
         "+  ...",
-        "+  this text does not exist anywhere in the file.",
+        "+  this text does not exist anywhere in the file."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -232,7 +226,7 @@ describe("expandRangeRefs", () => {
         "+<< repeated.md",
         "+  The team discussed the timeline.",
         "+  ...",
-        "+  A decision was made to extend.",
+        "+  A decision was made to extend."
       ),
       files: { "repeated.md": REPEATED },
       currentPath: "other.md",
@@ -245,7 +239,7 @@ describe("expandRangeRefs", () => {
         "+<< report.md",
         "+  ## Introduction",
         "+  ...",
-        "+  The results were significant.",
+        "+  The results were significant."
       ),
       files: { "report.md": AMBIGUOUS_END },
       currentPath: "other.md",
@@ -257,7 +251,7 @@ describe("expandRangeRefs", () => {
         "@@",
         "+<< notes.md",
         "+  ## Participant Background",
-        "+  been vocal about staffing concerns since joining.",
+        "+  been vocal about staffing concerns since joining."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -269,7 +263,7 @@ describe("expandRangeRefs", () => {
         "@@",
         "+<< notes.md",
         "+  ...",
-        "+  been vocal about staffing concerns since joining.",
+        "+  been vocal about staffing concerns since joining."
       ),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
@@ -277,25 +271,14 @@ describe("expandRangeRefs", () => {
     },
     {
       name: "missing end anchor (... is last)",
-      patch: j(
-        "@@",
-        "+<< notes.md",
-        "+  ## Participant Background",
-        "+  ...",
-      ),
+      patch: j("@@", "+<< notes.md", "+  ## Participant Background", "+  ..."),
       files: { "notes.md": NOTES },
       currentPath: "other.md",
       errorContains: "missing end anchor",
     },
     {
       name: "file not found",
-      patch: j(
-        "@@",
-        "+<< nonexistent.md",
-        "+  ## Start",
-        "+  ...",
-        "+  ## End",
-      ),
+      patch: j("@@", "+<< nonexistent.md", "+  ## Start", "+  ...", "+  ## End"),
       files: {},
       currentPath: "other.md",
       errorContains: "file not found: nonexistent.md",

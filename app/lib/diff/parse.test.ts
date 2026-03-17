@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "fs"
 import { join } from "path"
 import { applyDiff } from "./parse"
 
-type ApplyScenario = {
+interface ApplyScenario {
   name: string
   content: string
   patch: string
@@ -71,7 +71,8 @@ line3`,
 +replacement`,
       expected: {
         ok: false,
-        error: "patch context too short: 1 non-blank line(s). Include at least 3 non-blank context/remove lines for reliable matching.",
+        error:
+          "patch context too short: 1 non-blank line(s). Include at least 3 non-blank context/remove lines for reliable matching.",
       },
     },
     {
@@ -84,7 +85,11 @@ line3`,
         return n
 -    return fib(n-1) + fib(n-2)
 +    return fibonacci(n-1) + fibonacci(n-2)`,
-      expected: { ok: true, content: "def fibonacci(n):\n\t\tif n <= 1:\n\t\t\t\treturn n\n\t\treturn fibonacci(n-1) + fibonacci(n-2)" },
+      expected: {
+        ok: true,
+        content:
+          "def fibonacci(n):\n\t\tif n <= 1:\n\t\t\t\treturn n\n\t\treturn fibonacci(n-1) + fibonacci(n-2)",
+      },
     },
     {
       name: "appends to content when old text is empty",
@@ -136,7 +141,10 @@ appended`,
       patch: `@@
 +
 +This is a *sample* qualitative codebook for analyzing texts.`,
-      expected: { ok: true, content: "# Codebook\n\nThis is a *sample* qualitative codebook for analyzing texts." },
+      expected: {
+        ok: true,
+        content: "# Codebook\n\nThis is a *sample* qualitative codebook for analyzing texts.",
+      },
     },
     {
       name: "append json block without anchor",
@@ -146,7 +154,11 @@ appended`,
 +\`\`\`json-callout
 +{"id": "test", "type": "codebook-code"}
 +\`\`\``,
-      expected: { ok: true, content: "# Doc\n\nIntro text.\n\n```json-callout\n{\"id\": \"test\", \"type\": \"codebook-code\"}\n```" },
+      expected: {
+        ok: true,
+        content:
+          '# Doc\n\nIntro text.\n\n```json-callout\n{"id": "test", "type": "codebook-code"}\n```',
+      },
     },
     {
       name: "create file with @@ and + lines",

@@ -7,29 +7,23 @@ export type HunkPart =
   | { type: "remove"; content: string }
   | { type: "add"; content: string }
 
-export type Hunk = {
+export interface Hunk {
   parts: HunkPart[]
 }
 
-type DiffResult =
-  | { ok: true; content: string }
-  | { ok: false; error: string }
+type DiffResult = { ok: true; content: string } | { ok: false; error: string }
 
 const isHunkStart = (line: string): boolean =>
   line === "@@" || line.startsWith("@@ ") || line === "+@@" || line.startsWith("+@@ ")
 
-const isFileHeader = (line: string): boolean =>
-  line.startsWith("*** ")
+const isFileHeader = (line: string): boolean => line.startsWith("*** ")
 
-const isAddLine = (line: string): boolean =>
-  line.startsWith("+")
+const isAddLine = (line: string): boolean => line.startsWith("+")
 
 const stripAddPrefix = (line: string): string =>
   line.startsWith("++") ? line.slice(2) : line.slice(1)
 
-const isRemoveLine = (line: string): boolean =>
-  line.startsWith("-")
-
+const isRemoveLine = (line: string): boolean => line.startsWith("-")
 
 const stripTrailingSplitArtifact = (lines: string[]): string[] =>
   lines.length > 0 && lines[lines.length - 1] === "" ? lines.slice(0, -1) : lines

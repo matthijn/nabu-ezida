@@ -3,7 +3,12 @@ import { z } from "zod"
 const CreateFileOp = z.object({
   type: z.literal("create_file").describe("Create a new file"),
   path: z.string().min(1).describe("Path of the file to create"),
-  diff: z.string().min(1).describe("Content to write (unified diff format or raw content prefixed with '*** Add File:')"),
+  diff: z
+    .string()
+    .min(1)
+    .describe(
+      "Content to write (unified diff format or raw content prefixed with '*** Add File:')"
+    ),
 })
 
 const UpdateFileOp = z.object({
@@ -23,7 +28,12 @@ const RenameFileOp = z.object({
   newPath: z.string().min(1).describe("New path for the file"),
 })
 
-const OperationSchema = z.discriminatedUnion("type", [CreateFileOp, UpdateFileOp, DeleteFileOp, RenameFileOp])
+const OperationSchema = z.discriminatedUnion("type", [
+  CreateFileOp,
+  UpdateFileOp,
+  DeleteFileOp,
+  RenameFileOp,
+])
 
 const PatchArgs = z.object({
   operation: OperationSchema.describe("The file operation to perform"),

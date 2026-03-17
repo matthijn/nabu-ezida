@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { getProjects, type ProjectSummary } from "~/lib/api"
 
-type UseProjectsResult = {
+interface UseProjectsResult {
   projects: ProjectSummary[]
   loading: boolean
   error: Error | null

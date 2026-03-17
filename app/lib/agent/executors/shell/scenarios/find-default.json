@@ -5,9 +5,7 @@
     "other.txt": ""
   },
   "args": {
-    "commands": [
-      "find"
-    ]
+    "commands": ["find"]
   },
   "expected": {
     "status": "ok",

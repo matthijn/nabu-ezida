@@ -11,15 +11,23 @@ type Operation =
   | { type: "print" }
   | { type: "delete" }
 
-type SedExpr = { address: Address; op: Operation }
+interface SedExpr {
+  address: Address
+  op: Operation
+}
 
 const matchesAddress = (addr: Address, lineNum: number, line: string): boolean => {
   switch (addr.type) {
-    case "all": return true
-    case "line": return lineNum === addr.n
-    case "range": return lineNum >= addr.start && lineNum <= addr.end
-    case "regex": return addr.pattern.test(line)
-    default: throw new Error(`unknown address type: ${(addr as Address).type}`)
+    case "all":
+      return true
+    case "line":
+      return lineNum === addr.n
+    case "range":
+      return lineNum >= addr.start && lineNum <= addr.end
+    case "regex":
+      return addr.pattern.test(line)
+    default:
+      throw new Error(`unknown address type: ${(addr as Address).type}`)
   }
 }
 
@@ -27,7 +35,11 @@ const parseAddress = (expr: string): { address: Address; rest: string } | null =
   const rangeMatch = expr.match(/^(\d+),(\d+)/)
   if (rangeMatch) {
     return {
-      address: { type: "range", start: parseInt(rangeMatch[1], 10), end: parseInt(rangeMatch[2], 10) },
+      address: {
+        type: "range",
+        start: parseInt(rangeMatch[1], 10),
+        end: parseInt(rangeMatch[2], 10),
+      },
       rest: expr.slice(rangeMatch[0].length),
     }
   }
@@ -134,14 +146,16 @@ export const sed = command({
 
     const parsed = parseExpr(expr)
     if (!parsed) {
-      return err("sed: unsupported expression. Use '[addr]s/pat/repl/[g]', '[addr]d', or '-n [addr]p'. Addr: N, N,M, or /regex/")
+      return err(
+        "sed: unsupported expression. Use '[addr]s/pat/repl/[g]', '[addr]d', or '-n [addr]p'. Addr: N, N,M, or /regex/"
+      )
     }
 
     const filename = normalizePath(args[1])
     if (filename && !files.has(filename)) {
       return err(`sed: ${filename}: No such file`)
     }
-    const content = filename ? files.get(filename)! : stdin
+    const content = filename ? (files.get(filename) ?? "") : stdin
     const lines = content.split("\n")
     const suppress = flags.has("-n")
 

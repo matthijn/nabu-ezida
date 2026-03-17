@@ -19,14 +19,11 @@ const parseTextPart = (textPart: string): Spotlight | null => {
   return { type: "single", text: textPart }
 }
 
-const isAnnotationRef = (path: string): boolean =>
-  path.startsWith(ANNOTATION_PREFIX)
+const isAnnotationRef = (path: string): boolean => path.startsWith(ANNOTATION_PREFIX)
 
-const isCalloutRef = (path: string): boolean =>
-  path.startsWith(CALLOUT_PREFIX)
+const isCalloutRef = (path: string): boolean => path.startsWith(CALLOUT_PREFIX)
 
-const isTagRef = (path: string): boolean =>
-  path.startsWith(TAG_PREFIX)
+const isTagRef = (path: string): boolean => path.startsWith(TAG_PREFIX)
 
 const parseTextRef = (path: string): EntityRef => {
   const slashIndex = path.indexOf("/")

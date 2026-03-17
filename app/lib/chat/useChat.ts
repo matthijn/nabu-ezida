@@ -1,66 +1,57 @@
 import { useSyncExternalStore, useCallback } from "react"
 import type { Block, SystemBlock } from "~/lib/agent"
-import { getAllBlocksWithDraft, getDraft, subscribeBlocks, pushBlocks, subscribeLoading, getLoading } from "~/lib/agent/block-store"
-import { getChat, subscribe, type ChatState } from "./store"
+import {
+  getAllBlocksWithDraft,
+  getDraft,
+  subscribeBlocks,
+  pushBlocks,
+  subscribeLoading,
+  getLoading,
+} from "~/lib/agent/block-store"
+import { getChat, subscribe } from "./store"
 import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
 import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
 
-type UseChatResult = {
-  chat: ChatState | null
-  send: (content: string, deps?: RunnerDeps) => void
-  respond: (content: string) => void
-  run: (deps?: RunnerDeps) => void
-  cancel: () => void
-  loading: boolean
-  draft: Block | null
-  history: Block[]
-}
-
 export const useChat = () => {
   const chat = useSyncExternalStore(subscribe, getChat)
-  const history = useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
+  const history = useSyncExternalStore(
+    subscribeBlocks,
+    getAllBlocksWithDraft,
+    getAllBlocksWithDraft
+  )
   const draft = useSyncExternalStore(subscribeBlocks, getDraft, getDraft)
   const loading = useSyncExternalStore(subscribeLoading, getLoading, getLoading)
 
-  const send = useCallback(
-    (content: string, deps?: RunnerDeps) => {
-      const current = getChat()
-      if (!current) return
+  const send = useCallback((content: string, deps?: RunnerDeps) => {
+    const current = getChat()
+    if (!current) return
 
-      const userBlock: Block = { type: "user", content }
-      const blocksToAdd: Block[] = []
+    const userBlock: Block = { type: "user", content }
+    const blocksToAdd: Block[] = []
 
-      const ctx = getEditorContext()
-      if (ctx) {
-        const formatted = contextToMessage(ctx)
-        const lastSent = findLastContextMessage(getAllBlocksWithDraft())
-        if (formatted !== lastSent) {
-          const contextBlock: SystemBlock = { type: "system", content: formatted }
-          blocksToAdd.push(contextBlock)
-        }
+    const ctx = getEditorContext()
+    if (ctx) {
+      const formatted = contextToMessage(ctx)
+      const lastSent = findLastContextMessage(getAllBlocksWithDraft())
+      if (formatted !== lastSent) {
+        const contextBlock: SystemBlock = { type: "system", content: formatted }
+        blocksToAdd.push(contextBlock)
       }
+    }
 
-      blocksToAdd.push(userBlock)
-      pushBlocks(blocksToAdd)
-      run(deps)
-    },
-    []
-  )
+    blocksToAdd.push(userBlock)
+    pushBlocks(blocksToAdd)
+    run(deps)
+  }, [])
 
-  const runChat = useCallback(
-    (deps?: RunnerDeps) => {
-      run(deps)
-    },
-    []
-  )
+  const runChat = useCallback((deps?: RunnerDeps) => {
+    run(deps)
+  }, [])
 
-  const respond = useCallback(
-    (content: string) => {
-      const userBlock: Block = { type: "user", content }
-      pushBlocks([userBlock])
-    },
-    []
-  )
+  const respond = useCallback((content: string) => {
+    const userBlock: Block = { type: "user", content }
+    pushBlocks([userBlock])
+  }, [])
 
   const cancel = useCallback(() => {
     cancelRunner()

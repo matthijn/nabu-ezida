@@ -1,14 +1,14 @@
-import { z } from "zod"
+import type { z } from "zod"
 import type { Block, ToolCall, ToolResultBlock } from "./types"
 import type { ParseCallbacks, ResponseFormat } from "./stream"
-import { callLlm, blocksToMessages, toResponseFormat, extractText } from "./stream"
+import { callLlm, blocksToMessages } from "./stream"
 import { pushBlocks } from "./block-store"
 import { executeTool, type ToolExecutor } from "./turn"
 import { formatZodError, type ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/domain/blocks/registry"
 import { isToolCallBlock } from "./derived"
 
-type CallerConfig = {
+interface CallerConfig {
   endpoint: string
   tools?: ToolDefinition[]
   toolSchemas?: Record<string, z.ZodType>
@@ -23,11 +23,9 @@ type CallerConfig = {
 
 type Caller = (signal?: AbortSignal) => Promise<Block[]>
 
-type TypedCaller<T> = (signal?: AbortSignal) => Promise<{ result: T } | { error: string }>
-
 const executeToolCalls = async (
   calls: ToolCall[],
-  execute: ToolExecutor,
+  execute: ToolExecutor
 ): Promise<ToolResultBlock[]> => {
   const results: ToolResultBlock[] = []
   for (const call of calls) {
@@ -53,12 +51,17 @@ const toValidationError = (call: ToolCall, message: string): ToolResultBlock => 
   result: { status: "error", output: `Invalid arguments: ${message}` },
 })
 
-type PartitionedCalls = { valid: ToolCall[]; errors: ToolResultBlock[] }
+interface PartitionedCalls {
+  valid: ToolCall[]
+  errors: ToolResultBlock[]
+}
 
-const cleanCall = (call: ToolCall): ToolCall =>
-  ({ ...call, args: stripNullArgs(call.args) })
+const cleanCall = (call: ToolCall): ToolCall => ({ ...call, args: stripNullArgs(call.args) })
 
-const partitionCalls = (calls: ToolCall[], schemas: Record<string, z.ZodType>): PartitionedCalls => {
+const partitionCalls = (
+  calls: ToolCall[],
+  schemas: Record<string, z.ZodType>
+): PartitionedCalls => {
   const cleaned = calls.map(cleanCall)
   const tagged = cleaned.map((call) => ({ call, error: validateCallArgs(call, schemas) }))
   return {
@@ -69,9 +72,15 @@ const partitionCalls = (calls: ToolCall[], schemas: Record<string, z.ZodType>): 
   }
 }
 
-type ValidatedBlocks = { committed: Block[]; validCalls: ToolCall[] }
+interface ValidatedBlocks {
+  committed: Block[]
+  validCalls: ToolCall[]
+}
 
-const validateAndInterleave = (blocks: Block[], schemas: Record<string, z.ZodType>): ValidatedBlocks => {
+const validateAndInterleave = (
+  blocks: Block[],
+  schemas: Record<string, z.ZodType>
+): ValidatedBlocks => {
   const partitions = blocks.map((block) =>
     isToolCallBlock(block)
       ? { block, ...partitionCalls(block.calls, schemas) }
@@ -83,7 +92,8 @@ const validateAndInterleave = (blocks: Block[], schemas: Record<string, z.ZodTyp
   }
 }
 
-export const buildCaller = (config: CallerConfig): Caller =>
+export const buildCaller =
+  (config: CallerConfig): Caller =>
   async (signal) => {
     const history = config.readBlocks()
     const raw = await callLlm({
@@ -112,23 +122,3 @@ export const buildCaller = (config: CallerConfig): Caller =>
 
     return [...blocks, ...validationErrors]
   }
-
-const withSchema = <T>(caller: Caller, schema: z.ZodType<T>): TypedCaller<T> =>
-  async (signal) => {
-    const newBlocks = await caller(signal)
-    const text = extractText(newBlocks)
-    try {
-      const parsed = JSON.parse(text)
-      const result = schema.safeParse(parsed)
-      if (!result.success) return { error: `Schema validation failed: ${result.error.message}` }
-      return { result: result.data }
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : String(e) }
-    }
-  }
-
-const buildTypedCaller = <T>(config: CallerConfig, schema: z.ZodType<T>): TypedCaller<T> =>
-  withSchema(
-    buildCaller({ ...config, responseFormat: config.responseFormat ?? toResponseFormat(schema) }),
-    schema
-  )

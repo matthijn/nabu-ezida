@@ -3,9 +3,7 @@
     "f.txt": "aaa\nbbb\nccc\nddd"
   },
   "args": {
-    "commands": [
-      "cat f.txt | sed '2,3s/b/X/g'"
-    ]
+    "commands": ["cat f.txt | sed '2,3s/b/X/g'"]
   },
   "expected": {
     "status": "ok",

@@ -3,9 +3,7 @@
     "doc.txt": "Hello World\nhello there\nHELLO LOUD"
   },
   "args": {
-    "commands": [
-      "grep -S hello doc.txt"
-    ]
+    "commands": ["grep -S hello doc.txt"]
   },
   "expected": {
     "status": "ok",

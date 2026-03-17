@@ -8,7 +8,7 @@ import { boldMissingFile } from "~/lib/files/filename"
 
 const allowFileProtocol = (url: string) => url
 
-type InlineMarkdownProps = {
+interface InlineMarkdownProps {
   children: string
   files: Record<string, string>
   projectId: string | null
@@ -17,7 +17,14 @@ type InlineMarkdownProps = {
   navigate?: (url: string) => void
 }
 
-export const InlineMarkdown = ({ children, files, projectId, currentFile, currentFileContent, navigate }: InlineMarkdownProps) => (
+export const InlineMarkdown = ({
+  children,
+  files,
+  projectId,
+  currentFile,
+  currentFileContent,
+  navigate,
+}: InlineMarkdownProps) => (
   <Markdown
     components={{
       ...createEntityLinkComponents({ files, projectId, navigate }),
@@ -25,6 +32,10 @@ export const InlineMarkdown = ({ children, files, projectId, currentFile, curren
     }}
     urlTransform={allowFileProtocol}
   >
-    {linkifyEntityIds(linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent), (id) => resolveEntityName(files, id), boldMissingFile)}
+    {linkifyEntityIds(
+      linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
+      (id) => resolveEntityName(files, id),
+      boldMissingFile
+    )}
   </Markdown>
 )

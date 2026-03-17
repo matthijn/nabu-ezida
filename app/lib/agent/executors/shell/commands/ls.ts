@@ -21,10 +21,14 @@ export const ls = command({
     }
 
     if (flags.has("-l")) {
-      return ok(names.map((name) => {
-        const size = files.get(name)?.length ?? 0
-        return `${String(size).padStart(8)}  ${name}`
-      }).join("\n"))
+      return ok(
+        names
+          .map((name) => {
+            const size = files.get(name)?.length ?? 0
+            return `${String(size).padStart(8)}  ${name}`
+          })
+          .join("\n")
+      )
     }
 
     return ok(names.join("\n"))

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { validateMarkdownBlocks, extractProse, type ValidateOptions } from "./validate"
+import { validateMarkdownBlocks, extractProse } from "./validate"
 
 describe("extractProse", () => {
   const cases = [
@@ -117,17 +117,20 @@ CATS are great.
       },
     ]
 
-    it.each(cases)("$name", ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
-      const result = validateMarkdownBlocks(markdown, { context })
-      expect(result.valid).toBe(expectValid)
-      if (!expectValid && expectErrorContains) {
-        expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+    it.each(cases)(
+      "$name",
+      ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
+        const result = validateMarkdownBlocks(markdown, { context })
+        expect(result.valid).toBe(expectValid)
+        if (!expectValid && expectErrorContains) {
+          expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+        }
+        if (expectHint) {
+          const errorWithHint = result.errors.find((e) => e.hint)
+          expect(errorWithHint?.hint).toEqual(expectHint)
+        }
       }
-      if (expectHint) {
-        const errorWithHint = result.errors.find((e) => e.hint)
-        expect(errorWithHint?.hint).toEqual(expectHint)
-      }
-    })
+    )
   })
 
   describe("tag validation", () => {
@@ -166,17 +169,20 @@ CATS are great.
       },
     ]
 
-    it.each(cases)("$name", ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
-      const result = validateMarkdownBlocks(markdown, { context })
-      expect(result.valid).toBe(expectValid)
-      if (!expectValid && expectErrorContains) {
-        expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+    it.each(cases)(
+      "$name",
+      ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
+        const result = validateMarkdownBlocks(markdown, { context })
+        expect(result.valid).toBe(expectValid)
+        if (!expectValid && expectErrorContains) {
+          expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+        }
+        if (expectHint) {
+          const errorWithHint = result.errors.find((e) => e.hint)
+          expect(errorWithHint?.hint).toEqual(expectHint)
+        }
       }
-      if (expectHint) {
-        const errorWithHint = result.errors.find((e) => e.hint)
-        expect(errorWithHint?.hint).toEqual(expectHint)
-      }
-    })
+    )
   })
 
   describe("currentBlock in errors", () => {
@@ -206,8 +212,10 @@ CATS are great.
     })
 
     it("matches blocks by id for non-singleton blocks", () => {
-      const validCallout1 = '{"id": "first", "type": "codebook-code", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
-      const validCallout2 = '{"id": "second", "type": "codebook-code", "title": "Second", "color": "blue", "content": "desc", "collapsed": false}'
+      const validCallout1 =
+        '{"id": "first", "type": "codebook-code", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
+      const validCallout2 =
+        '{"id": "second", "type": "codebook-code", "title": "Second", "color": "blue", "content": "desc", "collapsed": false}'
       const invalidCallout = '{"id": "second", "type": "INVALID"}'
 
       const original = [
@@ -251,13 +259,7 @@ CATS are great.
         "```",
       ].join("\n")
 
-      const patched = [
-        "# Test",
-        "",
-        "```json-callout",
-        '{"type": "INVALID"}',
-        "```",
-      ].join("\n")
+      const patched = ["# Test", "", "```json-callout", '{"type": "INVALID"}', "```"].join("\n")
 
       const result = validateMarkdownBlocks(patched, { original })
 
@@ -267,8 +269,10 @@ CATS are great.
     })
 
     it("matches by id even when block order changes", () => {
-      const calloutA = '{"id": "aaa", "type": "codebook-code", "title": "AAA", "color": "red", "content": "desc", "collapsed": false}'
-      const calloutB = '{"id": "bbb", "type": "codebook-code", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
+      const calloutA =
+        '{"id": "aaa", "type": "codebook-code", "title": "AAA", "color": "red", "content": "desc", "collapsed": false}'
+      const calloutB =
+        '{"id": "bbb", "type": "codebook-code", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
       const invalidB = '{"id": "bbb", "type": "INVALID"}'
 
       // Original order: A, B
@@ -342,5 +346,4 @@ CATS are great.
       }
     })
   })
-
 })

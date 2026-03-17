@@ -1,7 +1,6 @@
 import { getApiUrl } from "../env"
-import type { DomainEvent } from "./client"
 
-export type ProjectSummary = {
+export interface ProjectSummary {
   id: string
   version: number
   healthy: boolean
@@ -10,27 +9,24 @@ export type ProjectSummary = {
   pinned: boolean
 }
 
-type PaginationQuery = {
+interface PaginationQuery {
   page?: number
   page_size?: number
 }
 
-type PaginationResult<T> = {
+interface PaginationResult<T> {
   items: T[]
   total: number
   page: number
   page_size: number
 }
 
-type QueryError = {
+interface QueryError {
   status: number
   statusText: string
 }
 
-const isQueryError = (error: unknown): error is QueryError =>
-  typeof error === "object" && error !== null && "status" in error && "statusText" in error
-
-const buildQueryString = (params: Record<string, unknown>): string => {
+const buildQueryString = (params: object): string => {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined)
   if (entries.length === 0) return ""
   return "?" + entries.map(([k, v]) => `${k}=${v}`).join("&")
@@ -58,6 +54,3 @@ export const getProjects = async (
   const results = await fetchQuery<PaginationResult<ProjectSummary>[]>(path)
   return results[0]
 }
-
-const getProjectEvents = async (projectId: string): Promise<DomainEvent[]> =>
-  fetchQuery<DomainEvent[]>(`/queries/projects/${projectId}/events`)

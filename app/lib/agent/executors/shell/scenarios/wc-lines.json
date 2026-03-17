@@ -3,9 +3,7 @@
     "f.txt": "a\nb\nc"
   },
   "args": {
-    "commands": [
-      "wc -l f.txt"
-    ]
+    "commands": ["wc -l f.txt"]
   },
   "expected": {
     "status": "ok",

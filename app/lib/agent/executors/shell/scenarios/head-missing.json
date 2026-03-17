@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "head missing.txt"
-    ]
+    "commands": ["head missing.txt"]
   },
   "expected": {
     "status": "partial",

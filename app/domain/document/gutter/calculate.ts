@@ -1,6 +1,6 @@
 import type { GutterMark, AnnotationMeasurement } from "./types"
 
-type Extent = {
+interface Extent {
   color: string
   top: number
   bottom: number
@@ -13,14 +13,13 @@ const measurementToExtents = (m: AnnotationMeasurement): Extent[] =>
     bottom: m.absoluteTop + m.height,
   }))
 
-type GutterSlot = {
+interface GutterSlot {
   top: number
   bottom: number
   extents: Extent[]
 }
 
-const extentsOverlap = (a: Extent, b: Extent): boolean =>
-  a.top < b.bottom && a.bottom > b.top
+const extentsOverlap = (a: Extent, b: Extent): boolean => a.top < b.bottom && a.bottom > b.top
 
 const groupIntoSlots = (extents: Extent[]): GutterSlot[] => {
   const slots: GutterSlot[] = []

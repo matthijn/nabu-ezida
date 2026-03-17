@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { normalizeFilename, toDisplayName, boldMissingFile, isProtectedFile, isHiddenFile, PREFERENCES_FILE, SETTINGS_FILE } from "./filename"
+import {
+  normalizeFilename,
+  toDisplayName,
+  boldMissingFile,
+  isProtectedFile,
+  isHiddenFile,
+  PREFERENCES_FILE,
+  SETTINGS_FILE,
+} from "./filename"
 
 describe("normalizeFilename", () => {
   const cases = [

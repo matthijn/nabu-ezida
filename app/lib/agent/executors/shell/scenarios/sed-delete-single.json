@@ -3,9 +3,7 @@
     "f.txt": "line1\nline2\nline3"
   },
   "args": {
-    "commands": [
-      "cat f.txt | sed '2d'"
-    ]
+    "commands": ["cat f.txt | sed '2d'"]
   },
   "expected": {
     "status": "ok",

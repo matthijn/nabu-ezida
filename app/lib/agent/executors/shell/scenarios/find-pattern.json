@@ -5,9 +5,7 @@
     "c.md": ""
   },
   "args": {
-    "commands": [
-      "find -name *.md"
-    ]
+    "commands": ["find -name *.md"]
   },
   "expected": {
     "status": "ok",

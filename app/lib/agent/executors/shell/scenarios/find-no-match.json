@@ -3,9 +3,7 @@
     "other.txt": ""
   },
   "args": {
-    "commands": [
-      "find -name *.md"
-    ]
+    "commands": ["find -name *.md"]
   },
   "expected": {
     "status": "ok",

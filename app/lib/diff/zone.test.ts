@@ -51,7 +51,8 @@ describe("buildLineZones", () => {
     },
     {
       name: "markdown around json block",
-      content: "# Document\n\nSome text here.\n\n```json-callout\n{\n  \"id\": \"x\"\n}\n```\n\nMore text.",
+      content:
+        '# Document\n\nSome text here.\n\n```json-callout\n{\n  "id": "x"\n}\n```\n\nMore text.',
       expected: [
         "outside",
         "outside",
@@ -69,17 +70,42 @@ describe("buildLineZones", () => {
     {
       name: "multiple json blocks",
       content: "```json-attributes\n{}\n```\n\n```json-callout\n{}\n```",
-      expected: ["structure", "structure", "outside", "outside", "structure", "structure", "outside"],
+      expected: [
+        "structure",
+        "structure",
+        "outside",
+        "outside",
+        "structure",
+        "structure",
+        "outside",
+      ],
     },
     {
       name: "prose close with trailing comma",
       content: '```json-callout\n{\n  "content": """\nHello\n""",\n  "color": "red"\n}\n```',
-      expected: ["structure", "structure", "structure", "prose", "structure", "structure", "structure", "outside"],
+      expected: [
+        "structure",
+        "structure",
+        "structure",
+        "prose",
+        "structure",
+        "structure",
+        "structure",
+        "outside",
+      ],
     },
     {
       name: "prose close bare",
       content: '```json-callout\n{\n  "content": """\nHello\n"""\n}\n```',
-      expected: ["structure", "structure", "structure", "prose", "structure", "structure", "outside"],
+      expected: [
+        "structure",
+        "structure",
+        "structure",
+        "prose",
+        "structure",
+        "structure",
+        "outside",
+      ],
     },
   ]
 

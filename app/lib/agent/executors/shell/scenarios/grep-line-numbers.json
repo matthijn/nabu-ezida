@@ -3,9 +3,7 @@
     "log.txt": "ok\nerror here\nok"
   },
   "args": {
-    "commands": [
-      "grep -n error log.txt"
-    ]
+    "commands": ["grep -n error log.txt"]
   },
   "expected": {
     "status": "ok",

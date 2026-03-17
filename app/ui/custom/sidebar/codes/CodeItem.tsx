@@ -1,13 +1,9 @@
 "use client"
 
-import {
-  solidBackground,
-  elementBackground,
-  hoveredElementBorder,
-} from "~/lib/colors/radix"
+import { solidBackground, elementBackground, hoveredElementBorder } from "~/lib/colors/radix"
 import type { Code } from "./types"
 
-type CodeItemProps = {
+interface CodeItemProps {
   code: Code
   highlighted?: boolean
   onMouseEnter?: () => void
@@ -28,10 +24,6 @@ export const CodeItem = ({ code, highlighted = false, onMouseEnter, onClick }: C
       className="flex h-2 w-2 flex-none rounded-full"
       style={{ backgroundColor: solidBackground(code.color) }}
     />
-    <span
-      className="grow shrink-0 basis-0 text-body font-body text-default-font"
-    >
-      {code.name}
-    </span>
+    <span className="grow shrink-0 basis-0 text-body font-body text-default-font">{code.name}</span>
   </div>
 )

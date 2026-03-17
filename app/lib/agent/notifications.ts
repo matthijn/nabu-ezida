@@ -2,12 +2,14 @@ import { isDebugPauseBlock, isErrorResult } from "./derived"
 import type { Block } from "./types"
 import { truncateLabel } from "~/lib/mutation-history"
 
-export type NotificationEvent = { title: string; body: string }
+export interface NotificationEvent {
+  title: string
+  body: string
+}
 
 type NotificationMapper = (block: Block, allBlocks: Block[]) => NotificationEvent | null
 
-const formatBody = (text: string): string =>
-  truncateLabel(text.replace(/\n/g, " ").trim(), 80)
+const formatBody = (text: string): string => truncateLabel(text.replace(/\n/g, " ").trim(), 80)
 
 const findToolCallArg = (blocks: Block[], callId: string, argName: string): string | null => {
   for (let i = blocks.length - 1; i >= 0; i--) {
@@ -76,8 +78,7 @@ const firstMatch = (block: Block, allBlocks: Block[]): NotificationEvent | null 
   return null
 }
 
-export const isTextEvent = (event: NotificationEvent): boolean =>
-  event.title === "Nabu"
+export const isTextEvent = (event: NotificationEvent): boolean => event.title === "Nabu"
 
 export const detectBlockEvents = (newBlocks: Block[], allBlocks: Block[]): NotificationEvent[] =>
   newBlocks.flatMap((block) => {

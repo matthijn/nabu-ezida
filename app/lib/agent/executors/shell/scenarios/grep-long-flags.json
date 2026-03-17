@@ -3,9 +3,7 @@
     "doc.txt": "Hello World\nhello there\nGOODBYE"
   },
   "args": {
-    "commands": [
-      "grep --ignore-case --count hello doc.txt"
-    ]
+    "commands": ["grep --ignore-case --count hello doc.txt"]
   },
   "expected": {
     "status": "ok",

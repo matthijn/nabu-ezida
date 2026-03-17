@@ -6,15 +6,8 @@ import { FileImportList } from "./FileImportList"
 import { useFileImport } from "~/hooks/useFileImport"
 
 export const FileImportView = () => {
-  const {
-    files,
-    hasFiles,
-    isDragging,
-    isProcessing,
-    progress,
-    dismiss,
-    dragHandlers,
-  } = useFileImport()
+  const { files, hasFiles, isDragging, isProcessing, progress, dismiss, dragHandlers } =
+    useFileImport()
 
   return (
     <div

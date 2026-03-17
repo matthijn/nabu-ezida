@@ -9,14 +9,14 @@ import { getCurrentFile } from "~/lib/files"
 import { CURRENT_USER, NABU } from "~/domain/participant"
 import { getSettings, setSetting } from "~/lib/storage"
 
-type NabuContextValue = {
+interface NabuContextValue {
   startChat: () => void
   closeChat: () => void
 }
 
 const NabuContext = createContext<NabuContextValue | null>(null)
 
-type NabuProviderProps = {
+interface NabuProviderProps {
   children: ReactNode
 }
 
@@ -50,11 +50,7 @@ export const NabuProvider = ({ children }: NabuProviderProps) => {
     setSetting("chatOpen", false)
   }, [])
 
-  return (
-    <NabuContext.Provider value={{ startChat, closeChat }}>
-      {children}
-    </NabuContext.Provider>
-  )
+  return <NabuContext.Provider value={{ startChat, closeChat }}>{children}</NabuContext.Provider>
 }
 
 export const useNabu = (): NabuContextValue => {

@@ -7,7 +7,8 @@ const getId = (c: CalloutBlock): string => c.id
 
 const hasChanged = hasChangedExcluding<CalloutBlock>(["id", "type", "actor"])
 
-const toEntry = (path: string, ts: number) =>
+const toEntry =
+  (path: string, ts: number) =>
   (verb: HistoryVerb, c: CalloutBlock): HistoryEntry => ({
     verb,
     entityKind: "code",
@@ -19,10 +20,4 @@ const toEntry = (path: string, ts: number) =>
   })
 
 export const diffCodes: ContentDiffer = (oldRaw, newRaw, path, ts) =>
-  diffById(
-    getCodes(oldRaw),
-    getCodes(newRaw),
-    getId,
-    toEntry(path, ts),
-    hasChanged,
-  )
+  diffById(getCodes(oldRaw), getCodes(newRaw), getId, toEntry(path, ts), hasChanged)

@@ -21,6 +21,7 @@ export const SubmitPlanArgs = z.object({
 
 export const submitPlanTool: AnyTool = {
   name: "submit_plan",
-  description: "Submit the agreed plan for execution. Only call after discussing the approach with the user.",
+  description:
+    "Submit the agreed plan for execution. Only call after discussing the approach with the user.",
   schema: SubmitPlanArgs,
 }

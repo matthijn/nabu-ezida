@@ -106,12 +106,9 @@
   /* Box shadows */
   --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
   --shadow-default: 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0px 4px 12px -2px rgba(0, 0, 0, 0.08),
-    0px 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0px 10px 28px -4px rgba(0, 0, 0, 0.1),
-    0px 4px 8px -2px rgba(0, 0, 0, 0.08);
-  --shadow-overlay: 0px 10px 28px -4px rgba(0, 0, 0, 0.1),
-    0px 4px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0px 4px 12px -2px rgba(0, 0, 0, 0.08), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0px 10px 28px -4px rgba(0, 0, 0, 0.1), 0px 4px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-overlay: 0px 10px 28px -4px rgba(0, 0, 0, 0.1), 0px 4px 8px -2px rgba(0, 0, 0, 0.08);
 
   /* Border radiuses */
   --radius-sm: 2px;

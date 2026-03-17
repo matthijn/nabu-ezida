@@ -1,12 +1,23 @@
 import { describe, it, expect } from "vitest"
-import { parseCodeBlocks, findBlocksByLanguage, parseBlockJson, findSingletonBlock, findBlockById, summarizeBlocks } from "./parse"
+import {
+  parseCodeBlocks,
+  findBlocksByLanguage,
+  parseBlockJson,
+  findSingletonBlock,
+  findBlockById,
+  summarizeBlocks,
+} from "./parse"
 
 const block = (lang: string, content: string) => `\`\`\`${lang}\n${content}\n\`\`\``
 const crlfBlock = (lang: string, content: string) => `\`\`\`${lang}\r\n${content}\r\n\`\`\``
 const trailingSpaceBlock = (lang: string, content: string) => `\`\`\`${lang}  \n${content}\n\`\`\``
 
 describe("parseCodeBlocks", () => {
-  const cases: { name: string; input: string; expected: { language: string; content: string }[] }[] = [
+  const cases: {
+    name: string
+    input: string
+    expected: { language: string; content: string }[]
+  }[] = [
     {
       name: "single block with LF",
       input: block("json", '{"a":1}'),
@@ -56,7 +67,13 @@ describe("parseCodeBlocks", () => {
     {
       name: "realistic codebook callout with multiline JSON",
       input: `# Codebook\n\n\`\`\`json-callout\n{\n  "id": "callout-abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}\n\`\`\``,
-      expected: [{ language: "json-callout", content: '{\n  "id": "callout-abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}' }],
+      expected: [
+        {
+          language: "json-callout",
+          content:
+            '{\n  "id": "callout-abc",\n  "type": "codebook-code",\n  "title": "Test Code",\n  "color": "brown",\n  "collapsed": false,\n  "content": "Definition: Something.\\n\\nInclusion criteria:\\n- First\\n- Second"\n}',
+        },
+      ],
     },
   ]
 
@@ -87,9 +104,21 @@ describe("findBlocksByLanguage", () => {
 describe("parseBlockJson", () => {
   const ok = (data: unknown) => ({ ok: true, data })
 
-  const cases: { name: string; content: string; check: (r: ReturnType<typeof parseBlockJson>) => void }[] = [
-    { name: "valid JSON object", content: '{"a":1}', check: (r) => expect(r).toEqual(ok({ a: 1 })) },
-    { name: "valid JSON array", content: '[1,2,3]', check: (r) => expect(r).toEqual(ok([1, 2, 3])) },
+  const cases: {
+    name: string
+    content: string
+    check: (r: ReturnType<typeof parseBlockJson>) => void
+  }[] = [
+    {
+      name: "valid JSON object",
+      content: '{"a":1}',
+      check: (r) => expect(r).toEqual(ok({ a: 1 })),
+    },
+    {
+      name: "valid JSON array",
+      content: "[1,2,3]",
+      check: (r) => expect(r).toEqual(ok([1, 2, 3])),
+    },
     {
       name: "invalid JSON returns error and raw snippet",
       content: "not json",
@@ -124,7 +153,11 @@ describe("findSingletonBlock", () => {
 describe("findBlockById", () => {
   const multiDoc = `${block("json-callout", '{"id":"c_a","title":"Alpha"}')}\n\nProse.\n\n${block("json-callout", '{"id":"c_b","title":"Beta"}')}`
 
-  type Case = { name: string; id: string; expectedData: unknown }
+  interface Case {
+    name: string
+    id: string
+    expectedData: unknown
+  }
   const cases: Case[] = [
     { name: "finds first block by id", id: "c_a", expectedData: { id: "c_a", title: "Alpha" } },
     { name: "finds second block by id", id: "c_b", expectedData: { id: "c_b", title: "Beta" } },
@@ -144,21 +177,33 @@ describe("findBlockById", () => {
 describe("summarizeBlocks", () => {
   const multiDoc = `${block("json-callout", '{"id":"c_a","title":"Alpha"}')}\n${block("json-callout", '{"id":"c_b","title":"Beta"}')}`
 
-  type Case = { name: string; doc: string; language: string; labelKey: string | undefined; expected: { id: string; label: string | undefined }[] }
+  interface Case {
+    name: string
+    doc: string
+    language: string
+    labelKey: string | undefined
+    expected: { id: string; label: string | undefined }[]
+  }
   const cases: Case[] = [
     {
       name: "lists blocks with labels",
       doc: multiDoc,
       language: "json-callout",
       labelKey: "title",
-      expected: [{ id: "c_a", label: "Alpha" }, { id: "c_b", label: "Beta" }],
+      expected: [
+        { id: "c_a", label: "Alpha" },
+        { id: "c_b", label: "Beta" },
+      ],
     },
     {
       name: "lists blocks without labelKey",
       doc: multiDoc,
       language: "json-callout",
       labelKey: undefined,
-      expected: [{ id: "c_a", label: undefined }, { id: "c_b", label: undefined }],
+      expected: [
+        { id: "c_a", label: undefined },
+        { id: "c_b", label: undefined },
+      ],
     },
     {
       name: "empty for missing language",

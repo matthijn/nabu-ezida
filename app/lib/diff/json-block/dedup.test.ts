@@ -42,10 +42,7 @@ describe("dedupArray", () => {
     },
     {
       name: "handles nested objects",
-      input: [
-        { data: { x: 1, y: 2 } },
-        { data: { y: 2, x: 1 } },
-      ],
+      input: [{ data: { x: 1, y: 2 } }, { data: { y: 2, x: 1 } }],
       expected: [{ data: { x: 1, y: 2 } }],
     },
     {

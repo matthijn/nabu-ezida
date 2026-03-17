@@ -5,36 +5,22 @@ import type { Code } from "./types"
 
 const markdownComponents: Components = {
   h1: ({ children }) => (
-    <span className="text-body-bold font-body-bold text-default-font block mt-2">
-      {children}
-    </span>
+    <span className="text-body-bold font-body-bold text-default-font block mt-2">{children}</span>
   ),
   h2: ({ children }) => (
-    <span className="text-body-bold font-body-bold text-default-font block mt-2">
-      {children}
-    </span>
+    <span className="text-body-bold font-body-bold text-default-font block mt-2">{children}</span>
   ),
   h3: ({ children }) => (
-    <span className="text-body-bold font-body-bold text-default-font block mt-2">
-      {children}
-    </span>
+    <span className="text-body-bold font-body-bold text-default-font block mt-2">{children}</span>
   ),
   p: ({ children }) => (
-    <span className="text-body font-body text-default-font block">
-      {children}
-    </span>
+    <span className="text-body font-body text-default-font block">{children}</span>
   ),
-  ul: ({ children }) => (
-    <ul className="flex flex-col gap-1 pl-2">{children}</ul>
-  ),
-  li: ({ children }) => (
-    <li className="text-body font-body text-subtext-color">
-      {children}
-    </li>
-  ),
+  ul: ({ children }) => <ul className="flex flex-col gap-1 pl-2">{children}</ul>,
+  li: ({ children }) => <li className="text-body font-body text-subtext-color">{children}</li>,
 }
 
-type CodeDetailProps = {
+interface CodeDetailProps {
   code: Code
 }
 

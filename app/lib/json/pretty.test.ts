@@ -7,7 +7,7 @@ import { toExtraPretty, fromExtraPretty, PrettyJsonError } from "./pretty"
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const scenariosDir = join(__dirname, "scenarios")
 
-type Scenario = {
+interface Scenario {
   name: string
   storage: string
   pretty: string

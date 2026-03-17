@@ -3,9 +3,7 @@
     "f.txt": "a\nb\nc\nd\ne"
   },
   "args": {
-    "commands": [
-      "cat -o 3 f.txt"
-    ]
+    "commands": ["cat -o 3 f.txt"]
   },
   "expected": {
     "status": "ok",

@@ -4,7 +4,9 @@ import type { AskScope } from "~/lib/chat/messages"
 
 let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)
-export const resetCallIdCounter = (): void => { callIdCounter = 0 }
+export const resetCallIdCounter = (): void => {
+  callIdCounter = 0
+}
 
 type StepInput = string | StepDefObject | { nested: (string | StepDefObject)[] }
 
@@ -58,21 +60,34 @@ export const cancelCall = (reason = "Stopping", need?: string): Block[] => {
 
 export const submitPlanCallPending = (task: string, steps: StepInput[]): Block[] => {
   const id = nextCallId()
-  return [{
-    type: "tool_call",
-    calls: [{ id, name: "submit_plan", args: { task, steps: steps.map(toStepDef) } }],
-  }]
+  return [
+    {
+      type: "tool_call",
+      calls: [{ id, name: "submit_plan", args: { task, steps: steps.map(toStepDef) } }],
+    },
+  ]
 }
 
-export const askCallPending = (question: string, options: string[], scope: AskScope = "local"): Block[] => {
+export const askCallPending = (
+  question: string,
+  options: string[],
+  scope: AskScope = "local"
+): Block[] => {
   const id = nextCallId()
-  return [{
-    type: "tool_call",
-    calls: [{ id, name: "ask", args: { question, options, scope } }],
-  }]
+  return [
+    {
+      type: "tool_call",
+      calls: [{ id, name: "ask", args: { question, options, scope } }],
+    },
+  ]
 }
 
-export const askCall = (question: string, options: string[], answer: string, scope: AskScope = "local"): Block[] => {
+export const askCall = (
+  question: string,
+  options: string[],
+  answer: string,
+  scope: AskScope = "local"
+): Block[] => {
   const id = nextCallId()
   return [
     { type: "tool_call", calls: [{ id, name: "ask", args: { question, options, scope } }] },
@@ -97,12 +112,20 @@ export const userBlock = (content: string): Block => ({
   content,
 })
 
-export const toolCallBlock = (name: string, id = "1", args: Record<string, unknown> = {}): Block => ({
+export const toolCallBlock = (
+  name: string,
+  id = "1",
+  args: Record<string, unknown> = {}
+): Block => ({
   type: "tool_call",
   calls: [{ id, name, args }],
 })
 
-export const terminalResult = (toolName: string, callId: string, result: unknown = { status: "ok", output: {} }): Block => ({
+export const terminalResult = (
+  toolName: string,
+  callId: string,
+  result: unknown = { status: "ok", output: {} }
+): Block => ({
   type: "tool_result",
   callId,
   toolName,

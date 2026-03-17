@@ -7,7 +7,8 @@ const getId = (a: StoredAnnotation): string => a.id ?? ""
 
 const hasChanged = hasChangedExcluding<StoredAnnotation>(["id", "actor"])
 
-const toEntry = (path: string, ts: number) =>
+const toEntry =
+  (path: string, ts: number) =>
   (verb: HistoryVerb, a: StoredAnnotation): HistoryEntry => ({
     verb,
     entityKind: "annotation",
@@ -24,5 +25,5 @@ export const diffAnnotations: ContentDiffer = (oldRaw, newRaw, path, ts) =>
     getStoredAnnotations(newRaw).filter((a) => a.id),
     getId,
     toEntry(path, ts),
-    hasChanged,
+    hasChanged
   )

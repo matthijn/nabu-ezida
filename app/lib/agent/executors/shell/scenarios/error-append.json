@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo foo >> file.txt"
-    ]
+    "commands": ["echo foo >> file.txt"]
   },
   "expected": {
     "status": "partial",

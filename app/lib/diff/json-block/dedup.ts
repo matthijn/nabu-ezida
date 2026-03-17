@@ -11,8 +11,7 @@ const sortKeys = (value: unknown): unknown => {
   return value
 }
 
-const stableStringify = (value: unknown): string =>
-  JSON.stringify(sortKeys(value))
+const stableStringify = (value: unknown): string => JSON.stringify(sortKeys(value))
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value)
@@ -30,9 +29,7 @@ export const dedupArray = <T>(arr: T[]): T[] => {
 export const dedupArraysIn = (value: unknown): unknown => {
   if (Array.isArray(value)) return dedupArray(value.map(dedupArraysIn))
   if (isPlainObject(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, dedupArraysIn(v)])
-    )
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, dedupArraysIn(v)]))
   }
   return value
 }

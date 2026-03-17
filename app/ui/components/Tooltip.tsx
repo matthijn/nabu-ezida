@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
-import { cn } from "~/ui/utils";
+import type { ReactNode } from "react"
+import { cn } from "~/ui/utils"
 
-type TooltipProps = {
-  children?: ReactNode;
-  className?: string;
-};
+interface TooltipProps {
+  children?: ReactNode
+  className?: string
+}
 
 export const Tooltip = ({ children, className }: TooltipProps) => (
   <div
@@ -15,10 +15,6 @@ export const Tooltip = ({ children, className }: TooltipProps) => (
       className
     )}
   >
-    {children ? (
-      <span className="text-caption font-caption text-white">
-        {children}
-      </span>
-    ) : null}
+    {children ? <span className="text-caption font-caption text-white">{children}</span> : null}
   </div>
-);
+)

@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "wc missing.txt"
-    ]
+    "commands": ["wc missing.txt"]
   },
   "expected": {
     "status": "partial",

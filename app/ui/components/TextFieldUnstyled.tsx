@@ -1,10 +1,20 @@
-"use client";
+"use client"
 
-import { forwardRef, useCallback, useLayoutEffect, type InputHTMLAttributes, type TextareaHTMLAttributes, type HTMLAttributes, type ReactNode, type ChangeEvent } from "react";
-import { cn } from "~/ui/utils";
+import {
+  forwardRef,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
+  type ChangeEvent,
+} from "react"
+import { cn } from "~/ui/utils"
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  className?: string;
+  className?: string
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
@@ -20,8 +30,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ref={ref}
       {...otherProps}
     />
-  );
-});
+  )
+})
 
 const LINE_HEIGHT = 20
 const MAX_LINES = 4
@@ -33,28 +43,41 @@ const calcHeight = (el: HTMLTextAreaElement): number => {
 }
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  className?: string;
+  className?: string
+}
+
+const assignRef = <T,>(ref: React.ForwardedRef<T>, value: T | null): void => {
+  if (typeof ref === "function") ref(value)
+  else if (ref) (ref as React.MutableRefObject<T | null>).current = value
 }
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
   { className, onChange, value, ...otherProps }: TextareaProps,
-  ref
+  forwardedRef
 ) {
-  const internalRef = useCallback((el: HTMLTextAreaElement | null) => {
-    if (el) el.style.height = `${calcHeight(el)}px`
-    if (typeof ref === "function") ref(el)
-    else if (ref) ref.current = el
-  }, [ref])
+  const localRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const internalRef = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      localRef.current = el
+      if (el) el.style.height = `${calcHeight(el)}px`
+      assignRef(forwardedRef, el)
+    },
+    [forwardedRef]
+  )
 
   useLayoutEffect(() => {
-    const el = typeof ref === "object" && ref?.current ? ref.current : null
+    const el = localRef.current
     if (el) el.style.height = `${calcHeight(el)}px`
-  }, [value, ref])
+  }, [value])
 
-  const handleChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-    e.target.style.height = `${calcHeight(e.target)}px`
-    onChange?.(e)
-  }, [onChange])
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      e.target.style.height = `${calcHeight(e.target)}px`
+      onChange?.(e)
+    },
+    [onChange]
+  )
 
   return (
     <textarea
@@ -68,12 +91,12 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
       onChange={handleChange}
       {...otherProps}
     />
-  );
-});
+  )
+})
 
 interface TextFieldUnstyledRootProps extends HTMLAttributes<HTMLDivElement> {
-  children?: ReactNode;
-  className?: string;
+  children?: ReactNode
+  className?: string
 }
 
 const TextFieldUnstyledRoot = forwardRef<HTMLDivElement, TextFieldUnstyledRootProps>(
@@ -82,21 +105,14 @@ const TextFieldUnstyledRoot = forwardRef<HTMLDivElement, TextFieldUnstyledRootPr
     ref
   ) {
     return (
-      <div
-        className={cn(
-          "flex min-h-8 w-full items-center",
-          className
-        )}
-        ref={ref}
-        {...otherProps}
-      >
+      <div className={cn("flex min-h-8 w-full items-center", className)} ref={ref} {...otherProps}>
         {children}
       </div>
-    );
+    )
   }
-);
+)
 
 export const TextFieldUnstyled = Object.assign(TextFieldUnstyledRoot, {
   Input,
   Textarea,
-});
+})

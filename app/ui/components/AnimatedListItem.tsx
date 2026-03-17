@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import type { ReactNode } from "react"
 
-type AnimatedListItemProps = {
+interface AnimatedListItemProps {
   children: ReactNode
   className?: string
   layout?: boolean | "position" | "size"

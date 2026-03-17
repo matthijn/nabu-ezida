@@ -8,7 +8,12 @@ beforeEach(() => {
 describe("isSystemId", () => {
   const cases = [
     { id: "callout-3k8m2n4p", prefix: "callout", expected: true, name: "valid callout ID" },
-    { id: "annotation-7abc123d", prefix: "annotation", expected: true, name: "valid annotation ID" },
+    {
+      id: "annotation-7abc123d",
+      prefix: "annotation",
+      expected: true,
+      name: "valid annotation ID",
+    },
     { id: "code_fiscal-reporting", prefix: "callout", expected: false, name: "wrong prefix" },
     { id: "callout-my-custom-id", prefix: "callout", expected: false, name: "hyphens in suffix" },
     { id: "callout-abc", prefix: "callout", expected: false, name: "suffix too short" },
@@ -16,7 +21,12 @@ describe("isSystemId", () => {
     { id: "", prefix: "callout", expected: false, name: "empty string" },
     { id: "tag-transcript", prefix: "tag", expected: false, name: "pure-alpha slug" },
     { id: "tag-codebook", prefix: "tag", expected: false, name: "pure-alpha word" },
-    { id: "annotation-abcdefgh", prefix: "annotation", expected: false, name: "all letters no digits" },
+    {
+      id: "annotation-abcdefgh",
+      prefix: "annotation",
+      expected: false,
+      name: "all letters no digits",
+    },
   ]
 
   cases.forEach(({ id, prefix, expected, name }) => {
@@ -217,8 +227,9 @@ describe("fillMissingIds", () => {
         const result = fillMissingIds(input, original)
 
         if (expectNormalized) {
+          if (!expectedPrefix) throw new Error("expected expectedPrefix")
           expect(result.generated).toHaveLength(1)
-          expect(result.generated[0].id).toMatch(expectedPrefix!)
+          expect(result.generated[0].id).toMatch(expectedPrefix)
           expect(result.generated[0].source).toBe(expectedSource)
           expect(result.content).toContain(result.generated[0].id)
           expect(result.content).not.toContain(expectedSource)

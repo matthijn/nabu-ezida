@@ -17,6 +17,11 @@ export const find = command({
     const pattern = flagValues["-name"] || flagValues["-iname"] || "*"
     const nocase = Boolean(flagValues["-iname"])
 
-    return ok([...files.keys()].filter((k) => minimatch(k, pattern, { nocase })).sort().join("\n"))
+    return ok(
+      [...files.keys()]
+        .filter((k) => minimatch(k, pattern, { nocase }))
+        .sort()
+        .join("\n")
+    )
   },
 })

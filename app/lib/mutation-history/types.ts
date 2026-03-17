@@ -1,6 +1,6 @@
 export type HistoryVerb = "added" | "removed" | "updated" | "created" | "deleted" | "renamed"
 
-export type HistoryEntry = {
+export interface HistoryEntry {
   verb: HistoryVerb
   entityKind: string
   entityId: string | null
@@ -11,4 +11,9 @@ export type HistoryEntry = {
   newPath?: string
 }
 
-export type ContentDiffer = (oldRaw: string, newRaw: string, path: string, ts: number) => HistoryEntry[]
+export type ContentDiffer = (
+  oldRaw: string,
+  newRaw: string,
+  path: string,
+  ts: number
+) => HistoryEntry[]

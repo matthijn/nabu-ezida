@@ -32,9 +32,9 @@ export const cut = command({
       const positions = parsePositions(charSpec)
       if (!positions) return err(`cut: invalid character spec: ${charSpec}`)
 
-      const lines = stdin.split("\n").map((line) =>
-        positions.map((p) => line[p - 1] ?? "").join("")
-      )
+      const lines = stdin
+        .split("\n")
+        .map((line) => positions.map((p) => line[p - 1] ?? "").join(""))
       return ok(lines.join("\n"))
     }
 

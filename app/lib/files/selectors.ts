@@ -8,7 +8,7 @@ import type { CalloutBlock } from "~/domain/blocks/callout/schema"
 import { createCappedCache } from "~/lib/utils"
 import { SETTINGS_FILE, toDisplayName } from "./filename"
 
-type BlockTypeMap = {
+interface BlockTypeMap {
   "json-attributes": DocumentMeta
   "json-settings": Settings
   "json-callout": CalloutBlock
@@ -16,14 +16,24 @@ type BlockTypeMap = {
 
 type BlockLanguage = keyof BlockTypeMap
 
-type Code = { id: string; name: string; color: string; detail: string }
-type CodeGroup = { fileId: string; name: string; codes: Code[] }
-export type Codebook = { categories: CodeGroup[] }
+interface Code {
+  id: string
+  name: string
+  color: string
+  detail: string
+}
+interface CodeGroup {
+  fileId: string
+  name: string
+  codes: Code[]
+}
+export interface Codebook {
+  categories: CodeGroup[]
+}
 
 const cache = createCappedCache<string, unknown>(100)
 
-const cacheKey = (language: string, content: string): string =>
-  `${language}:${content}`
+const cacheKey = (language: string, content: string): string => `${language}:${content}`
 
 const parseWithCache = <T>(language: string, content: string, schema: z.ZodType<T>): T | null => {
   const key = cacheKey(language, content)
@@ -57,24 +67,22 @@ const getBlocks = <K extends BlockLanguage>(raw: string, language: K): BlockType
   if (!config) return []
 
   return findBlocksByLanguage(raw, language)
-    .map((block) => parseWithCache(language, block.content, config.schema) as BlockTypeMap[K] | null)
+    .map(
+      (block) => parseWithCache(language, block.content, config.schema) as BlockTypeMap[K] | null
+    )
     .filter((b): b is BlockTypeMap[K] => b !== null)
 }
 
-const getAttributes = (raw: string): DocumentMeta | null =>
-  getBlock(raw, "json-attributes")
+const getAttributes = (raw: string): DocumentMeta | null => getBlock(raw, "json-attributes")
 
-export const getTags = (raw: string): string[] =>
-  getAttributes(raw)?.tags ?? []
+export const getTags = (raw: string): string[] => getAttributes(raw)?.tags ?? []
 
 export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
   getAttributes(raw)?.annotations ?? []
 
-export const getAnnotationCount = (raw: string): number =>
-  getStoredAnnotations(raw).length
+export const getAnnotationCount = (raw: string): number => getStoredAnnotations(raw).length
 
-const getCallouts = (raw: string): CalloutBlock[] =>
-  getBlocks(raw, "json-callout")
+const getCallouts = (raw: string): CalloutBlock[] => getBlocks(raw, "json-callout")
 
 export const getCodes = (raw: string): CalloutBlock[] =>
   getCallouts(raw).filter((c) => c.type === "codebook-code")
@@ -109,9 +117,13 @@ export const getCodebook = (files: Record<string, string>): Codebook | undefined
 
 const DEFAULT_ANNOTATION_COLOR = "gray"
 
-export const resolveAnnotationColor = (files: Record<string, string>, annotation: StoredAnnotation): string => {
+export const resolveAnnotationColor = (
+  files: Record<string, string>,
+  annotation: StoredAnnotation
+): string => {
   if (annotation.color) return annotation.color
-  if (annotation.code) return findCodeById(files, annotation.code)?.color ?? DEFAULT_ANNOTATION_COLOR
+  if (annotation.code)
+    return findCodeById(files, annotation.code)?.color ?? DEFAULT_ANNOTATION_COLOR
   return DEFAULT_ANNOTATION_COLOR
 }
 
@@ -127,33 +139,56 @@ const toAnnotation = (files: Record<string, string>, stored: StoredAnnotation): 
 export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>
   getStoredAnnotations(raw).map((a) => toAnnotation(files, a))
 
-export const findAnnotationById = (files: Record<string, string>, id: string): StoredAnnotation | undefined =>
-  Object.values(files).flatMap(getStoredAnnotations).find((a) => a.id === id)
+export const findAnnotationById = (
+  files: Record<string, string>,
+  id: string
+): StoredAnnotation | undefined =>
+  Object.values(files)
+    .flatMap(getStoredAnnotations)
+    .find((a) => a.id === id)
 
-export const findCalloutById = (files: Record<string, string>, id: string): CalloutBlock | undefined =>
-  Object.values(files).flatMap(getCallouts).find((c) => c.id === id)
+export const findCalloutById = (
+  files: Record<string, string>,
+  id: string
+): CalloutBlock | undefined =>
+  Object.values(files)
+    .flatMap(getCallouts)
+    .find((c) => c.id === id)
 
-export const findDocumentForAnnotation = (files: Record<string, string>, id: string): string | undefined =>
+export const findDocumentForAnnotation = (
+  files: Record<string, string>,
+  id: string
+): string | undefined =>
   Object.entries(files).find(([_, raw]) => getStoredAnnotations(raw).some((a) => a.id === id))?.[0]
 
-export const findDocumentForCallout = (files: Record<string, string>, id: string): string | undefined =>
+export const findDocumentForCallout = (
+  files: Record<string, string>,
+  id: string
+): string | undefined =>
   Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
 
-const getSettings = (raw: string): Settings | null =>
-  getBlock(raw, "json-settings")
+const getSettings = (raw: string): Settings | null => getBlock(raw, "json-settings")
 
 export const getTagDefinitions = (files: Record<string, string>): TagDefinition[] =>
   getSettings(files[SETTINGS_FILE] ?? "")?.tags ?? []
 
-export const findTagDefinitionById = (files: Record<string, string>, id: string): TagDefinition | undefined =>
-  getTagDefinitions(files).find((t) => t.id === id)
+export const findTagDefinitionById = (
+  files: Record<string, string>,
+  id: string
+): TagDefinition | undefined => getTagDefinitions(files).find((t) => t.id === id)
 
-export const findTagDefinitionByLabel = (files: Record<string, string>, label: string): TagDefinition | undefined =>
-  getTagDefinitions(files).find((t) => t.label === label)
+export const findTagDefinitionByLabel = (
+  files: Record<string, string>,
+  label: string
+): TagDefinition | undefined => getTagDefinitions(files).find((t) => t.label === label)
 
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
-  id.startsWith("annotation-") ? findAnnotationById(files, id)?.text ?? null
-  : id.startsWith("callout-") ? findCalloutById(files, id)?.title ?? null
-  : id.startsWith("tag-") ? findTagDefinitionById(files, id)?.display ?? null
-  : id.endsWith(".md") && id.toLowerCase() in files ? toDisplayName(id.toLowerCase())
-  : null
+  id.startsWith("annotation-")
+    ? (findAnnotationById(files, id)?.text ?? null)
+    : id.startsWith("callout-")
+      ? (findCalloutById(files, id)?.title ?? null)
+      : id.startsWith("tag-")
+        ? (findTagDefinitionById(files, id)?.display ?? null)
+        : id.endsWith(".md") && id.toLowerCase() in files
+          ? toDisplayName(id.toLowerCase())
+          : null

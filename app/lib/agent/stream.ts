@@ -1,4 +1,4 @@
-import { z } from "zod"
+import type { z } from "zod"
 import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
@@ -9,9 +9,14 @@ type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
   | { type: "function_call"; call_id: string; status: string; name: string; arguments: string }
   | { type: "function_call_output"; call_id: string; status: string; output: string }
-  | { type: "reasoning"; id: string; summary: { type: "summary_text"; text: string }[]; encrypted_content: string }
+  | {
+      type: "reasoning"
+      id: string
+      summary: { type: "summary_text"; text: string }[]
+      encrypted_content: string
+    }
 
-type ParseCallbacks = {
+interface ParseCallbacks {
   onChunk?: (text: string) => void
   onToolArgsChunk?: (text: string) => void
   onReasoningChunk?: (text: string) => void
@@ -29,7 +34,7 @@ const parseToolArgs = (args: string): Record<string, unknown> => {
   }
 }
 
-type ParseState = {
+interface ParseState {
   currentEvent: string
   textContent: string
   reasoningContent: string
@@ -58,23 +63,34 @@ const flushReasoning = (state: ParseState): ParseState =>
         reasoningContent: "",
         reasoningId: undefined,
         reasoningEncryptedContent: undefined,
-        blocks: [...state.blocks, {
-          type: "reasoning",
-          content: state.reasoningContent,
-          id: state.reasoningId,
-          encryptedContent: state.reasoningEncryptedContent,
-        }],
+        blocks: [
+          ...state.blocks,
+          {
+            type: "reasoning",
+            content: state.reasoningContent,
+            id: state.reasoningId,
+            encryptedContent: state.reasoningEncryptedContent,
+          },
+        ],
       }
     : state
 
 const flushText = (state: ParseState): ParseState =>
   state.textContent
-    ? { ...state, textContent: "", blocks: [...state.blocks, { type: "text", content: state.textContent }] }
+    ? {
+        ...state,
+        textContent: "",
+        blocks: [...state.blocks, { type: "text", content: state.textContent }],
+      }
     : state
 
 const flushToolCalls = (state: ParseState): ParseState =>
   state.pendingToolCalls.length > 0
-    ? { ...state, pendingToolCalls: [], blocks: [...state.blocks, { type: "tool_call", calls: state.pendingToolCalls }] }
+    ? {
+        ...state,
+        pendingToolCalls: [],
+        blocks: [...state.blocks, { type: "tool_call", calls: state.pendingToolCalls }],
+      }
     : state
 
 export const processLine = (
@@ -162,7 +178,7 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 
 const isRetryable = (status: number): boolean => RETRYABLE_STATUS.includes(status)
 
-type FetchOptions = {
+interface FetchOptions {
   url: string
   body: string
   signal?: AbortSignal
@@ -235,12 +251,15 @@ const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Pr
   }
   callbacks.onStreamEnd?.()
 
-  console.debug("[STREAM END]", { pendingToolCalls: state.pendingToolCalls.length, blocks: blocks.length })
+  console.debug("[STREAM END]", {
+    pendingToolCalls: state.pendingToolCalls.length,
+    blocks: blocks.length,
+  })
 
   return blocks
 }
 
-type ResponseFormat = {
+interface ResponseFormat {
   type: "json_schema"
   json_schema: {
     name: string
@@ -258,7 +277,7 @@ export const toResponseFormat = <T extends z.ZodType>(schema: T): ResponseFormat
   },
 })
 
-type CallLlmOptions = {
+interface CallLlmOptions {
   endpoint: string
   messages: InputItem[]
   tools?: ToolDefinition[]
@@ -273,9 +292,10 @@ const formatBlockSchema = (s: BlockSchemaDefinition): string => {
   if (s.immutable.length > 0) traits.push(`immutable: ${s.immutable.join(", ")}`)
   const header = `### ${s.language} (${traits.join("; ")})`
   const schema = JSON.stringify(s.jsonSchema, null, 2)
-  const constraints = s.constraints.length > 0
-    ? `\nConstraints:\n${s.constraints.map((c) => `- ${c}`).join("\n")}`
-    : ""
+  const constraints =
+    s.constraints.length > 0
+      ? `\nConstraints:\n${s.constraints.map((c) => `- ${c}`).join("\n")}`
+      : ""
   return `${header}\n${schema}${constraints}`
 }
 
@@ -356,7 +376,6 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
   return []
 }
 
-export const blocksToMessages = (blocks: Block[]): InputItem[] =>
-  blocks.flatMap(blockToInputItem)
+export const blocksToMessages = (blocks: Block[]): InputItem[] => blocks.flatMap(blockToInputItem)
 
 export type { ParseCallbacks, ResponseFormat }

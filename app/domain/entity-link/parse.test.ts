@@ -42,12 +42,20 @@ describe("parseEntityLink", () => {
     {
       name: "parses text ref with single spotlight",
       href: "file://my-document/hello%20world",
-      expected: { kind: "text", documentId: "my-document", spotlight: { type: "single", text: "hello world" } },
+      expected: {
+        kind: "text",
+        documentId: "my-document",
+        spotlight: { type: "single", text: "hello world" },
+      },
     },
     {
       name: "parses text ref with range spotlight",
       href: "file://my-document/start%20here...end%20here",
-      expected: { kind: "text", documentId: "my-document", spotlight: { type: "range", from: "start here", to: "end here" } },
+      expected: {
+        kind: "text",
+        documentId: "my-document",
+        spotlight: { type: "range", from: "start here", to: "end here" },
+      },
     },
     {
       name: "returns null spotlight for empty text part",

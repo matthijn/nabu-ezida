@@ -22,5 +22,14 @@ export const useFiles = () => {
   const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
   const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
 
-  return { files, currentFile, codebook, setCurrentFile, getFileTags, getFileLineCount: getFileLineCountFn, getFileAnnotations, tagDefinitions }
+  return {
+    files,
+    currentFile,
+    codebook,
+    setCurrentFile,
+    getFileTags,
+    getFileLineCount: getFileLineCountFn,
+    getFileAnnotations,
+    tagDefinitions,
+  }
 }

@@ -42,7 +42,10 @@ const resolveSpotlight = (doc: Node, spotlight: Spotlight): TextRange | null => 
   }
 }
 
-type NodeSpan = { nodePos: number; nodeEnd: number }
+interface NodeSpan {
+  nodePos: number
+  nodeEnd: number
+}
 
 const isCalloutCodeBlock = (node: Node): boolean => {
   const config = getBlockConfig(node.attrs.language as string)
@@ -85,7 +88,7 @@ const computeDecorations = (doc: Node, spotlight: Spotlight | null): DecorationS
   return toDecorationSet(doc, range)
 }
 
-type PluginState = {
+interface PluginState {
   spotlight: Spotlight | null
   decorations: DecorationSet
 }

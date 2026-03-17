@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo 'hello world' | cut -c1-5"
-    ]
+    "commands": ["echo 'hello world' | cut -c1-5"]
   },
   "expected": {
     "status": "ok",

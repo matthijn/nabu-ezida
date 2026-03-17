@@ -3,9 +3,7 @@
     "a.md": "hello"
   },
   "args": {
-    "commands": [
-      "ls -l"
-    ]
+    "commands": ["ls -l"]
   },
   "expected": {
     "status": "ok",

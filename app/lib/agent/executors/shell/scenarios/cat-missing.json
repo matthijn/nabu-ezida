@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "cat missing.txt"
-    ]
+    "commands": ["cat missing.txt"]
   },
   "expected": {
     "status": "partial",

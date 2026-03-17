@@ -1,9 +1,7 @@
 {
   "files": {},
   "args": {
-    "commands": [
-      "echo $(cat file.txt)"
-    ]
+    "commands": ["echo $(cat file.txt)"]
   },
   "expected": {
     "status": "partial",

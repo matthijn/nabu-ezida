@@ -2,7 +2,10 @@ import { z } from "zod"
 
 const RenameFileArgs = z.object({
   source: z.string().min(1).describe("Current path of the file"),
-  destination: z.string().min(1).describe("New path for the file. Will be lowercased with spaces converted to underscores."),
+  destination: z
+    .string()
+    .min(1)
+    .describe("New path for the file. Will be lowercased with spaces converted to underscores."),
 })
 
 export const renameFile = {

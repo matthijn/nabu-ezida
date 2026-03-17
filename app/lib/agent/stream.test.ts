@@ -3,7 +3,7 @@ import { processLine, initialParseState, blocksToMessages } from "./stream"
 import { toStrictSchema } from "./executors/tool"
 import type { Block } from "./types"
 
-type ParseCallbacks = {
+interface ParseCallbacks {
   onChunk?: (text: string) => void
   onToolArgsChunk?: (text: string) => void
   onReasoningChunk?: (text: string) => void
@@ -11,7 +11,7 @@ type ParseCallbacks = {
   onToolCall?: (call: { id: string; name: string; args: Record<string, unknown> }) => void
 }
 
-type TestContext = {
+interface TestContext {
   chunks: string[]
   toolArgsChunks: string[]
   reasoningChunks: string[]
@@ -25,7 +25,12 @@ const makeCallbacks = (ctx: TestContext): ParseCallbacks => ({
   onToolName: (name) => ctx.toolNames.push(name),
 })
 
-const emptyCtx = (): TestContext => ({ chunks: [], toolArgsChunks: [], reasoningChunks: [], toolNames: [] })
+const emptyCtx = (): TestContext => ({
+  chunks: [],
+  toolArgsChunks: [],
+  reasoningChunks: [],
+  toolNames: [],
+})
 
 const processLines = (lines: string[], callbacks: ParseCallbacks = {}) => {
   let state = initialParseState()
@@ -38,9 +43,16 @@ const processLines = (lines: string[], callbacks: ParseCallbacks = {}) => {
 const flushBlocks = (lines: string[], callbacks: ParseCallbacks = {}): Block[] => {
   const state = processLines(lines, callbacks)
   const blocks = [...state.blocks]
-  if (state.reasoningContent) blocks.push({ type: "reasoning", content: state.reasoningContent, id: state.reasoningId, encryptedContent: state.reasoningEncryptedContent })
+  if (state.reasoningContent)
+    blocks.push({
+      type: "reasoning",
+      content: state.reasoningContent,
+      id: state.reasoningId,
+      encryptedContent: state.reasoningEncryptedContent,
+    })
   if (state.textContent) blocks.push({ type: "text", content: state.textContent })
-  if (state.pendingToolCalls.length > 0) blocks.push({ type: "tool_call", calls: state.pendingToolCalls })
+  if (state.pendingToolCalls.length > 0)
+    blocks.push({ type: "tool_call", calls: state.pendingToolCalls })
   return blocks
 }
 
@@ -103,10 +115,7 @@ describe("parser", () => {
       },
       {
         name: "streams function call arguments delta",
-        lines: [
-          "event: response.function_call_arguments.delta",
-          'data: {"delta":"{\\"sql"}',
-        ],
+        lines: ["event: response.function_call_arguments.delta", 'data: {"delta":"{\\"sql"}'],
         expectedCalls: [],
         expectedToolArgsChunks: ['{"sql'],
       },
@@ -121,10 +130,7 @@ describe("parser", () => {
       },
       {
         name: "streams reasoning summary delta",
-        lines: [
-          "event: response.reasoning_summary_text.delta",
-          'data: {"delta":"Let me think"}',
-        ],
+        lines: ["event: response.reasoning_summary_text.delta", 'data: {"delta":"Let me think"}'],
         expectedCalls: [],
         expectedReasoningChunks: ["Let me think"],
       },
@@ -143,19 +149,29 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(({ name, lines, expectedCalls, expectedChunks, expectedToolArgsChunks, expectedReasoningChunks, expectedToolNames }) => {
-      it(name, () => {
-        const ctx = emptyCtx()
-        const blocks = flushBlocks(lines, makeCallbacks(ctx))
-        const toolBlock = blocks.find((b) => b.type === "tool_call")
-        const calls = toolBlock?.type === "tool_call" ? toolBlock.calls : []
-        expect(calls).toEqual(expectedCalls)
-        if (expectedChunks) expect(ctx.chunks).toEqual(expectedChunks)
-        if (expectedToolArgsChunks) expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
-        if (expectedReasoningChunks) expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
-        if (expectedToolNames) expect(ctx.toolNames).toEqual(expectedToolNames)
-      })
-    })
+    cases.forEach(
+      ({
+        name,
+        lines,
+        expectedCalls,
+        expectedChunks,
+        expectedToolArgsChunks,
+        expectedReasoningChunks,
+        expectedToolNames,
+      }) => {
+        it(name, () => {
+          const ctx = emptyCtx()
+          const blocks = flushBlocks(lines, makeCallbacks(ctx))
+          const toolBlock = blocks.find((b) => b.type === "tool_call")
+          const calls = toolBlock?.type === "tool_call" ? toolBlock.calls : []
+          expect(calls).toEqual(expectedCalls)
+          if (expectedChunks) expect(ctx.chunks).toEqual(expectedChunks)
+          if (expectedToolArgsChunks) expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
+          if (expectedReasoningChunks) expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
+          if (expectedToolNames) expect(ctx.toolNames).toEqual(expectedToolNames)
+        })
+      }
+    )
   })
 
   describe("mixed content", () => {
@@ -170,7 +186,9 @@ describe("parser", () => {
       const textBlock = blocks.find((b) => b.type === "text")
       const toolBlock = blocks.find((b) => b.type === "tool_call")
       expect(textBlock?.type === "text" ? textBlock.content : "").toBe("Let me help")
-      expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([{ id: "call_1", name: "submit_plan", args: {} }])
+      expect(toolBlock?.type === "tool_call" ? toolBlock.calls : []).toEqual([
+        { id: "call_1", name: "submit_plan", args: {} },
+      ])
     })
 
     it("captures encrypted reasoning content from output_item.done", () => {
@@ -184,7 +202,12 @@ describe("parser", () => {
       ])
 
       expect(blocks).toEqual([
-        { type: "reasoning", content: "Deep thought", id: "rs_abc", encryptedContent: "gAAAA_encrypted_blob" },
+        {
+          type: "reasoning",
+          content: "Deep thought",
+          id: "rs_abc",
+          encryptedContent: "gAAAA_encrypted_blob",
+        },
         { type: "text", content: "Result" },
       ])
     })
@@ -395,18 +418,47 @@ describe("blocksToMessages", () => {
         },
       ],
       expected: [
-        { type: "function_call", call_id: "1", status: "completed", name: "foo", arguments: '{"x":1}' },
+        {
+          type: "function_call",
+          call_id: "1",
+          status: "completed",
+          name: "foo",
+          arguments: '{"x":1}',
+        },
       ],
     },
     {
       name: "converts tool_result block to function_call_output",
-      blocks: [{ type: "tool_result" as const, callId: "1", toolName: "execute_sql", result: { ok: true } }],
-      expected: [{ type: "function_call_output", call_id: "1", status: "completed", output: '{"ok":true}' }],
+      blocks: [
+        {
+          type: "tool_result" as const,
+          callId: "1",
+          toolName: "execute_sql",
+          result: { ok: true },
+        },
+      ],
+      expected: [
+        { type: "function_call_output", call_id: "1", status: "completed", output: '{"ok":true}' },
+      ],
     },
     {
       name: "converts reasoning with encrypted content to reasoning input item",
-      blocks: [{ type: "reasoning" as const, content: "thought", id: "rs_1", encryptedContent: "gAAAA_blob" }],
-      expected: [{ type: "reasoning", id: "rs_1", summary: [{ type: "summary_text", text: "thought" }], encrypted_content: "gAAAA_blob" }],
+      blocks: [
+        {
+          type: "reasoning" as const,
+          content: "thought",
+          id: "rs_1",
+          encryptedContent: "gAAAA_blob",
+        },
+      ],
+      expected: [
+        {
+          type: "reasoning",
+          id: "rs_1",
+          summary: [{ type: "summary_text", text: "thought" }],
+          encrypted_content: "gAAAA_blob",
+        },
+      ],
     },
     {
       name: "skips reasoning without encrypted content",

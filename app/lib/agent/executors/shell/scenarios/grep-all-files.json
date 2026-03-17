@@ -4,9 +4,7 @@
     "b.txt": "no match"
   },
   "args": {
-    "commands": [
-      "grep error"
-    ]
+    "commands": ["grep error"]
   },
   "expected": {
     "status": "ok",

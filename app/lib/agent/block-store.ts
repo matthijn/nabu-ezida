@@ -1,7 +1,6 @@
 import type { Block } from "./types"
 
-export const isDraft = (block: Block): boolean =>
-  "draft" in block && block.draft === true
+export const isDraft = (block: Block): boolean => "draft" in block && block.draft === true
 
 let blocks: Block[] = []
 let listeners: (() => void)[] = []
@@ -11,15 +10,14 @@ let loadingListeners: (() => void)[] = []
 const notify = (): void => listeners.forEach((l) => l())
 const notifyLoading = (): void => loadingListeners.forEach((l) => l())
 
-const lastIsDraft = (): boolean =>
-  blocks.length > 0 && isDraft(blocks[blocks.length - 1])
+const lastIsDraft = (): boolean => blocks.length > 0 && isDraft(blocks[blocks.length - 1])
 
 const stripDraft = (bs: Block[]): Block[] =>
   bs.length > 0 && isDraft(bs[bs.length - 1]) ? bs.slice(0, -1) : bs
 
 const stamp = (block: Block, source: string): Block => ({ ...block, timestamp: Date.now(), source })
 
-export const pushBlocks = (newBlocks: Block[], source: string = "base"): void => {
+export const pushBlocks = (newBlocks: Block[], source = "base"): void => {
   blocks = [...stripDraft(blocks), ...newBlocks.map((b) => stamp(b, source))]
   notify()
 }
@@ -31,9 +29,7 @@ export const filterBySource = (blocks: Block[], source: string): Block[] =>
 
 export const setDraft = (block: Block): void => {
   const tagged = { ...stamp(block, "base"), draft: true as const }
-  blocks = lastIsDraft()
-    ? [...blocks.slice(0, -1), tagged]
-    : [...blocks, tagged]
+  blocks = lastIsDraft() ? [...blocks.slice(0, -1), tagged] : [...blocks, tagged]
   notify()
 }
 

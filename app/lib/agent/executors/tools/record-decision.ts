@@ -15,7 +15,9 @@ const executeRecordDecision = async (call: { args: unknown }): Promise<ToolResul
   const parsed = RecordDecisionArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
-  const writeResult = await agentWithChatHistory(buildInstruction(parsed.data.scope, parsed.data.summary))
+  const writeResult = await agentWithChatHistory(
+    buildInstruction(parsed.data.scope, parsed.data.summary)
+  )
   return { status: "ok", output: writeResult || "No changes written." }
 }
 

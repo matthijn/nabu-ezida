@@ -56,7 +56,11 @@ describe("pending-refs", () => {
 
   describe("hasPendingRefs", () => {
     const cases = [
-      { name: "true for content with markers", input: '"code": "#[callout-1bc12345]"', expected: true },
+      {
+        name: "true for content with markers",
+        input: '"code": "#[callout-1bc12345]"',
+        expected: true,
+      },
       { name: "false for clean content", input: '"code": "callout-1bc12345"', expected: false },
     ]
 

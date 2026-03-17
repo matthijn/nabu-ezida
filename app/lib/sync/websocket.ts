@@ -2,14 +2,14 @@ import { getWsUrl } from "../env"
 import { calculateBackoff } from "../backoff"
 import type { Command } from "./types"
 
-type WebSocketCallbacks = {
+interface WebSocketCallbacks {
   onCommand: (command: Command) => void
   onConnect?: () => void
   onDisconnect?: () => void
   onError?: (error: Event) => void
 }
 
-type WebSocketConnection = {
+interface WebSocketConnection {
   close: () => void
 }
 

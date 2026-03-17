@@ -10,7 +10,6 @@ import { Button } from "~/ui/components/Button"
 import { Badge } from "~/ui/components/Badge"
 import { matchesAny } from "~/lib/filter"
 import {
-  subtleBackground,
   elementBackground,
   solidBackground,
   lowContrastText,
@@ -21,7 +20,7 @@ import { resolveFeatherIcon } from "~/lib/icons/feather-map"
 import { humanize } from "./TagGroupHeader"
 import { DocumentItem } from "./DocumentItem"
 
-type ListItem = {
+interface ListItem {
   id: string
   title: string
   editedAt: string
@@ -29,7 +28,7 @@ type ListItem = {
   annotationCount: number
 }
 
-type DocumentsSidebarProps = {
+interface DocumentsSidebarProps {
   documents: ListItem[]
   selectedId?: string
   searchValue?: string
@@ -42,7 +41,10 @@ type DocumentsSidebarProps = {
 const DEFAULT_TAG_COLOR: RadixColor = "lime"
 const UNGROUPED = "general"
 
-type TagGroup = { tag: string; docs: ListItem[] }
+interface TagGroup {
+  tag: string
+  docs: ListItem[]
+}
 
 const groupByTag = (docs: ListItem[]): TagGroup[] => {
   const tagMap = new Map<string, ListItem[]>()
@@ -71,7 +73,11 @@ const filterGroups = (groups: TagGroup[], query: string): TagGroup[] => {
   }, [])
 }
 
-const sortGroups = (groups: TagGroup[], activeTags: Set<string>, lookup: Map<string, ResolvedTag>): TagGroup[] =>
+const sortGroups = (
+  groups: TagGroup[],
+  activeTags: Set<string>,
+  lookup: Map<string, ResolvedTag>
+): TagGroup[] =>
   [...groups].sort((a, b) => {
     const aActive = activeTags.has(a.tag)
     const bActive = activeTags.has(b.tag)
@@ -88,19 +94,30 @@ const findTagsForDoc = (groups: TagGroup[], docId: string | undefined): Set<stri
   return new Set(groups.filter((g) => g.docs.some((d) => d.id === docId)).map((g) => g.tag))
 }
 
-type ResolvedTag = {
+interface ResolvedTag {
   color: RadixColor
   display: string
   icon: ComponentType<{ className?: string }>
 }
 
 const buildTagLookup = (definitions: TagDefinition[]): Map<string, ResolvedTag> =>
-  new Map(definitions.map((d) => [d.id, { color: d.color, display: d.display, icon: resolveFeatherIcon(d.icon) }]))
+  new Map(
+    definitions.map((d) => [
+      d.id,
+      { color: d.color, display: d.display, icon: resolveFeatherIcon(d.icon) },
+    ])
+  )
 
-const UNGROUPED_TAG: ResolvedTag = { color: DEFAULT_TAG_COLOR, display: "General", icon: FeatherFolder }
+const UNGROUPED_TAG: ResolvedTag = {
+  color: DEFAULT_TAG_COLOR,
+  display: "General",
+  icon: FeatherFolder,
+}
 
 const resolveTag = (lookup: Map<string, ResolvedTag>, tag: string): ResolvedTag =>
-  tag === UNGROUPED ? UNGROUPED_TAG : lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: FeatherHash }
+  tag === UNGROUPED
+    ? UNGROUPED_TAG
+    : (lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: FeatherHash })
 
 export function DocumentsSidebar({
   documents,
@@ -115,11 +132,18 @@ export function DocumentsSidebar({
   const tagLookup = useMemo(() => buildTagLookup(tagDefinitions ?? []), [tagDefinitions])
 
   const unsortedGroups = useMemo(() => groupByTag(documents), [documents])
-  const activeTags = useMemo(() => findTagsForDoc(unsortedGroups, selectedId), [unsortedGroups, selectedId])
-  const allGroups = useMemo(() => sortGroups(unsortedGroups, activeTags, tagLookup), [unsortedGroups, activeTags, tagLookup])
+  const activeTags = useMemo(
+    () => findTagsForDoc(unsortedGroups, selectedId),
+    [unsortedGroups, selectedId]
+  )
+  const allGroups = useMemo(
+    () => sortGroups(unsortedGroups, activeTags, tagLookup),
+    [unsortedGroups, activeTags, tagLookup]
+  )
   const groups = useMemo(() => filterGroups(allGroups, searchValue), [allGroups, searchValue])
 
-  const activeGroupCount = activeTags.size > 0 ? groups.filter((g) => activeTags.has(g.tag)).length : 0
+  const activeGroupCount =
+    activeTags.size > 0 ? groups.filter((g) => activeTags.has(g.tag)).length : 0
 
   const hoveredGroup = hoveredTag ? groups.find((g) => g.tag === hoveredTag) : null
   const hoveredResolved = hoveredTag ? resolveTag(tagLookup, hoveredTag) : null
@@ -130,9 +154,22 @@ export function DocumentsSidebar({
       <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
         <div className="flex w-full items-center justify-between">
           <span className="text-heading-2 font-heading-2 text-default-font">Documents</span>
-          <Button variant="brand-primary" size="small" icon={<FeatherPlus />} onClick={onNewDocument}>New</Button>
+          <Button
+            variant="brand-primary"
+            size="small"
+            icon={<FeatherPlus />}
+            onClick={onNewDocument}
+          >
+            New
+          </Button>
         </div>
-        <TextField className="h-auto w-full flex-none" variant="filled" label="" helpText="" icon={<FeatherSearch />}>
+        <TextField
+          className="h-auto w-full flex-none"
+          variant="filled"
+          label=""
+          helpText=""
+          icon={<FeatherSearch />}
+        >
           <TextField.Input
             placeholder="Search..."
             value={searchValue}
@@ -147,12 +184,15 @@ export function DocumentsSidebar({
           const isHovered = hoveredTag === tag
           const isActive = activeTags.has(tag)
           const highlighted = isHovered || isActive
-          const needsDivider = isActive && activeGroupCount > 0 && i === activeGroupCount - 1 && i < groups.length - 1
+          const needsDivider =
+            isActive && activeGroupCount > 0 && i === activeGroupCount - 1 && i < groups.length - 1
           const row = (
             <div
               key={tag}
               className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
-              style={highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined}
+              style={
+                highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined
+              }
               onMouseEnter={() => setHoveredTag(tag)}
             >
               {isActive && (
@@ -161,7 +201,10 @@ export function DocumentsSidebar({
                   style={{ backgroundColor: solidBackground(resolved.color) }}
                 />
               )}
-              <span className="flex-none" style={highlighted ? { color: lowContrastText(resolved.color) } : undefined}>
+              <span
+                className="flex-none"
+                style={highlighted ? { color: lowContrastText(resolved.color) } : undefined}
+              >
                 <TagIcon className="text-body font-body" />
               </span>
               <span
@@ -170,10 +213,19 @@ export function DocumentsSidebar({
               >
                 {resolved.display}
               </span>
-              <Badge variant="neutral" className="flex-none">{docs.length}</Badge>
+              <Badge variant="neutral" className="flex-none">
+                {docs.length}
+              </Badge>
             </div>
           )
-          if (needsDivider) return [row, <div key="active-divider" className="border-b border-solid border-neutral-border w-full" />]
+          if (needsDivider)
+            return [
+              row,
+              <div
+                key="active-divider"
+                className="border-b border-solid border-neutral-border w-full"
+              />,
+            ]
           return [row]
         })}
       </div>
@@ -195,14 +247,17 @@ export function DocumentsSidebar({
                 borderColor: solidBackground(hoveredResolved?.color ?? DEFAULT_TAG_COLOR),
               }}
             >
-              <span className="flex-none" style={{ color: lowContrastText(hoveredResolved?.color ?? DEFAULT_TAG_COLOR) }}>
+              <span
+                className="flex-none"
+                style={{ color: lowContrastText(hoveredResolved?.color ?? DEFAULT_TAG_COLOR) }}
+              >
                 <HoveredIcon className="text-body font-body" />
               </span>
               <span
                 className="text-heading-3 font-heading-3"
                 style={{ color: highContrastText(hoveredResolved?.color ?? DEFAULT_TAG_COLOR) }}
               >
-                {hoveredResolved?.display ?? humanize(hoveredTag!)}
+                {hoveredResolved?.display ?? humanize(hoveredTag ?? "")}
               </span>
             </div>
             <div className="flex w-full grow shrink-0 basis-0 flex-col items-start overflow-y-auto">
@@ -214,7 +269,10 @@ export function DocumentsSidebar({
                   annotationCount={doc.annotationCount}
                   color={hoveredResolved?.color ?? DEFAULT_TAG_COLOR}
                   selected={doc.id === selectedId}
-                  onClick={() => { onDocumentSelect?.(doc.id); setHoveredTag(null) }}
+                  onClick={() => {
+                    onDocumentSelect?.(doc.id)
+                    setHoveredTag(null)
+                  }}
                 />
               ))}
             </div>

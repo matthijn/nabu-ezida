@@ -1,39 +1,39 @@
-export type ToolCall = {
+export interface ToolCall {
   id: string
   name: string
   args: Record<string, unknown>
 }
 
-export type TextBlock = {
+export interface TextBlock {
   type: "text"
   content: string
   draft?: true
 }
 
-export type ToolCallBlock = {
+export interface ToolCallBlock {
   type: "tool_call"
   calls: ToolCall[]
   draft?: true
 }
 
-export type ToolResultBlock = {
+export interface ToolResultBlock {
   type: "tool_result"
   callId: string
   toolName?: string
   result: unknown
 }
 
-export type UserBlock = {
+export interface UserBlock {
   type: "user"
   content: string
 }
 
-export type SystemBlock = {
+export interface SystemBlock {
   type: "system"
   content: string
 }
 
-export type ReasoningBlock = {
+export interface ReasoningBlock {
   type: "reasoning"
   content: string
   id?: string
@@ -41,22 +41,32 @@ export type ReasoningBlock = {
   draft?: true
 }
 
-export type EmptyNudgeBlock = {
+export interface EmptyNudgeBlock {
   type: "empty_nudge"
 }
 
-export type ErrorBlock = {
+export interface ErrorBlock {
   type: "error"
   content: string
 }
 
-export type DebugPauseBlock = {
+export interface DebugPauseBlock {
   type: "debug_pause"
 }
 
-export type Block = (TextBlock | ToolCallBlock | ToolResultBlock | UserBlock | SystemBlock | ReasoningBlock | EmptyNudgeBlock | ErrorBlock | DebugPauseBlock) & { timestamp?: number; source?: string }
+export type Block = (
+  | TextBlock
+  | ToolCallBlock
+  | ToolResultBlock
+  | UserBlock
+  | SystemBlock
+  | ReasoningBlock
+  | EmptyNudgeBlock
+  | ErrorBlock
+  | DebugPauseBlock
+) & { timestamp?: number; source?: string }
 
-export type ToolDeps = {
+export interface ToolDeps {
   project?: { id: string }
   navigate?: (url: string) => void
 }

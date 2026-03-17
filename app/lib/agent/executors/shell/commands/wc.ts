@@ -29,7 +29,10 @@ export const wc = command({
     const resolved: string[] = []
     for (const rawPath of paths) {
       const matches = resolveFiles(files, rawPath)
-      if (matches.length > 0) { resolved.push(...matches); continue }
+      if (matches.length > 0) {
+        resolved.push(...matches)
+        continue
+      }
       const path = normalizePath(rawPath)
       if (path && !isGlob(path)) return err(`wc: ${path}: No such file`)
     }
@@ -38,13 +41,17 @@ export const wc = command({
       return err(`wc: no matches`)
     }
 
-    const results = resolved.map((path) => formatCount(countFile(files.get(path)!), path))
+    const results = resolved.map((path) => formatCount(countFile(files.get(path) ?? ""), path))
 
     if (resolved.length > 1) {
       const totals = resolved.reduce(
         (acc, path) => {
-          const c = countFile(files.get(path)!)
-          return { lines: acc.lines + c.lines, words: acc.words + c.words, chars: acc.chars + c.chars }
+          const c = countFile(files.get(path) ?? "")
+          return {
+            lines: acc.lines + c.lines,
+            words: acc.words + c.words,
+            chars: acc.chars + c.chars,
+          }
         },
         { lines: 0, words: 0, chars: 0 }
       )

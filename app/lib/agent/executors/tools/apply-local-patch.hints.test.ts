@@ -19,7 +19,15 @@ const jsonCalloutBlock = (lines: number): string => {
 }
 
 const makeFileContent = (blockLineCount: number): string =>
-  ["# Document", "", "Some text here.", "", jsonCalloutBlock(blockLineCount), "", "More text."].join("\n")
+  [
+    "# Document",
+    "",
+    "Some text here.",
+    "",
+    jsonCalloutBlock(blockLineCount),
+    "",
+    "More text.",
+  ].join("\n")
 
 describe("detectHint", () => {
   const cases: { name: string; ctx: HintContext; expected: string | null }[] = [
@@ -76,7 +84,8 @@ describe("detectHint", () => {
           ' "collapsed": false',
         ].join("\n"),
       },
-      expected: "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+      expected:
+        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "whole block rewrite, large (>15 lines) returns block rewrite hint",
@@ -109,7 +118,8 @@ describe("detectHint", () => {
           "+```",
         ].join("\n"),
       },
-      expected: "Use patch_json_block for property changes in large JSON blocks — more reliable than rewriting the whole block.",
+      expected:
+        "Use patch_json_block for property changes in large JSON blocks — more reliable than rewriting the whole block.",
     },
     {
       name: "whole block rewrite, small (<15 lines) returns null",
@@ -137,24 +147,30 @@ describe("detectHint", () => {
           "+```",
         ].join("\n"),
       },
-      expected: "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+      expected:
+        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "large hunk outside JSON (25 add lines) returns large hunk hint",
       ctx: {
-        fileContent: "# Document\n\nSome text.\n\n" + Array.from({ length: 25 }, (_, i) => `Paragraph ${i + 1}.`).join("\n"),
+        fileContent:
+          "# Document\n\nSome text.\n\n" +
+          Array.from({ length: 25 }, (_, i) => `Paragraph ${i + 1}.`).join("\n"),
         diff: [
           "@@",
           ...Array.from({ length: 25 }, (_, i) => `-Paragraph ${i + 1}.`),
           ...Array.from({ length: 25 }, (_, i) => `+New paragraph ${i + 1}.`),
         ].join("\n"),
       },
-      expected: "Split large patches into one per markdown block — smaller patches match more reliably.",
+      expected:
+        "Split large patches into one per markdown block — smaller patches match more reliably.",
     },
     {
       name: "large hunk that is range ref returns null",
       ctx: {
-        fileContent: "# Document\n\nSome text.\n\n" + Array.from({ length: 25 }, (_, i) => `Paragraph ${i + 1}.`).join("\n"),
+        fileContent:
+          "# Document\n\nSome text.\n\n" +
+          Array.from({ length: 25 }, (_, i) => `Paragraph ${i + 1}.`).join("\n"),
         diff: [
           "@@",
           " Some text.",
@@ -170,11 +186,7 @@ describe("detectHint", () => {
       name: "edit outside any JSON block returns null",
       ctx: {
         fileContent: "# Title\n\nSome paragraph text here.\n\nMore text below.",
-        diff: [
-          "@@",
-          "-Some paragraph text here.",
-          "+Updated paragraph text here.",
-        ].join("\n"),
+        diff: ["@@", "-Some paragraph text here.", "+Updated paragraph text here."].join("\n"),
       },
       expected: null,
     },
@@ -202,7 +214,8 @@ describe("detectHint", () => {
           "+Updated prose content.",
         ].join("\n"),
       },
-      expected: "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+      expected:
+        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "create_file (no existing content) returns null",

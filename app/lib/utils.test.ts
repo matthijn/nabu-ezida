@@ -13,9 +13,7 @@ describe("sampleAndHold", () => {
     {
       name: "first call samples immediately",
       holdMs: 400,
-      calls: [
-        { args: [1], expected: "v1" },
-      ],
+      calls: [{ args: [1], expected: "v1" }],
     },
     {
       name: "holds value during hold period",

@@ -42,7 +42,8 @@ describe("linkifyEntityIds", () => {
     {
       name: "links multiple IDs in one string",
       input: "Compare annotation-1a2b3c4d and callout-7xk2m9p1",
-      expected: "Compare [user frustration](file://annotation-1a2b3c4d) and [User Frustration](file://callout-7xk2m9p1)",
+      expected:
+        "Compare [user frustration](file://annotation-1a2b3c4d) and [User Frustration](file://callout-7xk2m9p1)",
     },
     {
       name: "leaves unresolvable ID bare",
@@ -57,7 +58,8 @@ describe("linkifyEntityIds", () => {
     {
       name: "links ID at end of sentence with comma",
       input: "Codes: callout-7xk2m9p1, callout-4a1b2c3d",
-      expected: "Codes: [User Frustration](file://callout-7xk2m9p1), [Theme A](file://callout-4a1b2c3d)",
+      expected:
+        "Codes: [User Frustration](file://callout-7xk2m9p1), [Theme A](file://callout-4a1b2c3d)",
     },
     {
       name: "strips name after ID with em dash",
@@ -112,7 +114,8 @@ describe("linkifyEntityIds", () => {
     {
       name: "strips names in bullet list",
       input: "- callout-7xk2m9p1 — User Frustration\n- callout-4a1b2c3d — Theme A",
-      expected: "- [User Frustration](file://callout-7xk2m9p1)\n- [Theme A](file://callout-4a1b2c3d)",
+      expected:
+        "- [User Frustration](file://callout-7xk2m9p1)\n- [Theme A](file://callout-4a1b2c3d)",
     },
     {
       name: "links bare document filename",

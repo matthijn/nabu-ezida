@@ -3,9 +3,7 @@
     "log.txt": "INFO start\nDEBUG foo\nINFO end\nDEBUG bar"
   },
   "args": {
-    "commands": [
-      "grep -v DEBUG log.txt"
-    ]
+    "commands": ["grep -v DEBUG log.txt"]
   },
   "expected": {
     "status": "ok",

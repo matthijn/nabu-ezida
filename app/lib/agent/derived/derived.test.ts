@@ -1,6 +1,15 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "../types"
-import { derive, lastPlan, hasActivePlan, getMode, isPlanPaused, hasDeliverable, guardCompleteStep, isLastStep } from "."
+import {
+  derive,
+  lastPlan,
+  hasActivePlan,
+  getMode,
+  isPlanPaused,
+  hasDeliverable,
+  guardCompleteStep,
+  isLastStep,
+} from "."
 import {
   submitPlanCall,
   completeStepCall,
@@ -11,6 +20,11 @@ import {
   terminalResult,
   resetCallIdCounter,
 } from "../test-helpers"
+
+const mustGet = <T>(value: T | null | undefined): T => {
+  if (value === null || value === undefined) throw new Error("expected non-null value")
+  return value
+}
 
 beforeEach(() => resetCallIdCounter())
 
@@ -28,7 +42,12 @@ describe("derived", () => {
       },
       {
         name: "submit_plan creates plan",
-        history: [...submitPlanCall("Test task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }])],
+        history: [
+          ...submitPlanCall("Test task", [
+            { title: "Step 1", expected: "Done 1" },
+            { title: "Step 2", expected: "Done 2" },
+          ]),
+        ],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -40,7 +59,13 @@ describe("derived", () => {
       },
       {
         name: "complete_step marks step done and advances",
-        history: [...submitPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]), ...completeStepCall("Done")],
+        history: [
+          ...submitPlanCall("Task", [
+            { title: "Step 1", expected: "Done 1" },
+            { title: "Step 2", expected: "Done 2" },
+          ]),
+          ...completeStepCall("Done"),
+        ],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -51,7 +76,10 @@ describe("derived", () => {
       },
       {
         name: "complete_step stores internal context",
-        history: [...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...completeStepCall("Done", "id:123, count:5")],
+        history: [
+          ...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]),
+          ...completeStepCall("Done", "id:123, count:5"),
+        ],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
@@ -62,7 +90,10 @@ describe("derived", () => {
       {
         name: "all steps complete returns null currentStep",
         history: [
-          ...submitPlanCall("Task", [{ title: "Step 1", expected: "Done 1" }, { title: "Step 2", expected: "Done 2" }]),
+          ...submitPlanCall("Task", [
+            { title: "Step 1", expected: "Done 1" },
+            { title: "Step 2", expected: "Done 2" },
+          ]),
           ...completeStepCall("Done 1"),
           ...completeStepCall("Done 2"),
         ],
@@ -74,7 +105,10 @@ describe("derived", () => {
       },
       {
         name: "cancel marks plan as aborted",
-        history: [...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...cancelCall()],
+        history: [
+          ...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]),
+          ...cancelCall(),
+        ],
         check: (history: Block[]) => {
           const d = derive(history)
           expect(lastPlan(d.plans)?.aborted).toBe(true)
@@ -102,7 +136,10 @@ describe("derived", () => {
       },
       {
         name: "completed plan returns chat",
-        history: [...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]), ...completeStepCall()],
+        history: [
+          ...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]),
+          ...completeStepCall(),
+        ],
         expected: "chat",
       },
     ]
@@ -128,10 +165,7 @@ describe("derived", () => {
       },
       {
         name: "text block after step boundary is paused",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          textBlock("Let me ask you something"),
-        ],
+        history: [...submitPlanCall("Task", ["Step 1"]), textBlock("Let me ask you something")],
         expected: true,
       },
       {
@@ -148,7 +182,10 @@ describe("derived", () => {
         history: [
           ...submitPlanCall("Task", ["Step 1"]),
           textBlock("Let me check"),
-          { type: "tool_call" as const, calls: [{ id: "99", name: "shell", args: { command: "ls" } }] },
+          {
+            type: "tool_call" as const,
+            calls: [{ id: "99", name: "shell", args: { command: "ls" } }],
+          },
           { type: "tool_result" as const, callId: "99", result: { status: "ok" } },
         ],
         expected: true,
@@ -335,10 +372,8 @@ describe("derived", () => {
       {
         name: "guardCompleteStep: allowed on regular step",
         plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ title: "Regular", expected: "Done" }]),
-          ]
-          return lastPlan(derive(history).plans)!
+          const history = [...submitPlanCall("Task", [{ title: "Regular", expected: "Done" }])]
+          return mustGet(lastPlan(derive(history).plans))
         },
         guard: guardCompleteStep,
         expected: true,
@@ -346,10 +381,8 @@ describe("derived", () => {
       {
         name: "guardCompleteStep: allowed on nested step",
         plan: () => {
-          const history = [
-            ...submitPlanCall("Task", [{ nested: ["A", "B"] }]),
-          ]
-          return lastPlan(derive(history).plans)!
+          const history = [...submitPlanCall("Task", [{ nested: ["A", "B"] }])]
+          return mustGet(lastPlan(derive(history).plans))
         },
         guard: guardCompleteStep,
         expected: true,
@@ -361,7 +394,7 @@ describe("derived", () => {
             ...submitPlanCall("Task", [{ title: "Step", expected: "Done" }]),
             ...completeStepCall("Done"),
           ]
-          return lastPlan(derive(history).plans)!
+          return mustGet(lastPlan(derive(history).plans))
         },
         guard: guardCompleteStep,
         expected: false,
@@ -384,13 +417,21 @@ describe("derived", () => {
       },
       {
         name: "multi-step plan — first step is not last",
-        history: () => [...submitPlanCall("Task", [{ title: "A", expected: "Done" }, { title: "B", expected: "Done" }])],
+        history: () => [
+          ...submitPlanCall("Task", [
+            { title: "A", expected: "Done" },
+            { title: "B", expected: "Done" },
+          ]),
+        ],
         expected: false,
       },
       {
         name: "multi-step plan — after completing first, second is last",
         history: () => [
-          ...submitPlanCall("Task", [{ title: "A", expected: "Done" }, { title: "B", expected: "Done" }]),
+          ...submitPlanCall("Task", [
+            { title: "A", expected: "Done" },
+            { title: "B", expected: "Done" },
+          ]),
           ...completeStepCall("A done"),
         ],
         expected: true,
@@ -406,7 +447,10 @@ describe("derived", () => {
       {
         name: "nested steps — last nested is not last if top-level follows",
         history: () => [
-          ...submitPlanCall("Task", [{ nested: ["Inner 1", "Inner 2"] }, { title: "Final", expected: "Done" }]),
+          ...submitPlanCall("Task", [
+            { nested: ["Inner 1", "Inner 2"] },
+            { title: "Final", expected: "Done" },
+          ]),
           ...completeStepCall("Inner 1 done"),
         ],
         expected: false,
@@ -414,7 +458,10 @@ describe("derived", () => {
       {
         name: "nested steps — final top-level after nested is last",
         history: () => [
-          ...submitPlanCall("Task", [{ nested: ["Inner 1", "Inner 2"] }, { title: "Final", expected: "Done" }]),
+          ...submitPlanCall("Task", [
+            { nested: ["Inner 1", "Inner 2"] },
+            { title: "Final", expected: "Done" },
+          ]),
           ...completeStepCall("Inner 1 done"),
           ...completeStepCall("Inner 2 done"),
         ],
@@ -424,10 +471,9 @@ describe("derived", () => {
 
     cases.forEach(({ name, history, expected }) => {
       it(name, () => {
-        const plan = lastPlan(derive(history()).plans)!
+        const plan = mustGet(lastPlan(derive(history()).plans))
         expect(isLastStep(plan)).toBe(expected)
       })
     })
   })
-
 })

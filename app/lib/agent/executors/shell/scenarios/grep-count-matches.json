@@ -3,10 +3,7 @@
     "doc.txt": "hello hello world\nhello there\ngoodbye"
   },
   "args": {
-    "commands": [
-      "grep -c hello doc.txt",
-      "grep --count-matches hello doc.txt"
-    ]
+    "commands": ["grep -c hello doc.txt", "grep --count-matches hello doc.txt"]
   },
   "expected": {
     "status": "ok",

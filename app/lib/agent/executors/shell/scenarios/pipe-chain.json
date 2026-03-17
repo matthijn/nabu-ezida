@@ -3,9 +3,7 @@
     "doc.md": "apple\nbanana\napple\ncherry\napple"
   },
   "args": {
-    "commands": [
-      "cat doc.md | grep apple | wc -l"
-    ]
+    "commands": ["cat doc.md | grep apple | wc -l"]
   },
   "expected": {
     "status": "ok",

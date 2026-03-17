@@ -1,10 +1,10 @@
-export type GutterMark = {
+export interface GutterMark {
   topPercent: number
   heightPercent: number
   colors: string[]
 }
 
-export type AnnotationMeasurement = {
+export interface AnnotationMeasurement {
   absoluteTop: number
   height: number
   colors: string[]

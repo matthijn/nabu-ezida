@@ -2,19 +2,34 @@
 
 import { useState } from "react"
 import { useSyncExternalStore } from "react"
-import { FeatherX, FeatherChevronRight, FeatherChevronDown, FeatherAlertCircle, FeatherCopy, FeatherCheck, FeatherListX, FeatherPlay } from "@subframe/core"
+import {
+  FeatherX,
+  FeatherChevronRight,
+  FeatherChevronDown,
+  FeatherAlertCircle,
+  FeatherCopy,
+  FeatherCheck,
+  FeatherListX,
+  FeatherPlay,
+} from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/domain/blocks/registry"
-import { getAllBlocksWithDraft, subscribeBlocks, isDraft, clearPauseBlocks, getSource } from "~/lib/agent/block-store"
+import {
+  getAllBlocksWithDraft,
+  subscribeBlocks,
+  isDraft,
+  clearPauseBlocks,
+  getSource,
+} from "~/lib/agent/block-store"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
-type BlockRendererProps = {
+interface BlockRendererProps {
   block: Block
   source: string
   selected: boolean
@@ -41,9 +56,7 @@ const formatToolCall = (call: ToolCall): string => {
 const formatToolCallDraft = (calls: ToolCall[]): string => {
   const call = calls[0]
   if (!call) return ""
-  return call.name
-    ? `${call.name}\n  ${String(call.args)}`
-    : String(call.args)
+  return call.name ? `${call.name}\n  ${String(call.args)}` : String(call.args)
 }
 
 const formatResult = (result: unknown): string => {
@@ -51,8 +64,7 @@ const formatResult = (result: unknown): string => {
   return JSON.stringify(result, null, 2)
 }
 
-const formatToolDefinitions = (): string =>
-  JSON.stringify(getToolDefinitions(), null, 2)
+const formatToolDefinitions = (): string => JSON.stringify(getToolDefinitions(), null, 2)
 
 const formatBlockSchemaDefinitions = (): string =>
   JSON.stringify(getBlockSchemaDefinitions(), null, 2)
@@ -80,8 +92,7 @@ const formatBlock = (block: Block): string => {
   }
 }
 
-const formatAllBlocks = (blocks: Block[]): string =>
-  blocks.map(formatBlock).join("\n\n---\n\n")
+const formatAllBlocks = (blocks: Block[]): string => blocks.map(formatBlock).join("\n\n---\n\n")
 
 const toggleIndex = (set: Set<number>, index: number): Set<number> => {
   const next = new Set(set)
@@ -93,7 +104,7 @@ const toggleIndex = (set: Set<number>, index: number): Set<number> => {
 const filterByIndices = <T,>(items: T[], indices: Set<number>): T[] =>
   items.filter((_, i) => indices.has(i))
 
-type CollapsibleBlockProps = {
+interface CollapsibleBlockProps {
   label: string
   content: string
   copyContent?: string
@@ -107,7 +118,19 @@ type CollapsibleBlockProps = {
   onToggleSelect: () => void
 }
 
-const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor, bgColor, defaultExpanded = true, mono = false, icon, selected, onToggleSelect }: CollapsibleBlockProps) => {
+const CollapsibleBlock = ({
+  label,
+  content,
+  copyContent,
+  borderColor,
+  labelColor,
+  bgColor,
+  defaultExpanded = true,
+  mono = false,
+  icon,
+  selected,
+  onToggleSelect,
+}: CollapsibleBlockProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
 
@@ -138,16 +161,26 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
             onClick={() => setExpanded(!expanded)}
             className={`flex items-center gap-1 text-xs ${labelColor} font-medium hover:opacity-80`}
           >
-            {expanded ? <FeatherChevronDown className="w-3 h-3" /> : <FeatherChevronRight className="w-3 h-3" />}
+            {expanded ? (
+              <FeatherChevronDown className="w-3 h-3" />
+            ) : (
+              <FeatherChevronRight className="w-3 h-3" />
+            )}
             {icon}
             {label}
           </button>
         </div>
         <button onClick={handleCopy} className="text-neutral-400 hover:text-neutral-600 p-1">
-          {copied ? <FeatherCheck className="w-3 h-3 text-green-500" /> : <FeatherCopy className="w-3 h-3" />}
+          {copied ? (
+            <FeatherCheck className="w-3 h-3 text-green-500" />
+          ) : (
+            <FeatherCopy className="w-3 h-3" />
+          )}
         </button>
       </div>
-      <div className={`text-sm whitespace-pre-wrap ${mono ? "font-mono" : ""} ${bgColor ?? ""} ${bgColor ? "p-2 rounded" : ""}`}>
+      <div
+        className={`text-sm whitespace-pre-wrap ${mono ? "font-mono" : ""} ${bgColor ?? ""} ${bgColor ? "p-2 rounded" : ""}`}
+      >
         {expanded ? content : <span className="text-neutral-500">{preview(content)}</span>}
       </div>
     </div>
@@ -156,13 +189,11 @@ const CollapsibleBlock = ({ label, content, copyContent, borderColor, labelColor
 
 const shortId = (id: string): string => id.slice(-6)
 
-const toolCallIds = (calls: ToolCall[]): string =>
-  calls.map((c) => shortId(c.id)).join(",")
+const toolCallIds = (calls: ToolCall[]): string => calls.map((c) => shortId(c.id)).join(",")
 
 const isSubagentBlock = (source: string): boolean => source !== "base"
 
-const sourceLabel = (source: string): string =>
-  isSubagentBlock(source) ? ` [${source}]` : ""
+const sourceLabel = (source: string): string => (isSubagentBlock(source) ? ` [${source}]` : "")
 
 const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendererProps) => {
   const copy = formatBlock(block)
@@ -220,7 +251,9 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
           bgColor={isErrorResult(block.result) ? "bg-red-50" : "bg-purple-50"}
           defaultExpanded={isErrorResult(block.result)}
           mono
-          icon={isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined}
+          icon={
+            isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined
+          }
           {...sel}
         />
       )
@@ -276,11 +309,12 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
   }
 }
 
-type DebugStreamPanelProps = {
+interface DebugStreamPanelProps {
   onClose: () => void
 }
 
-const useBlockStore = () => useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
+const useBlockStore = () =>
+  useSyncExternalStore(subscribeBlocks, getAllBlocksWithDraft, getAllBlocksWithDraft)
 
 const readStepCompaction = (): boolean => {
   try {
@@ -291,8 +325,7 @@ const readStepCompaction = (): boolean => {
   }
 }
 
-const isPaused = (blocks: Block[]): boolean =>
-  blocks.some(isDebugPauseBlock)
+const isPaused = (blocks: Block[]): boolean => blocks.some(isDebugPauseBlock)
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 106, y: 16 }, { x: "left" })
@@ -310,7 +343,11 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
     const blocksToFormat = hasSelection ? filterByIndices(allBlocks, selectedIndices) : allBlocks
     const parts = hasSelection
       ? [formatAllBlocks(blocksToFormat)]
-      : [`[tools]\n${formatToolDefinitions()}`, `[block schemas]\n${formatBlockSchemaDefinitions()}`, formatAllBlocks(blocksToFormat)]
+      : [
+          `[tools]\n${formatToolDefinitions()}`,
+          `[block schemas]\n${formatBlockSchemaDefinitions()}`,
+          formatAllBlocks(blocksToFormat),
+        ]
     const content = parts.filter(Boolean).join("\n\n---\n\n")
     navigator.clipboard.writeText(content)
     setCopiedAll(true)
@@ -325,7 +362,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const handleDeselectAll = () => setSelectedIndices(new Set())
 
   const handleToggleBlock = (index: number) =>
-    setSelectedIndices(prev => toggleIndex(prev, index))
+    setSelectedIndices((prev) => toggleIndex(prev, index))
 
   return (
     <div
@@ -338,8 +375,12 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
       >
         <span className="text-sm font-medium text-neutral-700">
           Debug Stream
-          <span className="text-xs text-neutral-400 ml-2">{mode} · {reasoning}</span>
-          {hasSelection && <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>}
+          <span className="text-xs text-neutral-400 ml-2">
+            {mode} · {reasoning}
+          </span>
+          {hasSelection && (
+            <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>
+          )}
         </span>
         <div className="flex items-center gap-1">
           {hasSelection && (
@@ -356,7 +397,11 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
             className="p-1 text-neutral-500 hover:text-neutral-700"
             title={hasSelection ? `Copy ${selectedIndices.size} selected` : "Copy all messages"}
           >
-            {copiedAll ? <FeatherCheck className="w-4 h-4 text-green-500" /> : <FeatherCopy className="w-4 h-4" />}
+            {copiedAll ? (
+              <FeatherCheck className="w-4 h-4 text-green-500" />
+            ) : (
+              <FeatherCopy className="w-4 h-4" />
+            )}
           </button>
           {paused && (
             <button

@@ -2,13 +2,13 @@
 
 import { useRef, useMemo, useEffect } from "react"
 import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapter/react"
-import { DecorationSet } from "prosemirror-view"
+import type { DecorationSet } from "prosemirror-view"
 import { getBlockConfig } from "~/domain/blocks/registry"
 import { parseCallout } from "~/domain/blocks/callout/schema"
 import { CalloutBlockView } from "./view"
 import { applyDOMHighlights, type HighlightEntry } from "./highlight"
 
-type BlockSpacerProps = {
+interface BlockSpacerProps {
   onClick: () => void
 }
 
@@ -19,7 +19,7 @@ const BlockSpacer = ({ onClick }: BlockSpacerProps) => (
   />
 )
 
-type CodeBlockFallbackProps = {
+interface CodeBlockFallbackProps {
   language: string | undefined
   contentRef: NodeViewContentRef
   invalid?: boolean
@@ -31,16 +31,16 @@ const CodeBlockFallback = ({ language, contentRef, invalid }: CodeBlockFallbackP
   </pre>
 )
 
-const extractHighlights = (
-  innerDecorations: unknown,
-  textContent: string,
-): HighlightEntry[] => {
+const extractHighlights = (innerDecorations: unknown, textContent: string): HighlightEntry[] => {
   const decoSet = innerDecorations as DecorationSet
   if (!decoSet.find) return []
-  return decoSet.find().map((d) => ({
-    text: textContent.slice(d.from, d.to),
-    isSpotlight: d.spec?.spotlight === true,
-  })).filter((e) => e.text.length > 0)
+  return decoSet
+    .find()
+    .map((d) => ({
+      text: textContent.slice(d.from, d.to),
+      isSpotlight: d.spec?.spotlight === true,
+    }))
+    .filter((e) => e.text.length > 0)
 }
 
 export const CalloutNodeView = () => {
@@ -53,8 +53,8 @@ export const CalloutNodeView = () => {
   const data = isCallout ? parseCallout(node.textContent) : null
 
   const highlights = useMemo(
-    () => isCallout ? extractHighlights(innerDecorations, node.textContent) : [],
-    [isCallout, innerDecorations, node.textContent],
+    () => (isCallout ? extractHighlights(innerDecorations, node.textContent) : []),
+    [isCallout, innerDecorations, node.textContent]
   )
 
   useEffect(() => {
@@ -64,7 +64,9 @@ export const CalloutNodeView = () => {
   }, [data, highlights])
 
   if (!isCallout || !data) {
-    return <CodeBlockFallback language={language} contentRef={contentRef} invalid={isCallout && !data} />
+    return (
+      <CodeBlockFallback language={language} contentRef={contentRef} invalid={isCallout && !data} />
+    )
   }
 
   const handleDelete = () => {

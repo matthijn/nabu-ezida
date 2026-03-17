@@ -1,7 +1,13 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import type { Block } from "~/lib/agent"
 import { derive } from "~/lib/agent"
-import { toGroupedMessages, type GroupedMessage, type PlanHeader, type PlanItem, type PlanStep } from "./group"
+import {
+  toGroupedMessages,
+  type GroupedMessage,
+  type PlanHeader,
+  type PlanItem,
+  type PlanStep,
+} from "./group"
 import {
   submitPlanCall,
   completeStepCall,
@@ -10,6 +16,14 @@ import {
   userBlock,
   textBlock,
 } from "~/lib/agent/test-helpers"
+
+function mustFind<T, S extends T>(arr: T[], pred: (item: T) => item is S): S
+function mustFind<T>(arr: T[], pred: (item: T) => boolean): T
+function mustFind<T>(arr: T[], pred: (item: T) => boolean): T {
+  const found = arr.find(pred)
+  if (!found) throw new Error("expected item not found")
+  return found
+}
 
 beforeEach(() => resetCallIdCounter())
 
@@ -62,7 +76,7 @@ describe("toGroupedMessages", () => {
         ],
         check: (result: GroupedMessage[]) => {
           expect(result[0].type).toBe("text")
-          const header = result.find(isPlanHeader)!
+          const header = mustFind(result, isPlanHeader)
           expect(header.task).toBe("Build feature")
           expect(header.completed).toBe(false)
           expect(header.aborted).toBe(false)
@@ -75,12 +89,9 @@ describe("toGroupedMessages", () => {
       },
       {
         name: "completed plan has completed flag and all steps completed",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          ...completeStepCall("Done"),
-        ],
+        history: [...submitPlanCall("Task", ["Step 1"]), ...completeStepCall("Done")],
         check: (result: GroupedMessage[]) => {
-          const header = result.find(isPlanHeader)!
+          const header = mustFind(result, isPlanHeader)
           expect(header.completed).toBe(true)
           expect(header.aborted).toBe(false)
           const steps = planSteps(result)
@@ -89,12 +100,9 @@ describe("toGroupedMessages", () => {
       },
       {
         name: "cancelled plan has aborted flag and cancelled step",
-        history: [
-          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
-          ...cancelCall(),
-        ],
+        history: [...submitPlanCall("Task", ["Step 1", "Step 2"]), ...cancelCall()],
         check: (result: GroupedMessage[]) => {
-          const header = result.find(isPlanHeader)!
+          const header = mustFind(result, isPlanHeader)
           expect(header.aborted).toBe(true)
           expect(header.completed).toBe(false)
           const steps = planSteps(result)
@@ -104,10 +112,7 @@ describe("toGroupedMessages", () => {
       },
       {
         name: "all plan items have dimmed=false for simple plans",
-        history: [
-          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
-          textBlock("Working"),
-        ],
+        history: [...submitPlanCall("Task", ["Step 1", "Step 2"]), textBlock("Working")],
         check: (result: GroupedMessage[]) => {
           const items = result.filter(isPlanItem)
           expect(items.length).toBeGreaterThan(0)
@@ -253,13 +258,10 @@ describe("toGroupedMessages", () => {
     const cases = [
       {
         name: "toGroupedMessages does not accept streaming param",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          textBlock("Working"),
-        ],
+        history: [...submitPlanCall("Task", ["Step 1"]), textBlock("Working")],
         check: (result: GroupedMessage[]) => {
-          const textItems = result.filter((m) =>
-            (m.type === "plan-item" && m.child.type === "text") || m.type === "text"
+          const textItems = result.filter(
+            (m) => (m.type === "plan-item" && m.child.type === "text") || m.type === "text"
           )
           expect(textItems).toHaveLength(1)
         },
