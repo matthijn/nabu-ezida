@@ -3,7 +3,7 @@
 import React from "react"
 import { DropZone } from "./DropZone"
 import { FileImportList } from "./FileImportList"
-import { useFileImport } from "~/hooks/useFileImport"
+import { useFileImport } from "~/ui/hooks/useFileImport"
 
 export const FileImportView = () => {
   const { files, hasFiles, isDragging, isProcessing, progress, dismiss, dragHandlers } =

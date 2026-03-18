@@ -11,9 +11,9 @@ import {
 } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { FeatherBook, FeatherFiles, FeatherSearch } from "@subframe/core"
-import { MainSidebar } from "~/ui/custom/sidebar/main"
-import type { NavItem } from "~/ui/custom/sidebar/main"
-import { useResizable } from "~/hooks/useResizable"
+import { MainSidebar } from "~/ui/components/sidebar/main"
+import type { NavItem } from "~/ui/components/sidebar/main"
+import { useResizable } from "~/ui/hooks/useResizable"
 import { cn } from "~/ui/utils"
 
 type ActiveNav = "documents" | "search" | "codes"

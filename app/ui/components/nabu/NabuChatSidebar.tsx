@@ -48,7 +48,7 @@ import {
 import type { AskMessage, AskScope } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
-import { useFiles } from "~/hooks/useFiles"
+import { useFiles } from "~/ui/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/streaming/filter"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"

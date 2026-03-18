@@ -14,7 +14,7 @@ import {
 } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
-import { useDraggable } from "~/hooks/useDraggable"
+import { useDraggable } from "~/ui/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/lib/blocks/registry"

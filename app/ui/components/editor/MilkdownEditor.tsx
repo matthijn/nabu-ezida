@@ -16,7 +16,7 @@ import { createSpotlightPlugin, spotlightMeta } from "~/lib/editor/spotlight"
 import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
 import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
-import { useFiles } from "~/hooks/useFiles"
+import { useFiles } from "~/ui/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
 import type { Spotlight } from "~/lib/editor/spotlight"
 
