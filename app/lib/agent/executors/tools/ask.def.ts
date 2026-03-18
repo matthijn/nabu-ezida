@@ -17,6 +17,8 @@ export const AskArgs = z.object({
     ),
 })
 
+export type AskScope = z.infer<typeof AskArgs>["scope"]
+
 export const askTool: AnyTool = {
   name: "ask",
   description:

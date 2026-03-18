@@ -1,6 +1,6 @@
 import type { Block } from "./types"
 import type { StepDef, StepDefObject } from "./derived"
-import type { AskScope } from "~/lib/chat/messages"
+import type { AskScope } from "./executors/tools/ask.def"
 
 let callIdCounter = 0
 const nextCallId = (): string => String(++callIdCounter)

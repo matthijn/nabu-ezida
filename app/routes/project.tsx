@@ -6,7 +6,6 @@ import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { useFileImport } from "~/ui/hooks/useFileImport"
 import { DocumentsSidebar } from "~/ui/components/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/components/sidebar/codes"
-import { closeChat } from "~/lib/chat"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
@@ -114,10 +113,6 @@ export default function ProjectLayout() {
   )
 
   useEffect(() => {
-    return () => closeChat()
-  }, [params.projectId])
-
-  useEffect(() => {
     if (!params.projectId) return
     setProjectId(params.projectId)
 
@@ -207,7 +202,7 @@ export default function ProjectLayout() {
   }
 
   return (
-    <NabuProvider>
+    <NabuProvider key={params.projectId}>
       <div {...fileImport.dragHandlers} className="contents">
         <DefaultPageLayout
           activeNav={activeNav}

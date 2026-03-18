@@ -2,7 +2,7 @@ import type { Block, ToolCall } from "~/lib/agent"
 import type { FileStore } from "~/lib/files"
 import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
 import { isDraft } from "~/lib/agent/block-store"
-import { AskArgs } from "~/lib/agent/executors/tools/ask.def"
+import { AskArgs, type AskScope } from "~/lib/agent/executors/tools/ask.def"
 
 export interface TextMessage {
   type: "text"
@@ -76,7 +76,7 @@ export const toRenderMessages = (history: Block[], files: FileStore = {}): Rende
   return indexed.sort(byIndex).map((item) => item.message)
 }
 
-export type AskScope = "local" | "codebook" | "preferences"
+export type { AskScope }
 
 export interface AskMessage {
   type: "ask"

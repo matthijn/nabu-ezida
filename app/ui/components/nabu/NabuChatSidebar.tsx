@@ -32,7 +32,7 @@ import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
-import { useChat } from "~/lib/chat"
+import { useChat } from "~/ui/hooks/useChat"
 import { derive } from "~/lib/agent"
 import { pushBlocks } from "~/lib/agent/block-store"
 import {
@@ -44,10 +44,10 @@ import {
   type PlanChild,
   type PlanStep,
   type StepStatus,
-} from "~/lib/chat/group"
-import type { AskMessage, AskScope } from "~/lib/chat/messages"
-import { isWaitingForAsk } from "~/lib/chat/messages"
-import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
+} from "./group"
+import type { AskMessage, AskScope } from "./messages"
+import { isWaitingForAsk } from "./messages"
+import { getSpinnerLabel } from "./spinnerLabel"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/markdown/sanitize/partial"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
@@ -64,7 +64,7 @@ import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { useNabu } from "./context"
-import { pickGreeting } from "~/lib/chat/greetings"
+import { pickGreeting } from "./greetings"
 
 const allowFileProtocol = (url: string): string => url
 
@@ -834,7 +834,8 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chatOpen, send, respond, cancel, loading, draft, history } = useChat()
+  const { chatOpen } = useNabu()
+  const { send, respond, cancel, loading, draft, history } = useChat()
   const mutationHistory = useMutationHistory()
   const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
   const { files, currentFile } = useFiles()

@@ -8,12 +8,10 @@ import {
   subscribeLoading,
   getLoading,
 } from "~/lib/agent/block-store"
-import { isChatOpen, subscribe } from "./store"
-import { run, cancel as cancelRunner, type RunnerDeps } from "./runner"
-import { getEditorContext, contextToMessage, findLastContextMessage } from "./context"
+import { run, cancel as cancelRunner, type RunnerDeps } from "~/lib/agent/runner"
+import { getEditorContext, contextToMessage, findLastContextMessage } from "~/lib/chat/context"
 
 export const useChat = () => {
-  const chatOpen = useSyncExternalStore(subscribe, isChatOpen)
   const history = useSyncExternalStore(
     subscribeBlocks,
     getAllBlocksWithDraft,
@@ -23,8 +21,6 @@ export const useChat = () => {
   const loading = useSyncExternalStore(subscribeLoading, getLoading, getLoading)
 
   const send = useCallback((content: string, deps?: RunnerDeps) => {
-    if (!isChatOpen()) return
-
     const userBlock: Block = { type: "user", content }
     const blocksToAdd: Block[] = []
 
@@ -56,5 +52,5 @@ export const useChat = () => {
     cancelRunner()
   }, [])
 
-  return { chatOpen, send, respond, run: runChat, cancel, loading, draft, history }
+  return { send, respond, run: runChat, cancel, loading, draft, history }
 }

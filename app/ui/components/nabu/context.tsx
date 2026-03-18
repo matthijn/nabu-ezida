@@ -1,7 +1,6 @@
 "use client"
 
-import { createContext, useContext, useCallback, useEffect, type ReactNode } from "react"
-import { openChat, closeChat as closeChatStore } from "~/lib/chat"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { clearBlocks } from "~/lib/agent/block-store"
 import { clearEntries } from "~/lib/mutation-history"
 import { setEditorContext } from "~/lib/chat/context"
@@ -9,6 +8,7 @@ import { getCurrentFile } from "~/lib/files"
 import { getSettings, setSetting } from "~/lib/storage"
 
 interface NabuContextValue {
+  chatOpen: boolean
   startChat: () => void
   closeChat: () => void
 }
@@ -26,30 +26,30 @@ const buildEditorContext = () => {
 }
 
 export const NabuProvider = ({ children }: NabuProviderProps) => {
+  const [chatOpen, setChatOpen] = useState(() => getSettings().chatOpen ?? false)
+
   useEffect(() => {
     setEditorContext(buildEditorContext)
     return () => setEditorContext(undefined)
   }, [])
 
-  useEffect(() => {
-    if (getSettings().chatOpen) {
-      openChat()
-    }
-  }, [])
-
   const startChat = useCallback(() => {
     clearBlocks()
     clearEntries()
-    openChat()
+    setChatOpen(true)
     setSetting("chatOpen", true)
   }, [])
 
   const closeChat = useCallback(() => {
-    closeChatStore()
+    setChatOpen(false)
     setSetting("chatOpen", false)
   }, [])
 
-  return <NabuContext.Provider value={{ startChat, closeChat }}>{children}</NabuContext.Provider>
+  return (
+    <NabuContext.Provider value={{ chatOpen, startChat, closeChat }}>
+      {children}
+    </NabuContext.Provider>
+  )
 }
 
 export const useNabu = (): NabuContextValue => {
