@@ -1,4 +1,4 @@
-import type { Block } from "~/lib/agent"
+import type { Block } from "~/lib/agent/client"
 
 const toolLabels: Record<string, string> = {
   run_local_shell: "Reading",

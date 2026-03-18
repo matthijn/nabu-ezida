@@ -1,4 +1,4 @@
-import type { Block } from "./types"
+import type { Block } from "./client"
 import type { FileStore } from "~/lib/files"
 import { derive, lastPlan, hasActivePlan } from "./derived"
 import { formatStepProgress } from "./steering/nudges/step-state"

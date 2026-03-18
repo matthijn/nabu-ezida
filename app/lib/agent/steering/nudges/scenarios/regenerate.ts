@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
-import type { Block } from "../../../types"
+import type { Block } from "../../../client"
 import type { Nudger } from "../../nudge-tools"
 import { collect } from "../../nudge-tools"
 import { buildToolNudges } from "../index"

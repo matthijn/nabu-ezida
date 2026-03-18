@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { collect } from "./nudge-tools"
-import type { Block } from "../types"
+import type { Block } from "../client"
 import type { FileStore } from "~/lib/files"
 import type { Nudger } from "./nudge-tools"
 import { buildToolNudges } from "./nudges"

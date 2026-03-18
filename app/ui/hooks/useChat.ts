@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useCallback } from "react"
-import type { Block, SystemBlock } from "~/lib/agent"
+import type { Block, SystemBlock } from "~/lib/agent/client"
 import {
   getAllBlocksWithDraft,
   getDraft,
@@ -7,7 +7,7 @@ import {
   pushBlocks,
   subscribeLoading,
   getLoading,
-} from "~/lib/agent/block-store"
+} from "~/lib/agent/client"
 import { run, cancel as cancelRunner, type RunnerDeps } from "~/lib/agent/runner"
 import {
   getEditorContext,

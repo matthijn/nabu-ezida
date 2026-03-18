@@ -1,12 +1,17 @@
-import type { Block } from "./types"
-import type { ParseCallbacks } from "./stream"
+import type { Block, ParseCallbacks } from "./client"
 import type { ToolExecutor } from "./turn"
 import type { AnyTool } from "./executors/tool"
 import type { Nudger } from "./steering/nudge-tools"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 import { toToolDefinition, toSchemaMap } from "./executors/tool"
-import { buildCaller } from "./caller"
-import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks, filterBySource } from "./block-store"
+import {
+  buildCaller,
+  pushBlocks,
+  getAllBlocks,
+  isDraft,
+  subscribeBlocks,
+  filterBySource,
+} from "./client"
 import { isErrorResult, isDebugPauseBlock } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"

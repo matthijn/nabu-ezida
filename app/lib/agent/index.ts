@@ -1,4 +1,17 @@
-export * from "./types"
+export type {
+  Block,
+  ToolCall,
+  TextBlock,
+  ToolCallBlock,
+  ToolResultBlock,
+  UserBlock,
+  SystemBlock,
+  ReasoningBlock,
+  EmptyNudgeBlock,
+  ErrorBlock,
+  DebugPauseBlock,
+} from "./client"
+export type { ToolDeps, ToolResult, RawFiles, Operation, HandlerResult, Handler } from "./types"
 export {
   derive,
   isToolCallBlock,
@@ -9,4 +22,4 @@ export {
   type Derived,
   type Step,
 } from "./derived"
-export { createToolExecutor, type ToolDeps } from "./executors"
+export { createToolExecutor } from "./executors"

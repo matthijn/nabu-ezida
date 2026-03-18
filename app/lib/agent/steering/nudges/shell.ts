@@ -1,4 +1,4 @@
-import type { Block } from "../../types"
+import type { Block } from "../../client"
 import { afterToolResult, lastToolResultStatus, systemNudge, type Nudger } from "../nudge-tools"
 
 const shellReminder = `**Shell error** - Review the run_local_shell tool definition for supported commands and syntax.`

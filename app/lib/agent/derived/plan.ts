@@ -1,4 +1,4 @@
-import type { ToolCall } from "../types"
+import type { ToolCall } from "../client"
 import type { FileStore } from "~/lib/files"
 
 export interface StepDefObject {

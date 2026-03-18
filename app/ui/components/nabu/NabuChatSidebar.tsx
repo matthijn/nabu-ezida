@@ -34,7 +34,7 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/ui/hooks/useChat"
 import { derive } from "~/lib/agent"
-import { pushBlocks } from "~/lib/agent/block-store"
+import { pushBlocks } from "~/lib/agent/client"
 import {
   toGroupedMessages,
   type GroupedMessage,

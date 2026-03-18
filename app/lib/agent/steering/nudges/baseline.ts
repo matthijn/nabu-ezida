@@ -1,4 +1,4 @@
-import type { Block } from "../../types"
+import type { Block } from "../../client"
 import { combine, emptyNudge, type Nudger } from "../nudge-tools"
 
 const lastBlock = (history: Block[]): Block | undefined => history[history.length - 1]

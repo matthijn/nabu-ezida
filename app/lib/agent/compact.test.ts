@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { compactHistory, stepCompactHistory, stepCompactedIndices } from "./compact"
-import type { Block } from "./types"
+import type { Block } from "./client"
 
 const userBlock = (content: string): Block => ({ type: "user", content })
 const textBlock = (content: string): Block => ({ type: "text", content })

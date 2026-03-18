@@ -24,9 +24,9 @@ import {
   isDraft,
   clearPauseBlocks,
   getSource,
-} from "~/lib/agent/block-store"
+} from "~/lib/agent/client"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
-import type { Block, ToolCall } from "~/lib/agent"
+import type { Block, ToolCall } from "~/lib/agent/client"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
 interface BlockRendererProps {

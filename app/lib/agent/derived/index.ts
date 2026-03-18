@@ -1,4 +1,4 @@
-import type { Block, ToolCall, ToolCallBlock } from "../types"
+import type { Block, ToolCall, ToolCallBlock } from "../client"
 import type { FileStore } from "~/lib/files"
 import {
   type DerivedPlan,

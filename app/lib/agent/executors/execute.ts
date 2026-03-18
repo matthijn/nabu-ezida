@@ -1,4 +1,5 @@
-import type { ToolCall, ToolResult, Operation, Handler } from "../types"
+import type { ToolCall } from "../client"
+import type { ToolResult, Operation, Handler } from "../types"
 import {
   getFilesStripped,
   getFileRaw,

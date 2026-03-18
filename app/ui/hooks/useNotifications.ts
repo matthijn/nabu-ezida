@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { subscribeBlocks, getAllBlocks } from "~/lib/agent/block-store"
+import { subscribeBlocks, getAllBlocks } from "~/lib/agent/client"
 import { type NotificationEvent, detectBlockEvents, isTextEvent } from "~/lib/agent/notifications"
 
 const ensurePermission = (): void => {

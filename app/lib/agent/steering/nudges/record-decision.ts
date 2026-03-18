@@ -1,4 +1,4 @@
-import type { Block } from "../../types"
+import type { Block } from "../../client"
 import { systemNudge, withCooldown, findToolCallArgs, type Nudger } from "../nudge-tools"
 
 const isNonLocalScope = (args: Record<string, unknown>): boolean =>

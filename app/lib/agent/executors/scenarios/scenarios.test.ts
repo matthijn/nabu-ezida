@@ -5,7 +5,7 @@ import { fileURLToPath } from "url"
 import { setFiles } from "~/lib/files/store"
 import type { FileStore } from "~/lib/files"
 import { createToolExecutor } from "../index"
-import type { ToolCall } from "../../types"
+import type { ToolCall } from "../../client"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

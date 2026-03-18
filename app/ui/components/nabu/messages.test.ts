@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import type { Block } from "~/lib/agent"
+import type { Block } from "~/lib/agent/client"
 import {
   toRenderMessages,
   extractAskMessages,

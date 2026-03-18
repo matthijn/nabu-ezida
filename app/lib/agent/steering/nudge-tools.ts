@@ -1,4 +1,4 @@
-import type { Block, SystemBlock, EmptyNudgeBlock } from "../types"
+import type { Block, SystemBlock, EmptyNudgeBlock } from "../client"
 
 type NudgeContext = string | { text: string; blocks: Block[] }
 

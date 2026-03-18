@@ -1,4 +1,4 @@
-import type { Block } from "../../types"
+import type { Block } from "../../client"
 import { afterToolResult, systemNudge, type Nudger } from "../nudge-tools"
 
 const hasToolResult = (history: Block[], toolName: string): boolean =>

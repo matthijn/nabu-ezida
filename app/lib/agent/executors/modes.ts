@@ -1,6 +1,6 @@
 import type { AnyTool } from "./tool"
 import type { Nudger } from "../steering/nudge-tools"
-import type { Block } from "../types"
+import type { Block } from "../client"
 import {
   patchJsonBlock,
   applyLocalPatch,
@@ -14,8 +14,8 @@ import {
   completeStep,
   askTool,
   recordDecisionTool,
-} from "./tools"
-import { submitPlanTool } from "./tools"
+  submitPlanTool,
+} from "../tools"
 import { baselineNudge } from "../steering/nudges/baseline"
 import { buildToolNudges } from "../steering/nudges"
 import { createMemoryNudge } from "../steering/nudges/memory"

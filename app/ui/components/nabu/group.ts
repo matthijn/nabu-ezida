@@ -1,4 +1,4 @@
-import type { Block } from "~/lib/agent"
+import type { Block } from "~/lib/agent/client"
 import { type Derived, type DerivedPlan, type Step } from "~/lib/agent"
 import {
   type TextMessage,

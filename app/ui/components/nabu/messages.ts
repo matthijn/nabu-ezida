@@ -1,8 +1,8 @@
-import type { Block, ToolCall } from "~/lib/agent"
+import type { Block, ToolCall } from "~/lib/agent/client"
 import type { FileStore } from "~/lib/files"
 import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
-import { isDraft } from "~/lib/agent/block-store"
-import { AskArgs, type AskScope } from "~/lib/agent/executors/tools/ask.def"
+import { isDraft } from "~/lib/agent/client"
+import { AskArgs, type AskScope } from "~/lib/agent/tools/ask/def"
 
 export interface TextMessage {
   type: "text"

@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
-import { clearBlocks } from "~/lib/agent/block-store"
+import { clearBlocks } from "~/lib/agent/client"
 import { clearEntries } from "~/lib/mutation-history"
 import { setEditorContext } from "~/lib/editor/chat-context"
 import { getCurrentFile } from "~/lib/files"

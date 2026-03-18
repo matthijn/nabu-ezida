@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { Block } from "./types"
+import type { Block } from "./client"
 import { shouldContinue, hasToolCalls, excludeReasoning } from "./agent-loop"
 import { deriveMode } from "./executors/modes"
 import { textBlock, userBlock, toolCallBlock, terminalResult, toolResult } from "./test-helpers"
