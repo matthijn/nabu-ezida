@@ -11,18 +11,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const orchestratorToolNames = ["run_local_shell"]
 
-type Files = Record<string, string>
+import type { FileStore } from "~/lib/files"
 
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf-8")) as T
 
-const readFilesJson = (path: string): Files => {
+const readFilesJson = (path: string): FileStore => {
   if (!existsSync(path)) return {}
-  return readJson<Files>(path)
+  return readJson<FileStore>(path)
 }
 
 const shouldNudge = (block: Block): boolean => block.type === "user" || block.type === "tool_result"
 
-const buildNudge = (files: Files) => {
+const buildNudge = (files: FileStore) => {
   const toolNudges = buildToolNudges(() => files)
   const nudgers: Nudger[] = orchestratorToolNames.flatMap((n) => toolNudges[n] ?? [])
   nudgers.push(baselineNudge)

@@ -1,6 +1,6 @@
 import type { z } from "zod"
 import { findSingletonBlock, findBlocksByLanguage } from "~/lib/data-blocks/parse"
-import { createCappedCache } from "~/lib/utils"
+import { createCappedCache } from "~/lib/utils/cache"
 
 const cache = createCappedCache<string, unknown>(100)
 

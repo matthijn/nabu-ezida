@@ -1,7 +1,7 @@
 import type { Block, ToolCall, ToolCallBlock } from "../types"
+import type { FileStore } from "~/lib/files"
 import {
   type DerivedPlan,
-  type Files,
   planFromCall,
   processCompleteStep,
   updateLastPlan,
@@ -70,7 +70,7 @@ const isSubmitPlan = (call: EnrichedToolCall): boolean => call.name === "submit_
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
 const isCancel = (call: EnrichedToolCall): boolean => call.name === "cancel"
 
-const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files): Derived => {
+const processToolCall = (derived: Derived, call: EnrichedToolCall, files: FileStore): Derived => {
   if (!call.succeeded) return derived
 
   if (isCancel(call)) {
@@ -98,13 +98,13 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: Files)
 }
 
 const processBlock =
-  (files: Files) =>
+  (files: FileStore) =>
   (derived: Derived, block: EnrichedBlock): Derived => {
     if (!isEnrichedToolCallBlock(block)) return derived
     return block.calls.reduce((d, call) => processToolCall(d, call, files), derived)
   }
 
-export const derive = (history: Block[], files: Files = {}): Derived =>
+export const derive = (history: Block[], files: FileStore = {}): Derived =>
   enrichWithResults(history).reduce(processBlock(files), { plans: [] })
 
 export const getMode = (d: Derived): Mode => {
@@ -181,7 +181,6 @@ export {
   type Step,
   type StepDef,
   type StepDefObject,
-  type Files,
   lastPlan,
   hasActivePlan,
   guardCompleteStep,

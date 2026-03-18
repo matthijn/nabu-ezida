@@ -8,7 +8,8 @@ import {
   resolveAllPendingRefs,
   getAllDefinitions,
   findDefinitionIds,
-} from "./pending-refs"
+} from "."
+import type { FileStore } from "../store"
 
 describe("pending-refs", () => {
   describe("stripPendingRefs", () => {
@@ -180,7 +181,7 @@ describe("pending-refs", () => {
   })
 
   describe("getAllDefinitions", () => {
-    const cases: { name: string; files: Record<string, string>; expected: Set<string> }[] = [
+    const cases: { name: string; files: FileStore; expected: Set<string> }[] = [
       {
         name: "collects definitions from all files",
         files: {

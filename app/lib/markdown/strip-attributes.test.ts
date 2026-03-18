@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { stripAttributesBlock } from "./markdown"
+import { stripAttributesBlock } from "./strip-attributes"
 
 describe("stripAttributesBlock", () => {
   const cases: { name: string; input: string; expected: string }[] = [

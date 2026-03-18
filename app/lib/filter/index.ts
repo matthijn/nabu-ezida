@@ -1,1 +1,0 @@
-export { matchesAny } from "./match"

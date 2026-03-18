@@ -1,6 +1,8 @@
 import type { Annotation as StoredAnnotation } from "../schema"
 import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
 import { getAttributes } from "../selectors"
+import type { FileStore } from "~/lib/files"
+import { findIn, findFileFor } from "~/lib/files/collect"
 
 export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }
 
@@ -11,20 +13,14 @@ export const getAnnotationCount = (raw: string): number => getStoredAnnotations(
 
 const DEFAULT_ANNOTATION_COLOR = "gray"
 
-export const resolveAnnotationColor = (
-  files: Record<string, string>,
-  annotation: StoredAnnotation
-): string => {
+export const resolveAnnotationColor = (files: FileStore, annotation: StoredAnnotation): string => {
   if (annotation.color) return annotation.color
   if (annotation.code)
     return findCodeById(files, annotation.code)?.color ?? DEFAULT_ANNOTATION_COLOR
   return DEFAULT_ANNOTATION_COLOR
 }
 
-const resolveAnnotation = (
-  files: Record<string, string>,
-  stored: StoredAnnotation
-): Annotation => ({
+const resolveAnnotation = (files: FileStore, stored: StoredAnnotation): Annotation => ({
   id: stored.id,
   text: stored.text,
   color: resolveAnnotationColor(files, stored),
@@ -33,19 +29,13 @@ const resolveAnnotation = (
   review: stored.review,
 })
 
-export const getAnnotations = (files: Record<string, string>, raw: string): Annotation[] =>
+export const getAnnotations = (files: FileStore, raw: string): Annotation[] =>
   getStoredAnnotations(raw).map((a) => resolveAnnotation(files, a))
 
-export const findAnnotationById = (
-  files: Record<string, string>,
-  id: string
-): StoredAnnotation | undefined =>
-  Object.values(files)
-    .flatMap(getStoredAnnotations)
-    .find((a) => a.id === id)
+const hasId = (id: string) => (a: StoredAnnotation) => a.id === id
 
-export const findDocumentForAnnotation = (
-  files: Record<string, string>,
-  id: string
-): string | undefined =>
-  Object.entries(files).find(([_, raw]) => getStoredAnnotations(raw).some((a) => a.id === id))?.[0]
+export const findAnnotationById = (files: FileStore, id: string): StoredAnnotation | undefined =>
+  findIn(files, getStoredAnnotations, hasId(id))
+
+export const findDocumentForAnnotation = (files: FileStore, id: string): string | undefined =>
+  findFileFor(files, getStoredAnnotations, hasId(id))

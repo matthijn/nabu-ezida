@@ -1,4 +1,4 @@
-import { getLlmUrl } from "~/lib/env"
+import { getLlmUrl } from "~/lib/agent/env"
 
 interface ApproachMeta {
   keys: string[]

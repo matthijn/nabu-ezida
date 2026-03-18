@@ -4,10 +4,11 @@ import type { Components } from "react-markdown"
 import { createElement } from "react"
 import { FeatherFileText, FeatherMapPin } from "@subframe/core"
 import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
+import type { FileStore } from "~/lib/files"
 import { EntityLink } from "./EntityLink"
 
 interface EntityLinkContext {
-  files: Record<string, string>
+  files: FileStore
   projectId: string | null
   navigate?: (url: string) => void
 }

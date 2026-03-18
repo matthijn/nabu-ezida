@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest"
 import { patchJsonBlock } from "./tools/patch-json-block"
 import { setFiles } from "~/lib/files"
+import type { FileStore } from "~/lib/files"
 
 const doc = (json: object, language = "json-attributes"): string =>
   `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, "\t")}\n\`\`\`\n\nMore text.\n`
@@ -13,7 +14,7 @@ describe("patch_json_block", () => {
 
   interface Case {
     name: string
-    files: Record<string, string>
+    files: FileStore
     args: Record<string, unknown>
     expectStatus: "ok" | "partial" | "error"
     expectOutput: string | RegExp

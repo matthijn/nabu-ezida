@@ -1,4 +1,5 @@
 export {
+  type FileStore,
   getFiles,
   getFilesStripped,
   getFile,

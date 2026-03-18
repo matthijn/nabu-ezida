@@ -1,7 +1,4 @@
-import {
-  getCodebook as computeCodebook,
-  type Codebook,
-} from "~/domain/data-blocks/callout/codes/selectors"
+import { getCodebook as computeCodebook } from "~/domain/data-blocks/callout/codes/selectors"
 import {
   stripPendingRefs,
   markPendingRefs,
@@ -10,19 +7,20 @@ import {
   findPendingRefs,
   findDefinitionIds,
 } from "./pending-refs"
-import { debounce, createScopedDebounce } from "~/lib/utils"
-import { sendCommand } from "~/lib/sync/commands"
+import { debounce, createScopedDebounce } from "~/lib/utils/debounce"
+import { sendCommand } from "~/lib/server/sync/commands"
 import { normalizeContent } from "~/lib/patch/diff/normalize"
+import { memoByRef } from "~/lib/utils/memo"
 
-type Files = Record<string, string>
+export type FileStore = Record<string, string>
+
 type Listener = () => void
 
-let files: Files = {}
+let files: FileStore = {}
 let currentFile: string | null = null
 const listeners = new Set<Listener>()
 
-let cachedFiles: Files | null = null
-let cachedCodebook: Codebook | undefined
+const memoizedCodebook = memoByRef(computeCodebook)
 
 const notify = (): void => listeners.forEach((l) => l())
 const debouncedNotify = debounce(notify, 80, { maxWait: 400 })
@@ -70,18 +68,12 @@ const persistRenameCommand = (oldPath: string, newPath: string): void => {
   sendCommand(projectId, { action: "RenameFile", path: oldPath, newPath }).catch(() => undefined)
 }
 
-export const getFiles = (): Files => files
+export const getFiles = (): FileStore => files
 
-export const getFilesStripped = (): Files =>
+export const getFilesStripped = (): FileStore =>
   Object.fromEntries(Object.entries(files).map(([k, v]) => [k, stripPendingRefs(v)]))
 
-export const getCodebook = (): Codebook | undefined => {
-  if (cachedFiles !== files) {
-    cachedFiles = files
-    cachedCodebook = computeCodebook(files)
-  }
-  return cachedCodebook
-}
+export const getCodebook = () => memoizedCodebook(files)
 
 export const getFile = (filename: string): string | undefined => files[filename]
 
@@ -92,7 +84,7 @@ export const getCurrentFile = (): string | null => currentFile
 export const getFileLineCount = (filename: string): number =>
   getFileRaw(filename).split("\n").length
 
-export const setFiles = (newFiles: Record<string, string>): void => {
+export const setFiles = (newFiles: FileStore): void => {
   console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))
   files = Object.fromEntries(Object.entries(newFiles).map(([k, v]) => [k, normalizeContent(v)]))
   notify()
@@ -118,7 +110,7 @@ export const updateFileRaw = (filename: string, raw: string): void => {
   }
 
   const newDefinitions = findDefinitionIds(normalized)
-  let updatedFiles: Files = { ...files, [filename]: marked }
+  let updatedFiles: FileStore = { ...files, [filename]: marked }
   const resolvedPaths: string[] = []
 
   for (const defId of newDefinitions) {

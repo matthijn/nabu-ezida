@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { getProjects, type ProjectSummary } from "~/lib/api"
+import { getProjects, type ProjectSummary } from "~/lib/server/api"
 
 interface UseProjectsResult {
   projects: ProjectSummary[]

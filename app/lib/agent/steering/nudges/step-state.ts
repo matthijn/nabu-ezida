@@ -1,5 +1,6 @@
 import { afterToolResult, alreadyFired, systemNudge, type Nudger } from "../nudge-tools"
-import type { Files, DerivedPlan, Step } from "../../derived"
+import type { FileStore } from "~/lib/files"
+import type { DerivedPlan, Step } from "../../derived"
 import { derive, lastPlan, hasActivePlan } from "../../derived"
 
 const formatStepLine = (step: Step): string =>
@@ -11,7 +12,7 @@ export const formatStepProgress = (plan: DerivedPlan): string =>
 const stepMarker = (stepIndex: number): string => `[step:${stepIndex}]`
 
 export const createStepStateNudge =
-  (getFiles: () => Files): Nudger =>
+  (getFiles: () => FileStore): Nudger =>
   (history) => {
     if (!afterToolResult(history)) return null
 

@@ -1,5 +1,5 @@
 import { getWsUrl } from "../env"
-import { calculateBackoff } from "../backoff"
+import { calculateBackoff } from "~/lib/utils/backoff"
 import type { Command } from "./types"
 
 interface WebSocketCallbacks {

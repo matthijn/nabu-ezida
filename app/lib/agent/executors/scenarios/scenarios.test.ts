@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import { setFiles } from "~/lib/files/store"
+import type { FileStore } from "~/lib/files"
 import { createToolExecutor } from "../index"
 import type { ToolCall } from "../../types"
 
@@ -10,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 interface Scenario {
   name: string
-  files: Record<string, string>
+  files: FileStore
   call: ToolCall
   expected: {
     status: "ok" | "error"

@@ -1,7 +1,7 @@
 import type { z } from "zod"
 import type { Block, ToolCall } from "./types"
-import { getLlmHost } from "~/lib/env"
-import { calculateBackoff } from "~/lib/backoff"
+import { getLlmHost } from "~/lib/agent/env"
+import { calculateBackoff } from "~/lib/utils/backoff"
 import { toStrictSchema, type ToolDefinition } from "./executors/tool"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 

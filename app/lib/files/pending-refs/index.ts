@@ -6,6 +6,8 @@
  * This triggers cache invalidation since content changes.
  */
 
+import type { FileStore } from "../store"
+
 const PENDING_REF_PATTERN = /#\[([^\]]+)\]/g
 const ID_SOURCE = "[a-z]+-\\d[a-z0-9]{7}"
 const ID_PATTERN = new RegExp(ID_SOURCE, "g")
@@ -51,7 +53,7 @@ const findForeignIds = (content: string): string[] => {
   return findAllIds(content).filter((id) => !definitions.has(id))
 }
 
-export const getAllDefinitions = (files: Record<string, string>): Set<string> => {
+export const getAllDefinitions = (files: FileStore): Set<string> => {
   const all = new Set<string>()
   for (const content of Object.values(files)) {
     for (const id of findDefinitionIds(stripPendingRefs(content))) {

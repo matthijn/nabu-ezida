@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { applyFilePatch } from "./apply"
 import { setFiles } from "~/lib/files/store"
+import type { FileStore } from "~/lib/files"
 
 const scenariosDir = join(__dirname, "scenarios")
 
@@ -75,7 +76,7 @@ describe("range ref resolves against pretty content", () => {
 
   interface Case {
     name: string
-    store: Record<string, string>
+    store: FileStore
     targetPath: string
     targetContent: string
     patch: string

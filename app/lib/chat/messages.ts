@@ -1,4 +1,5 @@
-import type { Block, Files, ToolCall } from "~/lib/agent"
+import type { Block, ToolCall } from "~/lib/agent"
+import type { FileStore } from "~/lib/files"
 import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
 import { isDraft } from "~/lib/agent/block-store"
 import { AskArgs } from "~/lib/agent/executors/tools/ask.def"
@@ -66,7 +67,7 @@ const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<Pl
 
 export const byIndex = <T>(a: Indexed<T>, b: Indexed<T>): number => a.index - b.index
 
-export const toRenderMessages = (history: Block[], files: Files = {}): RenderMessage[] => {
+export const toRenderMessages = (history: Block[], files: FileStore = {}): RenderMessage[] => {
   const d = derive(history, files)
   const indexed: Indexed<RenderMessage>[] = [
     ...textMessagesIndexed(history),

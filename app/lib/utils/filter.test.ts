@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { matchesFilter, matchesAny } from "./match"
+import { matchesFilter, matchesAny } from "./filter"
 
 describe("matchesFilter", () => {
   const cases = [

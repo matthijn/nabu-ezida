@@ -1,3 +1,4 @@
+import type { FileStore } from "~/lib/files"
 import type { ComponentType } from "react"
 import type { RadixColor } from "~/ui/theme/radix"
 import type { EntityKind, EntityRef } from "./linkify/types"
@@ -71,7 +72,7 @@ const buildTextUrl = (
 
 const resolveAnnotationRef = (
   ref: Extract<EntityRef, { kind: "annotation" }>,
-  files: Record<string, string>,
+  files: FileStore,
   projectId: string
 ): ResolvedLink | null => {
   const annotation = findAnnotationById(files, ref.id)
@@ -89,7 +90,7 @@ const resolveAnnotationRef = (
 
 const resolveCalloutRef = (
   ref: Extract<EntityRef, { kind: "callout" }>,
-  files: Record<string, string>,
+  files: FileStore,
   projectId: string
 ): ResolvedLink | null => {
   const callout = findCalloutById(files, ref.id)
@@ -107,7 +108,7 @@ const resolveCalloutRef = (
 
 const resolveTagRef = (
   ref: Extract<EntityRef, { kind: "tag" }>,
-  files: Record<string, string>
+  files: FileStore
 ): ResolvedLink | null => {
   const tag = findTagDefinitionById(files, ref.id)
   if (!tag) return null
@@ -141,7 +142,7 @@ export interface EntityIcons {
 
 export const resolveEntityLink = (
   href: string,
-  files: Record<string, string>,
+  files: FileStore,
   projectId: string,
   icons: EntityIcons
 ): ResolvedLink | null => {

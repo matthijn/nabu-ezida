@@ -1,19 +1,15 @@
 import { CalloutSchema, type CalloutBlock } from "./schema"
 import { getBlocks } from "~/lib/data-blocks/query"
+import type { FileStore } from "~/lib/files"
+import { findIn, findFileFor } from "~/lib/files/collect"
 
 export const getCallouts = (raw: string): CalloutBlock[] =>
   getBlocks(raw, "json-callout", CalloutSchema)
 
-export const findCalloutById = (
-  files: Record<string, string>,
-  id: string
-): CalloutBlock | undefined =>
-  Object.values(files)
-    .flatMap(getCallouts)
-    .find((c) => c.id === id)
+const hasId = (id: string) => (c: CalloutBlock) => c.id === id
 
-export const findDocumentForCallout = (
-  files: Record<string, string>,
-  id: string
-): string | undefined =>
-  Object.entries(files).find(([_, raw]) => getCallouts(raw).some((c) => c.id === id))?.[0]
+export const findCalloutById = (files: FileStore, id: string): CalloutBlock | undefined =>
+  findIn(files, getCallouts, hasId(id))
+
+export const findDocumentForCallout = (files: FileStore, id: string): string | undefined =>
+  findFileFor(files, getCallouts, hasId(id))

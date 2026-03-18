@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import { shellHandler, type ShellCommandOutput } from "../../tools/run-local-shell"
+import type { FileStore } from "~/lib/files"
 import type { Operation } from "../../../types"
 import { createRequire } from "module"
 import { initJq } from "../commands/jq"
@@ -10,7 +11,7 @@ import { initJq } from "../commands/jq"
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 interface Scenario {
-  files: Record<string, string>
+  files: FileStore
   args: { commands: string[] }
   expected: {
     status: "ok" | "partial" | "error"

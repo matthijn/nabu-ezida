@@ -1,5 +1,5 @@
 import type { Block } from "./types"
-import type { Files } from "./derived/plan"
+import type { FileStore } from "~/lib/files"
 import { derive, lastPlan, hasActivePlan } from "./derived"
 import { formatStepProgress } from "./steering/nudges/step-state"
 
@@ -106,7 +106,7 @@ const collectDirectiveBlocks = (blocks: Block[], end: number): Block[] => {
   return [...last.values()]
 }
 
-const formatPlanContext = (blocks: Block[], files: Files): string => {
+const formatPlanContext = (blocks: Block[], files: FileStore): string => {
   const d = derive(blocks, files)
   if (!hasActivePlan(d.plans)) return ""
   const plan = lastPlan(d.plans)
@@ -114,7 +114,7 @@ const formatPlanContext = (blocks: Block[], files: Files): string => {
   return `\n\nActive plan: ${plan.task}\n${formatStepProgress(plan)}`
 }
 
-export const compactHistory = (blocks: Block[], files: Files): Block[] => {
+export const compactHistory = (blocks: Block[], files: FileStore): Block[] => {
   const resultIndex = findLastCompactedResultIndex(blocks)
   if (resultIndex === -1) return blocks
 

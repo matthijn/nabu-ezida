@@ -8,7 +8,7 @@ import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { TextField } from "~/ui/components/TextField"
 import { Button } from "~/ui/components/Button"
 import { Badge } from "~/ui/components/Badge"
-import { matchesAny } from "~/lib/filter"
+import { matchesAny } from "~/lib/utils/filter"
 import {
   elementBackground,
   solidBackground,

@@ -13,7 +13,7 @@ import { FileDropOverlay } from "~/ui/components/import"
 import { useNotifications } from "~/ui/hooks/useNotifications"
 import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
 
-import { createWebSocket, applyCommand } from "~/lib/sync"
+import { createWebSocket, applyCommand } from "~/lib/server/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
 import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"

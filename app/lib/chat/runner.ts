@@ -6,7 +6,7 @@ import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
 import { fetchApproachMeta } from "~/lib/modes/approaches"
 import { isChatOpen } from "./store"
-import { isAbortError } from "~/lib/utils"
+import { isAbortError } from "~/lib/utils/error"
 
 export type RunnerDeps = ToolDeps
 

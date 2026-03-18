@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest"
 import { resolveEntityLink, type ResolvedLink, type EntityIcons } from "./resolve"
+import type { FileStore } from "~/lib/files"
 
 const StubIcon = () => null
 
@@ -27,7 +28,7 @@ describe("resolveEntityLink", () => {
   const cases: {
     name: string
     href: string
-    files: Record<string, string>
+    files: FileStore
     expected: Partial<ResolvedLink> | null
   }[] = [
     {

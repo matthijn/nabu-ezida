@@ -1,5 +1,5 @@
 import type { ToolCall, ToolResultBlock, ToolResult } from "./types"
-import { isAbortError } from "~/lib/utils"
+import { isAbortError } from "~/lib/utils/error"
 
 export type ToolExecutor = (call: ToolCall) => Promise<ToolResult<unknown>>
 

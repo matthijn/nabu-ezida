@@ -1,9 +1,10 @@
+import type { FileStore } from "./store"
 import { findAnnotationById } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findCalloutById } from "~/domain/data-blocks/callout/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 import { toDisplayName } from "./filename"
 
-export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>
+export const resolveEntityName = (files: FileStore, id: string): string | null =>
   id.startsWith("annotation-")
     ? (findAnnotationById(files, id)?.text ?? null)
     : id.startsWith("callout-")

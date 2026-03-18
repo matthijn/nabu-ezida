@@ -1,5 +1,5 @@
 import { afterToolResult, systemNudge, type Nudger } from "../nudge-tools"
-import type { Files } from "../../derived"
+import type { FileStore } from "~/lib/files"
 import { derive, lastPlan, hasActivePlan, actionsSinceStepChange } from "../../derived"
 import { formatStepProgress } from "./step-state"
 
@@ -7,7 +7,7 @@ const STUCK_THRESHOLD = 12
 const MARKER = "[plan-stuck]"
 
 export const createPlanProgressNudge =
-  (getFiles: () => Files): Nudger =>
+  (getFiles: () => FileStore): Nudger =>
   (history) => {
     if (!afterToolResult(history)) return null
 

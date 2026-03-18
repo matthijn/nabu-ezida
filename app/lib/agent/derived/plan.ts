@@ -1,6 +1,5 @@
 import type { ToolCall } from "../types"
-
-export type Files = Record<string, string>
+import type { FileStore } from "~/lib/files"
 
 export interface StepDefObject {
   title: string
@@ -78,7 +77,7 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
   return steps
 }
 
-export const planFromCall = (call: ToolCall, _files: Files): DerivedPlan => {
+export const planFromCall = (call: ToolCall, _files: FileStore): DerivedPlan => {
   const stepDefs = call.args.steps as StepDef[]
   const steps = flattenSteps(stepDefs)
 

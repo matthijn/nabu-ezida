@@ -1,4 +1,4 @@
-import { createCappedCache } from "~/lib/utils"
+import { createCappedCache } from "~/lib/utils/cache"
 
 export interface Match {
   start: number

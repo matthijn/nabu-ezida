@@ -1,6 +1,8 @@
 import type { CalloutBlock } from "../schema"
 import { getCallouts } from "../selectors"
 import { toDisplayName } from "~/lib/files/filename"
+import type { FileStore } from "~/lib/files"
+import { collectAll, findIn } from "~/lib/files/collect"
 
 export interface Code {
   id: string
@@ -22,13 +24,12 @@ export interface Codebook {
 export const getCodes = (raw: string): CalloutBlock[] =>
   getCallouts(raw).filter((c) => c.type === "codebook-code")
 
-export const getAllCodes = (files: Record<string, string>): CalloutBlock[] =>
-  Object.values(files).flatMap(getCodes)
+export const getAllCodes = (files: FileStore): CalloutBlock[] => collectAll(files, getCodes)
 
-export const findCodeById = (files: Record<string, string>, id: string): CalloutBlock | undefined =>
-  getAllCodes(files).find((c) => c.id === id)
+export const findCodeById = (files: FileStore, id: string): CalloutBlock | undefined =>
+  findIn(files, getCodes, (c) => c.id === id)
 
-export const getCodeTitle = (files: Record<string, string>, id: string): string | undefined =>
+export const getCodeTitle = (files: FileStore, id: string): string | undefined =>
   findCodeById(files, id)?.title
 
 const calloutToCode = (callout: CalloutBlock): Code => ({
@@ -38,14 +39,14 @@ const calloutToCode = (callout: CalloutBlock): Code => ({
   detail: callout.content,
 })
 
-const groupCodesByFile = (files: Record<string, string>): CodeGroup[] =>
+const groupCodesByFile = (files: FileStore): CodeGroup[] =>
   Object.entries(files).reduce<CodeGroup[]>((acc, [filename, raw]) => {
     const codes = getCodes(raw).map(calloutToCode)
     if (codes.length > 0) acc.push({ fileId: filename, name: toDisplayName(filename), codes })
     return acc
   }, [])
 
-export const getCodebook = (files: Record<string, string>): Codebook | undefined => {
+export const getCodebook = (files: FileStore): Codebook | undefined => {
   const categories = groupCodesByFile(files)
   return categories.length === 0 ? undefined : { categories }
 }

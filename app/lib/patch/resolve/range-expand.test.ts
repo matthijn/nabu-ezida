@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { expandRangeRefs, type FileReader } from "./range-expand"
+import type { FileStore } from "~/lib/files"
 
 const NOTES = [
   "# Interview Notes",
@@ -54,7 +55,7 @@ const j = (...lines: string[]) => lines.join("\n")
 interface Case {
   name: string
   patch: string
-  files: Record<string, string>
+  files: FileStore
   currentPath: string
   expected?: string
   errorContains?: string
