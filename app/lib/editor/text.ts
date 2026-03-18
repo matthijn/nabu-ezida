@@ -1,5 +1,5 @@
 import type { Node } from "prosemirror-model"
-import { isHiddenRenderer } from "~/lib/blocks/registry"
+import { isHiddenRenderer } from "~/lib/data-blocks/registry"
 
 export interface TextRange {
   from: number

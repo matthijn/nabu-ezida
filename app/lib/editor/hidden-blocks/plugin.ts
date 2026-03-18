@@ -1,7 +1,7 @@
 import { Plugin, PluginKey } from "prosemirror-state"
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
-import { isHiddenRenderer } from "~/lib/blocks/registry"
+import { isHiddenRenderer } from "~/lib/data-blocks/registry"
 
 const pluginKey = new PluginKey("hiddenBlocks")
 

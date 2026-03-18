@@ -1,6 +1,6 @@
 import { DocumentMeta } from "./schema"
-import type { BlockTypeConfig } from "~/lib/blocks/definition"
-import type { ValidationContext } from "~/lib/blocks/validate"
+import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
+import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { validateTags } from "./tags/validation"
 import { validateAnnotations, patchAnnotationRequired } from "./annotations/validation"
 

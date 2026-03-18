@@ -17,7 +17,7 @@ import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/ui/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
-import { getBlockSchemaDefinitions } from "~/lib/blocks/registry"
+import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
 import {
   getAllBlocksWithDraft,
   subscribeBlocks,

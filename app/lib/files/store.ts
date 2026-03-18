@@ -1,7 +1,7 @@
 import {
   getCodebook as computeCodebook,
   type Codebook,
-} from "~/domain/blocks/callout/codes/selectors"
+} from "~/domain/data-blocks/callout/codes/selectors"
 import {
   stripPendingRefs,
   markPendingRefs,

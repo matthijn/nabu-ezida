@@ -1,5 +1,5 @@
-import type { CalloutBlock } from "~/domain/blocks/callout/schema"
-import { getCodes } from "~/domain/blocks/callout/codes/selectors"
+import type { CalloutBlock } from "~/domain/data-blocks/callout/schema"
+import { getCodes } from "~/domain/data-blocks/callout/codes/selectors"
 import type { HistoryEntry, HistoryVerb, ContentDiffer } from "../types"
 import { diffById, hasChangedExcluding } from "../diff-by-id"
 

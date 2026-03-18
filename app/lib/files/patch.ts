@@ -3,14 +3,18 @@ import { expandRangeRefs, type FileReader } from "~/lib/diff/range-ref"
 import { resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { repairJsonNewlines, toExtraPretty, fromExtraPretty, PrettyJsonError } from "~/lib/json"
 import { stripPendingRefs } from "./pending-refs"
-import { parseCodeBlocks } from "~/lib/blocks/parse"
-import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/blocks/uuid"
-import { validateMarkdownBlocks, extractProse, type ValidationError } from "~/lib/blocks/validate"
-import { stampActors } from "~/lib/blocks/actor"
-import type { ValidationContext } from "~/lib/blocks/validate"
+import { parseCodeBlocks } from "~/lib/data-blocks/parse"
+import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/data-blocks/uuid"
+import {
+  validateMarkdownBlocks,
+  extractProse,
+  type ValidationError,
+} from "~/lib/data-blocks/validate"
+import { stampActors } from "~/lib/data-blocks/actor"
+import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { getFiles } from "./store"
-import { getAllCodes } from "~/domain/blocks/callout/codes/selectors"
-import { getTagDefinitions } from "~/domain/blocks/settings/tags/selectors"
+import { getAllCodes } from "~/domain/data-blocks/callout/codes/selectors"
+import { getTagDefinitions } from "~/domain/data-blocks/settings/tags/selectors"
 
 type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: GeneratedId[] }

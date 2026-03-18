@@ -2,7 +2,7 @@ import type { ComponentType } from "react"
 import { z } from "zod"
 import { FeatherHighlighter } from "@subframe/core"
 import { BLOCK_COLORS } from "~/domain/colors"
-import { emptyToUndefined } from "~/lib/blocks/field-validate"
+import { emptyToUndefined } from "~/lib/data-blocks/field-validate"
 
 export const annotationIcon: ComponentType<{ className?: string }> = FeatherHighlighter
 

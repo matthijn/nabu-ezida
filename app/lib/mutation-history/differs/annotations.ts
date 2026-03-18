@@ -1,5 +1,5 @@
-import type { Annotation } from "~/domain/blocks/attributes/schema"
-import { getStoredAnnotations } from "~/domain/blocks/attributes/annotations/selectors"
+import type { Annotation } from "~/domain/data-blocks/attributes/schema"
+import { getStoredAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
 import type { HistoryEntry, HistoryVerb, ContentDiffer } from "../types"
 import { diffById, hasChangedExcluding } from "../diff-by-id"
 

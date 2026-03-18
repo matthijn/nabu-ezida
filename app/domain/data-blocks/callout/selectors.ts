@@ -1,5 +1,5 @@
 import { CalloutSchema, type CalloutBlock } from "./schema"
-import { getBlocks } from "~/lib/blocks/query"
+import { getBlocks } from "~/lib/data-blocks/query"
 
 export const getCallouts = (raw: string): CalloutBlock[] =>
   getBlocks(raw, "json-callout", CalloutSchema)

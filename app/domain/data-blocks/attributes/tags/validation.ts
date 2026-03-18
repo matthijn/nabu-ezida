@@ -1,5 +1,5 @@
-import type { ValidationError } from "~/lib/blocks/validate"
-import type { ValidationContext } from "~/lib/blocks/validate"
+import type { ValidationError } from "~/lib/data-blocks/validate"
+import type { ValidationContext } from "~/lib/data-blocks/validate"
 
 const tagIdExists = (id: string, available: { id: string; label: string }[]): boolean =>
   available.some((t) => t.id === id)

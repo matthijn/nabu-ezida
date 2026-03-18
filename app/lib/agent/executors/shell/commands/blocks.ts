@@ -1,5 +1,5 @@
 import { command, ok, err, normalizePath, isGlob, resolveFiles } from "./command"
-import { findBlocksByLanguage } from "~/lib/blocks/parse"
+import { findBlocksByLanguage } from "~/lib/data-blocks/parse"
 import { parsePrettyJson } from "~/lib/json"
 
 interface BlockResult {

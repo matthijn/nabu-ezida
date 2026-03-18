@@ -9,12 +9,17 @@ import {
   replaceBlock,
   replaceSingletonBlock,
   type CodeBlock,
-} from "~/lib/blocks/parse"
+} from "~/lib/data-blocks/parse"
 import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
 import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
 import { hasFuzzyPatterns, resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
 import { dedupArraysIn } from "~/lib/diff/json-block/dedup"
-import { getBlockConfig, isKnownBlockType, isSingleton, getLabelKey } from "~/lib/blocks/registry"
+import {
+  getBlockConfig,
+  isKnownBlockType,
+  isSingleton,
+  getLabelKey,
+} from "~/lib/data-blocks/registry"
 import { getFile } from "~/lib/files"
 
 type SelectorOp = "eq" | "neq" | "exists" | "not_exists"

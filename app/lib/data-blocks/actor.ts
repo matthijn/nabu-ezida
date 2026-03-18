@@ -1,6 +1,6 @@
 import equal from "fast-deep-equal"
 import { parseCodeBlocks, type CodeBlock } from "./parse"
-import { getActorPaths, isSingleton } from "~/lib/blocks/registry"
+import { getActorPaths, isSingleton } from "~/lib/data-blocks/registry"
 import { parsePath, tryParseJson, isObject, type ParsedPath } from "./json"
 
 export const stampActors = (original: string, updated: string, actor: Actor): string => {

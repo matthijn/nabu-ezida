@@ -17,11 +17,11 @@ export {
   withoutPersist,
 } from "./store"
 
-export { getTags } from "~/domain/blocks/attributes/tags/selectors"
-export { getAnnotations } from "~/domain/blocks/attributes/annotations/selectors"
-export { getCodeTitle } from "~/domain/blocks/callout/codes/selectors"
-export { getTagDefinitions } from "~/domain/blocks/settings/tags/selectors"
+export { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
+export { getAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
+export { getCodeTitle } from "~/domain/data-blocks/callout/codes/selectors"
+export { getTagDefinitions } from "~/domain/data-blocks/settings/tags/selectors"
 
 export { applyFilePatch, finalizeContent } from "./patch"
 
-export { formatGeneratedIds } from "~/lib/blocks/uuid"
+export { formatGeneratedIds } from "~/lib/data-blocks/uuid"

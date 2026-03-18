@@ -10,7 +10,7 @@ import {
   getAnnotations,
   getTagDefinitions,
 } from "~/lib/files"
-import type { TagDefinition } from "~/domain/blocks/settings/schema"
+import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)

@@ -4,7 +4,7 @@ import {
   isSingleton,
   getImmutableFields,
   getAllowedFiles,
-} from "~/lib/blocks/registry"
+} from "~/lib/data-blocks/registry"
 import { parseCodeBlocks, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 

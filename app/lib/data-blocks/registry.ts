@@ -1,8 +1,8 @@
 import type { BlockTypeConfig, ActorPathConfig, IdPathConfig } from "./definition"
 import { toBlockSchema, type BlockSchemaDefinition } from "./json-schema"
-import { jsonAttributes } from "~/domain/blocks/attributes/definition"
-import { jsonSettings } from "~/domain/blocks/settings/definition"
-import { jsonCallout } from "~/domain/blocks/callout/definition"
+import { jsonAttributes } from "~/domain/data-blocks/attributes/definition"
+import { jsonSettings } from "~/domain/data-blocks/settings/definition"
+import { jsonCallout } from "~/domain/data-blocks/callout/definition"
 
 type AnyBlockConfig = BlockTypeConfig
 

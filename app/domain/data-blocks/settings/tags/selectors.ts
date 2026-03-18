@@ -1,5 +1,5 @@
 import { Settings, type TagDefinition } from "../schema"
-import { getBlock } from "~/lib/blocks/query"
+import { getBlock } from "~/lib/data-blocks/query"
 import { SETTINGS_FILE } from "~/lib/files/filename"
 
 const getSettings = (raw: string): Settings | null => getBlock(raw, "json-settings", Settings)

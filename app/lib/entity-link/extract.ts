@@ -1,4 +1,4 @@
-import { getEntityPrefixes } from "~/lib/blocks/registry"
+import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 
 const buildCandidatePattern = (prefixes: string[]): RegExp =>
   new RegExp(`(${prefixes.join("|")})-[a-zA-Z0-9][a-zA-Z0-9_-]*`, "g")

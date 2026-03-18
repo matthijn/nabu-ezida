@@ -1,4 +1,4 @@
-import { getTags } from "~/domain/blocks/attributes/tags/selectors"
+import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
 import type { HistoryEntry, ContentDiffer } from "../types"
 
 const toTagEntry = (

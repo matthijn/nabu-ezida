@@ -1,4 +1,4 @@
-import { extractProse } from "~/lib/blocks/validate"
+import { extractProse } from "~/lib/data-blocks/validate"
 import type { ContentDiffer } from "../types"
 
 export const diffProse: ContentDiffer = (oldRaw, newRaw, path, ts) => {

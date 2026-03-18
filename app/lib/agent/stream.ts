@@ -3,7 +3,7 @@ import type { Block, ToolCall } from "./types"
 import { getLlmHost } from "~/lib/env"
 import { calculateBackoff } from "~/lib/backoff"
 import { toStrictSchema, type ToolDefinition } from "./executors/tool"
-import type { BlockSchemaDefinition } from "~/lib/blocks/json-schema"
+import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 
 type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }

@@ -1,7 +1,7 @@
 "use client"
 
 import { elementBackground, solidBackground, type RadixColor } from "~/lib/colors/radix"
-import { annotationIcon as AnnotationIcon } from "~/domain/blocks/attributes/schema"
+import { annotationIcon as AnnotationIcon } from "~/domain/data-blocks/attributes/schema"
 
 interface DocumentItemProps {
   title: string

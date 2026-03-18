@@ -58,7 +58,7 @@ import {
   linkifyQuotes,
   normalizeBacktickQuotes,
 } from "~/lib/entity-link"
-import { findTagDefinitionByLabel } from "~/domain/blocks/settings/tags/selectors"
+import { findTagDefinitionByLabel } from "~/domain/data-blocks/settings/tags/selectors"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-history"
 import type { HistoryEntry } from "~/lib/mutation-history"

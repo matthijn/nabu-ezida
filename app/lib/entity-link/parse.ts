@@ -1,6 +1,6 @@
 import type { Spotlight } from "~/lib/editor/spotlight"
 import type { EntityKind, EntityRef } from "./types"
-import { getEntityPrefixes } from "~/lib/blocks/registry"
+import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 
 const FILE_PROTOCOL = "file://"
 const RANGE_DELIMITER = "..."

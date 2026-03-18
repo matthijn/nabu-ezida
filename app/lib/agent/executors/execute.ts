@@ -9,7 +9,7 @@ import {
   finalizeContent,
   formatGeneratedIds,
 } from "~/lib/files"
-import { replaceUuidPlaceholders } from "~/lib/blocks/uuid"
+import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
 import { toExtraPretty } from "~/lib/json"
 import type { ToolExecutor } from "../turn"
 import {

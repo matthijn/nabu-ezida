@@ -1,4 +1,4 @@
-import { getEntityPrefixes } from "~/lib/blocks/registry"
+import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 
 type NameResolver = (id: string) => string | null
 type MissingFormatter = (id: string) => string | null

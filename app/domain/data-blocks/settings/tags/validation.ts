@@ -1,5 +1,5 @@
 import type { Settings, TagDefinition } from "../schema"
-import type { ValidationError } from "~/lib/blocks/validate"
+import type { ValidationError } from "~/lib/data-blocks/validate"
 
 const findDuplicateLabels = (tags: TagDefinition[]): string[] => {
   const seen = new Set<string>()

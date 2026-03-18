@@ -1,5 +1,5 @@
 import { CalloutSchema } from "./schema"
-import type { BlockTypeConfig } from "~/lib/blocks/definition"
+import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
 
 export const jsonCallout: BlockTypeConfig = {
   schema: CalloutSchema,

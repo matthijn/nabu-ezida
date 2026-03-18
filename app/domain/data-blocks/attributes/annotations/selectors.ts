@@ -1,5 +1,5 @@
 import type { Annotation as StoredAnnotation } from "../schema"
-import { findCodeById } from "~/domain/blocks/callout/codes/selectors"
+import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
 import { getAttributes } from "../selectors"
 
 export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }

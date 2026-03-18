@@ -1,6 +1,6 @@
 import { Settings } from "./schema"
-import type { BlockTypeConfig } from "~/lib/blocks/definition"
-import type { ValidationContext } from "~/lib/blocks/validate"
+import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
+import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { validateTagLabels } from "./tags/validation"
 
 export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {

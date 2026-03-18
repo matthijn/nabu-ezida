@@ -1,6 +1,6 @@
-import { findAnnotationById } from "~/domain/blocks/attributes/annotations/selectors"
-import { findCalloutById } from "~/domain/blocks/callout/selectors"
-import { findTagDefinitionById } from "~/domain/blocks/settings/tags/selectors"
+import { findAnnotationById } from "~/domain/data-blocks/attributes/annotations/selectors"
+import { findCalloutById } from "~/domain/data-blocks/callout/selectors"
+import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 import { toDisplayName } from "./filename"
 
 export const resolveEntityName = (files: Record<string, string>, id: string): string | null =>

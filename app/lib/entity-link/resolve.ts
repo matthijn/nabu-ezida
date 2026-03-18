@@ -3,8 +3,8 @@ import type { RadixColor } from "~/lib/colors/radix"
 import type { EntityKind, EntityRef } from "./types"
 import { parseEntityLink } from "./parse"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
-import { calloutTypeIcons } from "~/domain/blocks/callout/schema"
-import { annotationIcon } from "~/domain/blocks/attributes/schema"
+import { calloutTypeIcons } from "~/domain/data-blocks/callout/schema"
+import { annotationIcon } from "~/domain/data-blocks/attributes/schema"
 import {
   lowContrastText,
   solidBackground,
@@ -16,9 +16,9 @@ import {
   findAnnotationById,
   findDocumentForAnnotation,
   resolveAnnotationColor,
-} from "~/domain/blocks/attributes/annotations/selectors"
-import { findCalloutById, findDocumentForCallout } from "~/domain/blocks/callout/selectors"
-import { findTagDefinitionById } from "~/domain/blocks/settings/tags/selectors"
+} from "~/domain/data-blocks/attributes/annotations/selectors"
+import { findCalloutById, findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
+import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 
 export interface ResolvedColors {
   text: string

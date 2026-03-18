@@ -1,7 +1,7 @@
 import type { Annotation } from "../schema"
-import type { ValidationError } from "~/lib/blocks/validate"
-import type { ValidationContext } from "~/lib/blocks/validate"
-import { removeFromRequired } from "~/lib/blocks/json-schema"
+import type { ValidationError } from "~/lib/data-blocks/validate"
+import type { ValidationContext } from "~/lib/data-blocks/validate"
+import { removeFromRequired } from "~/lib/data-blocks/json-schema"
 
 const textExistsInProse = (text: string, prose: string): boolean =>
   prose.toLowerCase().includes(text.toLowerCase())
