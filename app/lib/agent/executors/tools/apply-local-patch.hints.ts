@@ -1,12 +1,12 @@
-import { parseV4ADiff, buildMatchText, type Hunk } from "~/lib/diff/parse"
-import { findMatches } from "~/lib/diff/search"
+import { parseV4ADiff, buildMatchText, type Hunk } from "~/lib/patch/diff/parse"
+import { findMatches } from "~/lib/patch/diff/search"
 import {
   buildLineZones,
   findJsonBlockSpans,
   type ZoneMap,
   type JsonBlockSpan,
   type LineZone,
-} from "~/lib/diff/zone"
+} from "~/lib/patch/diff/zone"
 
 export interface HintContext {
   fileContent: string

@@ -5,7 +5,7 @@ import type { Spotlight } from "./types"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
 import { proseTextContent, textOffsetToPos } from "~/lib/editor/text"
 import type { TextRange } from "~/lib/editor/text"
-import { findMatchOffset } from "~/lib/diff/fuzzy-inline"
+import { findMatchOffset } from "~/lib/patch/diff/search"
 
 const pluginKey = new PluginKey("spotlight")
 

@@ -1,4 +1,4 @@
-import { findMatchOffset } from "~/lib/diff/fuzzy-inline"
+import { findMatchOffset } from "~/lib/patch/diff/search"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
 
 const QUOTE_PATTERN =

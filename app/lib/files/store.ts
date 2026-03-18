@@ -12,7 +12,7 @@ import {
 } from "./pending-refs"
 import { debounce, createScopedDebounce } from "~/lib/utils"
 import { sendCommand } from "~/lib/sync/commands"
-import { normalizeContent } from "~/lib/diff/normalize"
+import { normalizeContent } from "~/lib/patch/diff/normalize"
 
 type Files = Record<string, string>
 type Listener = () => void

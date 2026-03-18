@@ -10,7 +10,7 @@ import {
   formatGeneratedIds,
 } from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
-import { toExtraPretty } from "~/lib/json"
+import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
 import type { ToolExecutor } from "../turn"
 import {
   pushEntries,

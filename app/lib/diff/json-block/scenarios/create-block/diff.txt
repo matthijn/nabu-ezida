@@ -1,9 +1,0 @@
-@@
-+
-+```json-attributes
-+{
-+	"tags": [
-+		"new-tag"
-+	]
-+}
-+```

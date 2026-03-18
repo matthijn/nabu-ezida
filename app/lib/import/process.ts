@@ -1,4 +1,4 @@
-import { generateDiff } from "~/lib/diff"
+import { generateDiff } from "~/lib/patch/diff/generate"
 import { applyFilePatch, updateFileRaw, getFiles } from "~/lib/files"
 import { deduplicateName } from "./dedupe"
 import { readFileContent, isMarkdownFile } from "./read"

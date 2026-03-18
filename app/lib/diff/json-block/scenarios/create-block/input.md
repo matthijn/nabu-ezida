@@ -1,3 +1,0 @@
-# Document
-
-Some text here.

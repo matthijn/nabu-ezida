@@ -17,6 +17,7 @@ export const jsonAttributes: BlockTypeConfig<DocumentMeta, ValidationContext> = 
   singleton: true,
   idPaths: [{ path: "annotations.*.id", prefix: "annotation" }],
   actorPaths: [{ path: "annotations.*.actor" }],
+  fuzzyFields: ["annotations.*.text"],
   patchSchema: patchAnnotationRequired,
   validate: (parsed, context) => [
     ...validateTags(parsed.tags, context),

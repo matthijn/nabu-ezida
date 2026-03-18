@@ -10,204 +10,16 @@ import {
   replaceSingletonBlock,
   type CodeBlock,
 } from "~/lib/data-blocks/parse"
-import type { JsonPatchOp } from "~/lib/diff/json-block/apply"
-import { applyJsonPatchOps } from "~/lib/diff/json-block/apply"
-import { hasFuzzyPatterns, resolveFuzzyPatterns } from "~/lib/diff/fuzzy-inline"
-import { dedupArraysIn } from "~/lib/diff/json-block/dedup"
+import type { JsonPatchOp } from "~/lib/patch/structured-json/apply"
+import { applyEnrichedOps } from "~/lib/patch/structured-json/pipeline"
 import {
   getBlockConfig,
   isKnownBlockType,
   isSingleton,
   getLabelKey,
+  getFuzzyFields,
 } from "~/lib/data-blocks/registry"
 import { getFile } from "~/lib/files"
-
-type SelectorOp = "eq" | "neq" | "exists" | "not_exists"
-interface Selector {
-  arrayPath: string
-  key: string
-  op: SelectorOp
-  value: string
-  rest: string
-}
-
-const SELECTOR_REGEX = /^(\/[^[]+)\[(!?)([^\]!=]+)(?:(!=|=)([^\]]+))?\](\/.*)?$/
-
-const parseSelector = (path: string): Selector | null => {
-  const match = path.match(SELECTOR_REGEX)
-  if (!match) return null
-  const [, arrayPath, negation, key, operator, value, rest] = match
-  const op: SelectorOp =
-    operator === "!=" ? "neq" : operator === "=" ? "eq" : negation === "!" ? "not_exists" : "exists"
-  return { arrayPath, key, op, value: value ?? "", rest: rest ?? "" }
-}
-
-const NUMERIC_INDEX_REGEX = /\/\d+(\/|$)/
-
-const hasNumericIndex = (path: string): boolean => NUMERIC_INDEX_REGEX.test(path)
-
-const collectOpPaths = (op: JsonPatchOp): string[] =>
-  "from" in op && op.from ? [op.path, op.from] : [op.path]
-
-interface OpPartition {
-  accepted: JsonPatchOp[]
-  rejectedPaths: string[]
-}
-
-const isNumericIndexOp = (op: JsonPatchOp): boolean =>
-  collectOpPaths(op).some((p) => !parseSelector(p) && hasNumericIndex(p))
-
-export const partitionNumericIndices = (ops: JsonPatchOp[]): OpPartition =>
-  ops.reduce<OpPartition>(
-    (acc, op) => {
-      if (isNumericIndexOp(op)) {
-        return { ...acc, rejectedPaths: [...acc.rejectedPaths, op.path] }
-      }
-      return { ...acc, accepted: [...acc.accepted, op] }
-    },
-    { accepted: [], rejectedPaths: [] }
-  )
-
-const getNestedValue = (obj: unknown, path: string): unknown => {
-  const segments = path.split(".")
-  let current: unknown = obj
-  for (const seg of segments) {
-    if (current === null || typeof current !== "object") return undefined
-    current = (current as Record<string, unknown>)[seg]
-  }
-  return current
-}
-
-const isTruthy = (v: unknown): boolean => v !== undefined && v !== null && v !== "" && v !== false
-
-const matchesSelectorOp = (resolved: unknown, op: SelectorOp, value: string): boolean => {
-  switch (op) {
-    case "eq":
-      return String(resolved) === value
-    case "neq":
-      return String(resolved) !== value
-    case "exists":
-      return isTruthy(resolved)
-    case "not_exists":
-      return !isTruthy(resolved)
-    default:
-      throw new Error(`unknown selector op: ${op}`)
-  }
-}
-
-const resolveArray = (doc: unknown, arrayPath: string): unknown[] | null => {
-  const segments = arrayPath.split("/").filter(Boolean)
-  let current: unknown = doc
-  for (const seg of segments) {
-    if (current === null || typeof current !== "object") return null
-    current = (current as Record<string, unknown>)[seg]
-  }
-  return Array.isArray(current) ? current : null
-}
-
-const findMatchingIndices = (doc: unknown, selector: Selector): number[] => {
-  const arr = resolveArray(doc, selector.arrayPath)
-  if (!arr) return []
-  const indices: number[] = []
-  for (let i = 0; i < arr.length; i++) {
-    if (matchesSelectorOp(getNestedValue(arr[i], selector.key), selector.op, selector.value)) {
-      indices.push(i)
-    }
-  }
-  return indices
-}
-
-const expandOpWithSelector = (
-  op: JsonPatchOp,
-  indices: number[],
-  selector: Selector
-): JsonPatchOp[] => {
-  const sorted = op.op === "remove" ? [...indices].sort((a, b) => b - a) : indices
-  return sorted.map((i) => ({
-    ...op,
-    path: `${selector.arrayPath}/${i}${selector.rest}`,
-  }))
-}
-
-type ResolveResult = { ok: true; ops: JsonPatchOp[] } | { ok: false; error: string }
-
-const resolveSelectorOp = (op: JsonPatchOp, doc: unknown): ResolveResult => {
-  const selector = parseSelector(op.path)
-  if (!selector) return { ok: true, ops: [op] }
-  const indices = findMatchingIndices(doc, selector)
-  if (indices.length === 0) return { ok: false, error: `No items match ${op.path}` }
-  return { ok: true, ops: expandOpWithSelector(op, indices, selector) }
-}
-
-export const resolveSelectors = (ops: JsonPatchOp[], doc: unknown): ResolveResult => {
-  const resolved: JsonPatchOp[] = []
-  for (const op of ops) {
-    const result = resolveSelectorOp(op, doc)
-    if (!result.ok) return result
-    resolved.push(...result.ops)
-  }
-  return { ok: true, ops: resolved }
-}
-
-const isAnnotationPath = (path: string): boolean => /\/annotations\/[^/]+$/.test(path)
-
-const isAnnotationTextField = (path: string): boolean => /\/annotations\/[^/]+\/text$/.test(path)
-
-const hasTextField = (v: unknown): v is Record<string, unknown> & { text: string } =>
-  typeof v === "object" &&
-  v !== null &&
-  "text" in v &&
-  typeof (v as Record<string, unknown>).text === "string"
-
-const wrapFuzzy = (text: string): string => `FUZZY[[${text}]]`
-
-export const autoFuzzyAnnotationText = (op: JsonPatchOp): JsonPatchOp => {
-  if (op.op !== "add" && op.op !== "replace") return op
-
-  if (isAnnotationPath(op.path) && hasTextField(op.value) && !hasFuzzyPatterns(op.value.text)) {
-    return { ...op, value: { ...op.value, text: wrapFuzzy(op.value.text) } }
-  }
-
-  if (
-    isAnnotationTextField(op.path) &&
-    typeof op.value === "string" &&
-    !hasFuzzyPatterns(op.value)
-  ) {
-    return { ...op, value: wrapFuzzy(op.value) }
-  }
-
-  return op
-}
-
-type FuzzyOpResult = { ok: true; op: JsonPatchOp } | { ok: false; error: string }
-
-const resolveOpAnnotationText = (op: JsonPatchOp, content: string): FuzzyOpResult => {
-  if (op.op !== "add" && op.op !== "replace") return { ok: true, op }
-
-  if (typeof op.value === "string" && hasFuzzyPatterns(op.value)) {
-    const { patch: resolved, unresolved } = resolveFuzzyPatterns(op.value, content)
-    if (unresolved.length > 0) return { ok: false, error: `${op.path}: Text not found in document` }
-    return { ok: true, op: { ...op, value: resolved } }
-  }
-
-  if (hasTextField(op.value) && hasFuzzyPatterns(op.value.text)) {
-    const { patch: resolved, unresolved } = resolveFuzzyPatterns(op.value.text, content)
-    if (unresolved.length > 0) return { ok: false, error: `${op.path}: Text not found in document` }
-    return { ok: true, op: { ...op, value: { ...op.value, text: resolved } } }
-  }
-
-  return { ok: true, op }
-}
-
-const resolveAnnotationTextOps = (ops: JsonPatchOp[], content: string): ResolveResult => {
-  const resolved: JsonPatchOp[] = []
-  for (const op of ops) {
-    const result = resolveOpAnnotationText(op, content)
-    if (!result.ok) return { ok: false, error: result.error }
-    resolved.push(result.op)
-  }
-  return { ok: true, ops: resolved }
-}
 
 const normalizeDoubleExt = (path: string): string => path.replace(/(\.\w+)\1+$/, "$1")
 
@@ -258,44 +70,6 @@ const seedAppendArrays = (
     if (validFields.has(field)) doc[field] = []
   }
   return doc
-}
-
-interface ApplyResult {
-  doc: unknown
-  failures: string[]
-  applied: number
-}
-
-const applyOpsIndividually = (ops: JsonPatchOp[], doc: unknown, content: string): ApplyResult => {
-  let currentDoc = doc
-  const failures: string[] = []
-  let applied = 0
-
-  for (const op of ops) {
-    const resolved = resolveSelectorOp(op, currentDoc)
-    if (!resolved.ok) {
-      failures.push(resolved.error)
-      continue
-    }
-
-    const fuzzyWrapped = resolved.ops.map(autoFuzzyAnnotationText)
-    const fuzzyResolved = resolveAnnotationTextOps(fuzzyWrapped, content)
-    if (!fuzzyResolved.ok) {
-      failures.push(fuzzyResolved.error)
-      continue
-    }
-
-    const result = applyJsonPatchOps(currentDoc, fuzzyResolved.ops)
-    if (!result.ok) {
-      failures.push(`${op.path}: ${result.error}`)
-      continue
-    }
-
-    currentDoc = result.result
-    applied++
-  }
-
-  return { doc: currentDoc, failures, applied }
 }
 
 const formatJson = (obj: object): string => JSON.stringify(obj, null, "\t")
@@ -385,30 +159,33 @@ export const patchJsonBlock = registerTool(
       })
       if (!resolved.ok) return err(`${file.path}: ${resolved.error}`)
 
-      const { accepted, rejectedPaths } = partitionNumericIndices(operations)
+      const fuzzyFields = getFuzzyFields(language)
+      const {
+        doc: patchedDoc,
+        failures,
+        applied,
+        rejectedPaths,
+      } = applyEnrichedOps(operations, resolved.json, file.content, { fuzzyFields })
+
       const rejectedMessage =
         rejectedPaths.length > 0
           ? `Rejected ${rejectedPaths.length} op(s) with numeric indices (use selectors instead): ${rejectedPaths.join(", ")}`
           : ""
 
-      if (accepted.length === 0) {
+      if (applied === 0) {
         return err(
-          `All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`
+          rejectedPaths.length > 0 && failures.length === 0
+            ? `All operations use numeric array indices. Use selectors instead, e.g. /annotations[id=annotation_abc]`
+            : [rejectedMessage, ...failures].filter(Boolean).join("\n")
         )
       }
 
-      const {
-        doc: patchedDoc,
-        failures,
-        applied,
-      } = applyOpsIndividually(accepted, resolved.json, file.content)
-
-      if (applied === 0) {
-        return err([rejectedMessage, ...failures].filter(Boolean).join("\n"))
-      }
-
-      const deduped = dedupArraysIn(patchedDoc) as object
-      const newRaw = writeBack(file.content, language, resolved.block, formatJson(deduped))
+      const newRaw = writeBack(
+        file.content,
+        language,
+        resolved.block,
+        formatJson(patchedDoc as object)
+      )
       const isNoOp = newRaw === file.content
 
       const successOutput = isNoOp

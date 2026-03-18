@@ -21,6 +21,7 @@ export interface BlockTypeConfig<T = unknown, C = unknown> {
   labelKey?: string
   idPaths?: IdPathConfig[]
   actorPaths?: ActorPathConfig[]
+  fuzzyFields?: string[]
   patchSchema?: (schema: Record<string, unknown>) => Record<string, unknown>
   validate?: (parsed: T, context: C) => ValidationError[]
 }

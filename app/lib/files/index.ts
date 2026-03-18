@@ -22,6 +22,6 @@ export { getAnnotations } from "~/domain/data-blocks/attributes/annotations/sele
 export { getCodeTitle } from "~/domain/data-blocks/callout/codes/selectors"
 export { getTagDefinitions } from "~/domain/data-blocks/settings/tags/selectors"
 
-export { applyFilePatch, finalizeContent } from "./patch"
+export { applyFilePatch, finalizeContent } from "~/lib/patch/apply"
 
 export { formatGeneratedIds } from "~/lib/data-blocks/uuid"
