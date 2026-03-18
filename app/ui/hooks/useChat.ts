@@ -9,7 +9,11 @@ import {
   getLoading,
 } from "~/lib/agent/block-store"
 import { run, cancel as cancelRunner, type RunnerDeps } from "~/lib/agent/runner"
-import { getEditorContext, contextToMessage, findLastContextMessage } from "~/lib/chat/context"
+import {
+  getEditorContext,
+  contextToMessage,
+  findLastContextMessage,
+} from "~/lib/editor/chat-context"
 
 export const useChat = () => {
   const history = useSyncExternalStore(

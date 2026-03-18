@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { contextToMessage, type EditorContext } from "./context"
+import { contextToMessage, type EditorContext } from "./chat-context"
 
 describe("contextToMessage", () => {
   const cases = [

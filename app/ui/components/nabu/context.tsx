@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { clearBlocks } from "~/lib/agent/block-store"
 import { clearEntries } from "~/lib/mutation-history"
-import { setEditorContext } from "~/lib/chat/context"
+import { setEditorContext } from "~/lib/editor/chat-context"
 import { getCurrentFile } from "~/lib/files"
 import { getSettings, setSetting } from "~/lib/storage"
 
