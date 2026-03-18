@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import type { RadixColor } from "~/lib/colors/radix"
+import type { RadixColor } from "~/ui/theme/radix"
 import type { EntityKind, EntityRef } from "./types"
 import { parseEntityLink } from "./parse"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
@@ -10,8 +10,8 @@ import {
   solidBackground,
   elementBackground,
   hoveredElementBackground,
-} from "~/lib/colors/radix"
-import { resolveFeatherIcon } from "~/lib/icons/feather-map"
+} from "~/ui/theme/radix"
+import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import {
   findAnnotationById,
   findDocumentForAnnotation,

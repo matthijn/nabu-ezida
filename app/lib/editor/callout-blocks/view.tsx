@@ -2,8 +2,8 @@
 
 import { FeatherTrash2 } from "@subframe/core"
 import type { CalloutBlock } from "~/domain/data-blocks/callout/schema"
-import type { RadixColor } from "~/lib/colors/radix"
-import { solidBackground } from "~/lib/colors/radix"
+import type { RadixColor } from "~/ui/theme/radix"
+import { solidBackground } from "~/ui/theme/radix"
 import { IconButton } from "~/ui/components/IconButton"
 import { CalloutContent } from "./content"
 

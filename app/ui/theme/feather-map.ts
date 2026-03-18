@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import type { IconName } from "~/domain/icons"
+import type { IconName } from "./icons"
 import {
   FeatherActivity,
   FeatherAnchor,

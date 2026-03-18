@@ -4,7 +4,7 @@ import { useCallback, useRef, useEffect, useLayoutEffect, useState } from "react
 import { createPortal } from "react-dom"
 import type { Annotation } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
-import { elementBorder } from "~/lib/colors/radix"
+import { elementBorder } from "~/ui/theme/radix"
 import { getCodeTitle, getFiles } from "~/lib/files"
 
 interface HoverState {

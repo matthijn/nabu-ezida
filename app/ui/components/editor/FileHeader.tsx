@@ -23,7 +23,7 @@ import {
   solidBackground,
   lowContrastText,
   type RadixColor,
-} from "~/lib/colors/radix"
+} from "~/ui/theme/radix"
 import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
 interface Tag {

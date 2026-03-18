@@ -1,4 +1,4 @@
-export { type RadixColor } from "~/domain/colors"
+export { type RadixColor } from "./colors"
 
 const toVar = (color: string, shade: number): string => `var(--${color}-${shade})`
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { solidBackground, elementBackground, hoveredElementBorder } from "~/lib/colors/radix"
+import { solidBackground, elementBackground, hoveredElementBorder } from "~/ui/theme/radix"
 import type { Code } from "./types"
 
 interface CodeItemProps {

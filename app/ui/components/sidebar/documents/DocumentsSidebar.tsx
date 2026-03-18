@@ -15,8 +15,8 @@ import {
   lowContrastText,
   highContrastText,
   type RadixColor,
-} from "~/lib/colors/radix"
-import { resolveFeatherIcon } from "~/lib/icons/feather-map"
+} from "~/ui/theme/radix"
+import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import { humanize } from "./TagGroupHeader"
 import { DocumentItem } from "./DocumentItem"
 
