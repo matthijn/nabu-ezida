@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { filterCodeBlocks, stripIncompleteLink, preprocessStreaming } from "./filter"
+import { filterCodeBlocks, stripIncompleteLink, preprocessStreaming } from "./partial"
 
 describe("filterCodeBlocks", () => {
   const cases = [

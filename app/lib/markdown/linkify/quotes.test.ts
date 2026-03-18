@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { linkifyQuotes } from "./linkify-quotes"
+import { linkifyQuotes } from "./quotes"
 
 const FILE_CONTENT = `The participant expressed frustration with the onboarding flow.
 They mentioned that "the signup process takes too long" and noted

@@ -3,7 +3,7 @@
 import type { Components } from "react-markdown"
 import { createElement } from "react"
 import { FeatherFileText, FeatherMapPin } from "@subframe/core"
-import { resolveEntityLink, type EntityIcons } from "~/lib/entity-link"
+import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
 import { EntityLink } from "./EntityLink"
 
 interface EntityLinkContext {

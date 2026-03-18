@@ -28,6 +28,9 @@ type FileResult =
 const isMdFile = (path: string): boolean => path.endsWith(".md")
 const isJsonBlock = (language: string): boolean => language.startsWith("json")
 
+const ensureTrailingNewline = (s: string): string =>
+  s.length > 0 && !s.endsWith("\n") ? s + "\n" : s
+
 const repairJsonBlocks = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown).filter((b) => isJsonBlock(b.language))
   if (blocks.length === 0) return markdown
@@ -180,7 +183,7 @@ const applyMdPatch = (
     throw e
   }
 
-  const repairedContent = repairJsonBlocks(collapsedContent)
+  const repairedContent = ensureTrailingNewline(repairJsonBlocks(collapsedContent))
   return finalizeContent(path, repairedContent, { original: content, ...options })
 }
 

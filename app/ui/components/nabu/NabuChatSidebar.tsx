@@ -49,15 +49,14 @@ import type { AskMessage, AskScope } from "~/lib/chat/messages"
 import { isWaitingForAsk } from "~/lib/chat/messages"
 import { getSpinnerLabel } from "~/lib/chat/spinnerLabel"
 import { useFiles } from "~/ui/hooks/useFiles"
-import { preprocessStreaming } from "~/lib/streaming/filter"
+import { preprocessStreaming } from "~/lib/markdown/sanitize/partial"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import {
-  linkifyEntityIds,
-  linkifyTags,
-  linkifyQuotes,
-  normalizeBacktickQuotes,
-} from "~/lib/entity-link"
+import { linkifyEntityIds } from "~/lib/markdown/linkify/entities"
+import { linkifyTags } from "~/lib/markdown/linkify/tags"
+import { linkifyQuotes } from "~/lib/markdown/linkify/quotes"
+import { normalizeBacktickQuotes } from "~/lib/markdown/sanitize/normalize-backticks"
+import { fixMarkdownUrls } from "~/lib/markdown/sanitize/fix-urls"
 import { findTagDefinitionByLabel } from "~/domain/data-blocks/settings/tags/selectors"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-history"
@@ -66,11 +65,6 @@ import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { useNabu } from "./context"
 import { pickGreeting } from "~/lib/chat/greetings"
-
-const encodeUrlForMarkdown = (url: string): string => url.replace(/"/g, "%22")
-
-const fixMarkdownUrls = (content: string): string =>
-  content.replace(/\]\(([^)<>]+)\)/g, (_, url: string) => `](<${encodeUrlForMarkdown(url)}>)`)
 
 const allowFileProtocol = (url: string): string => url
 

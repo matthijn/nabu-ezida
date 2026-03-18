@@ -2,7 +2,9 @@
 
 import Markdown from "react-markdown"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { linkifyEntityIds, linkifyQuotes, normalizeBacktickQuotes } from "~/lib/entity-link"
+import { linkifyEntityIds } from "~/lib/markdown/linkify/entities"
+import { linkifyQuotes } from "~/lib/markdown/linkify/quotes"
+import { normalizeBacktickQuotes } from "~/lib/markdown/sanitize/normalize-backticks"
 import { resolveEntityName } from "~/lib/files/selectors"
 import { boldMissingFile } from "~/lib/files/filename"
 

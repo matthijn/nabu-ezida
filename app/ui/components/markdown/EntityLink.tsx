@@ -1,7 +1,7 @@
 "use client"
 
 import type { ComponentType } from "react"
-import type { ResolvedColors } from "~/lib/entity-link"
+import type { ResolvedColors } from "~/lib/markdown/resolve"
 
 interface EntityLinkProps {
   href: string

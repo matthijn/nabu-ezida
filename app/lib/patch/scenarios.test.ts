@@ -107,7 +107,8 @@ describe("range ref resolves against pretty content", () => {
         "{",
         '\t"summary": "Line one.\\nLine two continues.\\nLine three wraps up."',
         "}",
-        "```"
+        "```",
+        ""
       ),
     },
   ]

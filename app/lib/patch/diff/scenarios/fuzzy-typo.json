@@ -7,7 +7,7 @@
         "start": 42,
         "end": 44,
         "fuzzy": true,
-        "content": "function dryBeans(beans) {\n  return beans.map(b => ({ ...b, dried: true }))\n}"
+        "content": "function dryBeans(beans) {\n  return beans.map((b) => ({ ...b, dried: true }))\n}"
       }
     ]
   }

@@ -10,7 +10,7 @@ import { pushBlocks, getAllBlocks, isDraft, subscribeBlocks, filterBySource } fr
 import { isErrorResult, isDebugPauseBlock } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
-import { extractEntityIdCandidates } from "~/lib/entity-link"
+import { extractEntityIdCandidates } from "~/lib/markdown/linkify/extract"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 import { getFiles } from "~/lib/files/store"
 import { resolveEntityName } from "~/lib/files/selectors"

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { linkifyTags } from "./linkify-tags"
+import { linkifyTags } from "./tags"
 
 type TagResolver = (label: string) => { id: string; display: string } | null
 

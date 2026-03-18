@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { linkifyEntityIds } from "./linkify"
+import { linkifyEntityIds } from "./entities"
 
 const resolve = (id: string): string | null => {
   const names: Record<string, string> = {
