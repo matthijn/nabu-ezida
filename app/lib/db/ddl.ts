@@ -1,0 +1,81 @@
+import type { DuckDbType, DbColumn, TableSchema, JsonSchema } from "./types"
+
+interface TableProjection {
+  schemas: TableSchema[]
+}
+
+const jsonTypeToDuckDb = (prop: JsonSchema): DuckDbType => {
+  if (prop.type === "boolean") return "BOOLEAN"
+  if (prop.type === "integer") return "INTEGER"
+  if (prop.type === "array" && prop.items?.type === "string") return "VARCHAR[]"
+  return "VARCHAR"
+}
+
+const isObjectArray = (prop: JsonSchema): boolean =>
+  prop.type === "array" && prop.items?.type === "object"
+
+const isScalarOrListProp = (prop: JsonSchema): boolean => !isObjectArray(prop)
+
+const fileColumn: DbColumn = { name: "file", type: "VARCHAR", nullable: false }
+
+const buildColumns = (schema: JsonSchema): DbColumn[] => {
+  const properties = schema.properties ?? {}
+  const required = new Set(schema.required ?? [])
+
+  return Object.entries(properties)
+    .filter(([, prop]) => isScalarOrListProp(prop))
+    .map(([name, prop]) => ({
+      name,
+      type: jsonTypeToDuckDb(prop),
+      nullable: !required.has(name),
+    }))
+}
+
+const buildChildTable = (
+  parentName: string,
+  field: string,
+  itemSchema: JsonSchema
+): TableSchema => ({
+  name: `${parentName}_${field}`,
+  columns: [fileColumn, ...buildColumns(itemSchema)],
+})
+
+const findChildTables = (parentName: string, schema: JsonSchema): TableSchema[] => {
+  const properties = schema.properties ?? {}
+
+  return Object.entries(properties)
+    .filter(([, prop]) => isObjectArray(prop))
+    .map(([field, prop]) => {
+      if (!prop.items) throw new Error(`Object array ${field} missing items schema`)
+      return buildChildTable(parentName, field, prop.items)
+    })
+}
+
+export const jsonSchemaToTableProjection = (
+  tableName: string,
+  jsonSchema: JsonSchema
+): TableProjection => {
+  const rootSchema: TableSchema = {
+    name: tableName,
+    columns: [fileColumn, ...buildColumns(jsonSchema)],
+  }
+
+  const childTables = findChildTables(tableName, jsonSchema)
+
+  return { schemas: [rootSchema, ...childTables] }
+}
+
+const columnDdl = (col: DbColumn): string => {
+  const nullability = col.nullable ? "" : " NOT NULL"
+  return `  ${col.name} ${col.type}${nullability}`
+}
+
+export const tableSchemaToDdl = (schema: TableSchema): string => {
+  const columns = schema.columns.map(columnDdl).join(",\n")
+  return `CREATE OR REPLACE TABLE ${schema.name} (\n${columns}\n);`
+}
+
+export const projectionToDdl = (tableName: string, jsonSchema: JsonSchema): string => {
+  const { schemas } = jsonSchemaToTableProjection(tableName, jsonSchema)
+  return schemas.map(tableSchemaToDdl).join("\n\n")
+}

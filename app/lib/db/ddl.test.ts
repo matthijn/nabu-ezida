@@ -1,0 +1,187 @@
+import { describe, it, expect } from "vitest"
+import { jsonSchemaToTableProjection, tableSchemaToDdl } from "./ddl"
+import type { JsonSchema } from "./types"
+
+describe("jsonSchemaToTableProjection", () => {
+  const cases: { name: string; tableName: string; schema: JsonSchema; expectedSchemas: unknown }[] =
+    [
+      {
+        name: "flat object with all scalar types",
+        tableName: "items",
+        schema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            active: { type: "boolean" },
+            count: { type: "integer" },
+          },
+          required: ["name", "active"],
+        },
+        expectedSchemas: [
+          {
+            name: "items",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "name", type: "VARCHAR", nullable: false },
+              { name: "active", type: "BOOLEAN", nullable: false },
+              { name: "count", type: "INTEGER", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
+        name: "array of strings becomes VARCHAR[]",
+        tableName: "doc",
+        schema: {
+          type: "object",
+          properties: {
+            tags: { type: "array", items: { type: "string" } },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "doc",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "tags", type: "VARCHAR[]", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
+        name: "array of objects becomes child table",
+        tableName: "settings",
+        schema: {
+          type: "object",
+          properties: {
+            tags: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  label: { type: "string" },
+                },
+                required: ["id", "label"],
+              },
+            },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "settings",
+            columns: [{ name: "file", type: "VARCHAR", nullable: false }],
+          },
+          {
+            name: "settings_tags",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "id", type: "VARCHAR", nullable: false },
+              { name: "label", type: "VARCHAR", nullable: false },
+            ],
+          },
+        ],
+      },
+      {
+        name: "mixed scalars and child tables",
+        tableName: "attributes",
+        schema: {
+          type: "object",
+          properties: {
+            tags: { type: "array", items: { type: "string" } },
+            annotations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  text: { type: "string" },
+                  color: { type: "string" },
+                },
+                required: ["text"],
+              },
+            },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "attributes",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "tags", type: "VARCHAR[]", nullable: true },
+            ],
+          },
+          {
+            name: "attributes_annotations",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "text", type: "VARCHAR", nullable: false },
+              { name: "color", type: "VARCHAR", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
+        name: "no properties produces file-only table",
+        tableName: "empty",
+        schema: { type: "object" },
+        expectedSchemas: [
+          {
+            name: "empty",
+            columns: [{ name: "file", type: "VARCHAR", nullable: false }],
+          },
+        ],
+      },
+    ]
+
+  cases.forEach(({ name, tableName, schema, expectedSchemas }) => {
+    it(name, () => {
+      const result = jsonSchemaToTableProjection(tableName, schema)
+      expect(result.schemas).toEqual(expectedSchemas)
+    })
+  })
+})
+
+describe("tableSchemaToDdl", () => {
+  const cases = [
+    {
+      name: "simple table with mixed nullability",
+      schema: {
+        name: "items",
+        columns: [
+          { name: "file", type: "VARCHAR" as const, nullable: false },
+          { name: "name", type: "VARCHAR" as const, nullable: false },
+          { name: "count", type: "INTEGER" as const, nullable: true },
+        ],
+      },
+      expected: [
+        "CREATE OR REPLACE TABLE items (",
+        "  file VARCHAR NOT NULL,",
+        "  name VARCHAR NOT NULL,",
+        "  count INTEGER",
+        ");",
+      ].join("\n"),
+    },
+    {
+      name: "table with LIST column",
+      schema: {
+        name: "doc",
+        columns: [
+          { name: "file", type: "VARCHAR" as const, nullable: false },
+          { name: "tags", type: "VARCHAR[]" as const, nullable: true },
+        ],
+      },
+      expected: [
+        "CREATE OR REPLACE TABLE doc (",
+        "  file VARCHAR NOT NULL,",
+        "  tags VARCHAR[]",
+        ");",
+      ].join("\n"),
+    },
+  ]
+
+  cases.forEach(({ name, schema, expected }) => {
+    it(name, () => {
+      expect(tableSchemaToDdl(schema)).toBe(expected)
+    })
+  })
+})

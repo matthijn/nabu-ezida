@@ -28,6 +28,7 @@
     ]
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.33.1-dev20.0",
     "@milkdown/kit": "^7.18.0",
     "@milkdown/react": "^7.18.0",
     "@milkdown/utils": "^7.18.0",

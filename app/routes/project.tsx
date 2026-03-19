@@ -14,6 +14,7 @@ import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor
 
 import { createWebSocket, applyCommand } from "~/lib/server/sync"
 import { setProjectId, setPersistEnabled } from "~/lib/files"
+import { startDatabase } from "~/domain/db/database"
 import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
@@ -119,6 +120,8 @@ export default function ProjectLayout() {
     const connection = createWebSocket(params.projectId, {
       onCommand: applyCommand,
     })
+
+    startDatabase()
 
     return () => {
       connection.close()
