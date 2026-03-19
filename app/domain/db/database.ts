@@ -36,7 +36,6 @@ const getBlockUntyped = (raw: string, language: string): Record<string, unknown>
 let database: Database | null = null
 let previousFiles: FileStore = {}
 let initializing = false
-
 const runSync = async (db: Database, withSchemas: ProjectionWithSchema[]): Promise<void> => {
   const currentFiles = getFiles()
   const plan = computeSyncPlan(previousFiles, currentFiles)
