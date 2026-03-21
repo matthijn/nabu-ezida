@@ -29,8 +29,16 @@ const INLINE_THRESHOLD = 5
 
 const countUniqueFiles = (hits: { file: string }[]): number => new Set(hits.map((h) => h.file)).size
 
-const formatHit = (hit: SearchHit): string =>
-  hit.type === "file" ? hit.file : `${hit.file} → ${hit.id}`
+const formatHit = (hit: SearchHit): string => {
+  switch (hit.type) {
+    case "file":
+      return hit.file
+    case "hit":
+      return `${hit.file} → ${hit.id}`
+    case "text":
+      return `${hit.file}:${hit.line} (${hit.term})`
+  }
+}
 
 const formatInlineResults = (hits: SearchHit[]): string => hits.map(formatHit).join("\n")
 
@@ -60,6 +68,7 @@ const executeSearch = async (call: { args: unknown }): Promise<ToolResult<unknow
     saved: false,
     createdAt: Date.now(),
     queries: parsed.data.queries,
+    highlights: parsed.data.highlights,
   }
 
   const settings = readSettings()

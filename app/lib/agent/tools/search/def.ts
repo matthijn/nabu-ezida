@@ -13,6 +13,11 @@ export const SearchArgs = z.object({
     .array(SearchQuerySchema)
     .min(1)
     .describe("SQL queries to run. Each must SELECT `file` (type file) or `file, id` (type hit)."),
+  highlights: z
+    .array(z.string())
+    .describe(
+      "Terms to highlight in matched documents. The actual search targets — names, keywords, phrases the user is looking for. Empty array when results are structural (e.g. 'documents with 3+ annotations')."
+    ),
 })
 
 export const searchTool: AnyTool = {

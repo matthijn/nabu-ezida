@@ -233,6 +233,7 @@ export default function ProjectLayout() {
       <SearchSidebar
         recentSearches={recentSearches}
         savedSearches={savedSearches}
+        selectedId={params.searchId}
         onSave={handleSearchSave}
         onRemove={handleSearchRemove}
         onSelect={handleSearchSelect}

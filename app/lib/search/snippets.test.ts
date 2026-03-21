@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest"
-import { extractFileIntro, extractSnippetAroundId, type Snippet } from "./snippets"
+import {
+  extractFileIntro,
+  extractSnippetAroundId,
+  findHighlightOccurrences,
+  expandFileHits,
+  type Snippet,
+} from "./snippets"
+import type { SearchHit } from "~/domain/search"
 
 describe("extractFileIntro", () => {
   const cases: { name: string; content: string; maxLines?: number; expected: string }[] = [
@@ -125,5 +132,140 @@ describe("extractSnippetAroundId", () => {
         ? extractSnippetAroundId(content, id, contextLines)
         : extractSnippetAroundId(content, id)
     expect(result).toEqual(expected)
+  })
+})
+
+describe("findHighlightOccurrences", () => {
+  const cases: {
+    name: string
+    file: string
+    content: string
+    highlights: string[]
+    expected: SearchHit[]
+  }[] = [
+    {
+      name: "finds single term on multiple lines",
+      file: "doc.md",
+      content: "Rutte said something.\nThen more text.\nRutte replied.",
+      highlights: ["Rutte"],
+      expected: [
+        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
+        { type: "text", file: "doc.md", line: 3, term: "Rutte" },
+      ],
+    },
+    {
+      name: "case-insensitive matching",
+      file: "doc.md",
+      content: "rutte spoke.\nRUTTE responded.",
+      highlights: ["Rutte"],
+      expected: [
+        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
+        { type: "text", file: "doc.md", line: 2, term: "Rutte" },
+      ],
+    },
+    {
+      name: "multiple terms on same line deduplicates by line",
+      file: "doc.md",
+      content: "Rutte and Geert met.\nOnly Geert spoke.",
+      highlights: ["Rutte", "Geert"],
+      expected: [
+        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
+        { type: "text", file: "doc.md", line: 2, term: "Geert" },
+      ],
+    },
+    {
+      name: "returns empty for no matches",
+      file: "doc.md",
+      content: "Nothing relevant here.",
+      highlights: ["Rutte"],
+      expected: [],
+    },
+    {
+      name: "returns empty for empty highlights",
+      file: "doc.md",
+      content: "Rutte is here.",
+      highlights: [],
+      expected: [],
+    },
+    {
+      name: "results sorted by line number",
+      file: "doc.md",
+      content: "Geert first.\nMiddle.\nRutte last.",
+      highlights: ["Rutte", "Geert"],
+      expected: [
+        { type: "text", file: "doc.md", line: 1, term: "Geert" },
+        { type: "text", file: "doc.md", line: 3, term: "Rutte" },
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ file, content, highlights, expected }) => {
+    expect(findHighlightOccurrences(file, content, highlights)).toEqual(expected)
+  })
+})
+
+describe("expandFileHits", () => {
+  const contentMap: Record<string, string> = {
+    "a.md": "Rutte spoke.\nSomething else.\nRutte again.",
+    "b.md": "No matches here.",
+  }
+  const getContent = (file: string) => contentMap[file]
+
+  const cases: {
+    name: string
+    hits: SearchHit[]
+    highlights: string[]
+    expected: SearchHit[]
+  }[] = [
+    {
+      name: "expands file hits into text hits",
+      hits: [{ type: "file", file: "a.md" }],
+      highlights: ["Rutte"],
+      expected: [
+        { type: "text", file: "a.md", line: 1, term: "Rutte" },
+        { type: "text", file: "a.md", line: 3, term: "Rutte" },
+      ],
+    },
+    {
+      name: "preserves hit-type hits unchanged",
+      hits: [{ type: "hit", file: "a.md", id: "ann-1" }],
+      highlights: ["Rutte"],
+      expected: [{ type: "hit", file: "a.md", id: "ann-1" }],
+    },
+    {
+      name: "keeps file hit when no occurrences found",
+      hits: [{ type: "file", file: "b.md" }],
+      highlights: ["Rutte"],
+      expected: [{ type: "file", file: "b.md" }],
+    },
+    {
+      name: "returns hits unchanged when highlights is empty",
+      hits: [{ type: "file", file: "a.md" }],
+      highlights: [],
+      expected: [{ type: "file", file: "a.md" }],
+    },
+    {
+      name: "keeps file hit when content not found",
+      hits: [{ type: "file", file: "missing.md" }],
+      highlights: ["Rutte"],
+      expected: [{ type: "file", file: "missing.md" }],
+    },
+    {
+      name: "mixes expanded and preserved hits",
+      hits: [
+        { type: "file", file: "a.md" },
+        { type: "hit", file: "a.md", id: "ann-1" },
+      ],
+      highlights: ["Rutte"],
+      expected: [
+        { type: "text", file: "a.md", line: 1, term: "Rutte" },
+        { type: "text", file: "a.md", line: 3, term: "Rutte" },
+        { type: "hit", file: "a.md", id: "ann-1" },
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ hits, highlights, expected }) => {
+    expect(expandFileHits(hits, highlights, getContent)).toEqual(expected)
   })
 })

@@ -30,21 +30,10 @@ const extractChildRows = (
   items: unknown[],
   itemSchema: JsonSchema,
   filename: string
-): TableRows => {
-  const rows = items.map((item) => {
-    const record = item as Record<string, unknown>
-    const row: Record<string, unknown> = { file: filename }
-    const properties = itemSchema.properties ?? {}
-
-    for (const key of Object.keys(properties)) {
-      row[key] = record[key] ?? null
-    }
-
-    return row
-  })
-
-  return { table: `${parentName}_${field}`, rows }
-}
+): TableRows => ({
+  table: `${parentName}_${field}`,
+  rows: items.map((item) => extractScalars(itemSchema, item as Record<string, unknown>, filename)),
+})
 
 export const extractRows = (
   tableName: string,

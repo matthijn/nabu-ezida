@@ -1,2 +1,7 @@
 export { executeSearchQueries } from "./execute"
-export { extractFileIntro, extractSnippetAroundId } from "./snippets"
+export {
+  extractFileIntro,
+  extractSnippetAroundId,
+  findHighlightOccurrences,
+  expandFileHits,
+} from "./snippets"

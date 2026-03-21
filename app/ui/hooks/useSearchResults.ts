@@ -14,6 +14,8 @@ interface SettledState {
 
 const EMPTY: SettledState = { results: [], error: null, searchId: null }
 
+const DB_POLL_INTERVAL = 250
+
 interface SearchResults {
   search: SearchEntry | undefined
   results: SearchHit[]
@@ -30,11 +32,12 @@ export const useSearchResults = (searchId: string): SearchResults => {
     if (!search) return
 
     let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
 
     const run = async () => {
       const db = getDatabase()
       if (!db) {
-        if (!cancelled) setSettled({ results: [], error: "Database not ready", searchId })
+        if (!cancelled) timer = setTimeout(run, DB_POLL_INTERVAL)
         return
       }
 
@@ -51,6 +54,7 @@ export const useSearchResults = (searchId: string): SearchResults => {
     run()
     return () => {
       cancelled = true
+      if (timer) clearTimeout(timer)
     }
   }, [search, searchId])
 

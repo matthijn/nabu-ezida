@@ -119,6 +119,7 @@ export default function ProjectSearch() {
         )}
         <SearchResultList
           hits={filteredResults}
+          highlights={search.highlights}
           files={files}
           projectId={params.projectId}
           onNavigate={navigate}

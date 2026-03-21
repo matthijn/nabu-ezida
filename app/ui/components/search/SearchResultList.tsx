@@ -5,7 +5,7 @@ import { IconButton } from "~/ui/components/IconButton"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
 import { toDisplayName } from "~/lib/files/filename"
-import { extractFileIntro, extractSnippetAroundId } from "~/lib/search"
+import { extractFileIntro, extractSnippetAroundId, expandFileHits } from "~/lib/search"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 
@@ -26,6 +26,7 @@ const groupByFile = (hits: SearchHit[]): FileGroup[] => {
 
 interface SearchResultListProps {
   hits: SearchHit[]
+  highlights: string[]
   files: FileStore
   projectId: string
   onNavigate?: (url: string) => void
@@ -45,6 +46,48 @@ const FileHitSnippet = ({ file, id, files }: { file: string; id: string; files: 
       <span className="text-caption font-caption text-subtext-color">Line {snippet.line}</span>
       <pre className="text-monospace-body font-monospace-body text-default-font whitespace-pre-wrap break-words w-full">
         {snippet.text}
+      </pre>
+    </div>
+  )
+}
+
+const extractSnippetAroundLine = (content: string, line: number, contextLines = 2): string => {
+  const lines = content.split("\n")
+  const idx = line - 1
+  const start = Math.max(0, idx - contextLines)
+  const end = Math.min(lines.length, idx + contextLines + 1)
+  return lines.slice(start, end).join("\n")
+}
+
+const TextHitSnippet = ({
+  file,
+  line,
+  term,
+  files,
+}: {
+  file: string
+  line: number
+  term: string
+  files: FileStore
+}) => {
+  const snippet = useMemo(() => {
+    const content = files[file]
+    if (!content) return null
+    return extractSnippetAroundLine(content, line)
+  }, [file, line, files])
+
+  if (!snippet) return null
+
+  return (
+    <div className="flex w-full flex-col items-start gap-1 rounded-md border border-solid border-neutral-200 bg-neutral-50 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="text-caption font-caption text-subtext-color">Line {line}</span>
+        <span className="rounded bg-brand-100 px-1.5 py-0.5 text-caption-bold font-caption-bold text-brand-700">
+          {term}
+        </span>
+      </div>
+      <pre className="text-monospace-body font-monospace-body text-default-font whitespace-pre-wrap break-words w-full">
+        {snippet}
       </pre>
     </div>
   )
@@ -85,9 +128,29 @@ const FileGroupCard = ({
     .filter((t): t is NonNullable<typeof t> => t !== null)
 
   const isFileOnly = group.hits.every((h) => h.type === "file")
-  const hitCount = group.hits.length
+  const detailHits = group.hits.filter((h) => h.type !== "file")
+  const hitCount = detailHits.length
 
   const handleOpenFile = () => onNavigate?.(fileUrl)
+
+  const renderHit = (hit: SearchHit, index: number) => {
+    switch (hit.type) {
+      case "file":
+        return <FileIntroSnippet key={`file-${index}`} file={hit.file} files={files} />
+      case "hit":
+        return <FileHitSnippet key={hit.id} file={hit.file} id={hit.id} files={files} />
+      case "text":
+        return (
+          <TextHitSnippet
+            key={`${hit.line}-${hit.term}`}
+            file={hit.file}
+            line={hit.line}
+            term={hit.term}
+            files={files}
+          />
+        )
+    }
+  }
 
   return (
     <div className="flex w-full flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-sm">
@@ -101,7 +164,7 @@ const FileGroupCard = ({
             {tag.display}
           </Badge>
         ))}
-        {!isFileOnly && (
+        {hitCount > 0 && (
           <span className="text-caption font-caption text-subtext-color">
             {hitCount} {hitCount === 1 ? "match" : "matches"}
           </span>
@@ -112,17 +175,26 @@ const FileGroupCard = ({
         {isFileOnly ? (
           <FileIntroSnippet file={group.file} files={files} />
         ) : (
-          group.hits
-            .filter((h): h is Extract<SearchHit, { type: "hit" }> => h.type === "hit")
-            .map((hit) => <FileHitSnippet key={hit.id} file={hit.file} id={hit.id} files={files} />)
+          detailHits.map(renderHit)
         )}
       </div>
     </div>
   )
 }
 
-export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchResultListProps) => {
-  const groups = useMemo(() => groupByFile(hits), [hits])
+export const SearchResultList = ({
+  hits,
+  highlights,
+  files,
+  projectId,
+  onNavigate,
+}: SearchResultListProps) => {
+  const getContent = useMemo(() => (file: string) => files[file], [files])
+  const expanded = useMemo(
+    () => expandFileHits(hits, highlights, getContent),
+    [hits, highlights, getContent]
+  )
+  const groups = useMemo(() => groupByFile(expanded), [expanded])
   const fileCount = groups.length
 
   return (

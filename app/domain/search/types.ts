@@ -14,8 +14,12 @@ export const SearchEntrySchema = z.object({
   saved: z.boolean(),
   createdAt: z.number(),
   queries: z.array(SearchQuerySchema),
+  highlights: z.array(z.string()),
 })
 
 export type SearchEntry = z.infer<typeof SearchEntrySchema>
 
-export type SearchHit = { type: "file"; file: string } | { type: "hit"; file: string; id: string }
+export type SearchHit =
+  | { type: "file"; file: string }
+  | { type: "hit"; file: string; id: string }
+  | { type: "text"; file: string; line: number; term: string }

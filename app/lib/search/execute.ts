@@ -24,8 +24,16 @@ const wrapRow = (row: RawRow, type: SearchQuery["type"]): SearchHit =>
     ? { type: "file", file: String(row.file) }
     : { type: "hit", file: String(row.file), id: String(row.id) }
 
-const hitKey = (hit: SearchHit): string =>
-  hit.type === "file" ? `file:${hit.file}` : `hit:${hit.file}:${hit.id}`
+const hitKey = (hit: SearchHit): string => {
+  switch (hit.type) {
+    case "file":
+      return `file:${hit.file}`
+    case "hit":
+      return `hit:${hit.file}:${hit.id}`
+    case "text":
+      return `text:${hit.file}:${hit.line}:${hit.term}`
+  }
+}
 
 const deduplicateHits = (hits: SearchHit[]): SearchHit[] => {
   const seen = new Set<string>()
