@@ -3,10 +3,9 @@
 import type { ComponentType } from "react"
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherHash, FeatherFolder, FeatherSearch, FeatherPlus } from "@subframe/core"
+import { FeatherHash, FeatherFolder } from "@subframe/core"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
-import { TextField } from "~/ui/components/TextField"
-import { Button } from "~/ui/components/Button"
+import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { Badge } from "~/ui/components/Badge"
 import { matchesAny } from "~/lib/utils/filter"
 import {
@@ -151,32 +150,13 @@ export function DocumentsSidebar({
 
   return (
     <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
-      <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
-        <div className="flex w-full items-center justify-between">
-          <span className="text-heading-2 font-heading-2 text-default-font">Documents</span>
-          <Button
-            variant="brand-primary"
-            size="small"
-            icon={<FeatherPlus />}
-            onClick={onNewDocument}
-          >
-            New
-          </Button>
-        </div>
-        <TextField
-          className="h-auto w-full flex-none"
-          variant="filled"
-          label=""
-          helpText=""
-          icon={<FeatherSearch />}
-        >
-          <TextField.Input
-            placeholder="Search..."
-            value={searchValue}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-          />
-        </TextField>
-      </div>
+      <SidebarHeader
+        title="Documents"
+        filterPlaceholder="Filter documents..."
+        filterValue={searchValue}
+        onFilterChange={(v) => onSearchChange?.(v)}
+        onNew={onNewDocument}
+      />
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
         {groups.flatMap(({ tag, docs }, i) => {
           const resolved = resolveTag(tagLookup, tag)

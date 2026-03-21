@@ -124,21 +124,18 @@ export const linkifyEntityIds = (
       lastIndex
     )
 
-    if (isPartOfFileUrl(text, match.index)) {
+    const hasFileProtocol = isPartOfFileUrl(text, match.index)
+
+    if (!isFileEntity(bareId) && !hasFileProtocol && isQuoted(text, wrapStart, wrapEnd)) {
       result += text.slice(lastIndex, match.index + match[0].length)
       lastIndex = match.index + match[0].length
       continue
     }
 
+    const protocolOffset = hasFileProtocol ? FILE_PROTOCOL.length : 0
     const [consumeStart, consumeEnd] = isFileEntity(bareId)
-      ? expandQuotes(text, wrapStart, wrapEnd, lastIndex)
-      : [wrapStart, wrapEnd]
-
-    if (!isFileEntity(bareId) && isQuoted(text, wrapStart, wrapEnd)) {
-      result += text.slice(lastIndex, match.index + match[0].length)
-      lastIndex = match.index + match[0].length
-      continue
-    }
+      ? expandQuotes(text, wrapStart - protocolOffset, wrapEnd, lastIndex)
+      : [wrapStart - protocolOffset, wrapEnd]
 
     const link = `[${name}](file://${bareId})`
 

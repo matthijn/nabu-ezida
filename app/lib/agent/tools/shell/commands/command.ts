@@ -61,6 +61,7 @@ interface CommandDef {
   details?: string
   usage: string
   flags: Record<string, FlagDef>
+  skipFlagParsing?: boolean
   handler: (files: Files) => Handler
 }
 
@@ -128,47 +129,60 @@ const formatHelp = (flagDefs: Record<string, FlagDef>): string =>
     .map(([f, { alias, description }]) => `  ${f}${alias ? `, ${alias}` : ""}: ${description}`)
     .join("\n") || "  (none)"
 
-export const command = (def: CommandDef): Command => {
-  const createHandler = (files: Files) => {
-    const innerHandler = def.handler(files)
+const createRawHandler = (
+  def: CommandDef,
+  files: Files
+): ((args: string[], stdin?: string) => Result) => {
+  const innerHandler = def.handler(files)
+  return (args: string[], stdin = ""): Result => innerHandler(args, new Set(), stdin, {})
+}
 
-    return (args: string[], stdin = ""): Result => {
-      // Build fresh config each call - mri mutates the options object
-      const {
-        options: mriOptions,
-        knownFlags,
-        multiCharFlags,
-        stringFlags,
-      } = buildMriConfig(def.flags)
-      const normalized = normalizeArgs(args, multiCharFlags, stringFlags)
-      const parsed = mri(normalized, mriOptions)
-      const flags = new Set<string>()
-      const flagValues: Record<string, string> = {}
+const createParsedHandler = (
+  def: CommandDef,
+  files: Files
+): ((args: string[], stdin?: string) => Result) => {
+  const innerHandler = def.handler(files)
 
-      for (const [key, value] of Object.entries(parsed)) {
-        if (key === "_") continue
+  return (args: string[], stdin = ""): Result => {
+    const {
+      options: mriOptions,
+      knownFlags,
+      multiCharFlags,
+      stringFlags,
+    } = buildMriConfig(def.flags)
+    const normalized = normalizeArgs(args, multiCharFlags, stringFlags)
+    const parsed = mri(normalized, mriOptions)
+    const flags = new Set<string>()
+    const flagValues: Record<string, string> = {}
 
-        if (!knownFlags.has(key)) {
-          const cmdName = def.usage.split(" ")[0]
-          const dashKey = key.length === 1 ? `-${key}` : `--${key}`
-          return {
-            output: "",
-            error: `${cmdName}: unsupported option '${dashKey}'\nSupported:\n${formatHelp(def.flags)}`,
-          }
-        }
+    for (const [key, value] of Object.entries(parsed)) {
+      if (key === "_") continue
 
-        const canonicalFlag = `-${key}`
-        if (value === true) {
-          flags.add(canonicalFlag)
-        } else if (value !== false && value !== undefined) {
-          flags.add(canonicalFlag)
-          flagValues[canonicalFlag] = String(value)
+      if (!knownFlags.has(key)) {
+        const cmdName = def.usage.split(" ")[0]
+        const dashKey = key.length === 1 ? `-${key}` : `--${key}`
+        return {
+          output: "",
+          error: `${cmdName}: unsupported option '${dashKey}'\nSupported:\n${formatHelp(def.flags)}`,
         }
       }
 
-      return innerHandler(parsed._ as string[], flags, stdin, flagValues)
+      const canonicalFlag = `-${key}`
+      if (value === true) {
+        flags.add(canonicalFlag)
+      } else if (value !== false && value !== undefined) {
+        flags.add(canonicalFlag)
+        flagValues[canonicalFlag] = String(value)
+      }
     }
+
+    return innerHandler(parsed._ as string[], flags, stdin, flagValues)
   }
+}
+
+export const command = (def: CommandDef): Command => {
+  const createHandler = (files: Files) =>
+    def.skipFlagParsing ? createRawHandler(def, files) : createParsedHandler(def, files)
 
   return Object.assign({ createHandler }, def)
 }

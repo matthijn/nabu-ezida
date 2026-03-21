@@ -29,6 +29,7 @@ interface MainSidebarProps {
   userAvatarSrc?: string
   userInitials?: string
   userMenuActions?: UserMenuAction[]
+  footerExtra?: ReactNode
   onNavItemClick?: (id: string) => void
   onNavItemHover?: (id: string) => void
   onUserMenuAction?: (actionId: string) => void
@@ -46,6 +47,7 @@ export function MainSidebar({
   userAvatarSrc = "/avatar.png",
   userInitials = "A",
   userMenuActions = defaultUserMenuActions,
+  footerExtra,
   onNavItemClick,
   onNavItemHover,
   onUserMenuAction,
@@ -97,7 +99,8 @@ export function MainSidebar({
         </div>
       }
       footer={
-        <div className="flex flex-col items-center justify-end gap-1 px-2 py-2">
+        <div className="flex flex-col items-center justify-end gap-3 px-2 py-2">
+          {footerExtra}
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild={true}>
               <Avatar image={userAvatarSrc}>{userInitials}</Avatar>

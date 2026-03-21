@@ -99,6 +99,7 @@ interface CallLlmOptions {
   messages: InputItem[]
   tools?: ToolDefinition[]
   blockSchemas?: BlockSchemaDefinition[]
+  databaseDdl?: string
   responseFormat?: ResponseFormat
   callbacks?: ParseCallbacks
   signal?: AbortSignal
@@ -116,16 +117,25 @@ const formatBlockSchema = (s: BlockSchemaDefinition): string => {
   return `${header}\n${schema}${constraints}`
 }
 
-const formatBlockSchemas = (schemas: BlockSchemaDefinition[]): InputItem => ({
+export const formatBlockSchemasContent = (schemas: BlockSchemaDefinition[]): string =>
+  `Document block schemas:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`
+
+export const formatDatabaseDdlContent = (ddl: string): string =>
+  `Database tables (DuckDB SQL):\n\n${ddl}`
+
+const toSystemMessage = (content: string): InputItem => ({
   type: "message",
   role: "system",
-  content: `Document block schemas:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`,
+  content,
 })
 
 const buildRequestBody = (options: CallLlmOptions): string => {
-  const messages = options.blockSchemas?.length
-    ? [...options.messages, formatBlockSchemas(options.blockSchemas)]
-    : options.messages
+  const extras: InputItem[] = []
+  if (options.blockSchemas?.length)
+    extras.push(toSystemMessage(formatBlockSchemasContent(options.blockSchemas)))
+  if (options.databaseDdl)
+    extras.push(toSystemMessage(formatDatabaseDdlContent(options.databaseDdl)))
+  const messages = extras.length > 0 ? [...options.messages, ...extras] : options.messages
   const body: Record<string, unknown> = { messages }
   if (options.tools) body.tools = options.tools
   if (options.responseFormat) body.response_format = options.responseFormat

@@ -7,10 +7,7 @@ import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
 import {
-  FeatherBug,
-  FeatherCheck,
   FeatherClipboard,
-  FeatherMinimize,
   FeatherMoreHorizontal,
   FeatherPin,
   FeatherPlus,
@@ -24,7 +21,6 @@ import {
   lowContrastText,
   type RadixColor,
 } from "~/ui/theme/radix"
-import { DEBUG_TOGGLES, type DebugOptions } from "./debug-config"
 
 interface Tag {
   label: string
@@ -43,11 +39,8 @@ interface FileHeaderProps {
   title: string
   tags?: Tag[]
   pinned?: boolean
-  debugOptions?: DebugOptions
   onPin?: () => void
   onShare?: () => void
-  onToggleOption?: (key: string) => void
-  onRequestCompaction?: () => void
   onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
@@ -90,34 +83,12 @@ const renderTag = (tag: Tag) => {
   )
 }
 
-const isActive = (options: DebugOptions | undefined, key: string): boolean =>
-  options?.[key] ?? false
-
-const renderToggleItem = (
-  key: string,
-  label: string,
-  icon: ReactNode,
-  active: boolean,
-  onToggle: (key: string) => void
-) => (
-  <DropdownMenu.DropdownItem
-    key={key}
-    icon={active ? <FeatherCheck /> : icon}
-    onClick={() => onToggle(key)}
-  >
-    {label}
-  </DropdownMenu.DropdownItem>
-)
-
 export const FileHeader = ({
   title,
   tags = [],
   pinned = false,
-  debugOptions,
   onPin,
   onShare,
-  onToggleOption,
-  onRequestCompaction,
   onCopyRaw,
   menuItems = [],
   onAddTag,
@@ -143,47 +114,13 @@ export const FileHeader = ({
           />
         )}
         {onShare && <IconButton size="small" icon={<FeatherShare2 />} onClick={onShare} />}
-        {onToggleOption && (
-          <SubframeCore.DropdownMenu.Root>
-            <SubframeCore.DropdownMenu.Trigger asChild>
-              <IconButton
-                variant={isActive(debugOptions, "expanded") ? "brand-primary" : "neutral-tertiary"}
-                size="small"
-                icon={<FeatherBug />}
-              />
-            </SubframeCore.DropdownMenu.Trigger>
-            <SubframeCore.DropdownMenu.Portal>
-              <SubframeCore.DropdownMenu.Content side="bottom" align="end" sideOffset={4} asChild>
-                <DropdownMenu>
-                  {DEBUG_TOGGLES.map((t) =>
-                    renderToggleItem(
-                      t.key,
-                      t.label,
-                      t.icon,
-                      isActive(debugOptions, t.key),
-                      onToggleOption
-                    )
-                  )}
-                  {onRequestCompaction && (
-                    <DropdownMenu.DropdownItem
-                      icon={<FeatherMinimize />}
-                      onClick={onRequestCompaction}
-                    >
-                      Force compaction
-                    </DropdownMenu.DropdownItem>
-                  )}
-                  {onCopyRaw && (
-                    <>
-                      <DropdownMenu.DropdownDivider />
-                      <DropdownMenu.DropdownItem icon={<FeatherClipboard />} onClick={onCopyRaw}>
-                        Copy raw
-                      </DropdownMenu.DropdownItem>
-                    </>
-                  )}
-                </DropdownMenu>
-              </SubframeCore.DropdownMenu.Content>
-            </SubframeCore.DropdownMenu.Portal>
-          </SubframeCore.DropdownMenu.Root>
+        {onCopyRaw && (
+          <IconButton
+            variant="neutral-tertiary"
+            size="small"
+            icon={<FeatherClipboard />}
+            onClick={onCopyRaw}
+          />
         )}
         {menuItems.length > 0 && (
           <SubframeCore.DropdownMenu.Root>

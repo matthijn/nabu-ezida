@@ -17,6 +17,7 @@ import "../tools/submit-plan/handler"
 import "../tools/compact/handler"
 import "../tools/preflight/handler"
 import "../tools/get-guidance/handler"
+import "../tools/search/handler"
 
 export type { ToolDeps }
 export { getToolDefinitions }

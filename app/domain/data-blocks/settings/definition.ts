@@ -11,6 +11,9 @@ export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
   renderer: "hidden",
   singleton: true,
   allowedFiles: ["settings.hidden.md"],
-  idPaths: [{ path: "tags.*.id", prefix: "tag" }],
+  idPaths: [
+    { path: "tags.*.id", prefix: "tag" },
+    { path: "searches.*.id", prefix: "search" },
+  ],
   validate: validateTagLabels,
 }

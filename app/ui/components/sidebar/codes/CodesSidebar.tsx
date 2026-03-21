@@ -2,9 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherSearch, FeatherPlus } from "@subframe/core"
-import { IconButton } from "~/ui/components/IconButton"
-import { TextField } from "~/ui/components/TextField"
+import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground } from "~/ui/theme/radix"
 import type { Codebook, Code, CodeCategory } from "./types"
@@ -37,25 +35,13 @@ export const CodesSidebar = ({ codebook, onEditCode, onFileSelect }: CodesSideba
 
   return (
     <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
-      <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
-        <div className="flex w-full items-center justify-between">
-          <span className="text-heading-2 font-heading-2 text-default-font">Codes</span>
-          <IconButton size="small" icon={<FeatherPlus />} onClick={() => undefined} />
-        </div>
-        <TextField
-          className="h-auto w-full flex-none"
-          variant="filled"
-          label=""
-          helpText=""
-          icon={<FeatherSearch />}
-        >
-          <TextField.Input
-            placeholder="Search codes..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-          />
-        </TextField>
-      </div>
+      <SidebarHeader
+        title="Codes"
+        filterPlaceholder="Filter codes..."
+        filterValue={searchValue}
+        onFilterChange={setSearchValue}
+        onNew={() => undefined}
+      />
 
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 px-4 py-4 overflow-auto">
         {filteredCategories.map((category) => (

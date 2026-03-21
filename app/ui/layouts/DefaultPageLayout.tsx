@@ -22,6 +22,7 @@ interface DefaultPageLayoutProps {
   children?: ReactNode
   rightPanel?: ReactNode
   sidebarPanels?: Partial<Record<ActiveNav, ReactNode>>
+  sidebarFooterExtra?: ReactNode
   className?: string
   activeNav?: ActiveNav
   showCodes?: boolean
@@ -43,7 +44,7 @@ const buildNavItems = (hoveredNav: ActiveNav | null, showCodes: boolean): NavIte
       icon: <FeatherSearch />,
       label: "Search",
       tooltip: "Search across documents",
-      disabled: true,
+      selected: hoveredNav === "search",
     },
   ]
 
@@ -76,6 +77,7 @@ export const DefaultPageLayout = ({
   children,
   rightPanel,
   sidebarPanels,
+  sidebarFooterExtra,
   className,
   activeNav: _activeNav = "documents",
   showCodes = false,
@@ -140,6 +142,7 @@ export const DefaultPageLayout = ({
         <div className="relative z-30">
           <MainSidebar
             navItemGroups={buildNavItems(hoveredNav, showCodes)}
+            footerExtra={sidebarFooterExtra}
             onNavItemClick={onNavChange ? (id) => onNavChange(id as ActiveNav) : undefined}
             onNavItemHover={(id) => setHoveredNav(id as ActiveNav)}
           />

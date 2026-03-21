@@ -30,7 +30,7 @@ export {
   subscribeBlocks,
 } from "./store"
 
-export { callLlm } from "./fetch"
+export { callLlm, formatBlockSchemasContent, formatDatabaseDdlContent } from "./fetch"
 export type { ParseCallbacks } from "./parse"
 export { initialParseState, processLine, stateToBlocks } from "./parse"
 export { blocksToMessages, extractText, toResponseFormat } from "./convert"

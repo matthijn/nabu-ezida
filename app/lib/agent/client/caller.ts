@@ -15,6 +15,7 @@ interface CallerConfig {
   tools?: ToolDefinition[]
   toolSchemas?: Record<string, z.ZodType>
   blockSchemas?: BlockSchemaDefinition[]
+  databaseDdl?: string
   execute?: ToolExecutor
   responseFormat?: ResponseFormat
   callbacks?: ParseCallbacks
@@ -103,6 +104,7 @@ export const buildCaller =
       messages: blocksToMessages(history),
       tools: config.tools,
       blockSchemas: config.blockSchemas,
+      databaseDdl: config.databaseDdl,
       responseFormat: config.responseFormat,
       callbacks: config.callbacks,
       signal,

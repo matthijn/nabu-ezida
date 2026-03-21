@@ -20,6 +20,7 @@ import {
 } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findCalloutById, findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
+import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 
 export interface ResolvedColors {
   text: string
@@ -55,6 +56,13 @@ const SPOTLIGHT_COLORS: ResolvedColors = {
   icon: "var(--color-neutral-500)",
   background: "var(--color-neutral-200)",
   backgroundHover: "var(--color-neutral-300)",
+}
+
+const SEARCH_COLORS: ResolvedColors = {
+  text: "var(--color-brand-700)",
+  icon: "var(--color-brand-600)",
+  background: "var(--color-brand-100)",
+  backgroundHover: "var(--color-brand-200)",
 }
 
 const buildEntityUrl = (projectId: string, documentId: string, entityId: string): string =>
@@ -121,6 +129,26 @@ const resolveTagRef = (
   }
 }
 
+const buildSearchUrl = (projectId: string, searchId: string): string =>
+  `/project/${projectId}/search/${searchId}`
+
+const resolveSearchRef = (
+  ref: Extract<EntityRef, { kind: "search" }>,
+  files: FileStore,
+  projectId: string,
+  icons: EntityIcons
+): ResolvedLink | null => {
+  const search = findSearchById(files, ref.id)
+  if (!search) return null
+  return {
+    kind: "search",
+    colors: SEARCH_COLORS,
+    icon: icons.search ?? icons.file,
+    url: buildSearchUrl(projectId, ref.id),
+    label: search.title,
+  }
+}
+
 const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean => ref.spotlight !== null
 
 const resolveTextRef = (
@@ -138,6 +166,7 @@ const resolveTextRef = (
 export interface EntityIcons {
   file: ComponentType<{ className?: string }>
   spotlight: ComponentType<{ className?: string }>
+  search?: ComponentType<{ className?: string }>
 }
 
 export const resolveEntityLink = (
@@ -154,6 +183,8 @@ export const resolveEntityLink = (
       return resolveAnnotationRef(ref, files, projectId)
     case "callout":
       return resolveCalloutRef(ref, files, projectId)
+    case "search":
+      return resolveSearchRef(ref, files, projectId, icons)
     case "tag":
       return resolveTagRef(ref, files)
     case "text":

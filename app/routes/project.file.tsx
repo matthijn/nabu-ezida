@@ -45,15 +45,7 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const {
-    files,
-    currentFile,
-    debugOptions,
-    toggleDebugOption,
-    requestCompaction,
-    getFileTags,
-    tagDefinitions,
-  } = useProject()
+  const { files, currentFile, debugOptions, getFileTags, tagDefinitions } = useProject()
   const [searchParams] = useSearchParams()
   const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -111,11 +103,8 @@ export default function ProjectFile() {
         title={toDisplayName(currentFile)}
         tags={tags}
         pinned={false}
-        debugOptions={debugOptions}
         onPin={() => undefined}
         onShare={() => undefined}
-        onToggleOption={toggleDebugOption}
-        onRequestCompaction={requestCompaction}
         onCopyRaw={copyRawMarkdown}
         menuItems={[
           { icon: <FeatherCopy />, label: "Duplicate", onClick: () => undefined },

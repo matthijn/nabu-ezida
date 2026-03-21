@@ -168,9 +168,14 @@ describe("linkifyEntityIds", () => {
       expected: '"See [User Frustration](file://callout-7xk2m9p1) for details"',
     },
     {
-      name: "skips ID inside file:// URL",
+      name: "links ID with file:// prefix",
       input: "href is file://callout-7xk2m9p1 here",
-      expected: "href is file://callout-7xk2m9p1 here",
+      expected: "href is [User Frustration](file://callout-7xk2m9p1) here",
+    },
+    {
+      name: "links file:// prefixed .md filename",
+      input: "see file://interview-notes.md for context",
+      expected: "see [interview-notes](file://interview-notes.md) for context",
     },
     {
       name: "skips double-quoted ID with wrapper parens inside",

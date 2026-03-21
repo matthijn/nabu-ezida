@@ -6,8 +6,17 @@ import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { useFileImport } from "~/ui/hooks/useFileImport"
 import { DocumentsSidebar } from "~/ui/components/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/components/sidebar/codes"
+import { SearchSidebar } from "~/ui/components/sidebar/search"
+import {
+  getSearchEntries,
+  getRecentSearches,
+  getSavedSearches,
+  toggleSearchSaved,
+  removeSearch,
+} from "~/domain/data-blocks/settings/searches/selectors"
+import { updateSearchEntries } from "~/lib/agent/tools/search/settings"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
-import { DebugStreamPanel } from "~/ui/components/debug"
+import { DebugMenuButton, DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 import { useNotifications } from "~/ui/hooks/useNotifications"
 import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
@@ -92,7 +101,7 @@ export interface ProjectContextValue {
 export const useProject = () => useOutletContext<ProjectContextValue>()
 
 export default function ProjectLayout() {
-  const params = useParams<{ projectId: string; fileId?: string }>()
+  const params = useParams<{ projectId: string; fileId?: string; searchId?: string }>()
   const navigate = useNavigate()
   const dismissSidebarRef = useRef<(() => void) | null>(null)
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
@@ -146,6 +155,8 @@ export default function ProjectLayout() {
   )
 
   useEffect(() => {
+    if (params.searchId) return
+
     if (params.fileId) {
       const decoded = decodeURIComponent(params.fileId)
       const fileExists = decoded in files
@@ -159,7 +170,16 @@ export default function ProjectLayout() {
       setCurrentFile(first)
       navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
     }
-  }, [params.fileId, params.projectId, files, currentFile, fileNames, setCurrentFile, navigate])
+  }, [
+    params.fileId,
+    params.searchId,
+    params.projectId,
+    files,
+    currentFile,
+    fileNames,
+    setCurrentFile,
+    navigate,
+  ])
 
   const documents = filesToSidebarDocuments(files, getFileTags, !!debugOptions.expanded)
 
@@ -167,6 +187,24 @@ export default function ProjectLayout() {
     setCurrentFile(filename)
     dismissSidebarRef.current?.()
     navigate(`/project/${params.projectId}/file/${encodeURIComponent(filename)}`)
+  }
+
+  const recentSearches = useMemo(() => getRecentSearches(files), [files])
+  const savedSearches = useMemo(() => getSavedSearches(files), [files])
+
+  const handleSearchSave = (id: string) => {
+    const entries = getSearchEntries(files)
+    updateSearchEntries(toggleSearchSaved(entries, id))
+  }
+
+  const handleSearchRemove = (id: string) => {
+    const entries = getSearchEntries(files)
+    updateSearchEntries(removeSearch(entries, id))
+  }
+
+  const handleSearchSelect = (id: string) => {
+    dismissSidebarRef.current?.()
+    navigate(`/project/${params.projectId}/search/${id}`)
   }
 
   const handleEditCode = (code: Code) => {
@@ -191,6 +229,15 @@ export default function ProjectLayout() {
         onNewDocument={() => undefined}
       />
     ),
+    search: (
+      <SearchSidebar
+        recentSearches={recentSearches}
+        savedSearches={savedSearches}
+        onSave={handleSearchSave}
+        onRemove={handleSearchRemove}
+        onSelect={handleSearchSelect}
+      />
+    ),
     ...(codebook
       ? {
           codes: (
@@ -213,6 +260,13 @@ export default function ProjectLayout() {
           onNavChange={setActiveNav}
           dismissSidebarRef={dismissSidebarRef}
           sidebarPanels={sidebarPanels}
+          sidebarFooterExtra={
+            <DebugMenuButton
+              debugOptions={debugOptions}
+              onToggleOption={toggleDebugOption}
+              onRequestCompaction={requestCompaction}
+            />
+          }
           rightPanel={<NabuChatSidebar />}
         >
           <div className="flex h-full w-full items-start bg-default-background">

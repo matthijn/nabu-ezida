@@ -97,3 +97,14 @@ export const startDatabase = async (): Promise<void> => {
 }
 
 export const getDatabase = (): Database | null => database
+
+const stripCreateNoise = (ddl: string): string =>
+  ddl.replace(/CREATE OR REPLACE TABLE/g, "CREATE TABLE")
+
+let cachedDdl: string | null = null
+
+export const getDatabaseDdl = (): string => {
+  if (cachedDdl) return cachedDdl
+  cachedDdl = stripCreateNoise(generateDdl(buildProjectionsWithSchemas()))
+  return cachedDdl
+}

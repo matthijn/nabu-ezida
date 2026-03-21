@@ -2,7 +2,7 @@
 
 import type { Components } from "react-markdown"
 import { createElement } from "react"
-import { FeatherFileText, FeatherMapPin } from "@subframe/core"
+import { FeatherFileText, FeatherMapPin, FeatherSearch } from "@subframe/core"
 import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
 import type { FileStore } from "~/lib/files"
 import { EntityLink } from "./EntityLink"
@@ -16,6 +16,7 @@ interface EntityLinkContext {
 const entityIcons: EntityIcons = {
   file: FeatherFileText,
   spotlight: FeatherMapPin,
+  search: FeatherSearch,
 }
 
 const createAnchorComponent =

@@ -15,6 +15,7 @@ import {
 import { isErrorResult, isDebugPauseBlock } from "./derived"
 import { collect, isEmptyNudgeBlock } from "./steering/nudge-tools"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
+import { getDatabaseDdl } from "~/domain/db/database"
 import { extractEntityIdCandidates } from "~/lib/markdown/linkify/extract"
 import { modes, deriveMode, ENDPOINT } from "./executors/modes"
 import { getFiles } from "~/lib/files/store"
@@ -35,6 +36,7 @@ interface IterationConfig {
   processBlocks?: (blocks: Block[]) => Block[]
   transformResponse?: (blocks: Block[]) => Block[]
   blockSchemas?: BlockSchemaDefinition[]
+  databaseDdl?: string
 }
 
 interface AgentRunConfig {
@@ -89,6 +91,7 @@ export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
       tools,
       toolSchemas: toSchemaMap(iter.tools),
       blockSchemas: iter.blockSchemas,
+      databaseDdl: iter.databaseDdl,
       execute: executor,
       callbacks,
       source,
@@ -211,6 +214,7 @@ export const agentLoop = async (config: AgentLoopConfig): Promise<void> =>
         processBlocks: compactBlocks,
         transformResponse: rejectDanglingEntityIds,
         blockSchemas: getBlockSchemaDefinitions(),
+        databaseDdl: getDatabaseDdl(),
       }
     },
     afterTurn: async (newBlocks) => {

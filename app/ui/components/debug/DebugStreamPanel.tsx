@@ -18,16 +18,21 @@ import { useDraggable } from "~/ui/hooks/useDraggable"
 import { getToolDefinitions } from "~/lib/agent/executors"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
+import { getDatabaseDdl } from "~/domain/db/database"
 import {
   getAllBlocksWithDraft,
   subscribeBlocks,
   isDraft,
   clearPauseBlocks,
   getSource,
+  formatBlockSchemasContent,
+  formatDatabaseDdlContent,
 } from "~/lib/agent/client"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent/client"
 import { stepCompactedIndices } from "~/lib/agent/compact"
+
+const noop = () => undefined
 
 interface BlockRendererProps {
   block: Block
@@ -67,7 +72,9 @@ const formatResult = (result: unknown): string => {
 const formatToolDefinitions = (): string => JSON.stringify(getToolDefinitions(), null, 2)
 
 const formatBlockSchemaDefinitions = (): string =>
-  JSON.stringify(getBlockSchemaDefinitions(), null, 2)
+  formatBlockSchemasContent(getBlockSchemaDefinitions())
+
+const formatDatabaseSchema = (): string => formatDatabaseDdlContent(getDatabaseDdl())
 
 const formatBlock = (block: Block): string => {
   switch (block.type) {
@@ -422,6 +429,39 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
       </div>
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+        <CollapsibleBlock
+          label="tools"
+          content={formatToolDefinitions()}
+          borderColor="border-cyan-400"
+          labelColor="text-cyan-600"
+          bgColor="bg-cyan-50"
+          defaultExpanded={false}
+          mono
+          selected={false}
+          onToggleSelect={noop}
+        />
+        <CollapsibleBlock
+          label="block schemas"
+          content={formatBlockSchemaDefinitions()}
+          borderColor="border-cyan-400"
+          labelColor="text-cyan-600"
+          bgColor="bg-cyan-50"
+          defaultExpanded={false}
+          mono
+          selected={false}
+          onToggleSelect={noop}
+        />
+        <CollapsibleBlock
+          label="database schema"
+          content={formatDatabaseSchema()}
+          borderColor="border-cyan-400"
+          labelColor="text-cyan-600"
+          bgColor="bg-cyan-50"
+          defaultExpanded={false}
+          mono
+          selected={false}
+          onToggleSelect={noop}
+        />
         {allBlocks.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <span className="text-sm text-neutral-400">No blocks yet</span>
