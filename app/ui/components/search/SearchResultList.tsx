@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { FeatherFileText, FeatherExternalLink } from "@subframe/core"
-import { Badge } from "~/ui/components/Badge"
 import { IconButton } from "~/ui/components/IconButton"
+import { TagBadge } from "~/ui/components/TagBadge"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
 import { toDisplayName } from "~/lib/files/filename"
@@ -160,9 +160,7 @@ const FileGroupCard = ({
           {toDisplayName(group.file)}
         </span>
         {tags.map((tag) => (
-          <Badge key={tag.id} variant="neutral" icon={null}>
-            {tag.display}
-          </Badge>
+          <TagBadge key={tag.id} tag={tag} />
         ))}
         {hitCount > 0 && (
           <span className="text-caption font-caption text-subtext-color">
@@ -201,7 +199,7 @@ export const SearchResultList = ({
     <div className="flex w-full flex-col items-start gap-6">
       <div className="flex w-full items-center gap-2">
         <span className="text-body-bold font-body-bold text-default-font">
-          {hits.length} {hits.length === 1 ? "result" : "results"}
+          {expanded.length} {expanded.length === 1 ? "result" : "results"}
         </span>
         <span className="text-body font-body text-subtext-color">
           across {fileCount} {fileCount === 1 ? "document" : "documents"}

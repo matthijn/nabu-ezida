@@ -14,7 +14,7 @@ const generateShortId = (): string => {
 
 const generateSearchId = (): string => `search-${generateShortId()}`
 
-const MAX_UNSAVED = 5
+const MAX_UNSAVED = 3
 
 const isUnsaved = (entry: SearchEntry): boolean => !entry.saved
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { useParams, useNavigate } from "react-router"
 import { useProject } from "./project"
 import { useSearchResults } from "~/ui/hooks/useSearchResults"
@@ -13,53 +13,51 @@ const collectTagIds = (files: string[], getFileTags: (filename: string) => strin
   ...new Set(files.flatMap(getFileTags)),
 ]
 
-const resolveTagOptions = (
-  tagIds: string[],
-  definitions: TagDefinition[]
-): { id: string; label: string }[] =>
+const resolveTagDefinitions = (tagIds: string[], definitions: TagDefinition[]): TagDefinition[] =>
   tagIds
-    .map((id) => {
-      const def = definitions.find((d) => d.id === id)
-      return def ? { id: def.id, label: def.display } : null
-    })
-    .filter((t): t is { id: string; label: string } => t !== null)
+    .map((id) => definitions.find((d) => d.id === id))
+    .filter((t): t is TagDefinition => t !== undefined)
 
-const toggleInSet = (set: Set<string>, id: string): Set<string> => {
+const toggleActive = (set: Set<string>, id: string): Set<string> => {
   const next = new Set(set)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
+  if (next.has(id)) {
+    if (next.size <= 1) return set
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
   return next
 }
 
-const hasAllTags = (fileTags: string[], required: Set<string>): boolean => {
-  for (const tag of required) {
-    if (!fileTags.includes(tag)) return false
-  }
-  return true
-}
+const hasAnyActiveTag = (fileTags: string[], active: Set<string>): boolean =>
+  fileTags.some((t) => active.has(t))
 
 const filterHitsByTags = (
   hits: SearchHit[],
   activeTags: Set<string>,
   getFileTags: (filename: string) => string[]
-): SearchHit[] =>
-  activeTags.size === 0 ? hits : hits.filter((h) => hasAllTags(getFileTags(h.file), activeTags))
+): SearchHit[] => hits.filter((h) => hasAnyActiveTag(getFileTags(h.file), activeTags))
 
 export default function ProjectSearch() {
   const params = useParams<{ projectId: string; searchId: string }>()
   const navigate = useNavigate()
   const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
   const { search, results, isLoading, error } = useSearchResults(params.searchId ?? "")
-  const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
-
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)
     const tagIds = collectTagIds(uniqueFiles, getFileTags)
-    return resolveTagOptions(tagIds, tagDefinitions)
+    return resolveTagDefinitions(tagIds, tagDefinitions)
   }, [results, getFileTags, tagDefinitions])
 
+  const allTagIds = useMemo(() => new Set(tagOptions.map((t) => t.id)), [tagOptions])
+  const [activeTags, setActiveTags] = useState<Set<string>>(allTagIds)
+
+  useEffect(() => {
+    setActiveTags(allTagIds)
+  }, [allTagIds])
+
   const handleToggleTag = useCallback(
-    (id: string) => setActiveTags((prev) => toggleInSet(prev, id)),
+    (id: string) => setActiveTags((prev) => toggleActive(prev, id)),
     []
   )
 
