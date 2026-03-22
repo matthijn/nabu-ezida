@@ -1,7 +1,4 @@
-export { executeSearchQueries } from "./execute"
-export {
-  extractFileIntro,
-  extractSnippetAroundId,
-  findHighlightOccurrences,
-  expandFileHits,
-} from "./snippets"
+export { executeSearch } from "./execute"
+export { extractFileIntro, extractSnippetAroundId, extractSnippetAroundText } from "./snippets"
+export { resolveSemanticSql } from "./resolve-semantic"
+export { sanitizeSemanticError } from "./semantic"

@@ -1,15 +1,9 @@
 import { z } from "zod"
 
-export const EmbeddingChunkSchema = z.object({
-  hash: z.string(),
+export const EmbeddingRowSchema = z.object({
   text: z.string(),
+  hash: z.string(),
   embedding: z.array(z.number()),
 })
 
-export const EmbeddingsBlockSchema = z.object({
-  source: z.string(),
-  chunks: z.array(EmbeddingChunkSchema),
-})
-
-export type EmbeddingChunk = z.infer<typeof EmbeddingChunkSchema>
-export type EmbeddingsBlock = z.infer<typeof EmbeddingsBlockSchema>
+export type EmbeddingRow = z.infer<typeof EmbeddingRowSchema>

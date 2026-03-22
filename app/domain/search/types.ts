@@ -1,11 +1,12 @@
 import { z } from "zod"
 
-export const SearchQuerySchema = z.object({
-  type: z.enum(["file", "hit"]),
-  sql: z.string(),
+export const SearchHitSchema = z.object({
+  file: z.string(),
+  id: z.string().optional(),
+  text: z.string().optional(),
 })
 
-export type SearchQuery = z.infer<typeof SearchQuerySchema>
+export type SearchHit = z.infer<typeof SearchHitSchema>
 
 export const SearchEntrySchema = z.object({
   id: z.string(),
@@ -13,13 +14,7 @@ export const SearchEntrySchema = z.object({
   description: z.string(),
   saved: z.boolean(),
   createdAt: z.number(),
-  queries: z.array(SearchQuerySchema),
-  highlights: z.array(z.string()),
+  sql: z.string(),
 })
 
 export type SearchEntry = z.infer<typeof SearchEntrySchema>
-
-export type SearchHit =
-  | { type: "file"; file: string }
-  | { type: "hit"; file: string; id: string }
-  | { type: "text"; file: string; line: number; term: string }

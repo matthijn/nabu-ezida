@@ -6,4 +6,7 @@ export interface ProjectionConfig {
   schema: z.ZodType
   singleton: boolean
   allowedFiles?: string[]
+  expose?: boolean
+  fileMapper?: (filename: string) => string
+  hiddenColumns?: string[]
 }

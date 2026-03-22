@@ -12,6 +12,7 @@ import {
 } from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
 import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
+import { isCompanionFile } from "~/lib/embeddings/companion"
 import type { ToolExecutor } from "../turn"
 import {
   pushEntries,
@@ -22,7 +23,11 @@ import {
 } from "~/lib/mutation-history"
 
 const extractFiles = (): Map<string, string> =>
-  new Map(Object.entries(getFilesStripped()).map(([k, v]) => [k, toExtraPretty(v)]))
+  new Map(
+    Object.entries(getFilesStripped())
+      .filter(([k]) => !isCompanionFile(k))
+      .map(([k, v]) => [k, toExtraPretty(v)])
+  )
 
 interface ResolvedOp {
   op: Operation

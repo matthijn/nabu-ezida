@@ -3,7 +3,8 @@ import { useSyncExternalStore } from "react"
 import { getFiles, subscribe } from "~/lib/files/store"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 import { getDatabase } from "~/domain/db/database"
-import { executeSearchQueries } from "~/lib/search"
+import { executeSearch, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
+import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 
 interface SettledState {
@@ -41,13 +42,20 @@ export const useSearchResults = (searchId: string): SearchResults => {
         return
       }
 
-      const result = await executeSearchQueries(db, search.queries)
+      const resolved = await resolveSemanticSql(search.sql, getLlmHost())
+      if (cancelled) return
+      if (!resolved.ok) {
+        setSettled({ results: [], error: resolved.error, searchId })
+        return
+      }
+
+      const result = await executeSearch(db, resolved.value)
       if (cancelled) return
 
       if (result.ok) {
         setSettled({ results: result.value, error: null, searchId })
       } else {
-        setSettled({ results: [], error: result.error.message, searchId })
+        setSettled({ results: [], error: sanitizeSemanticError(result.error.message), searchId })
       }
     }
 

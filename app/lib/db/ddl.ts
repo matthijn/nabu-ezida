@@ -71,6 +71,11 @@ const columnDdl = (col: DbColumn): string => {
   return `  ${col.name} ${col.type}${nullability}`
 }
 
+export const filterHiddenColumns = (schema: TableSchema, hidden: string[]): TableSchema => ({
+  name: schema.name,
+  columns: schema.columns.filter((c) => !hidden.includes(c.name)),
+})
+
 export const tableSchemaToDdl = (schema: TableSchema): string => {
   const columns = schema.columns.map(columnDdl).join(",\n")
   return `CREATE OR REPLACE TABLE ${schema.name} (\n${columns}\n);`

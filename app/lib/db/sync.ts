@@ -78,14 +78,15 @@ const buildInsertSql = (table: string, rows: Record<string, unknown>[]): string 
   return `INSERT INTO ${table} (${columnList}) VALUES ${valueRows.join(", ")};`
 }
 
-const buildDeleteSql = (tables: string[], filename: string): string =>
-  tables.map((t) => `DELETE FROM ${t} WHERE file = '${escapeString(filename)}';`).join("\n")
+const effectiveFile = (config: ProjectionConfig, filename: string): string =>
+  config.fileMapper?.(filename) ?? filename
 
-const buildFilesDeleteSql = (filename: string): string =>
-  `DELETE FROM files WHERE filename = '${escapeString(filename)}';`
-
-const getAllTableNames = (projections: ProjectionWithSchema[]): string[] =>
-  projections.flatMap((p) => p.schemas.map((s) => s.name))
+const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: string): string => {
+  const file = effectiveFile(projection.config, filename)
+  return projection.schemas
+    .map((s) => `DELETE FROM ${s.name} WHERE file = '${escapeString(file)}';`)
+    .join("\n")
+}
 
 export const syncFiles = async (
   db: Database,
@@ -95,30 +96,31 @@ export const syncFiles = async (
   getBlocks: (raw: string, language: string) => Record<string, unknown>[],
   getBlock: (raw: string, language: string) => Record<string, unknown> | null
 ): Promise<Result<void, DbError>> => {
-  const projectionTables = getAllTableNames(projections)
   const statements: string[] = []
 
   for (const filename of plan.deleted) {
-    statements.push(buildFilesDeleteSql(filename))
-    statements.push(buildDeleteSql(projectionTables, filename))
+    for (const p of projections) {
+      statements.push(buildProjectionDeleteSql(p, filename))
+    }
   }
 
   for (const filename of plan.changed) {
-    statements.push(buildFilesDeleteSql(filename))
-    statements.push(buildDeleteSql(projectionTables, filename))
+    for (const p of projections) {
+      statements.push(buildProjectionDeleteSql(p, filename))
+    }
 
     const raw = files[filename]
-    statements.push(buildInsertSql("files", [{ filename, content: raw }]))
 
     for (const { config, jsonSchema } of projections) {
       if (!isAllowedFile(filename, config.allowedFiles)) continue
 
+      const file = effectiveFile(config, filename)
       const blocks = config.singleton
         ? ([getBlock(raw, config.language)].filter(Boolean) as Record<string, unknown>[])
         : getBlocks(raw, config.language)
 
       for (const block of blocks) {
-        const tableRows = extractRows(config.tableName, jsonSchema, block, filename)
+        const tableRows = extractRows(config.tableName, jsonSchema, block, file)
         for (const { table, rows } of tableRows) {
           if (rows.length > 0) statements.push(buildInsertSql(table, rows))
         }

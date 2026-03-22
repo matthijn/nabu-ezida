@@ -2,6 +2,9 @@ import type { AsyncDuckDB } from "@duckdb/duckdb-wasm"
 import { ok, err, type Result } from "~/lib/fp/result"
 import type { DbError, QueryResult } from "./types"
 
+const extractMessage = (cause: unknown): string =>
+  cause instanceof Error ? cause.message : String(cause)
+
 const createDbError = (message: string, cause?: unknown): DbError => ({
   type: "query",
   message,
@@ -22,6 +25,6 @@ export const executeQuery = async <T = unknown>(
     return ok({ rows, rowCount: rows.length })
   } catch (cause) {
     await conn.close()
-    return err(createDbError(`Query failed: ${sql}`, cause))
+    return err(createDbError(`Query failed: ${extractMessage(cause)}`, cause))
   }
 }

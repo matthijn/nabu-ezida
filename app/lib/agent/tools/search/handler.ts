@@ -2,7 +2,8 @@ import type { ToolResult } from "../../types"
 import { SearchArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
 import { getDatabase } from "~/domain/db/database"
-import { executeSearchQueries } from "~/lib/search"
+import { getLlmHost } from "~/lib/agent/env"
+import { executeSearch, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
 import { updateSearchEntries, readSettings } from "./settings"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 
@@ -30,14 +31,10 @@ const INLINE_THRESHOLD = 5
 const countUniqueFiles = (hits: { file: string }[]): number => new Set(hits.map((h) => h.file)).size
 
 const formatHit = (hit: SearchHit): string => {
-  switch (hit.type) {
-    case "file":
-      return hit.file
-    case "hit":
-      return `${hit.file} → ${hit.id}`
-    case "text":
-      return `${hit.file}:${hit.line} (${hit.term})`
-  }
+  if (hit.id && hit.text) return `${hit.file} → ${hit.id}: ${hit.text.slice(0, 80)}`
+  if (hit.id) return `${hit.file} → ${hit.id}`
+  if (hit.text) return `${hit.file}: ${hit.text.slice(0, 80)}`
+  return hit.file
 }
 
 const formatInlineResults = (hits: SearchHit[]): string => hits.map(formatHit).join("\n")
@@ -50,15 +47,19 @@ const formatOutput = (id: string, hits: SearchHit[]): string => {
   return `${summary}\n\n${formatInlineResults(hits)}`
 }
 
-const executeSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
+const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = SearchArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const result = await executeSearchQueries(db, parsed.data.queries)
-  if (!result.ok) return { status: "error", output: result.error.message }
+  const resolved = await resolveSemanticSql(parsed.data.sql, getLlmHost())
+  if (!resolved.ok) return { status: "error", output: resolved.error }
+  const sql = resolved.value
+
+  const result = await executeSearch(db, sql)
+  if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
 
   const id = generateSearchId()
   const entry: SearchEntry = {
@@ -67,8 +68,7 @@ const executeSearch = async (call: { args: unknown }): Promise<ToolResult<unknow
     description: parsed.data.description,
     saved: false,
     createdAt: Date.now(),
-    queries: parsed.data.queries,
-    highlights: parsed.data.highlights,
+    sql: parsed.data.sql,
   }
 
   const settings = readSettings()
@@ -82,4 +82,4 @@ const executeSearch = async (call: { args: unknown }): Promise<ToolResult<unknow
   }
 }
 
-registerSpecialHandler("search", executeSearch)
+registerSpecialHandler("search", handleSearch)

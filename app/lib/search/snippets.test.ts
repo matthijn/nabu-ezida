@@ -2,11 +2,9 @@ import { describe, it, expect } from "vitest"
 import {
   extractFileIntro,
   extractSnippetAroundId,
-  findHighlightOccurrences,
-  expandFileHits,
+  extractSnippetAroundText,
   type Snippet,
 } from "./snippets"
-import type { SearchHit } from "~/domain/search"
 
 describe("extractFileIntro", () => {
   const cases: { name: string; content: string; maxLines?: number; expected: string }[] = [
@@ -135,137 +133,93 @@ describe("extractSnippetAroundId", () => {
   })
 })
 
-describe("findHighlightOccurrences", () => {
+describe("extractSnippetAroundText", () => {
   const cases: {
     name: string
-    file: string
     content: string
-    highlights: string[]
-    expected: SearchHit[]
+    text: string
+    contextLines?: number
+    expected: Snippet | null
   }[] = [
     {
-      name: "finds single term on multiple lines",
-      file: "doc.md",
-      content: "Rutte said something.\nThen more text.\nRutte replied.",
-      highlights: ["Rutte"],
-      expected: [
-        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
-        { type: "text", file: "doc.md", line: 3, term: "Rutte" },
-      ],
+      name: "finds text and returns context",
+      content: "Line one.\nLine two.\nTarget phrase here.\nLine four.\nLine five.",
+      text: "Target phrase",
+      expected: {
+        line: 3,
+        text: "Line one.\nLine two.\nTarget phrase here.\nLine four.\nLine five.",
+      },
     },
     {
       name: "case-insensitive matching",
-      file: "doc.md",
-      content: "rutte spoke.\nRUTTE responded.",
-      highlights: ["Rutte"],
-      expected: [
-        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
-        { type: "text", file: "doc.md", line: 2, term: "Rutte" },
-      ],
+      content: "First.\nSecond.\nRUTTE spoke here.\nFourth.",
+      text: "rutte",
+      expected: {
+        line: 3,
+        text: "First.\nSecond.\nRUTTE spoke here.\nFourth.",
+      },
     },
     {
-      name: "multiple terms on same line deduplicates by line",
-      file: "doc.md",
-      content: "Rutte and Geert met.\nOnly Geert spoke.",
-      highlights: ["Rutte", "Geert"],
-      expected: [
-        { type: "text", file: "doc.md", line: 1, term: "Rutte" },
-        { type: "text", file: "doc.md", line: 2, term: "Geert" },
-      ],
+      name: "returns null when text not found",
+      content: "Nothing relevant here.\nOr here.",
+      text: "missing phrase",
+      expected: null,
     },
     {
-      name: "returns empty for no matches",
-      file: "doc.md",
-      content: "Nothing relevant here.",
-      highlights: ["Rutte"],
-      expected: [],
+      name: "respects custom context lines",
+      content: "A\nB\nC\nD\nE\nF\nG",
+      text: "D",
+      contextLines: 1,
+      expected: {
+        line: 4,
+        text: "C\nD\nE",
+      },
     },
     {
-      name: "returns empty for empty highlights",
-      file: "doc.md",
-      content: "Rutte is here.",
-      highlights: [],
-      expected: [],
+      name: "long text returns truncated text directly",
+      content: "Irrelevant content.",
+      text: "A".repeat(250),
+      expected: {
+        line: 0,
+        text: "A".repeat(250),
+      },
     },
     {
-      name: "results sorted by line number",
-      file: "doc.md",
-      content: "Geert first.\nMiddle.\nRutte last.",
-      highlights: ["Rutte", "Geert"],
-      expected: [
-        { type: "text", file: "doc.md", line: 1, term: "Geert" },
-        { type: "text", file: "doc.md", line: 3, term: "Rutte" },
-      ],
+      name: "very long text gets sliced at 300 chars",
+      content: "Irrelevant content.",
+      text: "A".repeat(400),
+      expected: {
+        line: 0,
+        text: "A".repeat(300),
+      },
+    },
+    {
+      name: "clamps to start of file",
+      content: "Target here.\nSecond line.",
+      text: "Target",
+      contextLines: 5,
+      expected: {
+        line: 1,
+        text: "Target here.\nSecond line.",
+      },
+    },
+    {
+      name: "clamps to end of file",
+      content: "First.\nSecond.\nTarget here.",
+      text: "Target",
+      contextLines: 5,
+      expected: {
+        line: 3,
+        text: "First.\nSecond.\nTarget here.",
+      },
     },
   ]
 
-  it.each(cases)("$name", ({ file, content, highlights, expected }) => {
-    expect(findHighlightOccurrences(file, content, highlights)).toEqual(expected)
-  })
-})
-
-describe("expandFileHits", () => {
-  const contentMap: Record<string, string> = {
-    "a.md": "Rutte spoke.\nSomething else.\nRutte again.",
-    "b.md": "No matches here.",
-  }
-  const getContent = (file: string) => contentMap[file]
-
-  const cases: {
-    name: string
-    hits: SearchHit[]
-    highlights: string[]
-    expected: SearchHit[]
-  }[] = [
-    {
-      name: "expands file hits into text hits",
-      hits: [{ type: "file", file: "a.md" }],
-      highlights: ["Rutte"],
-      expected: [
-        { type: "text", file: "a.md", line: 1, term: "Rutte" },
-        { type: "text", file: "a.md", line: 3, term: "Rutte" },
-      ],
-    },
-    {
-      name: "preserves hit-type hits unchanged",
-      hits: [{ type: "hit", file: "a.md", id: "ann-1" }],
-      highlights: ["Rutte"],
-      expected: [{ type: "hit", file: "a.md", id: "ann-1" }],
-    },
-    {
-      name: "keeps file hit when no occurrences found",
-      hits: [{ type: "file", file: "b.md" }],
-      highlights: ["Rutte"],
-      expected: [{ type: "file", file: "b.md" }],
-    },
-    {
-      name: "returns hits unchanged when highlights is empty",
-      hits: [{ type: "file", file: "a.md" }],
-      highlights: [],
-      expected: [{ type: "file", file: "a.md" }],
-    },
-    {
-      name: "keeps file hit when content not found",
-      hits: [{ type: "file", file: "missing.md" }],
-      highlights: ["Rutte"],
-      expected: [{ type: "file", file: "missing.md" }],
-    },
-    {
-      name: "mixes expanded and preserved hits",
-      hits: [
-        { type: "file", file: "a.md" },
-        { type: "hit", file: "a.md", id: "ann-1" },
-      ],
-      highlights: ["Rutte"],
-      expected: [
-        { type: "text", file: "a.md", line: 1, term: "Rutte" },
-        { type: "text", file: "a.md", line: 3, term: "Rutte" },
-        { type: "hit", file: "a.md", id: "ann-1" },
-      ],
-    },
-  ]
-
-  it.each(cases)("$name", ({ hits, highlights, expected }) => {
-    expect(expandFileHits(hits, highlights, getContent)).toEqual(expected)
+  it.each(cases)("$name", ({ content, text, contextLines, expected }) => {
+    const result =
+      contextLines !== undefined
+        ? extractSnippetAroundText(content, text, contextLines)
+        : extractSnippetAroundText(content, text)
+    expect(result).toEqual(expected)
   })
 })

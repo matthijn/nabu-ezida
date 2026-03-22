@@ -1,4 +1,7 @@
-import type { SearchHit } from "~/domain/search"
+export interface Snippet {
+  line: number
+  text: string
+}
 
 const splitLines = (content: string): string[] => content.split("\n")
 
@@ -14,11 +17,6 @@ export const extractFileIntro = (content: string, maxLines = 5): string => {
   const lines = splitLines(content)
   const nonEmpty = lines.filter((l) => l.trim() !== "" && !isCodeBlockFence(l))
   return nonEmpty.slice(0, maxLines).join("\n")
-}
-
-export interface Snippet {
-  line: number
-  text: string
 }
 
 export const extractSnippetAroundId = (
@@ -39,64 +37,30 @@ export const extractSnippetAroundId = (
   }
 }
 
-const containsTerm = (line: string, term: string): boolean =>
-  line.toLowerCase().includes(term.toLowerCase())
+const LONG_TEXT_THRESHOLD = 200
+const LONG_TEXT_SLICE = 300
 
-const findTermOccurrences = (lines: string[], term: string): number[] =>
-  lines.reduce<number[]>((acc, line, i) => {
-    if (containsTerm(line, term)) acc.push(i)
-    return acc
-  }, [])
+const findTextLine = (lines: string[], text: string): number =>
+  lines.findIndex((line) => line.toLowerCase().includes(text.toLowerCase()))
 
-export const findHighlightOccurrences = (
-  file: string,
+export const extractSnippetAroundText = (
   content: string,
-  highlights: string[]
-): SearchHit[] => {
+  text: string,
+  contextLines = 3
+): Snippet | null => {
+  if (text.length > LONG_TEXT_THRESHOLD) {
+    return { line: 0, text: text.slice(0, LONG_TEXT_SLICE) }
+  }
+
   const lines = splitLines(content)
-  const seen = new Set<number>()
-  const hits: SearchHit[] = []
+  const matchLine = findTextLine(lines, text)
+  if (matchLine === -1) return null
 
-  for (const term of highlights) {
-    for (const lineIndex of findTermOccurrences(lines, term)) {
-      if (seen.has(lineIndex)) continue
-      seen.add(lineIndex)
-      hits.push({ type: "text", file, line: lineIndex + 1, term })
-    }
+  const start = clamp(matchLine - contextLines, 0, lines.length)
+  const end = clamp(matchLine + contextLines + 1, 0, lines.length)
+
+  return {
+    line: matchLine + 1,
+    text: lines.slice(start, end).join("\n"),
   }
-
-  return hits.sort((a, b) => {
-    if (a.type !== "text" || b.type !== "text") return 0
-    return a.line - b.line
-  })
-}
-
-const isFileHit = (hit: SearchHit): boolean => hit.type === "file"
-
-export const expandFileHits = (
-  hits: SearchHit[],
-  highlights: string[],
-  getContent: (file: string) => string | undefined
-): SearchHit[] => {
-  if (highlights.length === 0) return hits
-
-  const expanded: SearchHit[] = []
-  for (const hit of hits) {
-    if (!isFileHit(hit)) {
-      expanded.push(hit)
-      continue
-    }
-    const content = getContent(hit.file)
-    if (!content) {
-      expanded.push(hit)
-      continue
-    }
-    const textHits = findHighlightOccurrences(hit.file, content, highlights)
-    if (textHits.length === 0) {
-      expanded.push(hit)
-      continue
-    }
-    expanded.push(...textHits)
-  }
-  return expanded
 }

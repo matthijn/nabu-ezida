@@ -1,2 +1,2 @@
-export { EmbeddingChunkSchema, EmbeddingsBlockSchema } from "./schema"
-export type { EmbeddingChunk, EmbeddingsBlock } from "./schema"
+export { EmbeddingRowSchema } from "./schema"
+export type { EmbeddingRow } from "./schema"

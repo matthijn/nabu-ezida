@@ -56,9 +56,17 @@ describe("roundtrip", () => {
       { hash: "bbb", text: "goodbye", embedding: [0.4, 0.5, 0.6] },
     ]
 
-    const markdown = buildCompanionMarkdown("source.md", entries)
+    const markdown = buildCompanionMarkdown(entries)
     const recovered = parseCompanionEntries(markdown)
     expect(recovered).toEqual(entries)
+  })
+
+  it("single entry roundtrip", () => {
+    const entries: EmbeddingEntry[] = [{ hash: "abc", text: "solo", embedding: [1.0] }]
+
+    const markdown = buildCompanionMarkdown(entries)
+    expect(markdown).toContain("```json-embeddings")
+    expect(parseCompanionEntries(markdown)).toEqual(entries)
   })
 
   it("parse returns empty for no block", () => {
@@ -67,6 +75,11 @@ describe("roundtrip", () => {
 
   it("parse returns empty for invalid json", () => {
     expect(parseCompanionEntries("```json-embeddings\nnot json\n```")).toEqual([])
+  })
+
+  it("parse skips blocks with missing fields", () => {
+    const markdown = '```json-embeddings\n{"hash":"a"}\n```'
+    expect(parseCompanionEntries(markdown)).toEqual([])
   })
 
   it("filename roundtrip", () => {

@@ -15,6 +15,7 @@ import {
   askTool,
   recordDecisionTool,
   submitPlanTool,
+  queryTool,
   searchTool,
 } from "../tools"
 import { baselineNudge } from "../steering/nudges/baseline"
@@ -54,6 +55,7 @@ const raw: Record<ModeName, ModeConfig> = {
   chat: {
     tools: [
       runLocalShell,
+      queryTool,
       searchTool,
       patchJsonBlock,
       applyLocalPatch,
@@ -74,6 +76,7 @@ const raw: Record<ModeName, ModeConfig> = {
   plan: {
     tools: [
       runLocalShell,
+      queryTool,
       searchTool,
       preflightTool,
       getGuidanceTool,
@@ -92,6 +95,7 @@ const raw: Record<ModeName, ModeConfig> = {
   exec: {
     tools: [
       runLocalShell,
+      queryTool,
       searchTool,
       patchJsonBlock,
       applyLocalPatch,

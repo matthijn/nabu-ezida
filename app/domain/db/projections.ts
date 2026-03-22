@@ -4,7 +4,7 @@ import type { JsonSchema } from "~/lib/db/types"
 import { CalloutSchema } from "~/domain/data-blocks/callout/schema"
 import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
 import { Settings } from "~/domain/data-blocks/settings/schema"
-import { EmbeddingsBlockSchema } from "~/domain/embeddings/schema"
+import { EmbeddingRowSchema } from "~/domain/embeddings/schema"
 
 export const projections: ProjectionConfig[] = [
   {
@@ -28,9 +28,11 @@ export const projections: ProjectionConfig[] = [
   },
   {
     language: "json-embeddings",
-    tableName: "embeddings",
-    schema: EmbeddingsBlockSchema,
-    singleton: true,
+    tableName: "files",
+    schema: EmbeddingRowSchema,
+    singleton: false,
+    fileMapper: (f) => f.replace(/\.embeddings\.hidden\.md$/, ".md"),
+    hiddenColumns: ["hash", "embedding"],
   },
 ]
 

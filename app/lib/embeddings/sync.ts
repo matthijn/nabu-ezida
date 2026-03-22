@@ -107,7 +107,7 @@ const processSync = async (
 
   for (const [filename, entries] of distributed) {
     const companion = companionFilename(filename)
-    const markdown = buildCompanionMarkdown(filename, entries)
+    const markdown = buildCompanionMarkdown(entries)
     deps.updateFile(companion, markdown)
   }
 

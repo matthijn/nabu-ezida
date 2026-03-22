@@ -3,12 +3,10 @@ import { getBlock, getBlocks } from "~/lib/data-blocks/query"
 import { debounce } from "~/lib/utils/debounce"
 import { initializeDatabase } from "~/lib/db/init"
 import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
-import { jsonSchemaToTableProjection, tableSchemaToDdl } from "~/lib/db/ddl"
+import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
 import { projections, toJsonSchema } from "./projections"
 import { startEmbeddings } from "~/domain/embeddings/init"
 import type { Database } from "~/lib/db/types"
-
-const FILES_TABLE_DDL = `CREATE OR REPLACE TABLE files (\n  filename VARCHAR NOT NULL,\n  content VARCHAR NOT NULL\n);`
 
 const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
   projections.map((config) => {
@@ -17,10 +15,8 @@ const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
     return { config, jsonSchema, schemas }
   })
 
-const generateDdl = (withSchemas: ProjectionWithSchema[]): string => {
-  const projectionDdl = withSchemas.flatMap((p) => p.schemas.map(tableSchemaToDdl))
-  return [FILES_TABLE_DDL, ...projectionDdl].join("\n\n")
-}
+const generateDdl = (withSchemas: ProjectionWithSchema[]): string =>
+  withSchemas.flatMap((p) => p.schemas.map(tableSchemaToDdl)).join("\n\n")
 
 const findProjectionSchema = (language: string) => {
   const projection = projections.find((p) => p.language === language)
@@ -112,10 +108,21 @@ export const getDatabase = (): Database | null => database
 const stripCreateNoise = (ddl: string): string =>
   ddl.replace(/CREATE OR REPLACE TABLE/g, "CREATE TABLE")
 
+const isExposed = (p: ProjectionWithSchema): boolean => p.config.expose !== false
+
+const generateExposedDdl = (withSchemas: ProjectionWithSchema[]): string => {
+  const schemas = withSchemas.flatMap((p) => {
+    const hidden = p.config.hiddenColumns ?? []
+    return hidden.length > 0 ? p.schemas.map((s) => filterHiddenColumns(s, hidden)) : p.schemas
+  })
+  return schemas.map(tableSchemaToDdl).join("\n\n")
+}
+
 let cachedDdl: string | null = null
 
 export const getDatabaseDdl = (): string => {
   if (cachedDdl) return cachedDdl
-  cachedDdl = stripCreateNoise(generateDdl(buildProjectionsWithSchemas()))
+  const exposed = buildProjectionsWithSchemas().filter(isExposed)
+  cachedDdl = stripCreateNoise(generateExposedDdl(exposed))
   return cachedDdl
 }

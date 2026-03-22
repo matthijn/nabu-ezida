@@ -98,7 +98,7 @@ export default function ProjectSearch() {
     )
   }
 
-  const showQueries = !!debugOptions.renderAsJson
+  const showDebugSql = !!debugOptions.renderAsJson
 
   return (
     <div className="flex h-full w-full flex-col items-start gap-6 overflow-auto px-12 py-8">
@@ -110,14 +110,13 @@ export default function ProjectSearch() {
           activeTags={activeTags}
           onToggleTag={handleToggleTag}
         />
-        {showQueries && (
+        {showDebugSql && (
           <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
-            {JSON.stringify(search.queries, null, 2)}
+            {search.sql}
           </pre>
         )}
         <SearchResultList
           hits={filteredResults}
-          highlights={search.highlights}
           files={files}
           projectId={params.projectId}
           onNavigate={navigate}

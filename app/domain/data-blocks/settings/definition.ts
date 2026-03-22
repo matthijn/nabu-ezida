@@ -2,6 +2,7 @@ import { Settings } from "./schema"
 import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
 import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { validateTagLabels } from "./tags/validation"
+import { validateSearchSql } from "./searches/validation"
 
 export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
   schema: Settings,
@@ -15,5 +16,5 @@ export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
     { path: "tags.*.id", prefix: "tag" },
     { path: "searches.*.id", prefix: "search" },
   ],
-  validate: validateTagLabels,
+  validate: (parsed) => [...validateTagLabels(parsed), ...validateSearchSql(parsed)],
 }
