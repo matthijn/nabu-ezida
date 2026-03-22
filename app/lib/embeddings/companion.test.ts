@@ -1,0 +1,78 @@
+import { describe, it, expect } from "vitest"
+import {
+  companionFilename,
+  sourceFilename,
+  isCompanionFile,
+  buildCompanionMarkdown,
+  parseCompanionEntries,
+} from "./companion"
+import type { EmbeddingEntry } from "./diff"
+
+describe("companionFilename", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    { name: "simple doc", input: "doc.md", expected: "doc.embeddings.hidden.md" },
+    { name: "nested name", input: "my_notes.md", expected: "my_notes.embeddings.hidden.md" },
+  ]
+
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      expect(companionFilename(input)).toBe(expected)
+    })
+  })
+})
+
+describe("sourceFilename", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    { name: "companion to source", input: "doc.embeddings.hidden.md", expected: "doc.md" },
+    { name: "nested companion", input: "my_notes.embeddings.hidden.md", expected: "my_notes.md" },
+  ]
+
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      expect(sourceFilename(input)).toBe(expected)
+    })
+  })
+})
+
+describe("isCompanionFile", () => {
+  const cases: { name: string; input: string; expected: boolean }[] = [
+    { name: "companion file", input: "doc.embeddings.hidden.md", expected: true },
+    { name: "regular markdown", input: "doc.md", expected: false },
+    { name: "other hidden file", input: "doc.hidden.md", expected: false },
+    { name: "settings file", input: "settings.hidden.md", expected: false },
+  ]
+
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      expect(isCompanionFile(input)).toBe(expected)
+    })
+  })
+})
+
+describe("roundtrip", () => {
+  it("build then parse recovers entries", () => {
+    const entries: EmbeddingEntry[] = [
+      { hash: "aaa", text: "hello world", embedding: [0.1, 0.2, 0.3] },
+      { hash: "bbb", text: "goodbye", embedding: [0.4, 0.5, 0.6] },
+    ]
+
+    const markdown = buildCompanionMarkdown("source.md", entries)
+    const recovered = parseCompanionEntries(markdown)
+    expect(recovered).toEqual(entries)
+  })
+
+  it("parse returns empty for no block", () => {
+    expect(parseCompanionEntries("just text")).toEqual([])
+  })
+
+  it("parse returns empty for invalid json", () => {
+    expect(parseCompanionEntries("```json-embeddings\nnot json\n```")).toEqual([])
+  })
+
+  it("filename roundtrip", () => {
+    const original = "my_document.md"
+    const companion = companionFilename(original)
+    const recovered = sourceFilename(companion)
+    expect(recovered).toBe(original)
+  })
+})

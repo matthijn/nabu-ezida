@@ -1,0 +1,42 @@
+import { describe, it, expect } from "vitest"
+import { stripMarkdownFormatting } from "./strip"
+
+describe("stripMarkdownFormatting", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    { name: "bold", input: "this is **bold** text", expected: "this is bold text" },
+    {
+      name: "italic with asterisk",
+      input: "this is *italic* text",
+      expected: "this is italic text",
+    },
+    {
+      name: "italic with underscore",
+      input: "this is _italic_ text",
+      expected: "this is italic text",
+    },
+    { name: "link", input: "see [docs](https://example.com)", expected: "see docs" },
+    { name: "heading", input: "## My Heading", expected: "My Heading" },
+    { name: "h3 heading", input: "### Sub Heading", expected: "Sub Heading" },
+    { name: "list item dash", input: "- first item", expected: "first item" },
+    { name: "list item asterisk", input: "* second item", expected: "second item" },
+    { name: "inline code", input: "use `myFunc()` here", expected: "use myFunc() here" },
+    { name: "strikethrough", input: "~~removed~~ text", expected: "removed text" },
+    { name: "plain text unchanged", input: "just plain text", expected: "just plain text" },
+    {
+      name: "mixed formatting",
+      input: "## Title\n\nSome **bold** and [link](url) here",
+      expected: "Title\n\nSome bold and link here",
+    },
+    {
+      name: "bold italic not broken",
+      input: "this is **bold** and *italic*",
+      expected: "this is bold and italic",
+    },
+  ]
+
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      expect(stripMarkdownFormatting(input)).toBe(expected)
+    })
+  })
+})

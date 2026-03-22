@@ -9,7 +9,7 @@ export interface JsonSchema {
   enum?: string[]
 }
 
-export type DuckDbType = "VARCHAR" | "BOOLEAN" | "INTEGER" | "VARCHAR[]"
+export type DuckDbType = "VARCHAR" | "BOOLEAN" | "INTEGER" | "VARCHAR[]" | "FLOAT[]"
 
 export interface DbColumn {
   name: string

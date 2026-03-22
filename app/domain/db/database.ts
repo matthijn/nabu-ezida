@@ -2,9 +2,10 @@ import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
 import { getBlock, getBlocks } from "~/lib/data-blocks/query"
 import { debounce } from "~/lib/utils/debounce"
 import { initializeDatabase } from "~/lib/db/init"
-import { computeSyncPlan, syncFiles, type ProjectionWithSchema } from "~/lib/db/sync"
+import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
 import { jsonSchemaToTableProjection, tableSchemaToDdl } from "~/lib/db/ddl"
 import { projections, toJsonSchema } from "./projections"
+import { startEmbeddings } from "~/domain/embeddings/init"
 import type { Database } from "~/lib/db/types"
 
 const FILES_TABLE_DDL = `CREATE OR REPLACE TABLE files (\n  filename VARCHAR NOT NULL,\n  content VARCHAR NOT NULL\n);`
@@ -33,6 +34,8 @@ const getBlocksUntyped = (raw: string, language: string): Record<string, unknown
 const getBlockUntyped = (raw: string, language: string): Record<string, unknown> | null =>
   getBlock(raw, language, findProjectionSchema(language)) as Record<string, unknown> | null
 
+const DB_SYNC_BATCH_SIZE = 10
+
 let database: Database | null = null
 let previousFiles: FileStore = {}
 let initializing = false
@@ -42,20 +45,25 @@ const runSync = async (db: Database, withSchemas: ProjectionWithSchema[]): Promi
 
   if (plan.deleted.length === 0 && plan.changed.length === 0) return
 
-  const result = await syncFiles(
-    db,
-    plan,
-    currentFiles,
-    withSchemas,
-    getBlocksUntyped,
-    getBlockUntyped
-  )
-  if (result.ok) {
-    previousFiles = currentFiles
-    console.debug(`[db] synced: ${plan.changed.length} changed, ${plan.deleted.length} deleted`)
-  } else {
-    console.error("[db] sync failed:", result.error)
+  const batches = batchSyncPlan(plan, DB_SYNC_BATCH_SIZE)
+  for (const batch of batches) {
+    const result = await syncFiles(
+      db,
+      batch,
+      currentFiles,
+      withSchemas,
+      getBlocksUntyped,
+      getBlockUntyped
+    )
+    if (!result.ok) {
+      console.error("[db] sync failed:", result.error)
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0))
   }
+
+  previousFiles = currentFiles
+  console.debug(`[db] synced: ${plan.changed.length} changed, ${plan.deleted.length} deleted`)
 }
 
 export const startDatabase = async (): Promise<void> => {
@@ -94,6 +102,9 @@ export const startDatabase = async (): Promise<void> => {
   }
 
   console.debug("[db] ready. Use window.query('SELECT ...') to query.")
+
+  startEmbeddings()
+  console.debug("[embeddings] sync started")
 }
 
 export const getDatabase = (): Database | null => database

@@ -21,16 +21,46 @@ export const computeSyncPlan = (prev: FileStore, next: FileStore): SyncPlan => {
   return { deleted, changed }
 }
 
+const isSettingsFile = (filename: string): boolean => filename === "settings.hidden.md"
+
+const isHiddenFile = (filename: string): boolean => filename.includes(".hidden.")
+
+export const fileSyncPriority = (filename: string): 0 | 1 | 2 => {
+  if (isSettingsFile(filename)) return 0
+  if (!isHiddenFile(filename)) return 1
+  return 2
+}
+
+export const batchSyncPlan = (plan: SyncPlan, batchSize: number): SyncPlan[] => {
+  if (plan.deleted.length === 0 && plan.changed.length === 0) return []
+
+  const sorted = [...plan.changed].sort((a, b) => fileSyncPriority(a) - fileSyncPriority(b))
+  const batches: SyncPlan[] = []
+
+  const firstBatchChanged = sorted.slice(0, batchSize)
+  batches.push({ deleted: plan.deleted, changed: firstBatchChanged })
+
+  for (let i = batchSize; i < sorted.length; i += batchSize) {
+    batches.push({ deleted: [], changed: sorted.slice(i, i + batchSize) })
+  }
+
+  return batches
+}
+
 const isAllowedFile = (filename: string, allowedFiles?: string[]): boolean =>
   !allowedFiles || allowedFiles.includes(filename)
 
 const escapeString = (value: string): string => value.replace(/'/g, "''")
+
+const isNumberArray = (value: unknown[]): value is number[] =>
+  value.length > 0 && typeof value[0] === "number"
 
 const formatValue = (value: unknown): string => {
   if (value === null || value === undefined) return "NULL"
   if (typeof value === "boolean") return value.toString()
   if (typeof value === "number") return value.toString()
   if (Array.isArray(value)) {
+    if (isNumberArray(value)) return `[${value.join(", ")}]`
     const items = value.map((v) => `'${escapeString(String(v))}'`).join(", ")
     return `[${items}]`
   }

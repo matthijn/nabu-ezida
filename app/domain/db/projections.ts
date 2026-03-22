@@ -4,6 +4,7 @@ import type { JsonSchema } from "~/lib/db/types"
 import { CalloutSchema } from "~/domain/data-blocks/callout/schema"
 import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
 import { Settings } from "~/domain/data-blocks/settings/schema"
+import { EmbeddingsBlockSchema } from "~/domain/embeddings/schema"
 
 export const projections: ProjectionConfig[] = [
   {
@@ -24,6 +25,12 @@ export const projections: ProjectionConfig[] = [
     schema: Settings,
     singleton: true,
     allowedFiles: ["settings.hidden.md"],
+  },
+  {
+    language: "json-embeddings",
+    tableName: "embeddings",
+    schema: EmbeddingsBlockSchema,
+    singleton: true,
   },
 ]
 

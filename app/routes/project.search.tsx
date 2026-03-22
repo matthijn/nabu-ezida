@@ -111,7 +111,7 @@ export default function ProjectSearch() {
           onToggleTag={handleToggleTag}
         />
         {showQueries && (
-          <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color overflow-x-auto">
+          <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
             {JSON.stringify(search.queries, null, 2)}
           </pre>
         )}

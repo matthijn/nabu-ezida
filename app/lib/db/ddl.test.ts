@@ -121,6 +121,25 @@ describe("jsonSchemaToTableProjection", () => {
         ],
       },
       {
+        name: "array of numbers becomes FLOAT[]",
+        tableName: "embeddings",
+        schema: {
+          type: "object",
+          properties: {
+            embedding: { type: "array", items: { type: "number" } },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "embeddings",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "embedding", type: "FLOAT[]", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
         name: "no properties produces file-only table",
         tableName: "empty",
         schema: { type: "object" },

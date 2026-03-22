@@ -27,6 +27,7 @@ import { startDatabase } from "~/domain/db/database"
 import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
+import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hidden"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
@@ -37,6 +38,9 @@ interface SidebarDocument {
   tags: string[]
   annotationCount: number
 }
+
+const tagsWithHidden = (tags: string[], filename: string): string[] =>
+  isHiddenFile(filename) ? [...tags, HIDDEN_TAG_ID] : tags
 
 const filesToSidebarDocuments = (
   files: Record<string, string>,
@@ -49,7 +53,7 @@ const filesToSidebarDocuments = (
       id: filename,
       title: toDisplayName(filename),
       editedAt: "just now",
-      tags: getFileTags(filename),
+      tags: tagsWithHidden(getFileTags(filename), filename),
       annotationCount: getAnnotationCount(files[filename] ?? ""),
     }))
 
@@ -223,7 +227,7 @@ export default function ProjectLayout() {
         documents={documents}
         selectedId={currentFile ?? undefined}
         searchValue={searchValue}
-        tagDefinitions={tagDefinitions}
+        tagDefinitions={[...tagDefinitions, HIDDEN_TAG]}
         onSearchChange={setSearchValue}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => undefined}
