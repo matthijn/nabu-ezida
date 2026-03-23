@@ -7,16 +7,28 @@ export interface SemanticToken {
   end: number
 }
 
+export interface AngleQuery {
+  text: string
+  cosineVector: number[]
+}
+
+export interface HybridSearchPlan {
+  intent: string
+  baseSql: string
+  angles: AngleQuery[]
+  limit: number
+}
+
 const SEMANTIC_PATTERN = /SEMANTIC\('([^']+)'\)/g
 const SCORE_COLUMN = "_semantic_score"
-const DEFAULT_LIMIT = 50
+const DEFAULT_LIMIT = 10
 
 const OPERATOR_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*(>|<|>=|<=|=|!=|<>)/
 const AS_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*AS\b/i
 const SEMANTIC_IN_ORDER_BY = /ORDER\s+BY\s[\s\S]*?SEMANTIC\s*\(/i
 
 const ORDER_BY_RE = /\bORDER\s+BY\s+/i
-const LIMIT_RE = /\bLIMIT\s+\d+/i
+const LIMIT_RE = /\bLIMIT\s+(\d+)/i
 
 const formatVector = (vector: number[]): string => `[${vector.join(",")}]`
 
@@ -79,37 +91,85 @@ export const validateSql = (sql: string): Result<void, string> => {
   return err(errors.join("\n"))
 }
 
-export const rewriteSemanticSql = (
-  sql: string,
-  tokens: SemanticToken[],
-  vectors: number[][]
-): string => {
-  let result = ""
-  let cursor = 0
-
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]
-    result += sql.slice(cursor, token.start)
-    result += `list_cosine_similarity(embedding, ${formatVector(vectors[i])}) AS ${SCORE_COLUMN}`
-    cursor = token.end
-  }
-
-  result += sql.slice(cursor)
-  return result
-}
-
 const COSINE_IN_ERROR =
   /list_cosine_similarity\(embedding[^)\n]*(?:\)(?:\s*AS\s*_semantic_score)?)?/g
 
 export const sanitizeSemanticError = (error: string): string =>
   error.replace(COSINE_IN_ERROR, "SEMANTIC(...)")
 
+export const stripSemanticToken = (sql: string, token: SemanticToken): string => {
+  const before = sql.slice(0, token.start)
+  const after = sql.slice(token.end)
+  const hasCommaBefore = /,\s*$/.test(before)
+  const hasCommaAfter = /^\s*,/.test(after)
+  if (hasCommaBefore && hasCommaAfter) {
+    return before.replace(/,\s*$/, "") + after
+  }
+  if (hasCommaBefore) {
+    return before.replace(/,\s*$/, "") + after
+  }
+  if (hasCommaAfter) {
+    return before + after.replace(/^\s*,/, "")
+  }
+  return before + after
+}
+
+export const extractLimit = (sql: string): number => {
+  const match = sql.match(LIMIT_RE)
+  return match ? parseInt(match[1], 10) : DEFAULT_LIMIT
+}
+
+const stripOrderByAndLimit = (sql: string): string =>
+  sql.replace(/\s*ORDER\s+BY\s+[\s\S]*$/i, "").replace(/\s*LIMIT\s+\d+/i, "")
+
+const FROM_RE = /\bFROM\b/i
+
+const injectSelectColumn = (sql: string, column: string): string => {
+  const match = FROM_RE.exec(sql)
+  if (!match) return `${sql}, ${column}`
+  const beforeFrom = sql.slice(0, match.index)
+  const fromOnward = sql.slice(match.index)
+  return `${beforeFrom.trimEnd()}, ${column} ${fromOnward}`
+}
+
+export const buildCosineQuery = (baseSql: string, angle: AngleQuery): string => {
+  const vec = formatVector(angle.cosineVector)
+  const core = stripOrderByAndLimit(baseSql)
+  const withColumn = injectSelectColumn(
+    core,
+    `list_cosine_similarity(embedding, ${vec}) AS ${SCORE_COLUMN}`
+  )
+  return `${withColumn} ORDER BY ${SCORE_COLUMN} DESC LIMIT 200`
+}
+
+export const uniqueWords = (texts: string[]): string =>
+  [...new Set(texts.flatMap((t) => t.toLowerCase().split(/\s+/)))].join(" ")
+
+export const buildBm25Query = (baseSql: string, searchTerms: string): string => {
+  const core = stripOrderByAndLimit(baseSql)
+  const withColumn = injectSelectColumn(
+    core,
+    `fts_main_files.match_bm25(hash, '${searchTerms}') AS _bm25_score`
+  )
+  return `${withColumn} ORDER BY _bm25_score DESC LIMIT 200`
+}
+
+export const buildHybridPlan = (
+  sql: string,
+  token: SemanticToken,
+  angles: AngleQuery[]
+): HybridSearchPlan => {
+  const baseSql = stripSemanticToken(sql, token)
+  const limit = extractLimit(sql)
+  return { intent: token.text, baseSql, angles, limit }
+}
+
 const aliasSemanticTokens = (sql: string, tokens: SemanticToken[]): string => {
   let result = ""
   let cursor = 0
   for (const token of tokens) {
-    result += sql.slice(cursor, token.end)
-    result += ` AS ${SCORE_COLUMN}`
+    result += sql.slice(cursor, token.start)
+    result += `SEMANTIC('${token.text}') AS ${SCORE_COLUMN}`
     cursor = token.end
   }
   result += sql.slice(cursor)

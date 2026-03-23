@@ -3,12 +3,17 @@ import {
   extractSemanticTokens,
   hasSemanticTokens,
   validateSemanticSql,
-  rewriteSemanticSql,
   normalizeSemanticSql,
   sanitizeSemanticError,
   formatDebugSql,
   countIlikeClauses,
   validateSql,
+  stripSemanticToken,
+  extractLimit,
+  buildCosineQuery,
+  buildBm25Query,
+  buildHybridPlan,
+  uniqueWords,
   type SemanticToken,
 } from "./semantic"
 
@@ -25,17 +30,14 @@ describe("extractSemanticTokens", () => {
       expected: [{ text: "populism", start: 13, end: 33 }],
     },
     {
-      name: "multiple tokens",
-      sql: "SELECT file, SEMANTIC('anger'), SEMANTIC('joy') FROM files",
-      expected: [
-        { text: "anger", start: 13, end: 30 },
-        { text: "joy", start: 32, end: 47 },
-      ],
+      name: "token with spaces in text",
+      sql: "SELECT SEMANTIC('political frustration') FROM files",
+      expected: [{ text: "political frustration", start: 7, end: 40 }],
     },
     {
-      name: "token with spaces in text",
-      sql: "ORDER BY SEMANTIC('political frustration') DESC",
-      expected: [{ text: "political frustration", start: 9, end: 42 }],
+      name: "does not match multi-arg syntax",
+      sql: "SELECT SEMANTIC('a', 'b') FROM files",
+      expected: [],
     },
   ]
 
@@ -47,7 +49,8 @@ describe("extractSemanticTokens", () => {
 describe("hasSemanticTokens", () => {
   const cases: { name: string; sql: string; expected: boolean }[] = [
     { name: "plain SQL", sql: "SELECT file FROM files", expected: false },
-    { name: "with SEMANTIC()", sql: "SEMANTIC('test')", expected: true },
+    { name: "SEMANTIC()", sql: "SEMANTIC('test')", expected: true },
+    { name: "multi-arg is not matched", sql: "SEMANTIC('a', 'b')", expected: false },
     { name: "partial match is false", sql: "SEMANTIC test", expected: false },
   ]
 
@@ -127,44 +130,6 @@ describe("validateSemanticSql", () => {
   })
 })
 
-describe("rewriteSemanticSql", () => {
-  const cases: {
-    name: string
-    sql: string
-    tokens: SemanticToken[]
-    vectors: number[][]
-    expected: string
-  }[] = [
-    {
-      name: "rewrites single token with alias",
-      sql: "SELECT file, SEMANTIC('populism') FROM files",
-      tokens: [{ text: "populism", start: 13, end: 33 }],
-      vectors: [[0.1, 0.2, 0.3]],
-      expected:
-        "SELECT file, list_cosine_similarity(embedding, [0.1,0.2,0.3]) AS _semantic_score FROM files",
-    },
-    {
-      name: "preserves surrounding SQL",
-      sql: "SELECT file, SEMANTIC('anger') FROM attrs WHERE x = 1",
-      tokens: [{ text: "anger", start: 13, end: 30 }],
-      vectors: [[0.5, 0.6]],
-      expected:
-        "SELECT file, list_cosine_similarity(embedding, [0.5,0.6]) AS _semantic_score FROM attrs WHERE x = 1",
-    },
-    {
-      name: "empty tokens returns sql unchanged",
-      sql: "SELECT file FROM files",
-      tokens: [],
-      vectors: [],
-      expected: "SELECT file FROM files",
-    },
-  ]
-
-  it.each(cases)("$name", ({ sql, tokens, vectors, expected }) => {
-    expect(rewriteSemanticSql(sql, tokens, vectors)).toBe(expected)
-  })
-})
-
 describe("countIlikeClauses", () => {
   const cases: { name: string; sql: string; expected: number }[] = [
     { name: "no ILIKE", sql: "SELECT file FROM files", expected: 0 },
@@ -217,7 +182,7 @@ describe("validateSql", () => {
       ok: true,
     },
     {
-      name: "multiple SEMANTIC rejected",
+      name: "multiple SEMANTIC calls rejected",
       sql: "SELECT SEMANTIC('a'), SEMANTIC('b') FROM attrs",
       ok: false,
       errorContains: "Multiple SEMANTIC()",
@@ -252,12 +217,12 @@ describe("normalizeSemanticSql", () => {
     {
       name: "adds ORDER BY and LIMIT when neither present",
       sql: "SELECT file FROM t",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 50",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 10",
     },
     {
       name: "prepends score to existing ORDER BY and adds LIMIT",
       sql: "SELECT file FROM t ORDER BY name ASC",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC, name ASC LIMIT 50",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC, name ASC LIMIT 10",
     },
     {
       name: "inserts ORDER BY before existing LIMIT",
@@ -272,12 +237,12 @@ describe("normalizeSemanticSql", () => {
     {
       name: "trims trailing whitespace",
       sql: "SELECT file FROM t   ",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 50",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 10",
     },
     {
       name: "preserves case of existing ORDER BY",
       sql: "SELECT file FROM t order by name",
-      expected: "SELECT file FROM t order by _semantic_score DESC, name LIMIT 50",
+      expected: "SELECT file FROM t order by _semantic_score DESC, name LIMIT 10",
     },
   ]
 
@@ -320,10 +285,10 @@ describe("sanitizeSemanticError", () => {
 describe("formatDebugSql", () => {
   const cases: { name: string; sql: string; expected: string }[] = [
     {
-      name: "semantic query gets alias, order, and limit",
+      name: "semantic gets alias, order, and limit",
       sql: "SELECT f.file, f.text, SEMANTIC('political frustration') FROM files f",
       expected:
-        "SELECT f.file, f.text, SEMANTIC('political frustration') AS _semantic_score FROM files f ORDER BY _semantic_score DESC LIMIT 50",
+        "SELECT f.file, f.text, SEMANTIC('political frustration') AS _semantic_score FROM files f ORDER BY _semantic_score DESC LIMIT 10",
     },
     {
       name: "non-semantic query passes through unchanged",
@@ -334,7 +299,7 @@ describe("formatDebugSql", () => {
       name: "semantic with existing ORDER BY prepends score",
       sql: "SELECT f.file, f.text, SEMANTIC('anxiety') FROM files f ORDER BY f.file",
       expected:
-        "SELECT f.file, f.text, SEMANTIC('anxiety') AS _semantic_score FROM files f ORDER BY _semantic_score DESC, f.file LIMIT 50",
+        "SELECT f.file, f.text, SEMANTIC('anxiety') AS _semantic_score FROM files f ORDER BY _semantic_score DESC, f.file LIMIT 10",
     },
     {
       name: "semantic with existing LIMIT preserves it",
@@ -346,5 +311,180 @@ describe("formatDebugSql", () => {
 
   it.each(cases)("$name", ({ sql, expected }) => {
     expect(formatDebugSql(sql)).toBe(expected)
+  })
+})
+
+describe("stripSemanticToken", () => {
+  const cases: { name: string; sql: string; token: SemanticToken; expected: string }[] = [
+    {
+      name: "removes SEMANTIC from middle of SELECT list",
+      sql: "SELECT f.file, f.text, SEMANTIC('anger') FROM files f",
+      token: { text: "anger", start: 23, end: 40 },
+      expected: "SELECT f.file, f.text FROM files f",
+    },
+    {
+      name: "removes SEMANTIC between other columns",
+      sql: "SELECT f.file, SEMANTIC('topic'), f.text FROM files f",
+      token: { text: "topic", start: 15, end: 32 },
+      expected: "SELECT f.file, f.text FROM files f",
+    },
+  ]
+
+  it.each(cases)("$name", ({ sql, token, expected }) => {
+    expect(stripSemanticToken(sql, token)).toBe(expected)
+  })
+})
+
+describe("extractLimit", () => {
+  const cases: { name: string; sql: string; expected: number }[] = [
+    { name: "explicit LIMIT", sql: "SELECT file FROM f LIMIT 25", expected: 25 },
+    { name: "no LIMIT defaults to 10", sql: "SELECT file FROM f", expected: 10 },
+    {
+      name: "LIMIT at end of complex query",
+      sql: "SELECT file FROM f WHERE x = 1 ORDER BY file LIMIT 100",
+      expected: 100,
+    },
+  ]
+
+  it.each(cases)("$name", ({ sql, expected }) => {
+    expect(extractLimit(sql)).toBe(expected)
+  })
+})
+
+describe("buildCosineQuery", () => {
+  const cases: {
+    name: string
+    baseSql: string
+    angle: { text: string; cosineVector: number[] }
+    expectedContains: string[]
+  }[] = [
+    {
+      name: "injects cosine similarity and orders by score",
+      baseSql: "SELECT f.file, f.text FROM files f",
+      angle: { text: "anger", cosineVector: [0.1, 0.2, 0.3] },
+      expectedContains: [
+        "list_cosine_similarity(embedding, [0.1,0.2,0.3])",
+        "AS _semantic_score",
+        "ORDER BY _semantic_score DESC",
+        "LIMIT 200",
+      ],
+    },
+    {
+      name: "strips existing ORDER BY and LIMIT from base",
+      baseSql: "SELECT f.file, f.text FROM files f ORDER BY f.file LIMIT 10",
+      angle: { text: "anger", cosineVector: [0.5] },
+      expectedContains: [
+        "list_cosine_similarity(embedding, [0.5])",
+        "ORDER BY _semantic_score DESC LIMIT 200",
+      ],
+    },
+    {
+      name: "injects column into SELECT before FROM when WHERE clause present",
+      baseSql:
+        "SELECT f.file, f.text FROM files f WHERE f.file IN (SELECT a.file FROM attributes a WHERE list_has(a.tags, 'interview'))",
+      angle: { text: "anger", cosineVector: [0.1] },
+      expectedContains: [
+        "SELECT f.file, f.text, list_cosine_similarity(embedding, [0.1]) AS _semantic_score FROM files f WHERE",
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ baseSql, angle, expectedContains }) => {
+    const result = buildCosineQuery(baseSql, angle)
+    for (const fragment of expectedContains) {
+      expect(result).toContain(fragment)
+    }
+  })
+})
+
+describe("buildBm25Query", () => {
+  const cases: {
+    name: string
+    baseSql: string
+    searchTerms: string
+    expectedContains: string[]
+  }[] = [
+    {
+      name: "injects BM25 match and orders by score",
+      baseSql: "SELECT f.file, f.text FROM files f",
+      searchTerms: "anger",
+      expectedContains: [
+        "fts_main_files.match_bm25(hash, 'anger')",
+        "AS _bm25_score",
+        "ORDER BY _bm25_score DESC",
+        "LIMIT 200",
+      ],
+    },
+    {
+      name: "injects BM25 column before FROM when WHERE clause present",
+      baseSql:
+        "SELECT f.file, f.text FROM files f WHERE f.file IN (SELECT a.file FROM attributes a)",
+      searchTerms: "isolation loneliness",
+      expectedContains: [
+        "SELECT f.file, f.text, fts_main_files.match_bm25(hash, 'isolation loneliness') AS _bm25_score FROM files f WHERE",
+      ],
+    },
+  ]
+
+  it.each(cases)("$name", ({ baseSql, searchTerms, expectedContains }) => {
+    const result = buildBm25Query(baseSql, searchTerms)
+    for (const fragment of expectedContains) {
+      expect(result).toContain(fragment)
+    }
+  })
+})
+
+describe("uniqueWords", () => {
+  const cases: { name: string; texts: string[]; expected: string }[] = [
+    {
+      name: "single text",
+      texts: ["anger fear"],
+      expected: "anger fear",
+    },
+    {
+      name: "deduplicates across texts",
+      texts: ["home sweet home", "home alone"],
+      expected: "home sweet alone",
+    },
+    {
+      name: "lowercases all words",
+      texts: ["Anger", "FEAR", "anger"],
+      expected: "anger fear",
+    },
+    {
+      name: "empty input",
+      texts: [],
+      expected: "",
+    },
+    {
+      name: "preserves order of first occurrence",
+      texts: ["political frustration", "economic frustration"],
+      expected: "political frustration economic",
+    },
+  ]
+
+  it.each(cases)("$name", ({ texts, expected }) => {
+    expect(uniqueWords(texts)).toBe(expected)
+  })
+})
+
+describe("buildHybridPlan", () => {
+  it("builds plan from SQL, token, and angles", () => {
+    const sql = "SELECT f.file, f.text, SEMANTIC('emotional distress') FROM files f LIMIT 30"
+    const token: SemanticToken = { text: "emotional distress", start: 23, end: 52 }
+    const angles = [
+      { text: "feelings of anxiety", cosineVector: [0.1, 0.2] },
+      { text: "signs of depression", cosineVector: [0.3, 0.4] },
+    ]
+
+    const plan = buildHybridPlan(sql, token, angles)
+
+    expect(plan.intent).toBe("emotional distress")
+    expect(plan.limit).toBe(30)
+    expect(plan.angles).toHaveLength(2)
+    expect(plan.angles[0]).toEqual({ text: "feelings of anxiety", cosineVector: [0.1, 0.2] })
+    expect(plan.angles[1]).toEqual({ text: "signs of depression", cosineVector: [0.3, 0.4] })
+    expect(plan.baseSql).not.toContain("SEMANTIC")
+    expect(plan.baseSql).toContain("f.file")
   })
 })

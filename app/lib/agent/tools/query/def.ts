@@ -4,9 +4,7 @@ import type { AnyTool } from "../../executors/tool"
 export const QueryArgs = z.object({
   sql: z
     .string()
-    .describe(
-      "SQL query against the project database. Supports SEMANTIC('text') for cosine similarity."
-    ),
+    .describe("SQL query. Supports SEMANTIC('description of passages to find') for topic search."),
 })
 
 export const queryTool: AnyTool = {

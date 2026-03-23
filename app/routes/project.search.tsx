@@ -5,9 +5,8 @@ import { useSearchResults } from "~/ui/hooks/useSearchResults"
 import { SearchHeader } from "~/ui/components/search/SearchHeader"
 import { SearchResultList } from "~/ui/components/search/SearchResultList"
 import type { SearchHit } from "~/domain/search"
-import type { FileStore } from "~/lib/files"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
-import { extractSearchSlice, formatDebugSql } from "~/lib/search"
+import { formatDebugSql } from "~/lib/search"
 
 const collectUniqueFiles = (hits: SearchHit[]): string[] => [...new Set(hits.map((h) => h.file))]
 
@@ -38,21 +37,16 @@ const filterHitsByTags = (
   hits: SearchHit[],
   activeTags: Set<string>,
   getFileTags: (filename: string) => string[]
-): SearchHit[] => hits.filter((h) => hasAnyActiveTag(getFileTags(h.file), activeTags))
-
-interface DebugSlice {
-  hit: SearchHit
-  slice: string | null
-}
-
-const buildDebugSlices = (hits: SearchHit[], files: FileStore): DebugSlice[] =>
-  hits.map((hit) => ({ hit, slice: extractSearchSlice(hit, files) }))
+): SearchHit[] =>
+  activeTags.size === 0
+    ? hits
+    : hits.filter((h) => hasAnyActiveTag(getFileTags(h.file), activeTags))
 
 export default function ProjectSearch() {
   const params = useParams<{ projectId: string; searchId: string }>()
   const navigate = useNavigate()
   const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
-  const { search, results, isLoading, error } = useSearchResults(params.searchId ?? "")
+  const { search, results, lenses, isLoading, error } = useSearchResults(params.searchId ?? "")
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)
     const tagIds = collectTagIds(uniqueFiles, getFileTags)
@@ -77,10 +71,6 @@ export default function ProjectSearch() {
   )
 
   const showDebugSql = !!debugOptions.renderAsJson
-  const debugSlices = useMemo(
-    () => (showDebugSql ? buildDebugSlices(filteredResults, files) : []),
-    [showDebugSql, filteredResults, files]
-  )
 
   if (!params.projectId || !params.searchId) {
     return (
@@ -129,33 +119,11 @@ export default function ProjectSearch() {
             <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
               {formatDebugSql(search.sql)}
             </pre>
-            <details className="w-full rounded-md bg-neutral-100">
-              <summary className="cursor-pointer px-4 py-2 text-caption font-caption text-subtext-color">
-                Raw results ({filteredResults.length} hits)
-              </summary>
-              <pre className="px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words max-h-96 overflow-auto">
-                {JSON.stringify(filteredResults, null, 2)}
+            {lenses.length > 0 && (
+              <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
+                {lenses.join("\n")}
               </pre>
-            </details>
-            <details className="w-full rounded-md bg-neutral-100">
-              <summary className="cursor-pointer px-4 py-2 text-caption font-caption text-subtext-color">
-                Raw slices ({debugSlices.length} hits)
-              </summary>
-              <div className="flex flex-col gap-3 px-4 py-3 max-h-[600px] overflow-auto">
-                {debugSlices.map(({ hit, slice }, i) => (
-                  <div key={hit.id ?? `slice-${i}`} className="flex flex-col gap-1">
-                    <span className="text-caption font-caption text-subtext-color">
-                      {hit.file}
-                      {hit.id ? ` #${hit.id}` : ""}
-                      {hit.text ? ` "${hit.text.slice(0, 60)}"` : ""}
-                    </span>
-                    <pre className="text-caption font-caption text-subtext-color whitespace-pre-wrap break-words rounded bg-neutral-200 px-3 py-2">
-                      {slice ?? "(no slice)"}
-                    </pre>
-                  </div>
-                ))}
-              </div>
-            </details>
+            )}
           </div>
         )}
         <SearchResultList

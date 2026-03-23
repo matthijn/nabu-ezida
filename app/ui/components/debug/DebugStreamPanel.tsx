@@ -69,8 +69,21 @@ const formatResult = (result: unknown): string => {
   return JSON.stringify(result, null, 2)
 }
 
+const tryToolDefinition = (tool: { name: string; description: string; schema: unknown }) => {
+  try {
+    return toToolDefinition(tool as Parameters<typeof toToolDefinition>[0])
+  } catch {
+    return {
+      type: "function",
+      name: tool.name,
+      description: tool.description,
+      parameters: { error: "schema not initialized" },
+    }
+  }
+}
+
 const formatToolDefinitions = (mode: string): string =>
-  JSON.stringify(modes[mode as keyof typeof modes].tools.map(toToolDefinition), null, 2)
+  JSON.stringify(modes[mode as keyof typeof modes].tools.map(tryToolDefinition), null, 2)
 
 const formatBlockSchemaDefinitions = (): string =>
   formatBlockSchemasContent(getBlockSchemaDefinitions())

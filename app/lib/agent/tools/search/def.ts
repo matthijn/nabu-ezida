@@ -8,12 +8,14 @@ export const SearchArgs = z.object({
   description: z.string().describe("Human-readable summary of what was searched for"),
   sql: z
     .string()
-    .describe("SQL query. Must SELECT file. Optionally id and/or text. Supports SEMANTIC('...')."),
+    .describe(
+      "SQL query. Must SELECT file. Optionally id and/or text. Supports SEMANTIC('description of passages to find')."
+    ),
 })
 
 export const searchTool: AnyTool = {
   name: "search",
   description:
-    "Search the project database and persist results as a browsable page. Use for display-style results the user can revisit. Not for counting or aggregation — use query for those.",
+    "Search the project database and persist results as a browsable page the user can revisit. Not for counting or aggregation — use query for those.",
   schema: SearchArgs,
 }

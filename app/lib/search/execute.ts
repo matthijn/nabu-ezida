@@ -1,7 +1,12 @@
 import type { Database, DbError } from "~/lib/db/types"
 import type { SearchHit } from "~/domain/search"
 import type { Result } from "~/lib/fp/result"
+import type { HybridSearchPlan } from "./semantic"
+import type { ScoredChunk } from "./fusion"
 import { ok, err } from "~/lib/fp/result"
+import { buildCosineQuery, buildBm25Query, uniqueWords } from "./semantic"
+import { fuseHybridResults } from "./fusion"
+import { filterHits } from "./filter-hits"
 
 type RawRow = Record<string, unknown>
 
@@ -28,4 +33,58 @@ export const executeSearch = async (
   }
 
   return ok(rows.map(toHit))
+}
+
+const toScoredChunk = (row: RawRow, scoreKey: string): ScoredChunk => ({
+  file: String(row.file),
+  text: row.text !== undefined ? String(row.text) : undefined,
+  hash: row.hash !== undefined ? String(row.hash) : undefined,
+  score: Number(row[scoreKey] ?? 0),
+})
+
+const runScoredQuery = async (
+  db: Database,
+  sql: string,
+  scoreKey: string
+): Promise<Result<ScoredChunk[], DbError>> => {
+  const result = await db.query<RawRow>(sql)
+  if (!result.ok) return result
+  return ok(result.value.rows.map((row) => toScoredChunk(row, scoreKey)))
+}
+
+const chunkToHit = (chunk: ScoredChunk): SearchHit => ({
+  file: chunk.file,
+  ...(chunk.text !== undefined ? { text: chunk.text } : {}),
+})
+
+export const executeHybridSearch = async (
+  db: Database,
+  plan: HybridSearchPlan
+): Promise<Result<SearchHit[], DbError>> => {
+  const cosinePerAngle: ScoredChunk[][] = []
+
+  for (const angle of plan.angles) {
+    const result = await runScoredQuery(
+      db,
+      buildCosineQuery(plan.baseSql, angle),
+      "_semantic_score"
+    )
+    if (!result.ok) return result
+    cosinePerAngle.push(result.value)
+  }
+
+  const searchTerms = uniqueWords(plan.angles.map((a) => a.text))
+  const bm25Result = await runScoredQuery(
+    db,
+    buildBm25Query(plan.baseSql, searchTerms),
+    "_bm25_score"
+  )
+  if (!bm25Result.ok) return bm25Result
+
+  const fused = fuseHybridResults({ cosinePerAngle, bm25: bm25Result.value }, plan.limit)
+  const hits = fused.map(chunkToHit)
+  const lenses = plan.angles.map((a) => a.text)
+  const filtered = await filterHits(hits, plan.intent, lenses)
+  console.debug("[HYBRID]", { before: hits.length, after: filtered.length })
+  return ok(filtered)
 }

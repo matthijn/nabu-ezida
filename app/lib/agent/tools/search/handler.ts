@@ -3,7 +3,12 @@ import { SearchArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
 import { getDatabase } from "~/domain/db/database"
 import { getLlmHost } from "~/lib/agent/env"
-import { executeSearch, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
+import {
+  executeSearch,
+  executeHybridSearch,
+  resolveSemanticSql,
+  sanitizeSemanticError,
+} from "~/lib/search"
 import { updateSearchEntries, readSettings } from "./settings"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 
@@ -56,9 +61,11 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   const resolved = await resolveSemanticSql(parsed.data.sql, getLlmHost())
   if (!resolved.ok) return { status: "error", output: resolved.error }
-  const sql = resolved.value
 
-  const result = await executeSearch(db, sql)
+  const result =
+    resolved.value.type === "plain"
+      ? await executeSearch(db, resolved.value.sql)
+      : await executeHybridSearch(db, resolved.value.plan)
   if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
 
   const id = generateSearchId()
