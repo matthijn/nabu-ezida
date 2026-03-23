@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { truncateRows, type TruncateResult } from "./truncate"
+import { capRows, type CapResult } from "./truncate"
 
 type Row = Record<string, unknown>
 
@@ -7,75 +7,59 @@ interface TestCase {
   name: string
   rows: Row[]
   maxRows: number
-  maxTextLength: number
-  expected: TruncateResult
+  expected: CapResult
 }
 
 const cases: TestCase[] = [
   {
-    name: "within limits returns unchanged",
+    name: "within limit returns unchanged",
     rows: [{ file: "a.md", count: 3 }],
     maxRows: 50,
-    maxTextLength: 200,
     expected: {
       rows: [{ file: "a.md", count: 3 }],
-      truncated: false,
+      capped: false,
     },
   },
   {
     name: "caps rows when exceeding max",
     rows: [{ file: "a.md" }, { file: "b.md" }, { file: "c.md" }],
     maxRows: 2,
-    maxTextLength: 200,
     expected: {
       rows: [{ file: "a.md" }, { file: "b.md" }],
-      truncated: true,
+      capped: true,
     },
   },
   {
-    name: "truncates long strings",
-    rows: [{ file: "a.md", text: "A".repeat(250) }],
+    name: "preserves all value types unchanged",
+    rows: [{ file: "a.md", text: "A".repeat(500), count: 42, active: true, tags: null }],
     maxRows: 50,
-    maxTextLength: 10,
     expected: {
-      rows: [{ file: "a.md", text: "A".repeat(10) + "..." }],
-      truncated: false,
-    },
-  },
-  {
-    name: "preserves non-string values",
-    rows: [{ file: "a.md", count: 42, active: true, tags: null }],
-    maxRows: 50,
-    maxTextLength: 200,
-    expected: {
-      rows: [{ file: "a.md", count: 42, active: true, tags: null }],
-      truncated: false,
+      rows: [{ file: "a.md", text: "A".repeat(500), count: 42, active: true, tags: null }],
+      capped: false,
     },
   },
   {
     name: "empty rows",
     rows: [],
     maxRows: 50,
-    maxTextLength: 200,
     expected: {
       rows: [],
-      truncated: false,
+      capped: false,
     },
   },
   {
-    name: "caps and truncates together",
-    rows: [{ text: "X".repeat(300) }, { text: "Y".repeat(300) }, { text: "Z".repeat(300) }],
+    name: "exact limit not capped",
+    rows: [{ file: "a.md" }, { file: "b.md" }],
     maxRows: 2,
-    maxTextLength: 5,
     expected: {
-      rows: [{ text: "X".repeat(5) + "..." }, { text: "Y".repeat(5) + "..." }],
-      truncated: true,
+      rows: [{ file: "a.md" }, { file: "b.md" }],
+      capped: false,
     },
   },
 ]
 
-describe("truncateRows", () => {
-  it.each(cases)("$name", ({ rows, maxRows, maxTextLength, expected }) => {
-    expect(truncateRows(rows, maxRows, maxTextLength)).toEqual(expected)
+describe("capRows", () => {
+  it.each(cases)("$name", ({ rows, maxRows, expected }) => {
+    expect(capRows(rows, maxRows)).toEqual(expected)
   })
 })

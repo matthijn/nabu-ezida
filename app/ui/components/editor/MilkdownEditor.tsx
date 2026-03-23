@@ -11,22 +11,38 @@ import "@milkdown/kit/prose/gapcursor/style/gapcursor.css"
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from "@milkdown/react"
 import { ProsemirrorAdapterProvider, useNodeViewFactory } from "@prosemirror-adapter/react"
 import { $prose, replaceAll } from "@milkdown/utils"
+import { Plugin, PluginKey } from "prosemirror-state"
 import { createAnnotationsPlugin, annotationsMeta } from "~/lib/editor/annotations"
 import { createSpotlightPlugin, spotlightMeta } from "~/lib/editor/spotlight"
 import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
 import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
+import { ReadOnlyProvider } from "./ReadOnlyContext"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
 import type { Spotlight } from "~/lib/editor/spotlight"
 
+const readOnlyKey = new PluginKey("readOnly")
+
+const createReadOnlyPlugin = () =>
+  new Plugin({
+    key: readOnlyKey,
+    props: { editable: () => false },
+  })
+
 interface MilkdownEditorCoreProps {
   defaultValue: string
   debugMode: boolean
+  readOnly: boolean
   spotlight: Spotlight | null
 }
 
-const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEditorCoreProps) => {
+const MilkdownEditorCore = ({
+  defaultValue,
+  debugMode,
+  readOnly,
+  spotlight,
+}: MilkdownEditorCoreProps) => {
   const { files } = useFiles()
   const nodeViewFactory = useNodeViewFactory()
   const annotationsPlugin = $prose(() => createAnnotationsPlugin())
@@ -39,6 +55,8 @@ const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEdit
 
   const annotations = useMemo(() => getAnnotations(files, defaultValue), [files, defaultValue])
 
+  const readOnlyPlugin = $prose(createReadOnlyPlugin)
+
   useEditor(
     (root) => {
       const editor = Editor.make()
@@ -48,17 +66,20 @@ const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEdit
         })
         .use(commonmark)
         .use(gfm)
-        .use(history)
-        .use(clipboard)
-        .use(gapCursorPlugin)
         .use(annotationsPlugin)
         .use(spotlightPlugin)
+
+      if (readOnly) {
+        editor.use(readOnlyPlugin)
+      } else {
+        editor.use(history).use(clipboard).use(gapCursorPlugin)
+      }
 
       if (debugMode) return editor
 
       return editor.use(hiddenBlocksPlugin).use(calloutBlocksPlugin)
     },
-    [debugMode]
+    [debugMode, readOnly]
   )
 
   useEffect(() => {
@@ -91,21 +112,33 @@ const MilkdownEditorCore = ({ defaultValue, debugMode, spotlight }: MilkdownEdit
 interface MilkdownEditorProps {
   content: string
   debugMode?: boolean
+  readOnly?: boolean
   spotlight?: Spotlight | null
 }
 
 export const MilkdownEditor = ({
   content,
   debugMode = false,
+  readOnly = false,
   spotlight = null,
 }: MilkdownEditorProps) => {
+  const containerClass = readOnly
+    ? "w-full text-default-font"
+    : "w-full max-w-[768px] text-default-font"
   return (
-    <div className="w-full max-w-[768px] text-default-font">
-      <MilkdownProvider>
-        <ProsemirrorAdapterProvider>
-          <MilkdownEditorCore defaultValue={content} debugMode={debugMode} spotlight={spotlight} />
-        </ProsemirrorAdapterProvider>
-      </MilkdownProvider>
-    </div>
+    <ReadOnlyProvider value={readOnly}>
+      <div className={containerClass}>
+        <MilkdownProvider>
+          <ProsemirrorAdapterProvider>
+            <MilkdownEditorCore
+              defaultValue={content}
+              debugMode={debugMode}
+              readOnly={readOnly}
+              spotlight={spotlight}
+            />
+          </ProsemirrorAdapterProvider>
+        </MilkdownProvider>
+      </div>
+    </ReadOnlyProvider>
   )
 }

@@ -104,6 +104,24 @@ const COSINE_IN_ERROR =
 export const sanitizeSemanticError = (error: string): string =>
   error.replace(COSINE_IN_ERROR, "SEMANTIC(...)")
 
+const aliasSemanticTokens = (sql: string, tokens: SemanticToken[]): string => {
+  let result = ""
+  let cursor = 0
+  for (const token of tokens) {
+    result += sql.slice(cursor, token.end)
+    result += ` AS ${SCORE_COLUMN}`
+    cursor = token.end
+  }
+  result += sql.slice(cursor)
+  return result
+}
+
+export const formatDebugSql = (sql: string): string => {
+  if (!hasSemanticTokens(sql)) return sql
+  const tokens = extractSemanticTokens(sql)
+  return normalizeSemanticSql(aliasSemanticTokens(sql, tokens))
+}
+
 export const normalizeSemanticSql = (sql: string): string => {
   let result = sql.trimEnd()
   const hasOrderBy = ORDER_BY_RE.test(result)

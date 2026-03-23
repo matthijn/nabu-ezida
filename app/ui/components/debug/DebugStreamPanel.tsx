@@ -15,7 +15,7 @@ import {
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/ui/hooks/useDraggable"
-import { getToolDefinitions } from "~/lib/agent/executors"
+import { toToolDefinition } from "~/lib/agent/executors/tool"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
 import { getDatabaseDdl } from "~/domain/db/database"
@@ -69,7 +69,8 @@ const formatResult = (result: unknown): string => {
   return JSON.stringify(result, null, 2)
 }
 
-const formatToolDefinitions = (): string => JSON.stringify(getToolDefinitions(), null, 2)
+const formatToolDefinitions = (mode: string): string =>
+  JSON.stringify(modes[mode as keyof typeof modes].tools.map(toToolDefinition), null, 2)
 
 const formatBlockSchemaDefinitions = (): string =>
   formatBlockSchemasContent(getBlockSchemaDefinitions())
@@ -351,7 +352,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
     const parts = hasSelection
       ? [formatAllBlocks(blocksToFormat)]
       : [
-          `[tools]\n${formatToolDefinitions()}`,
+          `[tools]\n${formatToolDefinitions(mode)}`,
           `[block schemas]\n${formatBlockSchemaDefinitions()}`,
           formatAllBlocks(blocksToFormat),
         ]
@@ -430,8 +431,8 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
 
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
         <CollapsibleBlock
-          label="tools"
-          content={formatToolDefinitions()}
+          label={`tools (${mode})`}
+          content={formatToolDefinitions(mode)}
           borderColor="border-cyan-400"
           labelColor="text-cyan-600"
           bgColor="bg-cyan-50"

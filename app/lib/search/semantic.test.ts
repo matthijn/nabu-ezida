@@ -6,6 +6,7 @@ import {
   rewriteSemanticSql,
   normalizeSemanticSql,
   sanitizeSemanticError,
+  formatDebugSql,
   countIlikeClauses,
   validateSql,
   type SemanticToken,
@@ -313,5 +314,37 @@ describe("sanitizeSemanticError", () => {
 
   it.each(cases)("$name", ({ input, expected }) => {
     expect(sanitizeSemanticError(input)).toBe(expected)
+  })
+})
+
+describe("formatDebugSql", () => {
+  const cases: { name: string; sql: string; expected: string }[] = [
+    {
+      name: "semantic query gets alias, order, and limit",
+      sql: "SELECT f.file, f.text, SEMANTIC('political frustration') FROM files f",
+      expected:
+        "SELECT f.file, f.text, SEMANTIC('political frustration') AS _semantic_score FROM files f ORDER BY _semantic_score DESC LIMIT 50",
+    },
+    {
+      name: "non-semantic query passes through unchanged",
+      sql: "SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'interview')",
+      expected: "SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'interview')",
+    },
+    {
+      name: "semantic with existing ORDER BY prepends score",
+      sql: "SELECT f.file, f.text, SEMANTIC('anxiety') FROM files f ORDER BY f.file",
+      expected:
+        "SELECT f.file, f.text, SEMANTIC('anxiety') AS _semantic_score FROM files f ORDER BY _semantic_score DESC, f.file LIMIT 50",
+    },
+    {
+      name: "semantic with existing LIMIT preserves it",
+      sql: "SELECT f.file, f.text, SEMANTIC('joy') FROM files f LIMIT 10",
+      expected:
+        "SELECT f.file, f.text, SEMANTIC('joy') AS _semantic_score FROM files f ORDER BY _semantic_score DESC LIMIT 10",
+    },
+  ]
+
+  it.each(cases)("$name", ({ sql, expected }) => {
+    expect(formatDebugSql(sql)).toBe(expected)
   })
 })

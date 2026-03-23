@@ -12,6 +12,6 @@ export const QueryArgs = z.object({
 export const queryTool: AnyTool = {
   name: "query",
   description:
-    "Run SQL against the project database for your own analysis. Results returned to you, not shown to the user. Max 50 rows, text truncated at 200 chars. Use search for user-facing result pages.",
+    "Run SQL against the project database for your own analysis. Results returned to you, not shown to the user. Max 50 rows. Use search for user-facing result pages.",
   schema: QueryArgs,
 }

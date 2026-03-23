@@ -8,33 +8,37 @@ import {
 } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { TagBadge } from "~/ui/components/TagBadge"
+import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
 import { toDisplayName } from "~/lib/files/filename"
-import { extractFileIntro, extractSnippetAroundId, extractSnippetAroundText } from "~/lib/search"
+import { extractSearchSlice } from "~/lib/search"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 
-interface FileGroup {
+interface RunGroup {
   file: string
   hits: SearchHit[]
 }
 
-const FILES_PER_PAGE = 10
+const GROUPS_PER_PAGE = 10
 
-const groupByFile = (hits: SearchHit[]): FileGroup[] => {
-  const map = new Map<string, SearchHit[]>()
+const groupByRun = (hits: SearchHit[]): RunGroup[] => {
+  const groups: RunGroup[] = []
   for (const hit of hits) {
-    const existing = map.get(hit.file)
-    if (existing) existing.push(hit)
-    else map.set(hit.file, [hit])
+    const last = groups[groups.length - 1]
+    if (last && last.file === hit.file) last.hits.push(hit)
+    else groups.push({ file: hit.file, hits: [hit] })
   }
-  return [...map.entries()].map(([file, fileHits]) => ({ file, hits: fileHits }))
+  return groups
 }
 
 const hitHasId = (hit: SearchHit): hit is SearchHit & { id: string } => hit.id !== undefined
 const hitHasText = (hit: SearchHit): hit is SearchHit & { text: string } => hit.text !== undefined
 const hitIsFileOnly = (hit: SearchHit): boolean => !hitHasId(hit) && !hitHasText(hit)
+
+const hitKey = (hit: SearchHit, index: number): string =>
+  hit.id ?? (hit.text ? `text-${index}` : `file-${index}`)
 
 interface SearchResultListProps {
   hits: SearchHit[]
@@ -43,87 +47,25 @@ interface SearchResultListProps {
   onNavigate?: (url: string) => void
 }
 
-const FileHitSnippet = ({ file, id, files }: { file: string; id: string; files: FileStore }) => {
-  const snippet = useMemo(() => {
-    const content = files[file]
-    if (!content) return null
-    return extractSnippetAroundId(content, id)
-  }, [file, id, files])
+const SearchSlicePreview = ({ hit, files }: { hit: SearchHit; files: FileStore }) => {
+  const markdown = useMemo(() => extractSearchSlice(hit, files), [hit, files])
 
-  if (!snippet) return null
+  if (!markdown) return null
 
   return (
-    <div className="flex w-full flex-col items-start gap-1 rounded-md border border-solid border-neutral-200 bg-neutral-50 px-4 py-3">
-      <span className="text-caption font-caption text-subtext-color">Line {snippet.line}</span>
-      <pre className="text-monospace-body font-monospace-body text-default-font whitespace-pre-wrap break-words w-full">
-        {snippet.text}
-      </pre>
+    <div className="w-full rounded-md border border-solid border-neutral-200 px-4 py-3">
+      <MilkdownEditor content={markdown} readOnly />
     </div>
   )
 }
 
-const TextSnippet = ({ file, text, files }: { file: string; text: string; files: FileStore }) => {
-  const snippet = useMemo(() => {
-    const content = files[file]
-    if (!content) return null
-    return extractSnippetAroundText(content, text)
-  }, [file, text, files])
-
-  if (!snippet) {
-    return (
-      <div className="flex w-full flex-col items-start gap-1 rounded-md border border-solid border-neutral-200 bg-neutral-50 px-4 py-3">
-        <pre className="text-monospace-body font-monospace-body text-default-font whitespace-pre-wrap break-words w-full">
-          {text.slice(0, 300)}
-        </pre>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex w-full flex-col items-start gap-1 rounded-md border border-solid border-neutral-200 bg-neutral-50 px-4 py-3">
-      {snippet.line > 0 && (
-        <span className="text-caption font-caption text-subtext-color">Line {snippet.line}</span>
-      )}
-      <pre className="text-monospace-body font-monospace-body text-default-font whitespace-pre-wrap break-words w-full">
-        {snippet.text}
-      </pre>
-    </div>
-  )
-}
-
-const FileIntroSnippet = ({ file, files }: { file: string; files: FileStore }) => {
-  const intro = useMemo(() => {
-    const content = files[file]
-    if (!content) return null
-    return extractFileIntro(content)
-  }, [file, files])
-
-  if (!intro) return null
-
-  return (
-    <div className="flex w-full flex-col items-start gap-1 rounded-md border border-solid border-neutral-200 bg-neutral-50 px-4 py-3">
-      <span className="text-body font-body text-default-font line-clamp-3">{intro}</span>
-    </div>
-  )
-}
-
-const renderHit = (hit: SearchHit, index: number, files: FileStore) => {
-  if (hitHasText(hit)) {
-    return <TextSnippet key={`text-${index}`} file={hit.file} text={hit.text} files={files} />
-  }
-  if (hitHasId(hit)) {
-    return <FileHitSnippet key={hit.id} file={hit.file} id={hit.id} files={files} />
-  }
-  return <FileIntroSnippet key={`file-${index}`} file={hit.file} files={files} />
-}
-
-const FileGroupCard = ({
+const RunGroupCard = ({
   group,
   files,
   projectId,
   onNavigate,
 }: {
-  group: FileGroup
+  group: RunGroup
   files: FileStore
   projectId: string
   onNavigate?: (url: string) => void
@@ -140,6 +82,8 @@ const FileGroupCard = ({
   const hitCount = detailHits.length
 
   const handleOpenFile = () => onNavigate?.(fileUrl)
+
+  const hitsToRender = isFileOnlyGroup ? [{ file: group.file }] : detailHits
 
   return (
     <div className="flex w-full flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-sm">
@@ -159,11 +103,9 @@ const FileGroupCard = ({
         <IconButton size="small" icon={<FeatherExternalLink />} onClick={handleOpenFile} />
       </div>
       <div className="flex w-full flex-col items-start gap-4 px-6 py-5">
-        {isFileOnlyGroup ? (
-          <FileIntroSnippet file={group.file} files={files} />
-        ) : (
-          detailHits.map((hit, i) => renderHit(hit, i, files))
-        )}
+        {hitsToRender.map((hit, i) => (
+          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} files={files} />
+        ))}
       </div>
     </div>
   )
@@ -232,12 +174,12 @@ const Pagination = ({
 
 export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchResultListProps) => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const groups = useMemo(() => groupByFile(hits), [hits])
-  const totalPages = Math.max(1, Math.ceil(groups.length / FILES_PER_PAGE))
+  const groups = useMemo(() => groupByRun(hits), [hits])
+  const totalPages = Math.max(1, Math.ceil(groups.length / GROUPS_PER_PAGE))
   const page = clampPage(parsePage(searchParams.get("page")), totalPages)
 
   const visibleGroups = useMemo(
-    () => groups.slice((page - 1) * FILES_PER_PAGE, page * FILES_PER_PAGE),
+    () => groups.slice((page - 1) * GROUPS_PER_PAGE, page * GROUPS_PER_PAGE),
     [groups, page]
   )
 
@@ -254,7 +196,7 @@ export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchR
     [totalPages, setSearchParams]
   )
 
-  const fileCount = groups.length
+  const uniqueFileCount = useMemo(() => new Set(hits.map((h) => h.file)).size, [hits])
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -263,14 +205,14 @@ export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchR
           {hits.length} {hits.length === 1 ? "result" : "results"}
         </span>
         <span className="text-body font-body text-subtext-color">
-          across {fileCount} {fileCount === 1 ? "document" : "documents"}
+          across {uniqueFileCount} {uniqueFileCount === 1 ? "document" : "documents"}
         </span>
       </div>
       <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-200" />
       <div className="flex w-full flex-col items-start gap-6">
-        {visibleGroups.map((group) => (
-          <FileGroupCard
-            key={group.file}
+        {visibleGroups.map((group, i) => (
+          <RunGroupCard
+            key={`${group.file}-${i}`}
             group={group}
             files={files}
             projectId={projectId}

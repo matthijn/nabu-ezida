@@ -1,5 +1,5 @@
 import type { ToolDeps } from "../types"
-import { getToolHandlers, getToolDefinitions } from "./tool"
+import { getToolHandlers } from "./tool"
 import { createExecutor } from "./execute"
 import { withModeAwareness } from "./delegation"
 
@@ -21,7 +21,6 @@ import "../tools/query/handler"
 import "../tools/search/handler"
 
 export type { ToolDeps }
-export { getToolDefinitions }
 
 export const createToolExecutor = (_deps: ToolDeps) =>
   withModeAwareness(createExecutor(getToolHandlers()))

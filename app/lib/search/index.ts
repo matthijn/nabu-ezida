@@ -1,4 +1,4 @@
 export { executeSearch } from "./execute"
-export { extractFileIntro, extractSnippetAroundId, extractSnippetAroundText } from "./snippets"
+export { extractSearchSlice } from "./slices"
 export { resolveSemanticSql } from "./resolve-semantic"
-export { sanitizeSemanticError } from "./semantic"
+export { sanitizeSemanticError, formatDebugSql } from "./semantic"

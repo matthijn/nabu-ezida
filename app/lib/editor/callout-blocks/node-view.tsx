@@ -5,6 +5,7 @@ import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapte
 import type { DecorationSet } from "prosemirror-view"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
 import { parseCallout } from "~/domain/data-blocks/callout/schema"
+import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
 import { CalloutBlockView } from "./view"
 import { applyDOMHighlights, type HighlightEntry } from "./highlight"
 
@@ -46,6 +47,7 @@ const extractHighlights = (innerDecorations: unknown, textContent: string): High
 export const CalloutNodeView = () => {
   const { node, view, getPos, contentRef, innerDecorations } = useNodeViewContext()
   const containerRef = useRef<HTMLDivElement>(null)
+  const isReadOnly = useIsReadOnly()
 
   const language = node.attrs.language as string | undefined
   const config = language ? getBlockConfig(language) : undefined
@@ -87,7 +89,7 @@ export const CalloutNodeView = () => {
 
   return (
     <>
-      <BlockSpacer onClick={handleInsertBefore} />
+      {!isReadOnly && <BlockSpacer onClick={handleInsertBefore} />}
       <div ref={containerRef} contentEditable={false} data-id={data.id}>
         <CalloutBlockView data={data} onDelete={handleDelete} />
       </div>
