@@ -114,3 +114,15 @@ export const replaceSingletonBlock = (
   if (block) return replaceBlock(markdown, block, newContent)
   return markdown.trimEnd() + "\n\n" + formatBlock(language, newContent)
 }
+
+export const extractProse = (markdown: string): string => {
+  const blocks = parseCodeBlocks(markdown)
+  let prose = markdown
+
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i]
+    prose = prose.slice(0, block.start) + prose.slice(block.end)
+  }
+
+  return prose
+}

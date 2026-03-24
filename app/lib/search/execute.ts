@@ -57,31 +57,45 @@ const chunkToHit = (chunk: ScoredChunk): SearchHit => ({
   ...(chunk.text !== undefined ? { text: chunk.text } : {}),
 })
 
+const COSINE_KEY = "debug.search.cosine"
+const BM25_KEY = "debug.search.bm25"
+
+const isEnabled = (key: string): boolean => localStorage.getItem(key) !== "false"
+
 export const executeHybridSearch = async (
   db: Database,
   plan: HybridSearchPlan
 ): Promise<Result<SearchHit[], DbError>> => {
+  const useCosine = isEnabled(COSINE_KEY)
+  const useBm25 = isEnabled(BM25_KEY)
+
   const cosinePerAngle: ScoredChunk[][] = []
 
-  for (const angle of plan.angles) {
-    const result = await runScoredQuery(
-      db,
-      buildCosineQuery(plan.baseSql, angle),
-      "_semantic_score"
-    )
-    if (!result.ok) return result
-    cosinePerAngle.push(result.value)
+  if (useCosine) {
+    for (const angle of plan.angles) {
+      const result = await runScoredQuery(
+        db,
+        buildCosineQuery(plan.baseSql, angle),
+        "_semantic_score"
+      )
+      if (!result.ok) return result
+      cosinePerAngle.push(result.value)
+    }
   }
 
-  const searchTerms = uniqueWords(plan.angles.map((a) => a.text))
-  const bm25Result = await runScoredQuery(
-    db,
-    buildBm25Query(plan.baseSql, searchTerms),
-    "_bm25_score"
-  )
-  if (!bm25Result.ok) return bm25Result
+  let bm25: ScoredChunk[] = []
+  if (useBm25) {
+    const searchTerms = uniqueWords(plan.angles.map((a) => a.text))
+    const bm25Result = await runScoredQuery(
+      db,
+      buildBm25Query(plan.baseSql, searchTerms),
+      "_bm25_score"
+    )
+    if (!bm25Result.ok) return bm25Result
+    bm25 = bm25Result.value
+  }
 
-  const fused = fuseHybridResults({ cosinePerAngle, bm25: bm25Result.value }, plan.limit)
+  const fused = fuseHybridResults({ cosinePerAngle, bm25 }, plan.limit)
   const hits = fused.map(chunkToHit)
   const lenses = plan.angles.map((a) => a.text)
   const filtered = await filterHits(hits, plan.intent, lenses)

@@ -5,7 +5,7 @@ import {
   getImmutableFields,
   getAllowedFiles,
 } from "~/lib/data-blocks/registry"
-import { parseCodeBlocks, type CodeBlock } from "./parse"
+import { parseCodeBlocks, extractProse, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 
 export interface ValidationContext {
@@ -32,18 +32,6 @@ export interface ValidateOptions {
   context?: ValidationContext
   original?: string
   skipImmutableCheck?: boolean
-}
-
-export const extractProse = (markdown: string): string => {
-  const blocks = parseCodeBlocks(markdown)
-  let prose = markdown
-
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const block = blocks[i]
-    prose = prose.slice(0, block.start) + prose.slice(block.end)
-  }
-
-  return prose
 }
 
 export const validateMarkdownBlocks = (

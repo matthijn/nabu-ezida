@@ -1,38 +1,16 @@
-import { unified } from "unified"
-import remarkParse from "remark-parse"
-import type { Code, Heading } from "mdast"
+import { findBlocksByLanguage } from "~/lib/data-blocks/parse"
 
-interface MarkdownBlock {
-  type: string
-  lang: string | null
-  depth: number | null
-  startLine: number
-  endLine: number
-  raw: string
+const collapseBlankLines = (text: string): string => text.replace(/\n{3,}/g, "\n\n")
+
+export const stripAttributesBlock = (raw: string): string => {
+  const blocks = findBlocksByLanguage(raw, "json-attributes")
+  if (blocks.length === 0) return raw.trim()
+
+  let result = raw
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i]
+    result = result.slice(0, block.start) + result.slice(block.end)
+  }
+
+  return collapseBlankLines(result).trim()
 }
-
-const parser = unified().use(remarkParse)
-
-const parseMarkdownBlocks = (raw: string): MarkdownBlock[] => {
-  const lines = raw.split("\n")
-  const ast = parser.parse(raw)
-
-  return ast.children.map((node) => ({
-    type: node.type,
-    lang: node.type === "code" ? ((node as Code).lang ?? null) : null,
-    depth: node.type === "heading" ? (node as Heading).depth : null,
-    startLine: node.position?.start.line ?? 1,
-    endLine: node.position?.end.line ?? 1,
-    raw: lines.slice((node.position?.start.line ?? 1) - 1, node.position?.end.line ?? 1).join("\n"),
-  }))
-}
-
-const isAttributesBlock = (block: MarkdownBlock): boolean =>
-  block.type === "code" && block.lang === "json-attributes"
-
-export const stripAttributesBlock = (raw: string): string =>
-  parseMarkdownBlocks(raw)
-    .filter((b) => !isAttributesBlock(b))
-    .map((b) => b.raw)
-    .join("\n\n")
-    .trim()

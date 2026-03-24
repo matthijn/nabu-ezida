@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { validateMarkdownBlocks, extractProse } from "./validate"
+import { validateMarkdownBlocks } from "./validate"
+import { extractProse } from "./parse"
 
 describe("extractProse", () => {
   const cases = [

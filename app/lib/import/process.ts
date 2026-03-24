@@ -1,5 +1,6 @@
 import { generateDiff } from "~/lib/patch/diff/generate"
 import { applyFilePatch, updateFileRaw, getFiles } from "~/lib/files"
+import { findSingletonBlock, replaceSingletonBlock } from "~/lib/data-blocks/parse"
 import { deduplicateName } from "./dedupe"
 import { readFileContent, isMarkdownFile } from "./read"
 import { normalizeFilename } from "~/lib/files/filename"
@@ -13,24 +14,16 @@ interface ProcessResult {
 
 type StatusCallback = (id: string, status: ImportStatus, extra?: Partial<ImportFile>) => void
 
-const ATTRIBUTES_BLOCK_REGEX = /```json-attributes\n([\s\S]*?)\n```/
-
-const createAttributesBlock = (tags: string[]): string =>
-  `\`\`\`json-attributes\n${JSON.stringify({ tags }, null, "\t")}\n\`\`\``
-
 const injectTags = (content: string, tags: string[]): string => {
   if (tags.length === 0) return content
 
-  const match = content.match(ATTRIBUTES_BLOCK_REGEX)
-  if (!match) {
-    return `${content}\n\n${createAttributesBlock(tags)}`
-  }
+  const block = findSingletonBlock(content, "json-attributes")
 
   try {
-    const existing = JSON.parse(match[1]) as { tags?: string[] }
+    const existing = block ? (JSON.parse(block.content) as { tags?: string[] }) : {}
     const merged = [...new Set([...(existing.tags ?? []), ...tags])]
     const updated = JSON.stringify({ ...existing, tags: merged }, null, "\t")
-    return content.replace(ATTRIBUTES_BLOCK_REGEX, `\`\`\`json-attributes\n${updated}\n\`\`\``)
+    return replaceSingletonBlock(content, "json-attributes", updated)
   } catch {
     return content
   }

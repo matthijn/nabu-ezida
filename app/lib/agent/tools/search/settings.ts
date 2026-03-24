@@ -1,4 +1,4 @@
-import { getFileRaw, updateFileRaw } from "~/lib/files/store"
+import { getFileRaw, updateFileRaw, finalizeContent } from "~/lib/files"
 import { findSingletonBlock, parseBlockJson, replaceSingletonBlock } from "~/lib/data-blocks/parse"
 import type { Settings } from "~/domain/data-blocks/settings/schema"
 import { SETTINGS_FILE } from "~/lib/files/filename"
@@ -12,10 +12,13 @@ export const readSettings = (): Settings => {
   return parsed.ok ? parsed.data : {}
 }
 
-export const updateSearchEntries = (entries: SearchEntry[]): void => {
+export const updateSearchEntries = (entries: SearchEntry[]): string | null => {
   const raw = getFileRaw(SETTINGS_FILE)
   const settings = readSettings()
   const updated = { ...settings, searches: entries }
   const newRaw = replaceSingletonBlock(raw, "json-settings", JSON.stringify(updated, null, 2))
-  updateFileRaw(SETTINGS_FILE, newRaw)
+  const result = finalizeContent(SETTINGS_FILE, newRaw, { original: raw })
+  if (result.status === "error") return result.error
+  updateFileRaw(result.path, result.content)
+  return null
 }

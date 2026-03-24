@@ -1,21 +1,8 @@
-import type { Spotlight } from "~/lib/editor/spotlight"
+import { parseSpotlightText } from "~/lib/editor/spotlight"
 import type { EntityKind, EntityRef } from "./types"
 import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 
 const FILE_PROTOCOL = "file://"
-const RANGE_DELIMITER = "..."
-
-const parseTextPart = (textPart: string): Spotlight | null => {
-  if (!textPart) return null
-  if (textPart.includes(RANGE_DELIMITER)) {
-    const idx = textPart.indexOf(RANGE_DELIMITER)
-    const from = textPart.slice(0, idx)
-    const to = textPart.slice(idx + RANGE_DELIMITER.length)
-    if (!from || !to) return null
-    return { type: "range", from, to }
-  }
-  return { type: "single", text: textPart }
-}
 
 const findPrefixedEntity = (path: string): EntityRef | null => {
   for (const prefix of getEntityPrefixes()) {
@@ -31,7 +18,7 @@ const parseTextRef = (path: string): EntityRef => {
   if (slashIndex === -1) return { kind: "text", documentId: path, spotlight: null }
   const documentId = path.slice(0, slashIndex)
   const textPart = decodeURIComponent(path.slice(slashIndex + 1))
-  return { kind: "text", documentId, spotlight: parseTextPart(textPart) }
+  return { kind: "text", documentId, spotlight: parseSpotlightText(textPart) }
 }
 
 export const parseEntityLink = (href: string): EntityRef | null => {

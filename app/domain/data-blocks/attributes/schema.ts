@@ -32,6 +32,7 @@ export type Annotation = z.infer<typeof AnnotationSchema>
 export const DocumentMeta = z.object({
   tags: z.array(slug).optional().describe("Tag IDs from settings"),
   annotations: z.array(AnnotationSchema).optional(),
+  language: z.string().optional().describe("ISO 639-3 language code, auto-detected"),
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>

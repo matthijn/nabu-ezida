@@ -81,7 +81,8 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const settings = readSettings()
   const withNew = [...(settings.searches ?? []), entry]
   const rotated = rotateUnsaved(withNew)
-  updateSearchEntries(rotated)
+  const writeError = updateSearchEntries(rotated)
+  if (writeError) return { status: "error", output: writeError }
 
   return {
     status: "ok",

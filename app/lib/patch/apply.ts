@@ -8,13 +8,9 @@ import {
   PrettyJsonError,
 } from "./resolve/json-expand"
 import { stripPendingRefs } from "~/lib/files/pending-refs"
-import { parseCodeBlocks } from "~/lib/data-blocks/parse"
+import { parseCodeBlocks, extractProse } from "~/lib/data-blocks/parse"
 import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/data-blocks/uuid"
-import {
-  validateMarkdownBlocks,
-  extractProse,
-  type ValidationError,
-} from "~/lib/data-blocks/validate"
+import { validateMarkdownBlocks, type ValidationError } from "~/lib/data-blocks/validate"
 import { stampActors } from "~/lib/data-blocks/actor"
 import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { getFiles } from "~/lib/files/store"

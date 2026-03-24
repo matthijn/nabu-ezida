@@ -30,6 +30,8 @@ const toggleActive = (set: Set<string>, id: string): Set<string> => {
   return next
 }
 
+const isUntagged = (fileTags: string[]): boolean => fileTags.length === 0
+
 const hasAnyActiveTag = (fileTags: string[], active: Set<string>): boolean =>
   fileTags.some((t) => active.has(t))
 
@@ -40,13 +42,31 @@ const filterHitsByTags = (
 ): SearchHit[] =>
   activeTags.size === 0
     ? hits
-    : hits.filter((h) => hasAnyActiveTag(getFileTags(h.file), activeTags))
+    : hits.filter((h) => {
+        const tags = getFileTags(h.file)
+        return isUntagged(tags) || hasAnyActiveTag(tags, activeTags)
+      })
+
+const COSINE_KEY = "debug.search.cosine"
+const BM25_KEY = "debug.search.bm25"
+
+const readFlag = (key: string): boolean => localStorage.getItem(key) !== "false"
+
+const toggleFlag = (key: string): boolean => {
+  const next = !readFlag(key)
+  localStorage.setItem(key, String(next))
+  return next
+}
 
 export default function ProjectSearch() {
   const params = useParams<{ projectId: string; searchId: string }>()
   const navigate = useNavigate()
   const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
-  const { search, results, lenses, isLoading, error } = useSearchResults(params.searchId ?? "")
+  const [revision, setRevision] = useState(0)
+  const { search, results, lenses, isLoading, error } = useSearchResults(
+    params.searchId ?? "",
+    revision
+  )
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)
     const tagIds = collectTagIds(uniqueFiles, getFileTags)
@@ -124,6 +144,30 @@ export default function ProjectSearch() {
                 {lenses.join("\n")}
               </pre>
             )}
+            <div className="flex gap-4 text-caption font-caption text-subtext-color">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  defaultChecked={readFlag(COSINE_KEY)}
+                  onChange={() => {
+                    toggleFlag(COSINE_KEY)
+                    setRevision((r) => r + 1)
+                  }}
+                />
+                Cosine
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  defaultChecked={readFlag(BM25_KEY)}
+                  onChange={() => {
+                    toggleFlag(BM25_KEY)
+                    setRevision((r) => r + 1)
+                  }}
+                />
+                BM25
+              </label>
+            </div>
           </div>
         )}
         <SearchResultList

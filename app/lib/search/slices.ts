@@ -6,6 +6,7 @@ import {
   findBlockById,
   parseCodeBlocks,
   findSingletonBlock,
+  extractProse,
   type CodeBlock,
 } from "~/lib/data-blocks/parse"
 
@@ -50,13 +51,6 @@ const isLineInsideBlock = (lineIndex: number, ranges: LineRange[]): boolean =>
 const stripCodeBlockLines = (lines: string[], ranges: LineRange[]): string[] =>
   lines.filter((_, i) => !isLineInsideBlock(i, ranges))
 
-const stripCodeBlocks = (content: string): string => {
-  const blocks = parseCodeBlocks(content)
-  const ranges = toLineRanges(content, blocks)
-  const allLines = splitLines(content)
-  return stripCodeBlockLines(allLines, ranges).join("\n")
-}
-
 const extractProseWindow = (prose: string, matchStart: number, matchEnd: number): string =>
   prose.slice(matchStart, matchEnd)
 
@@ -88,7 +82,7 @@ const extractIdSlice = (content: string, id: string, files: FileStore): string |
   const annotation = findAnnotationById(files, id)
   if (!annotation) return null
 
-  const stripped = stripCodeBlocks(content)
+  const stripped = extractProse(content)
   const offset = findMatchOffset(stripped, annotation.text)
   if (!offset) return null
 
@@ -96,7 +90,7 @@ const extractIdSlice = (content: string, id: string, files: FileStore): string |
 }
 
 const extractTextSlice = (content: string, text: string): string | null => {
-  const stripped = stripCodeBlocks(content)
+  const stripped = extractProse(content)
   const offset = findMatchOffset(stripped, text)
   if (!offset) return null
 

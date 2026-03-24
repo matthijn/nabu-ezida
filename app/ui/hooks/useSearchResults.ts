@@ -31,7 +31,7 @@ interface SearchResults {
   error: string | null
 }
 
-export const useSearchResults = (searchId: string): SearchResults => {
+export const useSearchResults = (searchId: string, revision = 0): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const search = findSearchById(files, searchId)
   const [settled, setSettled] = useState<SettledState>(EMPTY)
@@ -87,7 +87,7 @@ export const useSearchResults = (searchId: string): SearchResults => {
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [search, searchId])
+  }, [search, searchId, revision])
 
   const isLoading = !!search && settled.searchId !== searchId
 

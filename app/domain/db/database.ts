@@ -6,6 +6,7 @@ import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } 
 import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
 import { projections, toJsonSchema } from "./projections"
 import { startEmbeddings } from "~/domain/embeddings/init"
+import { startLanguageDetection } from "~/domain/language/init"
 import type { Database } from "~/lib/db/types"
 
 const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
@@ -120,6 +121,9 @@ export const startDatabase = async (): Promise<void> => {
 
   startEmbeddings()
   console.debug("[embeddings] sync started")
+
+  startLanguageDetection()
+  console.debug("[language] detection started")
 }
 
 export const getDatabase = (): Database | null => database
