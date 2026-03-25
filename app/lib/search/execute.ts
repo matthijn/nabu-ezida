@@ -4,8 +4,8 @@ import type { Result } from "~/lib/fp/result"
 import type { HybridSearchPlan } from "./semantic"
 import type { ScoredChunk } from "./fusion"
 import { ok, err } from "~/lib/fp/result"
-import { buildCosineQuery, buildBm25Query, uniqueWords } from "./semantic"
-import { fuseHybridResults } from "./fusion"
+import { buildCosineQuery } from "./semantic"
+import { fuseCosineResults } from "./fusion"
 import { filterHits } from "./filter-hits"
 
 type RawRow = Record<string, unknown>
@@ -35,21 +35,20 @@ export const executeSearch = async (
   return ok(rows.map(toHit))
 }
 
-const toScoredChunk = (row: RawRow, scoreKey: string): ScoredChunk => ({
+const toScoredChunk = (row: RawRow): ScoredChunk => ({
   file: String(row.file),
   text: row.text !== undefined ? String(row.text) : undefined,
   hash: row.hash !== undefined ? String(row.hash) : undefined,
-  score: Number(row[scoreKey] ?? 0),
+  score: Number(row._semantic_score ?? 0),
 })
 
 const runScoredQuery = async (
   db: Database,
-  sql: string,
-  scoreKey: string
+  sql: string
 ): Promise<Result<ScoredChunk[], DbError>> => {
   const result = await db.query<RawRow>(sql)
   if (!result.ok) return result
-  return ok(result.value.rows.map((row) => toScoredChunk(row, scoreKey)))
+  return ok(result.value.rows.map(toScoredChunk))
 }
 
 const chunkToHit = (chunk: ScoredChunk): SearchHit => ({
@@ -57,59 +56,26 @@ const chunkToHit = (chunk: ScoredChunk): SearchHit => ({
   ...(chunk.text !== undefined ? { text: chunk.text } : {}),
 })
 
-const COSINE_KEY = "debug.search.cosine"
-const BM25_KEY = "debug.search.bm25"
-
-const isEnabled = (key: string): boolean => localStorage.getItem(key) !== "false"
-
 export const executeHybridSearch = async (
   db: Database,
   plan: HybridSearchPlan
 ): Promise<Result<SearchHit[], DbError>> => {
-  const useCosine = isEnabled(COSINE_KEY)
-  const useBm25 = isEnabled(BM25_KEY)
+  const cosinePerHyde: ScoredChunk[][] = []
 
-  const cosinePerAngle: ScoredChunk[][] = []
-
-  if (useCosine) {
-    for (const angle of plan.angles) {
-      const result = await runScoredQuery(
-        db,
-        buildCosineQuery(plan.baseSql, angle),
-        "_semantic_score"
-      )
-      if (!result.ok) return result
-      cosinePerAngle.push(result.value)
-    }
+  for (const hyde of plan.hydes) {
+    const sql = buildCosineQuery(plan.baseSql, hyde)
+    const result = await runScoredQuery(db, sql)
+    if (!result.ok) return result
+    cosinePerHyde.push(result.value)
   }
 
-  let bm25: ScoredChunk[] = []
-  if (useBm25) {
-    const searchTerms = uniqueWords(plan.angles.map((a) => a.text))
-    const bm25Sql = buildBm25Query(plan.baseSql, searchTerms)
-    console.debug("[BM25]", { sql: bm25Sql, terms: searchTerms })
-    const bm25Result = await runScoredQuery(db, bm25Sql, "_bm25_score")
-    if (!bm25Result.ok) return bm25Result
-    bm25 = bm25Result.value
-    console.debug("[BM25]", {
-      rows: bm25.length,
-      nonZero: bm25.filter((r) => r.score !== 0).length,
-    })
-  }
-
-  const isBm25Only = useBm25 && !useCosine
-
-  if (isBm25Only) {
-    const scored = bm25.filter((r) => r.score !== 0).slice(0, plan.limit)
-    const hits = scored.map(chunkToHit)
-    console.debug("[BM25-ONLY]", { hits: hits.length })
-    return ok(hits)
-  }
-
-  const fused = fuseHybridResults({ cosinePerAngle, bm25 }, plan.limit)
+  const fused = fuseCosineResults(cosinePerHyde, plan.limit)
   const hits = fused.map(chunkToHit)
-  const lenses = plan.angles.map((a) => a.text)
-  const filtered = await filterHits(hits, plan.intent, lenses)
-  console.debug("[HYBRID]", { before: hits.length, after: filtered.length })
+  const filtered = await filterHits(hits, plan.description, plan.intent)
+  console.debug("[HYBRID]", {
+    hydes: plan.hydes.length,
+    before: hits.length,
+    after: filtered.length,
+  })
   return ok(filtered)
 }

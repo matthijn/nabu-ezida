@@ -2,7 +2,7 @@ import type { z } from "zod"
 import { findSingletonBlock, findBlocksByLanguage } from "~/lib/data-blocks/parse"
 import { createCappedCache } from "~/lib/utils/cache"
 
-const cache = createCappedCache<string, unknown>(100)
+const cache = createCappedCache<string, unknown>(1000)
 
 const cacheKey = (language: string, content: string): string => `${language}:${content}`
 

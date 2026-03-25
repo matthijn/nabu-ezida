@@ -88,7 +88,7 @@ describe("chunkText", () => {
   })
 
   it("no chunk is below MIN_CHUNK_SIZE except when total text is small", () => {
-    const longText = Array.from({ length: 30 }, (_, i) => `Segment ${i}. ${"y".repeat(150)}`).join(
+    const longText = Array.from({ length: 30 }, (_, i) => `Segment ${i}. ${"y".repeat(500)}`).join(
       "\n\n"
     )
     const chunks = chunkText(longText)

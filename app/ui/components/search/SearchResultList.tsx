@@ -47,8 +47,8 @@ interface SearchResultListProps {
   onNavigate?: (url: string) => void
 }
 
-const SearchSlicePreview = ({ hit, files }: { hit: SearchHit; files: FileStore }) => {
-  const markdown = useMemo(() => extractSearchSlice(hit, files), [hit, files])
+const SearchSlicePreview = ({ hit }: { hit: SearchHit }) => {
+  const markdown = useMemo(() => extractSearchSlice(hit), [hit])
 
   if (!markdown) return null
 
@@ -104,7 +104,7 @@ const RunGroupCard = ({
       </div>
       <div className="flex w-full flex-col items-start gap-4 px-6 py-5">
         {hitsToRender.map((hit, i) => (
-          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} files={files} />
+          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} />
         ))}
       </div>
     </div>

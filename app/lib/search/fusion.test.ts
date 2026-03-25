@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest"
-import {
-  normalizeBm25Scores,
-  mergeScoreMaps,
-  fuseHybridResults,
-  chunkKey,
-  type ScoredChunk,
-} from "./fusion"
+import { mergeScoreMaps, fuseCosineResults, chunkKey, type ScoredChunk } from "./fusion"
 
 describe("chunkKey", () => {
   const cases: { name: string; chunk: ScoredChunk; expected: string }[] = [
@@ -28,53 +22,6 @@ describe("chunkKey", () => {
 
   it.each(cases)("$name", ({ chunk, expected }) => {
     expect(chunkKey(chunk)).toBe(expected)
-  })
-})
-
-describe("normalizeBm25Scores", () => {
-  const cases: {
-    name: string
-    rows: ScoredChunk[]
-    expected: Map<string, number>
-  }[] = [
-    {
-      name: "empty input returns empty map",
-      rows: [],
-      expected: new Map(),
-    },
-    {
-      name: "single row normalizes to 1",
-      rows: [{ file: "a.md", hash: "h1", score: -2.5 }],
-      expected: new Map([["h1", 1]]),
-    },
-    {
-      name: "range normalization negates and scales 0-1",
-      rows: [
-        { file: "a.md", hash: "h1", score: -5 },
-        { file: "b.md", hash: "h2", score: -1 },
-        { file: "c.md", hash: "h3", score: -3 },
-      ],
-      expected: new Map([
-        ["h1", 1],
-        ["h2", 0],
-        ["h3", 0.5],
-      ]),
-    },
-    {
-      name: "all-equal scores normalize to 1",
-      rows: [
-        { file: "a.md", hash: "h1", score: -3 },
-        { file: "b.md", hash: "h2", score: -3 },
-      ],
-      expected: new Map([
-        ["h1", 1],
-        ["h2", 1],
-      ]),
-    },
-  ]
-
-  it.each(cases)("$name", ({ rows, expected }) => {
-    expect(normalizeBm25Scores(rows)).toEqual(expected)
   })
 })
 
@@ -131,7 +78,7 @@ describe("mergeScoreMaps", () => {
   })
 })
 
-describe("fuseHybridResults", () => {
+describe("fuseCosineResults", () => {
   const chunk = (file: string, hash: string, score: number): ScoredChunk => ({
     file,
     hash,
@@ -141,55 +88,53 @@ describe("fuseHybridResults", () => {
 
   const cases: {
     name: string
-    input: { cosinePerAngle: ScoredChunk[][]; bm25: ScoredChunk[] }
+    cosinePerHyde: ScoredChunk[][]
     limit: number
     expectedFiles: string[]
   }[] = [
     {
-      name: "end-to-end fusion with shared BM25",
-      input: {
-        cosinePerAngle: [[chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.4)]],
-        bm25: [chunk("a.md", "h1", -5), chunk("c.md", "h3", -3)],
-      },
+      name: "single hyde group sorted by score",
+      cosinePerHyde: [[chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.4)]],
       limit: 50,
-      expectedFiles: ["a.md", "b.md", "c.md"],
+      expectedFiles: ["a.md", "b.md"],
     },
     {
       name: "limit caps output",
-      input: {
-        cosinePerAngle: [
-          [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.8), chunk("c.md", "h3", 0.7)],
-        ],
-        bm25: [],
-      },
+      cosinePerHyde: [
+        [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.8), chunk("c.md", "h3", 0.7)],
+      ],
       limit: 2,
       expectedFiles: ["a.md", "b.md"],
     },
     {
-      name: "empty cosine angles returns bm25-only results",
-      input: {
-        cosinePerAngle: [],
-        bm25: [chunk("a.md", "h1", -2)],
-      },
+      name: "empty input returns empty",
+      cosinePerHyde: [],
       limit: 50,
       expectedFiles: [],
     },
     {
-      name: "multi-angle cosine with shared BM25 boosts overlapping chunks",
-      input: {
-        cosinePerAngle: [
-          [chunk("a.md", "h1", 0.8)],
-          [chunk("a.md", "h1", 0.7), chunk("b.md", "h2", 0.9)],
-        ],
-        bm25: [chunk("a.md", "h1", -3), chunk("b.md", "h2", -1)],
-      },
+      name: "multi-hyde overlapping chunks accumulate scores",
+      cosinePerHyde: [
+        [chunk("a.md", "h1", 0.8)],
+        [chunk("a.md", "h1", 0.7), chunk("b.md", "h2", 0.9)],
+      ],
       limit: 50,
       expectedFiles: ["a.md", "b.md"],
     },
+    {
+      name: "multi-hyde disjoint chunks merged and ranked",
+      cosinePerHyde: [
+        [chunk("a.md", "h1", 0.3)],
+        [chunk("b.md", "h2", 0.5)],
+        [chunk("c.md", "h3", 0.4)],
+      ],
+      limit: 50,
+      expectedFiles: ["b.md", "c.md", "a.md"],
+    },
   ]
 
-  it.each(cases)("$name", ({ input, limit, expectedFiles }) => {
-    const result = fuseHybridResults(input, limit)
+  it.each(cases)("$name", ({ cosinePerHyde, limit, expectedFiles }) => {
+    const result = fuseCosineResults(cosinePerHyde, limit)
     expect(result.map((r) => r.file)).toEqual(expectedFiles)
     expect(result.length).toBeLessThanOrEqual(limit)
   })

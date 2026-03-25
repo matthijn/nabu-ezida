@@ -7,6 +7,7 @@ import { SearchResultList } from "~/ui/components/search/SearchResultList"
 import type { SearchHit } from "~/domain/search"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { formatDebugSql } from "~/lib/search"
+import type { HydeQuery } from "~/lib/search/semantic"
 
 const collectUniqueFiles = (hits: SearchHit[]): string[] => [...new Set(hits.map((h) => h.file))]
 
@@ -47,23 +48,29 @@ const filterHitsByTags = (
         return isUntagged(tags) || hasAnyActiveTag(tags, activeTags)
       })
 
-const COSINE_KEY = "debug.search.cosine"
-const BM25_KEY = "debug.search.bm25"
+const groupHydesByLanguage = (hydes: HydeQuery[]): Map<string, string[]> => {
+  const map = new Map<string, string[]>()
+  for (const hyde of hydes) {
+    const existing = map.get(hyde.language) ?? []
+    existing.push(hyde.text)
+    map.set(hyde.language, existing)
+  }
+  return map
+}
 
-const readFlag = (key: string): boolean => localStorage.getItem(key) !== "false"
-
-const toggleFlag = (key: string): boolean => {
-  const next = !readFlag(key)
-  localStorage.setItem(key, String(next))
-  return next
+const formatHydeDebug = (hydes: HydeQuery[]): string => {
+  const grouped = groupHydesByLanguage(hydes)
+  return [...grouped.entries()]
+    .map(([lang, texts]) => `[${lang}]\n${texts.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}`)
+    .join("\n")
 }
 
 export default function ProjectSearch() {
   const params = useParams<{ projectId: string; searchId: string }>()
   const navigate = useNavigate()
   const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
-  const [revision, setRevision] = useState(0)
-  const { search, results, lenses, isLoading, error } = useSearchResults(
+  const [revision, _setRevision] = useState(0)
+  const { search, results, hydes, isLoading, error } = useSearchResults(
     params.searchId ?? "",
     revision
   )
@@ -139,35 +146,11 @@ export default function ProjectSearch() {
             <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
               {formatDebugSql(search.sql)}
             </pre>
-            {lenses.length > 0 && (
+            {hydes.length > 0 && (
               <pre className="w-full rounded-md bg-neutral-100 px-4 py-3 text-caption font-caption text-subtext-color whitespace-pre-wrap break-words">
-                {lenses.join("\n")}
+                {formatHydeDebug(hydes)}
               </pre>
             )}
-            <div className="flex gap-4 text-caption font-caption text-subtext-color">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  defaultChecked={readFlag(COSINE_KEY)}
-                  onChange={() => {
-                    toggleFlag(COSINE_KEY)
-                    setRevision((r) => r + 1)
-                  }}
-                />
-                Cosine
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  defaultChecked={readFlag(BM25_KEY)}
-                  onChange={() => {
-                    toggleFlag(BM25_KEY)
-                    setRevision((r) => r + 1)
-                  }}
-                />
-                BM25
-              </label>
-            </div>
           </div>
         )}
         <SearchResultList

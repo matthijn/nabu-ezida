@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react"
 import { useSyncExternalStore } from "react"
 import { getFiles, subscribe } from "~/lib/files/store"
+import { getFileRaw } from "~/lib/files"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
+import { getSettings } from "~/domain/data-blocks/settings/selectors"
+import { SETTINGS_FILE } from "~/lib/files/filename"
 import { getDatabase } from "~/domain/db/database"
 import {
   executeSearch,
@@ -9,27 +12,32 @@ import {
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
+import { ensureDescription } from "~/lib/search/ensure-description"
 import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
+import type { HydeQuery } from "~/lib/search/semantic"
 
 interface SettledState {
   results: SearchHit[]
-  lenses: string[]
+  hydes: HydeQuery[]
   error: string | null
   searchId: string | null
 }
 
-const EMPTY: SettledState = { results: [], lenses: [], error: null, searchId: null }
+const EMPTY: SettledState = { results: [], hydes: [], error: null, searchId: null }
 
 const DB_POLL_INTERVAL = 250
 
 interface SearchResults {
   search: SearchEntry | undefined
   results: SearchHit[]
-  lenses: string[]
+  hydes: HydeQuery[]
   isLoading: boolean
   error: string | null
 }
+
+const readDescription = (): string | undefined =>
+  getSettings(getFileRaw(SETTINGS_FILE))?.description
 
 export const useSearchResults = (searchId: string, revision = 0): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
@@ -49,15 +57,19 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
         return
       }
 
-      const resolved = await resolveSemanticSql(search.sql, getLlmHost())
+      const description = await ensureDescription(readDescription(), db)
+      const resolved = await resolveSemanticSql(search.sql, {
+        db,
+        baseUrl: getLlmHost(),
+        description,
+      })
       if (cancelled) return
       if (!resolved.ok) {
-        setSettled({ results: [], lenses: [], error: resolved.error, searchId })
+        setSettled({ results: [], hydes: [], error: resolved.error, searchId })
         return
       }
 
-      const lenses =
-        resolved.value.type === "hybrid" ? resolved.value.plan.angles.map((a) => a.text) : []
+      const hydes = resolved.value.type === "hybrid" ? resolved.value.plan.hydes : []
 
       const result =
         resolved.value.type === "plain"
@@ -71,11 +83,11 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
       if (cancelled) return
 
       if (result.ok) {
-        setSettled({ results: result.value, lenses, error: null, searchId })
+        setSettled({ results: result.value, hydes, error: null, searchId })
       } else {
         setSettled({
           results: [],
-          lenses,
+          hydes,
           error: sanitizeSemanticError(result.error.message),
           searchId,
         })
@@ -94,7 +106,7 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
   return {
     search,
     results: settled.results,
-    lenses: settled.lenses,
+    hydes: settled.hydes,
     isLoading,
     error: settled.error,
   }

@@ -7,15 +7,17 @@ export interface SemanticToken {
   end: number
 }
 
-export interface AngleQuery {
+export interface HydeQuery {
   text: string
+  language: string
   cosineVector: number[]
 }
 
 export interface HybridSearchPlan {
   intent: string
+  description: string
   baseSql: string
-  angles: AngleQuery[]
+  hydes: HydeQuery[]
   limit: number
 }
 
@@ -132,38 +134,42 @@ const injectSelectColumn = (sql: string, column: string): string => {
   return `${beforeFrom.trimEnd()}, ${column} ${fromOnward}`
 }
 
-export const buildCosineQuery = (baseSql: string, angle: AngleQuery): string => {
-  const vec = formatVector(angle.cosineVector)
+const WHERE_RE = /\bWHERE\b/i
+
+const escapeSqlString = (value: string): string => value.replace(/'/g, "''")
+
+const injectLanguageFilter = (sql: string, language: string): string => {
+  const escaped = escapeSqlString(language)
+  if (WHERE_RE.test(sql)) return sql.replace(WHERE_RE, `WHERE language = '${escaped}' AND`)
+  const fromMatch = FROM_RE.exec(sql)
+  if (!fromMatch) return `${sql} WHERE language = '${escaped}'`
+  const afterFrom = sql.slice(fromMatch.index + fromMatch[0].length)
+  const tableEnd = afterFrom.search(/\s+(WHERE|ORDER|LIMIT|GROUP|HAVING)/i)
+  const insertAt =
+    fromMatch.index + fromMatch[0].length + (tableEnd === -1 ? afterFrom.length : tableEnd)
+  return `${sql.slice(0, insertAt)} WHERE language = '${escaped}'${sql.slice(insertAt)}`
+}
+
+export const buildCosineQuery = (baseSql: string, hyde: HydeQuery): string => {
+  const vec = formatVector(hyde.cosineVector)
   const core = stripOrderByAndLimit(baseSql)
+  const withLanguage = injectLanguageFilter(core, hyde.language)
   const withColumn = injectSelectColumn(
-    core,
+    withLanguage,
     `list_cosine_similarity(embedding, ${vec}) AS ${SCORE_COLUMN}`
   )
   return `${withColumn} ORDER BY ${SCORE_COLUMN} DESC LIMIT 200`
 }
 
-export const uniqueWords = (texts: string[]): string =>
-  [...new Set(texts.flatMap((t) => t.toLowerCase().split(/\s+/)))].join(" ")
-
-const escapeSqlString = (value: string): string => value.replace(/'/g, "''")
-
-export const buildBm25Query = (baseSql: string, searchTerms: string): string => {
-  const core = stripOrderByAndLimit(baseSql)
-  const withColumn = injectSelectColumn(
-    core,
-    `fts_main_files.match_bm25(hash, '${escapeSqlString(searchTerms)}') AS _bm25_score`
-  )
-  return `${withColumn} ORDER BY _bm25_score DESC LIMIT 200`
-}
-
 export const buildHybridPlan = (
   sql: string,
   token: SemanticToken,
-  angles: AngleQuery[]
+  description: string,
+  hydes: HydeQuery[]
 ): HybridSearchPlan => {
   const baseSql = stripSemanticToken(sql, token)
   const limit = extractLimit(sql)
-  return { intent: token.text, baseSql, angles, limit }
+  return { intent: token.text, description, baseSql, hydes, limit }
 }
 
 const aliasSemanticTokens = (sql: string, tokens: SemanticToken[]): string => {

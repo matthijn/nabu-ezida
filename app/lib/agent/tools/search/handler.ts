@@ -10,6 +10,7 @@ import {
   sanitizeSemanticError,
 } from "~/lib/search"
 import { updateSearchEntries, readSettings } from "./settings"
+import { ensureDescription } from "~/lib/search/ensure-description"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 
 const generateShortId = (): string => {
@@ -59,7 +60,14 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const resolved = await resolveSemanticSql(parsed.data.sql, getLlmHost())
+  const settings = readSettings()
+  const description = await ensureDescription(settings.description, db)
+
+  const resolved = await resolveSemanticSql(parsed.data.sql, {
+    db,
+    baseUrl: getLlmHost(),
+    description,
+  })
   if (!resolved.ok) return { status: "error", output: resolved.error }
 
   const result =
@@ -78,7 +86,6 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
     sql: parsed.data.sql,
   }
 
-  const settings = readSettings()
   const withNew = [...(settings.searches ?? []), entry]
   const rotated = rotateUnsaved(withNew)
   const writeError = updateSearchEntries(rotated)

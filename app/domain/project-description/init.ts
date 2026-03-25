@@ -1,4 +1,4 @@
-import { subscribe } from "~/lib/files/store"
+import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
 import { getFileRaw, updateFileRaw, finalizeContent } from "~/lib/files"
 import { replaceSingletonBlock } from "~/lib/data-blocks/parse"
 import { SETTINGS_FILE } from "~/lib/files/filename"
@@ -22,10 +22,29 @@ const writeDescription = (description: string): void => {
   updateFileRaw(result.path, result.content)
 }
 
+const hasNonSettingsChanges = (prev: FileStore, curr: FileStore): boolean => {
+  const allKeys = new Set([...Object.keys(prev), ...Object.keys(curr)])
+  allKeys.delete(SETTINGS_FILE)
+  for (const key of allKeys) {
+    if (prev[key] !== curr[key]) return true
+  }
+  return false
+}
+
+const subscribeNonSettings = (listener: () => void): (() => void) => {
+  let previous = getFiles()
+  return subscribe(() => {
+    const current = getFiles()
+    const changed = hasNonSettingsChanges(previous, current)
+    previous = current
+    if (changed) listener()
+  })
+}
+
 export const startProjectDescription = (): (() => void) =>
   startDescriptionSync({
     getDatabase,
     readDescription,
     writeDescription,
-    subscribe,
+    subscribe: subscribeNonSettings,
   })

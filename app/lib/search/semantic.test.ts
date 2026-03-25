@@ -11,10 +11,9 @@ import {
   stripSemanticToken,
   extractLimit,
   buildCosineQuery,
-  buildBm25Query,
   buildHybridPlan,
-  uniqueWords,
   type SemanticToken,
+  type HydeQuery,
 } from "./semantic"
 
 describe("extractSemanticTokens", () => {
@@ -352,144 +351,75 @@ describe("extractLimit", () => {
 })
 
 describe("buildCosineQuery", () => {
+  const hyde = (language: string, vector: number[]): HydeQuery => ({
+    text: "hypothetical passage",
+    language,
+    cosineVector: vector,
+  })
+
   const cases: {
     name: string
     baseSql: string
-    angle: { text: string; cosineVector: number[] }
+    hyde: HydeQuery
     expectedContains: string[]
   }[] = [
     {
-      name: "injects cosine similarity and orders by score",
+      name: "injects cosine similarity, language filter, and orders by score",
       baseSql: "SELECT f.file, f.text FROM files f",
-      angle: { text: "anger", cosineVector: [0.1, 0.2, 0.3] },
+      hyde: hyde("eng", [0.1, 0.2, 0.3]),
       expectedContains: [
         "list_cosine_similarity(embedding, [0.1,0.2,0.3])",
         "AS _semantic_score",
         "ORDER BY _semantic_score DESC",
         "LIMIT 200",
+        "language = 'eng'",
       ],
     },
     {
       name: "strips existing ORDER BY and LIMIT from base",
       baseSql: "SELECT f.file, f.text FROM files f ORDER BY f.file LIMIT 10",
-      angle: { text: "anger", cosineVector: [0.5] },
+      hyde: hyde("nld", [0.5]),
       expectedContains: [
         "list_cosine_similarity(embedding, [0.5])",
         "ORDER BY _semantic_score DESC LIMIT 200",
+        "language = 'nld'",
       ],
     },
     {
-      name: "injects column into SELECT before FROM when WHERE clause present",
+      name: "adds language filter with existing WHERE clause",
       baseSql:
         "SELECT f.file, f.text FROM files f WHERE f.file IN (SELECT a.file FROM attributes a WHERE list_has(a.tags, 'interview'))",
-      angle: { text: "anger", cosineVector: [0.1] },
-      expectedContains: [
-        "SELECT f.file, f.text, list_cosine_similarity(embedding, [0.1]) AS _semantic_score FROM files f WHERE",
-      ],
+      hyde: hyde("eng", [0.1]),
+      expectedContains: ["language = 'eng' AND", "list_has(a.tags, 'interview')"],
     },
   ]
 
-  it.each(cases)("$name", ({ baseSql, angle, expectedContains }) => {
-    const result = buildCosineQuery(baseSql, angle)
+  it.each(cases)("$name", ({ baseSql, hyde: h, expectedContains }) => {
+    const result = buildCosineQuery(baseSql, h)
     for (const fragment of expectedContains) {
       expect(result).toContain(fragment)
     }
-  })
-})
-
-describe("buildBm25Query", () => {
-  const cases: {
-    name: string
-    baseSql: string
-    searchTerms: string
-    expectedContains: string[]
-  }[] = [
-    {
-      name: "injects BM25 match and orders by score",
-      baseSql: "SELECT f.file, f.text FROM files f",
-      searchTerms: "anger",
-      expectedContains: [
-        "fts_main_files.match_bm25(hash, 'anger')",
-        "AS _bm25_score",
-        "ORDER BY _bm25_score DESC",
-        "LIMIT 200",
-      ],
-    },
-    {
-      name: "injects BM25 column before FROM when WHERE clause present",
-      baseSql:
-        "SELECT f.file, f.text FROM files f WHERE f.file IN (SELECT a.file FROM attributes a)",
-      searchTerms: "isolation loneliness",
-      expectedContains: [
-        "SELECT f.file, f.text, fts_main_files.match_bm25(hash, 'isolation loneliness') AS _bm25_score FROM files f WHERE",
-      ],
-    },
-    {
-      name: "escapes single quotes in search terms",
-      baseSql: "SELECT f.file, f.text FROM files f",
-      searchTerms: "country's praised covid response",
-      expectedContains: ["fts_main_files.match_bm25(hash, 'country''s praised covid response')"],
-    },
-  ]
-
-  it.each(cases)("$name", ({ baseSql, searchTerms, expectedContains }) => {
-    const result = buildBm25Query(baseSql, searchTerms)
-    for (const fragment of expectedContains) {
-      expect(result).toContain(fragment)
-    }
-  })
-})
-
-describe("uniqueWords", () => {
-  const cases: { name: string; texts: string[]; expected: string }[] = [
-    {
-      name: "single text",
-      texts: ["anger fear"],
-      expected: "anger fear",
-    },
-    {
-      name: "deduplicates across texts",
-      texts: ["home sweet home", "home alone"],
-      expected: "home sweet alone",
-    },
-    {
-      name: "lowercases all words",
-      texts: ["Anger", "FEAR", "anger"],
-      expected: "anger fear",
-    },
-    {
-      name: "empty input",
-      texts: [],
-      expected: "",
-    },
-    {
-      name: "preserves order of first occurrence",
-      texts: ["political frustration", "economic frustration"],
-      expected: "political frustration economic",
-    },
-  ]
-
-  it.each(cases)("$name", ({ texts, expected }) => {
-    expect(uniqueWords(texts)).toBe(expected)
   })
 })
 
 describe("buildHybridPlan", () => {
-  it("builds plan from SQL, token, and angles", () => {
+  it("builds plan from SQL, token, description, and hydes", () => {
     const sql = "SELECT f.file, f.text, SEMANTIC('emotional distress') FROM files f LIMIT 30"
     const token: SemanticToken = { text: "emotional distress", start: 23, end: 52 }
-    const angles = [
-      { text: "feelings of anxiety", cosineVector: [0.1, 0.2] },
-      { text: "signs of depression", cosineVector: [0.3, 0.4] },
+    const description = "Interview transcripts about mental health"
+    const hydes: HydeQuery[] = [
+      { text: "I feel so anxious all the time", language: "eng", cosineVector: [0.1, 0.2] },
+      { text: "De stress is ondraaglijk geworden", language: "nld", cosineVector: [0.3, 0.4] },
     ]
 
-    const plan = buildHybridPlan(sql, token, angles)
+    const plan = buildHybridPlan(sql, token, description, hydes)
 
     expect(plan.intent).toBe("emotional distress")
+    expect(plan.description).toBe(description)
     expect(plan.limit).toBe(30)
-    expect(plan.angles).toHaveLength(2)
-    expect(plan.angles[0]).toEqual({ text: "feelings of anxiety", cosineVector: [0.1, 0.2] })
-    expect(plan.angles[1]).toEqual({ text: "signs of depression", cosineVector: [0.3, 0.4] })
+    expect(plan.hydes).toHaveLength(2)
+    expect(plan.hydes[0].language).toBe("eng")
+    expect(plan.hydes[1].language).toBe("nld")
     expect(plan.baseSql).not.toContain("SEMANTIC")
     expect(plan.baseSql).toContain("f.file")
   })

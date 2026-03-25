@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react"
 import { setEditorContext } from "~/lib/editor/chat-context"
 import { getCurrentFile } from "~/lib/files"
+import { isHiddenFile } from "~/lib/files/filename"
 
 interface NabuProviderProps {
   children: ReactNode
@@ -10,7 +11,7 @@ interface NabuProviderProps {
 
 const buildEditorContext = () => {
   const file = getCurrentFile()
-  if (!file) return null
+  if (!file || isHiddenFile(file)) return null
   return { documentId: file, documentTitle: file, above: [], below: [] }
 }
 

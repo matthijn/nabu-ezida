@@ -34,6 +34,9 @@ const parseEntry = (content: string): EmbeddingEntry | null => {
   }
 }
 
+// WHY not getBlocks() from query.ts: embedding blocks contain 1024-float vectors, making
+// cache keys enormous. They'd thrash the 100-entry LRU and evict small frequently-read
+// blocks (settings, callouts). This runs once per sync, not repeatedly — no cache benefit.
 export const parseCompanionEntries = (markdown: string): EmbeddingEntry[] =>
   findBlocksByLanguage(markdown, LANGUAGE)
     .map((block) => parseEntry(block.content))

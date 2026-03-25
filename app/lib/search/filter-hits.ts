@@ -2,17 +2,17 @@ import type { SearchHit } from "~/domain/search"
 import { callLlm, extractText } from "~/lib/agent/client"
 
 const SEMANTIC_FILTER_ENDPOINT = "/semantic-filter"
-const NO_MATCH = "NO_MATCH"
+const buildFilterMessage = (description: string, intent: string, passage: string): string =>
+  `project: ${description}\nintent: ${intent}\npassage: ${passage}`
 
-const buildFilterMessage = (intent: string, lenses: string[], passage: string): string =>
-  `intent: ${intent}\nlenses: ${lenses.join(", ")}\npassage: ${passage}`
+const hasMarkedSpans = (response: string): boolean => response.includes("<mark>")
 
-const isMatch = (response: string): boolean => response.trim() !== NO_MATCH
+const collapseAdjacentMarks = (text: string): string => text.replace(/<\/mark>(\s*)<mark>/g, "$1")
 
 const filterOneHit = async (
   hit: SearchHit,
-  intent: string,
-  lenses: string[]
+  description: string,
+  intent: string
 ): Promise<SearchHit | null> => {
   if (!hit.text) return hit
 
@@ -20,14 +20,18 @@ const filterOneHit = async (
     const blocks = await callLlm({
       endpoint: SEMANTIC_FILTER_ENDPOINT,
       messages: [
-        { type: "message", role: "user", content: buildFilterMessage(intent, lenses, hit.text) },
+        {
+          type: "message",
+          role: "user",
+          content: buildFilterMessage(description, intent, hit.text),
+        },
       ],
     })
 
     const response = extractText(blocks)
-    if (!response || !isMatch(response)) return null
+    if (!response || !hasMarkedSpans(response)) return null
 
-    return { ...hit, text: response.trim() }
+    return { ...hit, text: collapseAdjacentMarks(response.trim()) }
   } catch (e) {
     console.error("[FILTER] failed for", hit.file, e)
     return null
@@ -36,10 +40,12 @@ const filterOneHit = async (
 
 export const filterHits = async (
   hits: SearchHit[],
-  intent: string,
-  lenses: string[]
+  description: string,
+  intent: string
 ): Promise<SearchHit[]> => {
-  const settled = await Promise.allSettled(hits.map((hit) => filterOneHit(hit, intent, lenses)))
+  const settled = await Promise.allSettled(
+    hits.map((hit) => filterOneHit(hit, description, intent))
+  )
   return settled
     .filter((r): r is PromiseFulfilledResult<SearchHit | null> => r.status === "fulfilled")
     .map((r) => r.value)
