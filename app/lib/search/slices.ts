@@ -89,10 +89,4 @@ const extractIdSlice = (content: string, id: string, files: FileStore): string |
   return extractProseWindow(stripped, offset.start, offset.end)
 }
 
-const extractTextSlice = (content: string, text: string): string | null => {
-  const stripped = extractProse(content)
-  const offset = findMatchOffset(stripped, text)
-  if (!offset) return null
-
-  return extractProseWindow(stripped, offset.start, offset.end)
-}
+const extractTextSlice = (_content: string, text: string): string | null => text

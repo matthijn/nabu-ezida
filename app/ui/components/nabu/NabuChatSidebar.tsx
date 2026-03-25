@@ -22,12 +22,10 @@ import {
   FeatherMessageSquare,
   FeatherSend,
   FeatherSlidersHorizontal,
-  FeatherSparkles,
   FeatherX,
 } from "@subframe/core"
 import { Button } from "~/ui/components/Button"
 import { IconButton } from "~/ui/components/IconButton"
-import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
 import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
@@ -63,7 +61,6 @@ import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-
 import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
-import { useNabu } from "./context"
 import { pickGreeting } from "./greetings"
 
 const allowFileProtocol = (url: string): string => url
@@ -772,16 +769,6 @@ const PlanSegmentRenderer = ({
   )
 }
 
-const EmptyState = ({ onStart }: { onStart: () => void }) => (
-  <div className="flex h-full w-full flex-col items-center justify-center gap-3">
-    <IconWithBackground variant="brand" size="medium" icon={<FeatherSparkles />} />
-    <span className="text-body font-body text-subtext-color">How can I help you today?</span>
-    <Button variant="brand-primary" icon={<FeatherSparkles />} onClick={onStart}>
-      Start chat
-    </Button>
-  </div>
-)
-
 interface LoadingBubbleProps {
   label: string
 }
@@ -826,7 +813,6 @@ const LastWriteBar = ({ entry, currentFile, onClick }: LastWriteBarProps) => {
 }
 
 export const NabuChatSidebar = () => {
-  const { startChat } = useNabu()
   const navigate = useNavigate()
   const params = useParams<{ projectId: string }>()
 
@@ -834,7 +820,6 @@ export const NabuChatSidebar = () => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { chatOpen } = useNabu()
   const { send, respond, cancel, loading, draft, history } = useChat()
   const mutationHistory = useMutationHistory()
   const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
@@ -857,14 +842,12 @@ export const NabuChatSidebar = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (chatOpen) {
-      requestAnimationFrame(() => inputRef.current?.focus())
-    }
-  }, [chatOpen])
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
 
   const didAutoSend = useRef(false)
   useEffect(() => {
-    if (chatOpen && history.length === 0 && !didAutoSend.current) {
+    if (history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
       pushBlocks([
@@ -874,7 +857,7 @@ export const NabuChatSidebar = () => {
         },
       ])
     }
-  }, [chatOpen, history.length, send, getDeps])
+  }, [history.length, send, getDeps])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
@@ -912,14 +895,6 @@ export const NabuChatSidebar = () => {
     },
     [navigate, params.projectId]
   )
-
-  if (!chatOpen) {
-    return (
-      <div className="flex w-full grow flex-col rounded-xl bg-default-background overflow-hidden">
-        <EmptyState onStart={startChat} />
-      </div>
-    )
-  }
 
   const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
 

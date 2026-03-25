@@ -6,7 +6,7 @@ import { validateAnnotations, patchAnnotationRequired } from "./annotations/vali
 
 export const jsonAttributes: BlockTypeConfig<DocumentMeta, ValidationContext> = {
   schema: DocumentMeta,
-  readonly: ["language"],
+  readonly: [],
   immutable: {},
   constraints: [
     "tags: must be tag IDs defined in settings",

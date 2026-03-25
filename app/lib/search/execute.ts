@@ -86,13 +86,24 @@ export const executeHybridSearch = async (
   let bm25: ScoredChunk[] = []
   if (useBm25) {
     const searchTerms = uniqueWords(plan.angles.map((a) => a.text))
-    const bm25Result = await runScoredQuery(
-      db,
-      buildBm25Query(plan.baseSql, searchTerms),
-      "_bm25_score"
-    )
+    const bm25Sql = buildBm25Query(plan.baseSql, searchTerms)
+    console.debug("[BM25]", { sql: bm25Sql, terms: searchTerms })
+    const bm25Result = await runScoredQuery(db, bm25Sql, "_bm25_score")
     if (!bm25Result.ok) return bm25Result
     bm25 = bm25Result.value
+    console.debug("[BM25]", {
+      rows: bm25.length,
+      nonZero: bm25.filter((r) => r.score !== 0).length,
+    })
+  }
+
+  const isBm25Only = useBm25 && !useCosine
+
+  if (isBm25Only) {
+    const scored = bm25.filter((r) => r.score !== 0).slice(0, plan.limit)
+    const hits = scored.map(chunkToHit)
+    console.debug("[BM25-ONLY]", { hits: hits.length })
+    return ok(hits)
   }
 
   const fused = fuseHybridResults({ cosinePerAngle, bm25 }, plan.limit)

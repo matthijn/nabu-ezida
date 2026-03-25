@@ -67,7 +67,7 @@ const HANDLE_WIDTH = 12
 const CONTAINER_PADDING = 24
 const MIN_LEFT_WIDTH = 400
 const MIN_RIGHT_WIDTH = 280
-const RIGHT_PANEL_DEFAULT = { width: 384, height: 0 }
+const RIGHT_PANEL_DEFAULT = { width: 320, height: 0 }
 const RIGHT_PANEL_STORAGE_KEY = "layout:right-panel"
 
 const computeMaxRightWidth = (containerWidth: number): number =>

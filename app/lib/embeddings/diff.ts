@@ -4,6 +4,7 @@ export interface EmbeddingEntry {
   hash: string
   text: string
   embedding: number[]
+  language?: string
 }
 
 export interface DiffResult {

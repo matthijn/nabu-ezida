@@ -19,11 +19,15 @@ const entryToBlock = (entry: EmbeddingEntry): string =>
 export const buildCompanionMarkdown = (entries: EmbeddingEntry[]): string =>
   entries.map(entryToBlock).join("\n\n")
 
+const isValidEntry = (parsed: Record<string, unknown>): boolean =>
+  typeof parsed.hash === "string" &&
+  typeof parsed.text === "string" &&
+  Array.isArray(parsed.embedding)
+
 const parseEntry = (content: string): EmbeddingEntry | null => {
   try {
     const parsed = JSON.parse(content)
-    if (typeof parsed.hash !== "string" || typeof parsed.text !== "string") return null
-    if (!Array.isArray(parsed.embedding)) return null
+    if (!isValidEntry(parsed)) return null
     return parsed as EmbeddingEntry
   } catch {
     return null

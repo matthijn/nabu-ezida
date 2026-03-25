@@ -1,10 +1,7 @@
-import { Settings } from "../schema"
-import { getBlock } from "~/lib/data-blocks/query"
+import { getSettings } from "../selectors"
 import { SETTINGS_FILE } from "~/lib/files/filename"
 import type { FileStore } from "~/lib/files"
 import type { SearchEntry } from "~/domain/search"
-
-const getSettings = (raw: string): Settings | null => getBlock(raw, "json-settings", Settings)
 
 export const getSearchEntries = (files: FileStore): SearchEntry[] =>
   getSettings(files[SETTINGS_FILE] ?? "")?.searches ?? []

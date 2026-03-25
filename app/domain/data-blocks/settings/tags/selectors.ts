@@ -1,9 +1,7 @@
-import { Settings, type TagDefinition } from "../schema"
-import { getBlock } from "~/lib/data-blocks/query"
+import type { TagDefinition } from "../schema"
+import { getSettings } from "../selectors"
 import { SETTINGS_FILE } from "~/lib/files/filename"
 import type { FileStore } from "~/lib/files"
-
-const getSettings = (raw: string): Settings | null => getBlock(raw, "json-settings", Settings)
 
 export const getTagDefinitions = (files: FileStore): TagDefinition[] =>
   getSettings(files[SETTINGS_FILE] ?? "")?.tags ?? []

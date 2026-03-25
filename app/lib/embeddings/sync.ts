@@ -7,6 +7,7 @@ import { chunkText } from "./chunk"
 import { diffChunks, type EmbeddingEntry } from "./diff"
 import { fetchEmbeddings } from "./client"
 import { EMBEDDING_SYNC_DEBOUNCE } from "./constants"
+import { detectLanguage } from "~/lib/language/detect"
 
 type ToProseFn = (block: unknown) => string | null
 
@@ -56,10 +57,12 @@ const distributeEmbeddings = (
     const entries = [...fc.entries]
 
     for (const chunk of fc.needed) {
+      const language = detectLanguage(chunk.text)
       entries.push({
         hash: chunk.hash,
         text: chunk.text,
         embedding: allEmbeddings[embeddingIdx++],
+        ...(language ? { language } : {}),
       })
     }
 

@@ -424,6 +424,12 @@ describe("buildBm25Query", () => {
         "SELECT f.file, f.text, fts_main_files.match_bm25(hash, 'isolation loneliness') AS _bm25_score FROM files f WHERE",
       ],
     },
+    {
+      name: "escapes single quotes in search terms",
+      baseSql: "SELECT f.file, f.text FROM files f",
+      searchTerms: "country's praised covid response",
+      expectedContains: ["fts_main_files.match_bm25(hash, 'country''s praised covid response')"],
+    },
   ]
 
   it.each(cases)("$name", ({ baseSql, searchTerms, expectedContains }) => {

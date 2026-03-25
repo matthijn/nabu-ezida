@@ -145,11 +145,13 @@ export const buildCosineQuery = (baseSql: string, angle: AngleQuery): string => 
 export const uniqueWords = (texts: string[]): string =>
   [...new Set(texts.flatMap((t) => t.toLowerCase().split(/\s+/)))].join(" ")
 
+const escapeSqlString = (value: string): string => value.replace(/'/g, "''")
+
 export const buildBm25Query = (baseSql: string, searchTerms: string): string => {
   const core = stripOrderByAndLimit(baseSql)
   const withColumn = injectSelectColumn(
     core,
-    `fts_main_files.match_bm25(hash, '${searchTerms}') AS _bm25_score`
+    `fts_main_files.match_bm25(hash, '${escapeSqlString(searchTerms)}') AS _bm25_score`
   )
   return `${withColumn} ORDER BY _bm25_score DESC LIMIT 200`
 }

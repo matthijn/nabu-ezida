@@ -1,7 +1,6 @@
 interface NabuSettings {
   theme: "light" | "dark"
   sidebarOpen: boolean
-  chatOpen: boolean
 }
 
 const STORAGE_KEY = "nabu-settings"
@@ -9,7 +8,6 @@ const STORAGE_KEY = "nabu-settings"
 const defaults: NabuSettings = {
   theme: "dark",
   sidebarOpen: true,
-  chatOpen: false,
 }
 
 function getSettings(): NabuSettings {
