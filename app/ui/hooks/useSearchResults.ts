@@ -8,7 +8,7 @@ import { SETTINGS_FILE } from "~/lib/files/filename"
 import { getDatabase } from "~/domain/db/database"
 import {
   executeSearch,
-  executeHybridSearch,
+  streamHybridSearch,
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
@@ -17,22 +17,25 @@ import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 import type { HydeQuery } from "~/lib/search/semantic"
 
+type SearchPhase = "idle" | "searching" | "filtering" | "done"
+
 interface SettledState {
   results: SearchHit[]
   hydes: HydeQuery[]
   error: string | null
   searchId: string | null
+  phase: SearchPhase
 }
 
-const EMPTY: SettledState = { results: [], hydes: [], error: null, searchId: null }
+const EMPTY: SettledState = { results: [], hydes: [], error: null, searchId: null, phase: "idle" }
 
 const DB_POLL_INTERVAL = 250
 
-interface SearchResults {
+export interface SearchResults {
   search: SearchEntry | undefined
   results: SearchHit[]
   hydes: HydeQuery[]
-  isLoading: boolean
+  phase: SearchPhase
   error: string | null
 }
 
@@ -57,6 +60,8 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
         return
       }
 
+      setSettled({ results: [], hydes: [], error: null, searchId, phase: "searching" })
+
       const description = await ensureDescription(readDescription(), db)
       const resolved = await resolveSemanticSql(search.sql, {
         db,
@@ -65,32 +70,57 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
       })
       if (cancelled) return
       if (!resolved.ok) {
-        setSettled({ results: [], hydes: [], error: resolved.error, searchId })
+        if (resolved.error.type === "not_ready") {
+          if (!cancelled) timer = setTimeout(run, DB_POLL_INTERVAL)
+          return
+        }
+        setSettled({
+          results: [],
+          hydes: [],
+          error: resolved.error.message,
+          searchId,
+          phase: "done",
+        })
         return
       }
 
       const hydes = resolved.value.type === "hybrid" ? resolved.value.plan.hydes : []
 
-      const result =
-        resolved.value.type === "plain"
-          ? await executeSearch(db, resolved.value.sql)
-          : await executeHybridSearch(db, resolved.value.plan)
-      console.debug("[SEARCH]", {
-        cancelled,
-        ok: result.ok,
-        hits: result.ok ? result.value.length : 0,
-      })
+      if (resolved.value.type === "plain") {
+        const result = await executeSearch(db, resolved.value.sql)
+        if (cancelled) return
+        if (result.ok) {
+          setSettled({ results: result.value, hydes, error: null, searchId, phase: "done" })
+        } else {
+          setSettled({
+            results: [],
+            hydes,
+            error: sanitizeSemanticError(result.error.message),
+            searchId,
+            phase: "done",
+          })
+        }
+        return
+      }
+
+      setSettled((prev) => ({ ...prev, hydes, phase: "filtering" }))
+
+      const appendHits = (hits: SearchHit[]) => {
+        if (cancelled) return
+        setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
+      }
+
+      const result = await streamHybridSearch(db, resolved.value.plan, appendHits)
       if (cancelled) return
 
       if (result.ok) {
-        setSettled({ results: result.value, hydes, error: null, searchId })
+        setSettled((prev) => ({ ...prev, phase: "done" }))
       } else {
-        setSettled({
-          results: [],
-          hydes,
+        setSettled((prev) => ({
+          ...prev,
           error: sanitizeSemanticError(result.error.message),
-          searchId,
-        })
+          phase: "done",
+        }))
       }
     }
 
@@ -101,13 +131,11 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
     }
   }, [search, searchId, revision])
 
-  const isLoading = !!search && settled.searchId !== searchId
-
   return {
     search,
     results: settled.results,
     hydes: settled.hydes,
-    isLoading,
+    phase: settled.phase,
     error: settled.error,
   }
 }

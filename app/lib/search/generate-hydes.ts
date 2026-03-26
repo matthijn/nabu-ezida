@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { callLlm, toResponseFormat, extractText } from "~/lib/agent/client"
+import { cacheInStorage } from "~/lib/utils/storage-cache"
 
 export type HydeResult = Record<string, string[]>
 
@@ -16,11 +17,12 @@ export const buildHydeSchema = (languages: string[]): z.ZodType<HydeResult> =>
 const formatUserMessage = (description: string, languages: string[], query: string): string =>
   `- Project: ${description}\n- Languages: ${languages.join(", ")}\n- Query: ${query}`
 
-export const generateHydes = async (
+const callHydeGenerator = async (
   description: string,
-  languages: string[],
+  languagesJoined: string,
   query: string
 ): Promise<HydeResult> => {
+  const languages = languagesJoined.split("\0")
   const schema = buildHydeSchema(languages)
 
   const blocks = await callLlm({
@@ -39,3 +41,11 @@ export const generateHydes = async (
 
   return result.data
 }
+
+const cachedCallHydeGenerator = cacheInStorage("hyde", callHydeGenerator)
+
+export const generateHydes = (
+  description: string,
+  languages: string[],
+  query: string
+): Promise<HydeResult> => cachedCallHydeGenerator(description, languages.join("\0"), query)

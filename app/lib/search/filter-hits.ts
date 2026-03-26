@@ -1,7 +1,13 @@
 import type { SearchHit } from "~/domain/search"
 import { callLlm, extractText } from "~/lib/agent/client"
+import { cacheInStorage } from "~/lib/utils/storage-cache"
+import { processPool } from "~/lib/utils/pool"
+import { noop } from "~/lib/utils/noop"
 
 const SEMANTIC_FILTER_ENDPOINT = "/semantic-filter"
+const MARK_RE = /<mark>([\s\S]*?)<\/mark>/g
+const FILTER_CONCURRENCY = 5
+
 const buildFilterMessage = (description: string, intent: string, passage: string): string =>
   `project: ${description}\nintent: ${intent}\npassage: ${passage}`
 
@@ -9,45 +15,77 @@ const hasMarkedSpans = (response: string): boolean => response.includes("<mark>"
 
 const collapseAdjacentMarks = (text: string): string => text.replace(/<\/mark>(\s*)<mark>/g, "$1")
 
-const filterOneHit = async (
+export const extractMarkedSections = (text: string, file: string): SearchHit[] => {
+  const collapsed = collapseAdjacentMarks(text)
+  const hits: SearchHit[] = []
+  let match: RegExpExecArray | null
+  while ((match = MARK_RE.exec(collapsed)) !== null) {
+    const section = match[1].trim()
+    if (section.length > 0) hits.push({ file, text: section })
+  }
+  MARK_RE.lastIndex = 0
+  return hits
+}
+
+const callSemanticFilter = async (
+  description: string,
+  intent: string,
+  passage: string
+): Promise<string> => {
+  const blocks = await callLlm({
+    endpoint: SEMANTIC_FILTER_ENDPOINT,
+    messages: [
+      {
+        type: "message",
+        role: "user",
+        content: buildFilterMessage(description, intent, passage),
+      },
+    ],
+  })
+
+  return extractText(blocks) ?? ""
+}
+
+const cachedCallSemanticFilter = cacheInStorage("filter", callSemanticFilter)
+
+export const filterOneHit = async (
   hit: SearchHit,
   description: string,
   intent: string
-): Promise<SearchHit | null> => {
-  if (!hit.text) return hit
+): Promise<SearchHit[]> => {
+  if (!hit.text) return [hit]
 
   try {
-    const blocks = await callLlm({
-      endpoint: SEMANTIC_FILTER_ENDPOINT,
-      messages: [
-        {
-          type: "message",
-          role: "user",
-          content: buildFilterMessage(description, intent, hit.text),
-        },
-      ],
-    })
+    const response = await cachedCallSemanticFilter(description, intent, hit.text)
+    if (!response || !hasMarkedSpans(response)) return []
 
-    const response = extractText(blocks)
-    if (!response || !hasMarkedSpans(response)) return null
-
-    return { ...hit, text: collapseAdjacentMarks(response.trim()) }
+    return extractMarkedSections(response.trim(), hit.file)
   } catch (e) {
     console.error("[FILTER] failed for", hit.file, e)
-    return null
+    return []
   }
 }
 
-export const filterHits = async (
+const buildFilterFn =
+  (description: string, intent: string) =>
+  (hit: SearchHit): Promise<SearchHit[]> =>
+    filterOneHit(hit, description, intent)
+
+export const filterHits = (
   hits: SearchHit[],
   description: string,
   intent: string
-): Promise<SearchHit[]> => {
-  const settled = await Promise.allSettled(
-    hits.map((hit) => filterOneHit(hit, description, intent))
-  )
-  return settled
-    .filter((r): r is PromiseFulfilledResult<SearchHit | null> => r.status === "fulfilled")
-    .map((r) => r.value)
-    .filter((hit): hit is SearchHit => hit !== null)
-}
+): Promise<SearchHit[]> =>
+  processPool(hits, buildFilterFn(description, intent), noop, {
+    concurrency: FILTER_CONCURRENCY,
+  })
+
+export const streamFilterHits = (
+  hits: SearchHit[],
+  description: string,
+  intent: string,
+  onHits: (hits: SearchHit[]) => void
+): Promise<SearchHit[]> =>
+  processPool(hits, buildFilterFn(description, intent), onHits, {
+    concurrency: FILTER_CONCURRENCY,
+  })

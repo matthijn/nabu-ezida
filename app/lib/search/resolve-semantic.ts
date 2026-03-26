@@ -10,6 +10,10 @@ export type ResolvedQuery =
   | { type: "plain"; sql: string }
   | { type: "hybrid"; plan: HybridSearchPlan }
 
+export type ResolveError =
+  | { type: "invalid"; message: string }
+  | { type: "not_ready"; message: string }
+
 export interface SemanticContext {
   db: Database
   baseUrl: string
@@ -41,12 +45,18 @@ const flattenHydes = (hydeResult: HydeResult, vectors: number[][]): HydeQuery[] 
 
 const collectAllTexts = (hydeResult: HydeResult): string[] => Object.values(hydeResult).flat()
 
+const invalid = (message: string): Result<ResolvedQuery, ResolveError> =>
+  err({ type: "invalid", message })
+
+const notReady = (message: string): Result<ResolvedQuery, ResolveError> =>
+  err({ type: "not_ready", message })
+
 export const resolveSemanticSql = async (
   sql: string,
   ctx: SemanticContext
-): Promise<Result<ResolvedQuery, string>> => {
+): Promise<Result<ResolvedQuery, ResolveError>> => {
   const validation = validateSql(sql)
-  if (!validation.ok) return err(validation.error)
+  if (!validation.ok) return invalid(validation.error)
 
   if (!hasSemanticTokens(sql)) return ok({ type: "plain", sql })
 
@@ -55,13 +65,13 @@ export const resolveSemanticSql = async (
 
   const languages = await fetchLanguages(ctx.db)
   if (languages.length === 0)
-    return err("No languages detected in corpus. Embeddings may still be syncing.")
+    return notReady("No languages detected in corpus. Embeddings may still be syncing.")
 
   const hydeResult = await generateHydes(ctx.description, languages, token.text)
 
   const allTexts = collectAllTexts(hydeResult)
   const embeddingResult = await fetchEmbeddings(allTexts, ctx.baseUrl)
-  if (!embeddingResult.ok) return err(embeddingResult.error.message)
+  if (!embeddingResult.ok) return invalid(embeddingResult.error.message)
 
   const hydes = flattenHydes(hydeResult, embeddingResult.value)
   const plan = buildHybridPlan(sql, token, ctx.description, hydes)

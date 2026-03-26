@@ -6,7 +6,7 @@ import type { ScoredChunk } from "./fusion"
 import { ok, err } from "~/lib/fp/result"
 import { buildCosineQuery } from "./semantic"
 import { fuseCosineResults } from "./fusion"
-import { filterHits } from "./filter-hits"
+import { filterHits, streamFilterHits } from "./filter-hits"
 
 type RawRow = Record<string, unknown>
 
@@ -56,7 +56,7 @@ const chunkToHit = (chunk: ScoredChunk): SearchHit => ({
   ...(chunk.text !== undefined ? { text: chunk.text } : {}),
 })
 
-export const executeHybridSearch = async (
+export const executeHybridLocal = async (
   db: Database,
   plan: HybridSearchPlan
 ): Promise<Result<SearchHit[], DbError>> => {
@@ -70,12 +70,34 @@ export const executeHybridSearch = async (
   }
 
   const fused = fuseCosineResults(cosinePerHyde, plan.limit)
-  const hits = fused.map(chunkToHit)
-  const filtered = await filterHits(hits, plan.description, plan.intent)
+  return ok(fused.map(chunkToHit))
+}
+
+export const executeHybridSearch = async (
+  db: Database,
+  plan: HybridSearchPlan
+): Promise<Result<SearchHit[], DbError>> => {
+  const local = await executeHybridLocal(db, plan)
+  if (!local.ok) return local
+
+  const filtered = await filterHits(local.value, plan.description, plan.intent)
   console.debug("[HYBRID]", {
     hydes: plan.hydes.length,
-    before: hits.length,
+    before: local.value.length,
     after: filtered.length,
   })
   return ok(filtered)
+}
+
+export const streamHybridSearch = async (
+  db: Database,
+  plan: HybridSearchPlan,
+  onHits: (hits: SearchHit[]) => void
+): Promise<Result<void, DbError>> => {
+  const local = await executeHybridLocal(db, plan)
+  if (!local.ok) return local
+
+  console.debug("[HYBRID] streaming filter for", local.value.length, "hits")
+  await streamFilterHits(local.value, plan.description, plan.intent, onHits)
+  return ok(undefined)
 }

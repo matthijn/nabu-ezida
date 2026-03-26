@@ -101,6 +101,7 @@ interface CallLlmOptions {
   blockSchemas?: BlockSchemaDefinition[]
   databaseDdl?: string
   responseFormat?: ResponseFormat
+  temperature?: number
   callbacks?: ParseCallbacks
   signal?: AbortSignal
 }
@@ -142,11 +143,34 @@ const buildRequestBody = (options: CallLlmOptions): string => {
   return JSON.stringify(body)
 }
 
+const buildUrl = (endpoint: string, temperature?: number): string => {
+  const base = `${getLlmHost()}${endpoint}`
+  if (temperature === undefined) return base
+  const sep = endpoint.includes("?") ? "&" : "?"
+  return `${base}${sep}temperature=${temperature}`
+}
+
+const summarizeBlocks = (blocks: Block[]): Record<string, number> =>
+  blocks.reduce<Record<string, number>>(
+    (acc, b) => ({ ...acc, [b.type]: (acc[b.type] ?? 0) + 1 }),
+    {}
+  )
+
+const previewText = (blocks: Block[]): string | undefined => {
+  const text = blocks.find((b) => b.type === "text")
+  return text?.type === "text" ? text.content.slice(0, 200) : undefined
+}
+
 export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   const response = await fetchWithRetry({
-    url: `${getLlmHost()}${options.endpoint}`,
+    url: buildUrl(options.endpoint, options.temperature),
     body: buildRequestBody(options),
     signal: options.signal,
   })
-  return streamToBlocks(response, options.callbacks ?? {})
+  const blocks = await streamToBlocks(response, options.callbacks ?? {})
+  console.debug(`[LLM ${options.endpoint}]`, {
+    blocks: summarizeBlocks(blocks),
+    preview: previewText(blocks),
+  })
+  return blocks
 }

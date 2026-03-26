@@ -70,10 +70,7 @@ export default function ProjectSearch() {
   const navigate = useNavigate()
   const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
   const [revision, _setRevision] = useState(0)
-  const { search, results, hydes, isLoading, error } = useSearchResults(
-    params.searchId ?? "",
-    revision
-  )
+  const { search, results, hydes, phase, error } = useSearchResults(params.searchId ?? "", revision)
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)
     const tagIds = collectTagIds(uniqueFiles, getFileTags)
@@ -107,10 +104,12 @@ export default function ProjectSearch() {
     )
   }
 
-  if (isLoading) {
+  const isSearching = phase === "idle" || phase === "searching"
+
+  if (isSearching) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <span className="text-subtext-color">Loading search results...</span>
+        <span className="text-subtext-color">Searching...</span>
       </div>
     )
   }
@@ -159,6 +158,11 @@ export default function ProjectSearch() {
           projectId={params.projectId}
           onNavigate={navigate}
         />
+        {phase === "filtering" && (
+          <span className="text-caption font-caption text-subtext-color">
+            Filtering results... ({filteredResults.length} found)
+          </span>
+        )}
       </div>
     </div>
   )

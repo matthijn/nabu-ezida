@@ -37,7 +37,7 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
     baseUrl: getLlmHost(),
     description,
   })
-  if (!resolved.ok) return { status: "error", output: resolved.error }
+  if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
   if (resolved.value.type === "hybrid") {
     const result = await executeHybridSearch(db, resolved.value.plan)
