@@ -8,10 +8,11 @@ import { SETTINGS_FILE } from "~/lib/files/filename"
 import { getDatabase } from "~/domain/db/database"
 import {
   executeSearch,
-  streamHybridSearch,
+  executeHybridLocal,
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
+import { streamFilterHits } from "~/lib/search/filter-hits"
 import { ensureDescription } from "~/lib/search/ensure-description"
 import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
@@ -86,20 +87,20 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
 
       const hydes = resolved.value.type === "hybrid" ? resolved.value.plan.hydes : []
 
-      if (resolved.value.type === "plain") {
-        const result = await executeSearch(db, resolved.value.sql)
-        if (cancelled) return
-        if (result.ok) {
-          setSettled({ results: result.value, hydes, error: null, searchId, phase: "done" })
-        } else {
-          setSettled({
-            results: [],
-            hydes,
-            error: sanitizeSemanticError(result.error.message),
-            searchId,
-            phase: "done",
-          })
-        }
+      const rawHits =
+        resolved.value.type === "plain"
+          ? await executeSearch(db, resolved.value.sql)
+          : await executeHybridLocal(db, resolved.value.plan)
+
+      if (cancelled) return
+      if (!rawHits.ok) {
+        setSettled({
+          results: [],
+          hydes,
+          error: sanitizeSemanticError(rawHits.error.message),
+          searchId,
+          phase: "done",
+        })
         return
       }
 
@@ -110,18 +111,10 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
         setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
       }
 
-      const result = await streamHybridSearch(db, resolved.value.plan, appendHits)
+      await streamFilterHits(rawHits.value, description, search.highlight, appendHits)
       if (cancelled) return
 
-      if (result.ok) {
-        setSettled((prev) => ({ ...prev, phase: "done" }))
-      } else {
-        setSettled((prev) => ({
-          ...prev,
-          error: sanitizeSemanticError(result.error.message),
-          phase: "done",
-        }))
-      }
+      setSettled((prev) => ({ ...prev, phase: "done" }))
     }
 
     run()

@@ -12,11 +12,13 @@ const toolLabels: Record<string, string> = {
   submit_plan: "Starting execution",
   complete_step: "Working",
   cancel: "Cancelling",
+  search: "Looking around",
+  query: "Examining data",
   ask: "Asking",
   compacted: "Summarizing conversation",
 }
 
-const DEFAULT_LABEL = "Thought"
+const DEFAULT_LABEL = "Thinking"
 
 const toLabel = (toolName: string | null): string =>
   toolName ? (toolLabels[toolName] ?? DEFAULT_LABEL) : DEFAULT_LABEL

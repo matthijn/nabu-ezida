@@ -31,23 +31,6 @@ const getBlocksUntyped = (raw: string, language: string): Record<string, unknown
 const getBlockUntyped = (raw: string, language: string): Record<string, unknown> | null =>
   getBlock(raw, language, findProjectionSchema(language)) as Record<string, unknown> | null
 
-const FTS_STATEMENTS = [
-  "INSTALL fts",
-  "LOAD fts",
-  "PRAGMA create_fts_index('files', 'hash', 'text', overwrite = 1)",
-]
-
-const rebuildFtsIndex = async (db: Database): Promise<void> => {
-  for (const sql of FTS_STATEMENTS) {
-    const result = await db.query(sql)
-    if (!result.ok) {
-      console.error("[db] FTS index rebuild failed:", result.error.message)
-      return
-    }
-  }
-  console.debug("[db] FTS index rebuilt")
-}
-
 const DB_SYNC_BATCH_SIZE = 10
 
 let database: Database | null = null
@@ -78,8 +61,6 @@ const runSync = async (db: Database, withSchemas: ProjectionWithSchema[]): Promi
 
   previousFiles = currentFiles
   console.debug(`[db] synced: ${plan.changed.length} changed, ${plan.deleted.length} deleted`)
-
-  await rebuildFtsIndex(db)
 }
 
 export const startDatabase = async (): Promise<void> => {

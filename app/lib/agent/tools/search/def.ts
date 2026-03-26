@@ -11,6 +11,11 @@ export const SearchArgs = z.object({
     .describe(
       "SQL query. Must SELECT file. Optionally id and/or text. Supports SEMANTIC('description of passages to find')."
     ),
+  highlight: z
+    .string()
+    .describe(
+      "What to highlight in each result chunk. Describes the relevant passages to extract and show to the user."
+    ),
 })
 
 export const searchTool: AnyTool = {

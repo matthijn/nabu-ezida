@@ -3,7 +3,7 @@ import { QueryArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
 import { getDatabase } from "~/domain/db/database"
 import { getLlmHost } from "~/lib/agent/env"
-import { executeHybridSearch, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
+import { executeHybridLocal, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
 import { readSettings } from "../search/settings"
 import { ensureDescription } from "~/lib/search/ensure-description"
 import { capRows } from "./truncate"
@@ -40,7 +40,7 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
   if (resolved.value.type === "hybrid") {
-    const result = await executeHybridSearch(db, resolved.value.plan)
+    const result = await executeHybridLocal(db, resolved.value.plan)
     if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
     const { rows, capped } = capRows(result.value.map(hitToRow), MAX_QUERY_ROWS)
     return { status: "ok", output: formatOutput(rows, capped) }

@@ -2,7 +2,6 @@ import type { SearchHit } from "~/domain/search"
 import { callLlm, extractText } from "~/lib/agent/client"
 import { cacheInStorage } from "~/lib/utils/storage-cache"
 import { processPool } from "~/lib/utils/pool"
-import { noop } from "~/lib/utils/noop"
 
 const SEMANTIC_FILTER_ENDPOINT = "/semantic-filter"
 const MARK_RE = /<mark>([\s\S]*?)<\/mark>/g
@@ -70,15 +69,6 @@ const buildFilterFn =
   (description: string, intent: string) =>
   (hit: SearchHit): Promise<SearchHit[]> =>
     filterOneHit(hit, description, intent)
-
-export const filterHits = (
-  hits: SearchHit[],
-  description: string,
-  intent: string
-): Promise<SearchHit[]> =>
-  processPool(hits, buildFilterFn(description, intent), noop, {
-    concurrency: FILTER_CONCURRENCY,
-  })
 
 export const streamFilterHits = (
   hits: SearchHit[],

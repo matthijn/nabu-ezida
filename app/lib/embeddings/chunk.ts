@@ -1,5 +1,5 @@
 import { hashChunk } from "./hash"
-import { TARGET_CHUNK_SIZE, MIN_CHUNK_SIZE } from "./constants"
+import { TARGET_CHUNK_SIZE, MIN_CHUNK_SIZE, CHUNK_OVERLAP_RATIO } from "./constants"
 
 export interface Chunk {
   index: number
@@ -83,6 +83,22 @@ const mergeSmallChunks = (chunks: string[]): string[] => {
   }, [])
 }
 
+const tailSlice = (text: string, ratio: number): string => {
+  const len = Math.floor(text.length * ratio)
+  if (len === 0) return ""
+  const start = text.length - len
+  const spaceIdx = text.indexOf(" ", start)
+  const breakAt = spaceIdx !== -1 && spaceIdx - start < len * 0.2 ? spaceIdx + 1 : start
+  return text.slice(breakAt)
+}
+
+const addOverlap = (chunks: string[], ratio: number): string[] =>
+  chunks.map((chunk, i) => {
+    if (i === 0) return chunk
+    const overlap = tailSlice(chunks[i - 1], ratio)
+    return overlap ? overlap + "\n\n" + chunk : chunk
+  })
+
 export const chunkText = (text: string): Chunk[] => {
   const segments = text.split("\n\n").filter((s) => s.trim().length > 0)
   if (segments.length === 0) return []
@@ -90,8 +106,9 @@ export const chunkText = (text: string): Chunk[] => {
   const initial: Accumulator = { chunks: [], buffer: "", pendingHeading: "" }
   const result = finalize(segments.reduce(processSegment, initial))
   const merged = mergeSmallChunks(result.chunks)
+  const overlapped = addOverlap(merged, CHUNK_OVERLAP_RATIO)
 
-  return merged.map((text, index) => ({
+  return overlapped.map((text, index) => ({
     index,
     text,
     hash: hashChunk(text),

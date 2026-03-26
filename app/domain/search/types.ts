@@ -18,6 +18,7 @@ export const SearchEntrySchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  highlight: z.string(),
   saved: z.boolean(),
   createdAt: z.number(),
   sql: validSql,

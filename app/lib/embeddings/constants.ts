@@ -3,4 +3,5 @@ export const EMBEDDING_MODEL = "text-embedding-3-large"
 export const MAX_EMBEDDING_BATCH_SIZE = 1024
 export const TARGET_CHUNK_SIZE = 1600
 export const MIN_CHUNK_SIZE = 800
+export const CHUNK_OVERLAP_RATIO = 0.2
 export const EMBEDDING_SYNC_DEBOUNCE = 5000

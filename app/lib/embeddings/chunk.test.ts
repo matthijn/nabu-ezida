@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { chunkText, type Chunk } from "./chunk"
-import { TARGET_CHUNK_SIZE, MIN_CHUNK_SIZE } from "./constants"
+import { TARGET_CHUNK_SIZE, MIN_CHUNK_SIZE, CHUNK_OVERLAP_RATIO } from "./constants"
 
 describe("chunkText", () => {
   const cases: { name: string; input: string; check: (chunks: Chunk[]) => void }[] = [
@@ -49,7 +49,8 @@ describe("chunkText", () => {
       check: (chunks) => {
         expect(chunks.length).toBeGreaterThan(1)
         chunks.forEach((chunk) => {
-          expect(chunk.text.length).toBeLessThanOrEqual(TARGET_CHUNK_SIZE + 200)
+          const maxWithOverlap = TARGET_CHUNK_SIZE * (1 + CHUNK_OVERLAP_RATIO) + 200
+          expect(chunk.text.length).toBeLessThanOrEqual(maxWithOverlap)
         })
       },
     },
@@ -77,6 +78,28 @@ describe("chunkText", () => {
       input: `${"x".repeat(MIN_CHUNK_SIZE + 100)}\n\nTiny`,
       check: (chunks) => {
         expect(chunks).toHaveLength(1)
+      },
+    },
+    {
+      name: "second chunk contains tail of first chunk",
+      input: Array.from({ length: 20 }, (_, i) => `Paragraph ${i}. ${"x".repeat(200)}`).join(
+        "\n\n"
+      ),
+      check: (chunks) => {
+        if (chunks.length < 2) return
+        const firstText = chunks[0].text
+        const tailLength = Math.floor(firstText.length * 0.15)
+        const expectedTail = firstText.slice(-tailLength)
+        expect(chunks[1].text).toContain(expectedTail)
+      },
+    },
+    {
+      name: "first chunk has no overlap prefix",
+      input: Array.from({ length: 20 }, (_, i) => `Paragraph ${i}. ${"x".repeat(200)}`).join(
+        "\n\n"
+      ),
+      check: (chunks) => {
+        expect(chunks[0].text).toMatch(/^Paragraph 0/)
       },
     },
   ]

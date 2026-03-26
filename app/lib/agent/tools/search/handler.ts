@@ -36,25 +36,35 @@ const rotateUnsaved = (entries: SearchEntry[]): SearchEntry[] => {
   return [...saved, ...sorted.slice(0, MAX_UNSAVED)]
 }
 
-const INLINE_THRESHOLD = 5
-
-const countUniqueFiles = (hits: { file: string }[]): number => new Set(hits.map((h) => h.file)).size
-
 const formatHit = (hit: SearchHit): string => {
-  if (hit.id && hit.text) return `${hit.file} → ${hit.id}: ${hit.text.slice(0, 80)}`
+  if (hit.id && hit.text) return `${hit.file} → ${hit.id}: ${hit.text}`
   if (hit.id) return `${hit.file} → ${hit.id}`
-  if (hit.text) return `${hit.file}: ${hit.text.slice(0, 80)}`
+  if (hit.text) return `${hit.file}: ${hit.text}`
   return hit.file
 }
 
-const formatInlineResults = (hits: SearchHit[]): string => hits.map(formatHit).join("\n")
+const hasNoResults = (hits: SearchHit[]): boolean => hits.length === 0
+
+const formatEmpty = (sql: string): ToolResult<unknown> => ({
+  status: "error",
+  output: `0 results returned for query: ${sql}`,
+})
 
 const formatOutput = (id: string, hits: SearchHit[]): string => {
-  const hitCount = hits.length
-  const fileCount = countUniqueFiles(hits)
-  const summary = `file://${id}\n${hitCount} results across ${fileCount} files`
-  if (hitCount >= INLINE_THRESHOLD) return summary
-  return `${summary}\n\n${formatInlineResults(hits)}`
+  const lines = hits.map(formatHit).join("\n")
+  return `file://${id}\n${hits.length} results:\n${lines}`
+}
+
+const filterEarly = async (
+  hits: SearchHit[],
+  description: string,
+  highlight: string
+): Promise<SearchHit[]> => {
+  const filterFn = (hit: SearchHit) => filterOneHit(hit, description, highlight)
+  return processPool(hits, filterFn, noop, {
+    concurrency: EARLY_RETURN_TARGET,
+    target: EARLY_RETURN_TARGET,
+  })
 }
 
 const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
@@ -74,34 +84,30 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   })
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
-  if (resolved.value.type === "plain") {
-    const result = await executeSearch(db, resolved.value.sql)
-    if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
-    return saveAndFormat(result.value, parsed.data, settings)
-  }
+  const rawHits =
+    resolved.value.type === "plain"
+      ? await executeSearch(db, resolved.value.sql)
+      : await executeHybridLocal(db, resolved.value.plan)
 
-  const plan = resolved.value.plan
-  const local = await executeHybridLocal(db, plan)
-  if (!local.ok) return { status: "error", output: sanitizeSemanticError(local.error.message) }
+  if (!rawHits.ok) return { status: "error", output: sanitizeSemanticError(rawHits.error.message) }
 
-  const filterFn = (hit: SearchHit) => filterOneHit(hit, plan.description, plan.intent)
-  const earlyHits = await processPool(local.value, filterFn, noop, {
-    concurrency: EARLY_RETURN_TARGET,
-    target: EARLY_RETURN_TARGET,
-  })
-  return saveAndFormat(earlyHits, parsed.data, settings)
+  const filtered = await filterEarly(rawHits.value, description, parsed.data.highlight)
+  if (hasNoResults(filtered)) return formatEmpty(parsed.data.sql)
+
+  return saveSearch(parsed.data, settings, (id) => formatOutput(id, filtered))
 }
 
-const saveAndFormat = (
-  hits: SearchHit[],
-  data: { title: string; description: string; sql: string },
-  settings: ReturnType<typeof readSettings>
+const saveSearch = (
+  data: { title: string; description: string; highlight: string; sql: string },
+  settings: ReturnType<typeof readSettings>,
+  format: (id: string) => string
 ): ToolResult<unknown> => {
   const id = generateSearchId()
   const entry: SearchEntry = {
     id,
     title: data.title,
     description: data.description,
+    highlight: data.highlight,
     saved: false,
     createdAt: Date.now(),
     sql: data.sql,
@@ -112,10 +118,7 @@ const saveAndFormat = (
   const writeError = updateSearchEntries(rotated)
   if (writeError) return { status: "error", output: writeError }
 
-  return {
-    status: "ok",
-    output: formatOutput(id, hits),
-  }
+  return { status: "ok", output: format(id) }
 }
 
 registerSpecialHandler("search", handleSearch)

@@ -6,7 +6,6 @@ import type { ScoredChunk } from "./fusion"
 import { ok, err } from "~/lib/fp/result"
 import { buildCosineQuery } from "./semantic"
 import { fuseCosineResults } from "./fusion"
-import { filterHits, streamFilterHits } from "./filter-hits"
 
 type RawRow = Record<string, unknown>
 
@@ -71,33 +70,4 @@ export const executeHybridLocal = async (
 
   const fused = fuseCosineResults(cosinePerHyde, plan.limit)
   return ok(fused.map(chunkToHit))
-}
-
-export const executeHybridSearch = async (
-  db: Database,
-  plan: HybridSearchPlan
-): Promise<Result<SearchHit[], DbError>> => {
-  const local = await executeHybridLocal(db, plan)
-  if (!local.ok) return local
-
-  const filtered = await filterHits(local.value, plan.description, plan.intent)
-  console.debug("[HYBRID]", {
-    hydes: plan.hydes.length,
-    before: local.value.length,
-    after: filtered.length,
-  })
-  return ok(filtered)
-}
-
-export const streamHybridSearch = async (
-  db: Database,
-  plan: HybridSearchPlan,
-  onHits: (hits: SearchHit[]) => void
-): Promise<Result<void, DbError>> => {
-  const local = await executeHybridLocal(db, plan)
-  if (!local.ok) return local
-
-  console.debug("[HYBRID] streaming filter for", local.value.length, "hits")
-  await streamFilterHits(local.value, plan.description, plan.intent, onHits)
-  return ok(undefined)
 }
