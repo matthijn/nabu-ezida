@@ -4,7 +4,7 @@ import { useProject } from "./project"
 import { useSearchResults } from "~/ui/hooks/useSearchResults"
 import { SearchHeader } from "~/ui/components/search/SearchHeader"
 import { SearchResultList } from "~/ui/components/search/SearchResultList"
-import { StickyStatusPill } from "~/ui/components/StickyStatusPill"
+import { SearchStatusBar } from "~/ui/components/SearchStatusBar"
 import type { SearchHit } from "~/domain/search"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { formatDebugSql } from "~/lib/search"
@@ -196,7 +196,7 @@ export default function ProjectSearch() {
         </div>
       </div>
       <div className="rounded-xl border border-solid border-neutral-border bg-default-background">
-        <StickyStatusPill
+        <SearchStatusBar
           count={filteredResults.length}
           fileCount={fileCount}
           isFiltering={isFiltering}

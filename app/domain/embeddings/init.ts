@@ -9,7 +9,7 @@ const toProseFns: Record<string, (block: unknown) => string | null> = {
   "json-attributes": attributesToProse,
 }
 
-export const startEmbeddings = (): (() => void) =>
+export const startEmbeddings = (): Promise<void> =>
   startEmbeddingSync({
     getFiles,
     getFile,
@@ -18,4 +18,4 @@ export const startEmbeddings = (): (() => void) =>
     subscribe,
     baseUrl: getLlmHost(),
     toProseFns,
-  })
+  }).ready

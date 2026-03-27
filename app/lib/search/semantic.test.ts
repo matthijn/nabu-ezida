@@ -214,14 +214,14 @@ describe("normalizeSemanticSql", () => {
     expected: string
   }[] = [
     {
-      name: "adds ORDER BY and LIMIT when neither present",
+      name: "adds ORDER BY when neither ORDER BY nor LIMIT present",
       sql: "SELECT file FROM t",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 10",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC",
     },
     {
-      name: "prepends score to existing ORDER BY and adds LIMIT",
+      name: "prepends score to existing ORDER BY",
       sql: "SELECT file FROM t ORDER BY name ASC",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC, name ASC LIMIT 10",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC, name ASC",
     },
     {
       name: "inserts ORDER BY before existing LIMIT",
@@ -236,12 +236,12 @@ describe("normalizeSemanticSql", () => {
     {
       name: "trims trailing whitespace",
       sql: "SELECT file FROM t   ",
-      expected: "SELECT file FROM t ORDER BY _semantic_score DESC LIMIT 10",
+      expected: "SELECT file FROM t ORDER BY _semantic_score DESC",
     },
     {
       name: "preserves case of existing ORDER BY",
       sql: "SELECT file FROM t order by name",
-      expected: "SELECT file FROM t order by _semantic_score DESC, name LIMIT 10",
+      expected: "SELECT file FROM t order by _semantic_score DESC, name",
     },
   ]
 
@@ -284,10 +284,10 @@ describe("sanitizeSemanticError", () => {
 describe("formatDebugSql", () => {
   const cases: { name: string; sql: string; expected: string }[] = [
     {
-      name: "semantic gets alias, order, and limit",
+      name: "semantic gets alias and order",
       sql: "SELECT f.file, f.text, SEMANTIC('political frustration') FROM files f",
       expected:
-        "SELECT f.file, f.text, SEMANTIC('political frustration') AS _semantic_score FROM files f ORDER BY _semantic_score DESC LIMIT 10",
+        "SELECT f.file, f.text, SEMANTIC('political frustration') AS _semantic_score FROM files f ORDER BY _semantic_score DESC",
     },
     {
       name: "non-semantic query passes through unchanged",
@@ -298,7 +298,7 @@ describe("formatDebugSql", () => {
       name: "semantic with existing ORDER BY prepends score",
       sql: "SELECT f.file, f.text, SEMANTIC('anxiety') FROM files f ORDER BY f.file",
       expected:
-        "SELECT f.file, f.text, SEMANTIC('anxiety') AS _semantic_score FROM files f ORDER BY _semantic_score DESC, f.file LIMIT 10",
+        "SELECT f.file, f.text, SEMANTIC('anxiety') AS _semantic_score FROM files f ORDER BY _semantic_score DESC, f.file",
     },
     {
       name: "semantic with existing LIMIT preserves it",
@@ -335,9 +335,9 @@ describe("stripSemanticToken", () => {
 })
 
 describe("extractLimit", () => {
-  const cases: { name: string; sql: string; expected: number }[] = [
+  const cases: { name: string; sql: string; expected: number | undefined }[] = [
     { name: "explicit LIMIT", sql: "SELECT file FROM f LIMIT 25", expected: 25 },
-    { name: "no LIMIT defaults to 10", sql: "SELECT file FROM f", expected: 10 },
+    { name: "no LIMIT returns undefined", sql: "SELECT file FROM f", expected: undefined },
     {
       name: "LIMIT at end of complex query",
       sql: "SELECT file FROM f WHERE x = 1 ORDER BY file LIMIT 100",

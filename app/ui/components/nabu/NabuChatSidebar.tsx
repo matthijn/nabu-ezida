@@ -45,7 +45,7 @@ import {
 } from "./group"
 import type { AskMessage, AskScope } from "./messages"
 import { isWaitingForAsk } from "./messages"
-import { getSpinnerLabel } from "./spinnerLabel"
+import { getSpinnerLabels, LABEL_ADVANCE_MS } from "./spinnerLabel"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { preprocessStreaming } from "~/lib/markdown/sanitize/partial"
 import { AbortBox } from "~/ui/components/ai/StepsBlock"
@@ -769,18 +769,28 @@ const PlanSegmentRenderer = ({
   )
 }
 
-interface LoadingBubbleProps {
-  label: string
+interface TickLabelProps {
+  labels: string[]
 }
 
-const LoadingBubble = ({ label }: LoadingBubbleProps) => (
-  <div className="flex w-full items-start">
-    <div className="flex items-center gap-2 rounded-2xl bg-neutral-100 px-4 py-2">
-      <FeatherLoader2 className="text-body text-brand-600 flex-none animate-spin" />
-      <span className="text-body font-body text-subtext-color">{label}</span>
+const TickLabel = ({ labels }: TickLabelProps) => {
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    if (index >= labels.length - 1) return
+    const id = setTimeout(() => setIndex((i) => i + 1), LABEL_ADVANCE_MS)
+    return () => clearTimeout(id)
+  }, [index, labels.length])
+  return (
+    <div className="flex w-full items-start">
+      <div className="flex items-center gap-2 rounded-2xl bg-neutral-100 px-4 py-2">
+        <FeatherLoader2 className="text-body text-brand-600 flex-none animate-spin" />
+        <span className="text-body font-body text-subtext-color">
+          {labels[Math.min(index, labels.length - 1)]}
+        </span>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 const findLastWriteEntry = (entries: HistoryEntry[]): HistoryEntry | null =>
   entries.length > 0 ? entries[entries.length - 1] : null
@@ -812,7 +822,11 @@ const LastWriteBar = ({ entry, currentFile, onClick }: LastWriteBarProps) => {
   )
 }
 
-export const NabuChatSidebar = () => {
+interface NabuChatSidebarProps {
+  dbReady: boolean
+}
+
+export const NabuChatSidebar = ({ dbReady }: NabuChatSidebarProps) => {
   const navigate = useNavigate()
   const params = useParams<{ projectId: string }>()
 
@@ -847,6 +861,7 @@ export const NabuChatSidebar = () => {
 
   const didAutoSend = useRef(false)
   useEffect(() => {
+    if (!dbReady) return
     if (history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
@@ -857,7 +872,7 @@ export const NabuChatSidebar = () => {
         },
       ])
     }
-  }, [history.length, send, getDeps])
+  }, [dbReady, history.length, send, getDeps])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return
@@ -896,7 +911,7 @@ export const NabuChatSidebar = () => {
     [navigate, params.projectId]
   )
 
-  const spinnerLabel = loading && !isStreamingText ? getSpinnerLabel(history, draft) : null
+  const spinnerLabels = loading && !isStreamingText ? getSpinnerLabels(history, draft) : null
 
   return (
     <div className="flex w-full grow flex-col rounded-xl bg-white overflow-hidden">
@@ -946,7 +961,9 @@ export const NabuChatSidebar = () => {
             </AnimatedListItem>
           ))}
         </AnimatePresence>
-        {!waitingForInput && spinnerLabel && <LoadingBubble label={spinnerLabel} />}
+        {!waitingForInput && spinnerLabels && (
+          <TickLabel key={spinnerLabels.join()} labels={spinnerLabels} />
+        )}
       </AutoScroll>
 
       {lastEntry && (

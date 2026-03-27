@@ -22,8 +22,21 @@ import { useNotifications } from "~/ui/hooks/useNotifications"
 import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
 
 import { createWebSocket, applyCommand } from "~/lib/server/sync"
-import { setProjectId, setPersistEnabled } from "~/lib/files"
-import { startDatabase } from "~/domain/db/database"
+import type { Command } from "~/lib/server/sync/types"
+import {
+  setProjectId,
+  setPersistEnabled,
+  setPendingRefsSuppressed,
+  resolvePendingRefsInBulk,
+} from "~/lib/files"
+import {
+  startDatabase,
+  waitForDatabase,
+  startBackgroundSync,
+  type OnDbSyncProgress,
+} from "~/domain/db/database"
+import { startEmbeddings } from "~/domain/embeddings/init"
+import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
 import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
@@ -89,6 +102,24 @@ const saveDebugOptions = (options: DebugOptions): void => {
   }
 }
 
+const isSyncMetaCommand = (command: Command): command is Command & { fileCount: number } =>
+  command.action === "SyncMeta" && typeof command.fileCount === "number"
+
+const isCreateFileCommand = (command: Command): boolean => command.action === "CreateFile"
+
+const FILE_WEIGHT = 40
+const DB_WEIGHT = 50
+const EMBEDDING_WEIGHT = 10
+
+const computeFileProgress = (loaded: number, total: number): number => {
+  if (loaded === 0) return 0
+  if (total === 0) return Math.min(FILE_WEIGHT - 5, loaded * 2)
+  return Math.round((loaded / total) * FILE_WEIGHT)
+}
+
+const computeDbProgress = (processed: number, total: number): number =>
+  total === 0 ? 0 : Math.round((processed / total) * DB_WEIGHT)
+
 export interface ProjectContextValue {
   files: Record<string, string>
   currentFile: string | null
@@ -100,6 +131,7 @@ export interface ProjectContextValue {
     filename: string
   ) => { text: string; color: string; reason?: string; code?: string }[] | undefined
   tagDefinitions: TagDefinition[]
+  dbReady: boolean
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -111,6 +143,14 @@ export default function ProjectLayout() {
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
+  const [dbReady, setDbReady] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [statusLabel, setStatusLabel] = useState("Connecting...")
+  const [fileCount, setFileCount] = useState(0)
+  const [totalFiles, setTotalFiles] = useState(0)
+  const [dbSyncProcessed, setDbSyncProcessed] = useState(0)
+  const [dbSyncTotal, setDbSyncTotal] = useState(0)
+  const [embeddingsDone, setEmbeddingsDone] = useState(false)
   useNotifications()
 
   useEffect(() => {
@@ -129,16 +169,82 @@ export default function ProjectLayout() {
   useEffect(() => {
     if (!params.projectId) return
     setProjectId(params.projectId)
+    setPendingRefsSuppressed(true)
 
-    const connection = createWebSocket(params.projectId, {
-      onCommand: applyCommand,
+    let localFileCount = 0
+    let localTotalFiles = 0
+    let pendingRefsResolved = false
+    let cancelled = false
+
+    let filesLoadedResolve: (() => void) | null = null
+    const filesLoadedPromise = new Promise<void>((r) => {
+      filesLoadedResolve = r
     })
 
-    startDatabase()
+    const resolveIfFilesLoaded = () => {
+      if (pendingRefsResolved) return
+      if (localTotalFiles <= 0 || localFileCount < localTotalFiles) return
+      pendingRefsResolved = true
+      setPendingRefsSuppressed(false)
+      resolvePendingRefsInBulk()
+      filesLoadedResolve?.()
+    }
+
+    const trackAndApply = (command: Command) => {
+      if (isSyncMetaCommand(command)) {
+        localTotalFiles = command.fileCount
+        setTotalFiles(command.fileCount)
+      }
+      applyCommand(command)
+      if (isCreateFileCommand(command)) {
+        localFileCount++
+        setFileCount(localFileCount)
+        const label =
+          localTotalFiles > 0
+            ? `Loading files... (${localFileCount}/${localTotalFiles})`
+            : `Loading files... (${localFileCount})`
+        setStatusLabel(label)
+      }
+      resolveIfFilesLoaded()
+    }
+
+    const handleDbSyncProgress: OnDbSyncProgress = (processed, total) => {
+      setDbSyncProcessed(processed)
+      setDbSyncTotal(total)
+      setStatusLabel(`Syncing database... (${processed}/${total})`)
+    }
+
+    const connection = createWebSocket(params.projectId, {
+      onCommand: trackAndApply,
+    })
+
+    const boot = async () => {
+      startDatabase(handleDbSyncProgress)
+
+      await filesLoadedPromise
+      if (cancelled) return
+
+      setStatusLabel("Syncing database...")
+      await waitForDatabase()
+      if (cancelled) return
+      setDbReady(true)
+
+      setStatusLabel("Building embeddings...")
+      await startEmbeddings()
+      if (cancelled) return
+      setEmbeddingsDone(true)
+
+      startBackgroundSync()
+      setLoading(false)
+    }
+
+    boot()
 
     return () => {
+      cancelled = true
       connection.close()
       setProjectId(null)
+      setPendingRefsSuppressed(false)
     }
   }, [params.projectId])
 
@@ -159,6 +265,7 @@ export default function ProjectLayout() {
   )
 
   useEffect(() => {
+    if (loading) return
     if (params.searchId) return
 
     if (params.fileId) {
@@ -175,6 +282,7 @@ export default function ProjectLayout() {
       navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
     }
   }, [
+    loading,
     params.fileId,
     params.searchId,
     params.projectId,
@@ -256,8 +364,18 @@ export default function ProjectLayout() {
       : {}),
   }
 
+  const fileProgress = computeFileProgress(fileCount, totalFiles)
+  const dbProgress = computeDbProgress(dbSyncProcessed, dbSyncTotal)
+  const embeddingsProgress = embeddingsDone ? EMBEDDING_WEIGHT : 0
+  const totalProgress = fileProgress + dbProgress + embeddingsProgress
+
   return (
     <NabuProvider key={params.projectId}>
+      {loading && (
+        <div className="fixed inset-0 z-[100]">
+          <WelcomeBackLoading progress={totalProgress} statusLabel={statusLabel} />
+        </div>
+      )}
       <div {...fileImport.dragHandlers} className="contents">
         <DefaultPageLayout
           activeNav={activeNav}
@@ -272,7 +390,7 @@ export default function ProjectLayout() {
               onRequestCompaction={requestCompaction}
             />
           }
-          rightPanel={<NabuChatSidebar />}
+          rightPanel={<NabuChatSidebar dbReady={dbReady} />}
         >
           <div className="flex h-full w-full items-start bg-default-background">
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
@@ -286,6 +404,7 @@ export default function ProjectLayout() {
                   getFileTags,
                   getFileAnnotations,
                   tagDefinitions,
+                  dbReady,
                 }}
               />
             </div>

@@ -39,17 +39,19 @@ const MIN_FUSED_SCORE = 0.3
 
 const isAboveMinScore = ([, score]: [string, number]): boolean => score > MIN_FUSED_SCORE
 
-export const fuseCosineResults = (cosinePerHyde: ScoredChunk[][], limit: number): ScoredChunk[] => {
+export const fuseCosineResults = (
+  cosinePerHyde: ScoredChunk[][],
+  limit: number | undefined
+): ScoredChunk[] => {
   const scoreMaps = cosinePerHyde.map(toCosineMap)
   const totals = mergeScoreMaps(scoreMaps)
 
   const allChunks = cosinePerHyde.flat()
   const chunkLookup = buildChunkLookup(allChunks)
 
-  const sorted = [...totals.entries()]
-    .filter(isAboveMinScore)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
+  const filtered = [...totals.entries()].filter(isAboveMinScore).sort((a, b) => b[1] - a[1])
+
+  const sorted = limit !== undefined ? filtered.slice(0, limit) : filtered
 
   return sorted.flatMap(([key, score]) => {
     const chunk = chunkLookup.get(key)

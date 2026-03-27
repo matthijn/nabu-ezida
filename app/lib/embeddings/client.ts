@@ -1,5 +1,4 @@
 import { ok, err, type Result } from "~/lib/fp/result"
-import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, MAX_EMBEDDING_BATCH_SIZE } from "./constants"
 
 export interface EmbeddingError {
   type: "network" | "api"
@@ -17,17 +16,12 @@ interface EmbeddingsApiResponse {
   usage: { total_tokens: number }
 }
 
-const buildRequestBody = (input: string[]): string =>
-  JSON.stringify({
-    input,
-    model: EMBEDDING_MODEL,
-    dimensions: EMBEDDING_DIMENSIONS,
-  })
+const buildRequestBody = (input: string[]): string => JSON.stringify({ input })
 
 const sortByIndex = (data: EmbeddingData[]): number[][] =>
   data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
 
-const fetchBatch = async (
+export const fetchEmbeddingBatch = async (
   texts: string[],
   baseUrl: string
 ): Promise<Result<number[][], EmbeddingError>> => {
@@ -49,30 +43,4 @@ const fetchBatch = async (
 
   const json = (await response.json()) as EmbeddingsApiResponse
   return ok(sortByIndex(json.data))
-}
-
-const toBatches = (texts: string[]): string[][] => {
-  const batches: string[][] = []
-  for (let i = 0; i < texts.length; i += MAX_EMBEDDING_BATCH_SIZE) {
-    batches.push(texts.slice(i, i + MAX_EMBEDDING_BATCH_SIZE))
-  }
-  return batches
-}
-
-export const fetchEmbeddings = async (
-  texts: string[],
-  baseUrl: string
-): Promise<Result<number[][], EmbeddingError>> => {
-  if (texts.length === 0) return ok([])
-
-  const batches = toBatches(texts)
-  const allEmbeddings: number[][] = []
-
-  for (const batch of batches) {
-    const result = await fetchBatch(batch, baseUrl)
-    if (!result.ok) return result
-    allEmbeddings.push(...result.value)
-  }
-
-  return ok(allEmbeddings)
 }

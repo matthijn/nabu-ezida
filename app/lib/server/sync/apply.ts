@@ -46,6 +46,7 @@ const applyCommandInner = (command: Command): void => {
       break
 
     case "Commit":
+    case "SyncMeta":
       break
   }
 }

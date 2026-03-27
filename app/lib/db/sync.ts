@@ -1,8 +1,9 @@
 import type { FileStore } from "~/lib/files/store"
-import type { Database, TableSchema, JsonSchema, DbError } from "./types"
+import type { TableSchema, JsonSchema, DbError } from "./types"
 import type { ProjectionConfig } from "./projection"
+import type { RunSql } from "./query"
 import { extractRows } from "./extract"
-import { ok, err, type Result } from "~/lib/fp/result"
+import { ok, type Result } from "~/lib/fp/result"
 
 export interface SyncPlan {
   deleted: string[]
@@ -21,27 +22,16 @@ export const computeSyncPlan = (prev: FileStore, next: FileStore): SyncPlan => {
   return { deleted, changed }
 }
 
-const isSettingsFile = (filename: string): boolean => filename === "settings.hidden.md"
-
-const isHiddenFile = (filename: string): boolean => filename.includes(".hidden.")
-
-export const fileSyncPriority = (filename: string): 0 | 1 | 2 => {
-  if (isSettingsFile(filename)) return 0
-  if (!isHiddenFile(filename)) return 1
-  return 2
-}
-
 export const batchSyncPlan = (plan: SyncPlan, batchSize: number): SyncPlan[] => {
   if (plan.deleted.length === 0 && plan.changed.length === 0) return []
 
-  const sorted = [...plan.changed].sort((a, b) => fileSyncPriority(a) - fileSyncPriority(b))
   const batches: SyncPlan[] = []
 
-  const firstBatchChanged = sorted.slice(0, batchSize)
+  const firstBatchChanged = plan.changed.slice(0, batchSize)
   batches.push({ deleted: plan.deleted, changed: firstBatchChanged })
 
-  for (let i = batchSize; i < sorted.length; i += batchSize) {
-    batches.push({ deleted: [], changed: sorted.slice(i, i + batchSize) })
+  for (let i = batchSize; i < plan.changed.length; i += batchSize) {
+    batches.push({ deleted: [], changed: plan.changed.slice(i, i + batchSize) })
   }
 
   return batches
@@ -89,7 +79,7 @@ const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: st
 }
 
 export const syncFiles = async (
-  db: Database,
+  runSql: RunSql,
   plan: SyncPlan,
   files: FileStore,
   projections: ProjectionWithSchema[],
@@ -131,8 +121,5 @@ export const syncFiles = async (
   if (statements.length === 0) return ok(undefined)
 
   const sql = statements.join("\n")
-  const result = await db.query(sql)
-  if (!result.ok) return err({ type: "query", message: "Sync failed", cause: result.error })
-
-  return ok(undefined)
+  return runSql(sql)
 }

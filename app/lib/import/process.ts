@@ -1,6 +1,4 @@
-import { generateDiff } from "~/lib/patch/diff/generate"
-import { applyFilePatch, updateFileRaw, getFiles } from "~/lib/files"
-import { findSingletonBlock, replaceSingletonBlock } from "~/lib/data-blocks/parse"
+import { updateFileRaw, getFiles } from "~/lib/files"
 import { deduplicateName } from "./dedupe"
 import { readFileContent, isMarkdownFile } from "./read"
 import { normalizeFilename } from "~/lib/files/filename"
@@ -14,45 +12,18 @@ interface ProcessResult {
 
 type StatusCallback = (id: string, status: ImportStatus, extra?: Partial<ImportFile>) => void
 
-const injectTags = (content: string, tags: string[]): string => {
-  if (tags.length === 0) return content
-
-  const block = findSingletonBlock(content, "json-attributes")
-
-  try {
-    const existing = block ? (JSON.parse(block.content) as { tags?: string[] }) : {}
-    const merged = [...new Set([...(existing.tags ?? []), ...tags])]
-    const updated = JSON.stringify({ ...existing, tags: merged }, null, "\t")
-    return replaceSingletonBlock(content, "json-attributes", updated)
-  } catch {
-    return content
-  }
-}
-
 const getExistingNames = (): Set<string> => new Set(Object.keys(getFiles()))
 
-const processMarkdownFile = (file: File, content: string, tags: string[]): ProcessResult => {
+const processMarkdownFile = (file: File, content: string): ProcessResult => {
   const existingNames = getExistingNames()
   const finalPath = deduplicateName(normalizeFilename(file.name), existingNames)
-  const contentWithTags = injectTags(content, tags)
-  const diff = generateDiff("", contentWithTags)
 
-  const result = applyFilePatch(finalPath, "", diff, { actor: "user" })
-
-  if (result.status === "error") {
-    return { status: "error", error: result.error }
-  }
-
-  updateFileRaw(result.path, result.content)
+  updateFileRaw(finalPath, content)
 
   return { status: "completed", finalPath }
 }
 
-const processFile = async (
-  file: File,
-  onStatus: StatusCallback,
-  tags: string[] = []
-): Promise<void> => {
+const processFile = async (file: File, onStatus: StatusCallback): Promise<void> => {
   const id = file.name
 
   if (!isMarkdownFile(file.name)) {
@@ -71,7 +42,7 @@ const processFile = async (
 
   onStatus(id, "processing")
 
-  const processResult = processMarkdownFile(file, readResult.content, tags)
+  const processResult = processMarkdownFile(file, readResult.content)
 
   onStatus(id, processResult.status, {
     error: processResult.error,
@@ -79,16 +50,8 @@ const processFile = async (
   })
 }
 
-interface FileWithTags {
-  file: File
-  tags: string[]
-}
-
-export const processFiles = async (
-  files: FileWithTags[],
-  onStatus: StatusCallback
-): Promise<void> => {
-  for (const { file, tags } of files) {
-    await processFile(file, onStatus, tags)
+export const processFiles = async (files: File[], onStatus: StatusCallback): Promise<void> => {
+  for (const file of files) {
+    await processFile(file, onStatus)
   }
 }

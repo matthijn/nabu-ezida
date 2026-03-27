@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { computeSyncPlan, fileSyncPriority, batchSyncPlan } from "./sync"
+import { computeSyncPlan, batchSyncPlan } from "./sync"
 import type { FileStore } from "~/lib/files/store"
 import type { SyncPlan } from "./sync"
 
@@ -52,22 +52,6 @@ describe("computeSyncPlan", () => {
   })
 })
 
-describe("fileSyncPriority", () => {
-  const cases: { name: string; filename: string; expected: 0 | 1 | 2 }[] = [
-    { name: "settings file is priority 0", filename: "settings.hidden.md", expected: 0 },
-    { name: "regular markdown is priority 1", filename: "notes.md", expected: 1 },
-    { name: "hidden file is priority 2", filename: "doc.embeddings.hidden.md", expected: 2 },
-    { name: "another hidden file is priority 2", filename: "prefs.hidden.md", expected: 2 },
-    { name: "plain doc is priority 1", filename: "chapter_one.md", expected: 1 },
-  ]
-
-  cases.forEach(({ name, filename, expected }) => {
-    it(name, () => {
-      expect(fileSyncPriority(filename)).toBe(expected)
-    })
-  })
-})
-
 describe("batchSyncPlan", () => {
   const cases: { name: string; plan: SyncPlan; batchSize: number; expected: SyncPlan[] }[] = [
     {
@@ -83,15 +67,6 @@ describe("batchSyncPlan", () => {
       expected: [{ deleted: ["old.md"], changed: ["a.md"] }],
     },
     {
-      name: "files sorted by priority",
-      plan: {
-        deleted: [],
-        changed: ["doc.hidden.md", "notes.md", "settings.hidden.md"],
-      },
-      batchSize: 10,
-      expected: [{ deleted: [], changed: ["settings.hidden.md", "notes.md", "doc.hidden.md"] }],
-    },
-    {
       name: "splits into multiple batches",
       plan: {
         deleted: ["gone.md"],
@@ -102,19 +77,6 @@ describe("batchSyncPlan", () => {
         { deleted: ["gone.md"], changed: ["a.md", "b.md"] },
         { deleted: [], changed: ["c.md", "d.md"] },
         { deleted: [], changed: ["e.md"] },
-      ],
-    },
-    {
-      name: "priority ordering across batches",
-      plan: {
-        deleted: [],
-        changed: ["z.hidden.md", "a.md", "settings.hidden.md", "b.md", "y.hidden.md"],
-      },
-      batchSize: 2,
-      expected: [
-        { deleted: [], changed: ["settings.hidden.md", "a.md"] },
-        { deleted: [], changed: ["b.md", "z.hidden.md"] },
-        { deleted: [], changed: ["y.hidden.md"] },
       ],
     },
   ]

@@ -18,12 +18,11 @@ export interface HybridSearchPlan {
   description: string
   baseSql: string
   hydes: HydeQuery[]
-  limit: number
+  limit: number | undefined
 }
 
 const SEMANTIC_PATTERN = /SEMANTIC\('([^']+)'\)/g
 const SCORE_COLUMN = "_semantic_score"
-const DEFAULT_LIMIT = 10
 
 const OPERATOR_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*(>|<|>=|<=|=|!=|<>)/
 const AS_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*AS\b/i
@@ -116,9 +115,9 @@ export const stripSemanticToken = (sql: string, token: SemanticToken): string =>
   return before + after
 }
 
-export const extractLimit = (sql: string): number => {
+export const extractLimit = (sql: string): number | undefined => {
   const match = sql.match(LIMIT_RE)
-  return match ? parseInt(match[1], 10) : DEFAULT_LIMIT
+  return match ? parseInt(match[1], 10) : undefined
 }
 
 const stripOrderByAndLimit = (sql: string): string =>
@@ -201,10 +200,6 @@ export const normalizeSemanticSql = (sql: string): string => {
     result = result.replace(LIMIT_RE, (match) => `ORDER BY ${SCORE_COLUMN} DESC ${match}`)
   } else {
     result += ` ORDER BY ${SCORE_COLUMN} DESC`
-  }
-
-  if (!hasLimit) {
-    result += ` LIMIT ${DEFAULT_LIMIT}`
   }
 
   return result

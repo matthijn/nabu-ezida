@@ -6,7 +6,6 @@ import {
   readDroppedItems,
   type ImportFile,
   type ImportStatus,
-  type FileWithPath,
 } from "~/lib/import"
 
 interface ImportState {
@@ -61,12 +60,12 @@ export const useFileImport = () => {
   )
 
   const addFiles = useCallback(
-    async (filesWithPath: FileWithPath[]) => {
-      if (filesWithPath.length === 0) return
+    async (dropped: File[]) => {
+      if (dropped.length === 0) return
 
       setState((prev) =>
         produce(prev, (draft) => {
-          for (const { file } of filesWithPath) {
+          for (const file of dropped) {
             if (!draft.files[file.name]) {
               draft.files[file.name] = createImportFile(file)
             }
@@ -75,9 +74,7 @@ export const useFileImport = () => {
         })
       )
 
-      const markdownFiles = filesWithPath
-        .filter(({ file }) => isMarkdownFile(file.name))
-        .map(({ file, pathTags }) => ({ file, tags: pathTags }))
+      const markdownFiles = dropped.filter((file) => isMarkdownFile(file.name))
       await processFiles(markdownFiles, updateFileStatus)
 
       setState((prev) =>
@@ -120,9 +117,9 @@ export const useFileImport = () => {
       dragCounterRef.current = 0
       setIsDragging(false)
 
-      const filesWithPath = await readDroppedItems(e.dataTransfer)
-      if (filesWithPath.length > 0) {
-        addFiles(filesWithPath)
+      const dropped = await readDroppedItems(e.dataTransfer)
+      if (dropped.length > 0) {
+        addFiles(dropped)
       }
     },
     [addFiles]

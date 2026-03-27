@@ -41,8 +41,8 @@ const hitIsFileOnly = (hit: SearchHit): boolean => !hitHasId(hit) && !hitHasText
 const hitKey = (hit: SearchHit, index: number): string =>
   hit.id ?? (hit.text ? `text-${index}` : `file-${index}`)
 
-const SearchSlicePreview = ({ hit }: { hit: SearchHit }) => {
-  const markdown = useMemo(() => extractSearchSlice(hit), [hit])
+const SearchSlicePreview = ({ hit, fileContent }: { hit: SearchHit; fileContent: string }) => {
+  const markdown = useMemo(() => extractSearchSlice(hit, fileContent), [hit, fileContent])
 
   if (!markdown) return null
 
@@ -92,7 +92,7 @@ const RunGroupCard = ({
       </div>
       <div className="flex w-full flex-col items-start gap-4 px-6 py-5">
         {hitsToRender.map((hit, i) => (
-          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} />
+          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} fileContent={content} />
         ))}
       </div>
     </div>

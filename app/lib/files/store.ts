@@ -28,6 +28,7 @@ const debouncedNotify = debounce(notify, 80, { maxWait: 400 })
 let projectId: string | null = null
 let persistEnabled = true
 let persistSuppressed = false
+let pendingRefsSuppressed = false
 const persistDebounce = createScopedDebounce(500)
 
 export const setProjectId = (id: string | null): void => {
@@ -35,6 +36,10 @@ export const setProjectId = (id: string | null): void => {
 }
 export const setPersistEnabled = (enabled: boolean): void => {
   persistEnabled = enabled
+}
+
+export const setPendingRefsSuppressed = (suppressed: boolean): void => {
+  pendingRefsSuppressed = suppressed
 }
 
 export const withoutPersist = <T>(fn: () => T): T => {
@@ -102,6 +107,13 @@ export const updateFileRaw = (filename: string, raw: string): void => {
     `[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`
   )
 
+  if (pendingRefsSuppressed) {
+    files = { ...files, [filename]: normalized }
+    persistWrite(filename)
+    debouncedNotify()
+    return
+  }
+
   const definitions = getAllDefinitions(files)
   const marked = markPendingRefs(normalized, definitions)
   const pendingRefsInNew = findPendingRefs(marked)
@@ -159,6 +171,25 @@ export const renameFile = (oldName: string, newName: string): void => {
   }
   persistRenameCommand(oldName, newName)
   notify()
+}
+
+export const resolvePendingRefsInBulk = (): void => {
+  const definitions = getAllDefinitions(files)
+  let updated = files
+
+  for (const [path, content] of Object.entries(updated)) {
+    const marked = markPendingRefs(content, definitions)
+    if (marked !== content) {
+      updated = { ...updated, [path]: marked }
+    }
+  }
+
+  if (updated !== files) {
+    const count = Object.keys(updated).filter((k) => updated[k] !== files[k]).length
+    console.debug(`[store] bulk pending refs: marked ${count} files`)
+    files = updated
+    notify()
+  }
 }
 
 export const subscribe = (listener: Listener): (() => void) => {

@@ -1,16 +1,6 @@
-interface FileWithPath {
-  file: File
-  pathTags: string[]
-}
-
-const getPathTags = (path: string): string[] => {
-  const parts = path.split("/").filter(Boolean)
-  return parts.slice(0, -1) // exclude filename
-}
-
-const readFileEntry = (entry: FileSystemFileEntry, path: string): Promise<FileWithPath> =>
+const readFileEntry = (entry: FileSystemFileEntry): Promise<File> =>
   new Promise((resolve, reject) => {
-    entry.file((file) => resolve({ file, pathTags: getPathTags(path) }), reject)
+    entry.file(resolve, reject)
   })
 
 const readDirectoryEntries = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
@@ -28,32 +18,29 @@ const readAllDirectoryEntries = async (
   return entries
 }
 
-const readEntry = async (entry: FileSystemEntry, path: string): Promise<FileWithPath[]> => {
+const readEntry = async (entry: FileSystemEntry): Promise<File[]> => {
   if (entry.isFile) {
-    return [await readFileEntry(entry as FileSystemFileEntry, path)]
+    return [await readFileEntry(entry as FileSystemFileEntry)]
   }
 
   const dirEntry = entry as FileSystemDirectoryEntry
   const reader = dirEntry.createReader()
   const entries = await readAllDirectoryEntries(reader)
 
-  const nested = await Promise.all(entries.map((e) => readEntry(e, `${path}/${e.name}`)))
+  const nested = await Promise.all(entries.map((e) => readEntry(e)))
   return nested.flat()
 }
 
-export const readDroppedItems = async (dataTransfer: DataTransfer): Promise<FileWithPath[]> => {
+export const readDroppedItems = async (dataTransfer: DataTransfer): Promise<File[]> => {
   const items = Array.from(dataTransfer.items)
   const entries = items
     .map((item) => item.webkitGetAsEntry())
     .filter((entry): entry is FileSystemEntry => entry !== null)
 
   if (entries.length === 0) {
-    // Fallback for browsers without webkitGetAsEntry
-    return Array.from(dataTransfer.files).map((file) => ({ file, pathTags: [] }))
+    return Array.from(dataTransfer.files)
   }
 
-  const nested = await Promise.all(entries.map((entry) => readEntry(entry, entry.name)))
+  const nested = await Promise.all(entries.map((entry) => readEntry(entry)))
   return nested.flat()
 }
-
-export type { FileWithPath }

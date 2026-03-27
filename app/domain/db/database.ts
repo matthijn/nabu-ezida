@@ -1,11 +1,11 @@
 import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
-import { getBlock, getBlocks } from "~/lib/data-blocks/query"
+import { getBlock, getBlocks, getBlockRaw, getBlocksRaw } from "~/lib/data-blocks/query"
 import { debounce } from "~/lib/utils/debounce"
 import { initializeDatabase } from "~/lib/db/init"
 import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
+import { executeWithConnection } from "~/lib/db/query"
 import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
 import { projections, toJsonSchema } from "./projections"
-import { startEmbeddings } from "~/domain/embeddings/init"
 import { startProjectDescription } from "~/domain/project-description/init"
 import type { Database } from "~/lib/db/types"
 
@@ -31,39 +31,65 @@ const getBlocksUntyped = (raw: string, language: string): Record<string, unknown
 const getBlockUntyped = (raw: string, language: string): Record<string, unknown> | null =>
   getBlock(raw, language, findProjectionSchema(language)) as Record<string, unknown> | null
 
-const DB_SYNC_BATCH_SIZE = 10
+type BlocksParser = (raw: string, language: string) => Record<string, unknown>[]
+type BlockParser = (raw: string, language: string) => Record<string, unknown> | null
+
+export type OnDbSyncProgress = (processed: number, total: number) => void
+
+const DB_SYNC_BATCH_SIZE = 20
+
+export const waitForDatabase = (): Promise<void> => dbReadyPromise
 
 let database: Database | null = null
 let previousFiles: FileStore = {}
 let initializing = false
-const runSync = async (db: Database, withSchemas: ProjectionWithSchema[]): Promise<void> => {
+let dbReadyResolve: (() => void) | null = null
+const dbReadyPromise = new Promise<void>((r) => {
+  dbReadyResolve = r
+})
+const batchItemCount = (batch: { deleted: string[]; changed: string[] }): number =>
+  batch.deleted.length + batch.changed.length
+
+const runSync = async (
+  db: Database,
+  withSchemas: ProjectionWithSchema[],
+  parseBlocks: BlocksParser,
+  parseBlock: BlockParser,
+  onProgress?: OnDbSyncProgress
+): Promise<void> => {
   const currentFiles = getFiles()
   const plan = computeSyncPlan(previousFiles, currentFiles)
 
   if (plan.deleted.length === 0 && plan.changed.length === 0) return
 
+  const total = plan.deleted.length + plan.changed.length
+  let processed = 0
   const batches = batchSyncPlan(plan, DB_SYNC_BATCH_SIZE)
-  for (const batch of batches) {
-    const result = await syncFiles(
-      db,
-      batch,
-      currentFiles,
-      withSchemas,
-      getBlocksUntyped,
-      getBlockUntyped
-    )
-    if (!result.ok) {
-      console.error("[db] sync failed:", result.error)
-      return
+
+  await executeWithConnection(db.instance, async (runSql) => {
+    for (const batch of batches) {
+      const result = await syncFiles(
+        runSql,
+        batch,
+        currentFiles,
+        withSchemas,
+        parseBlocks,
+        parseBlock
+      )
+      if (!result.ok) {
+        console.error("[db] sync failed:", result.error)
+        return
+      }
+      processed += batchItemCount(batch)
+      onProgress?.(processed, total)
     }
-    await new Promise((resolve) => setTimeout(resolve, 0))
-  }
+  })
 
   previousFiles = currentFiles
   console.debug(`[db] synced: ${plan.changed.length} changed, ${plan.deleted.length} deleted`)
 }
 
-export const startDatabase = async (): Promise<void> => {
+export const startDatabase = async (onProgress?: OnDbSyncProgress): Promise<void> => {
   if (database || initializing) return
   initializing = true
 
@@ -81,13 +107,8 @@ export const startDatabase = async (): Promise<void> => {
   database = result.value
   console.debug("[db] initialized, running initial sync...")
 
-  await runSync(database, withSchemas)
-
-  const debouncedSync = debounce(() => {
-    if (database) runSync(database, withSchemas)
-  }, 200)
-
-  subscribe(debouncedSync)
+  await runSync(database, withSchemas, getBlocksRaw, getBlockRaw, onProgress)
+  dbReadyResolve?.()
 
   if (typeof window !== "undefined") {
     ;(window as unknown as Record<string, unknown>).query = async (sql: string) => {
@@ -99,12 +120,19 @@ export const startDatabase = async (): Promise<void> => {
   }
 
   console.debug("[db] ready. Use window.query('SELECT ...') to query.")
+}
 
-  startEmbeddings()
-  console.debug("[embeddings] sync started")
+export const startBackgroundSync = (): void => {
+  if (!database) return
+  const withSchemas = buildProjectionsWithSchemas()
 
+  const debouncedSync = debounce(() => {
+    if (database) runSync(database, withSchemas, getBlocksUntyped, getBlockUntyped)
+  }, 200)
+
+  subscribe(debouncedSync)
   startProjectDescription()
-  console.debug("[project-description] sync started")
+  console.debug("[db] background sync started")
 }
 
 export const getDatabase = (): Database | null => database

@@ -33,3 +33,22 @@ export const getBlocks = <T>(raw: string, language: string, schema: z.ZodType<T>
   findBlocksByLanguage(raw, language)
     .map((block) => parseWithCache(language, block.content, schema))
     .filter((b): b is T => b !== null)
+
+const tryParseJson = (content: string): Record<string, unknown> | null => {
+  try {
+    return JSON.parse(content)
+  } catch {
+    return null
+  }
+}
+
+export const getBlockRaw = (raw: string, language: string): Record<string, unknown> | null => {
+  const block = findSingletonBlock(raw, language)
+  if (!block) return null
+  return tryParseJson(block.content)
+}
+
+export const getBlocksRaw = (raw: string, language: string): Record<string, unknown>[] =>
+  findBlocksByLanguage(raw, language)
+    .map((block) => tryParseJson(block.content))
+    .filter((b): b is Record<string, unknown> => b !== null)

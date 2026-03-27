@@ -2,7 +2,7 @@ import type { Result } from "~/lib/fp/result"
 import type { Database } from "~/lib/db/types"
 import type { HydeQuery, HybridSearchPlan } from "./semantic"
 import { ok, err } from "~/lib/fp/result"
-import { fetchEmbeddings } from "~/lib/embeddings/client"
+import { fetchEmbeddingBatch } from "~/lib/embeddings/client"
 import { generateHydes, type HydeResult } from "./generate-hydes"
 import { extractSemanticTokens, hasSemanticTokens, validateSql, buildHybridPlan } from "./semantic"
 
@@ -70,7 +70,7 @@ export const resolveSemanticSql = async (
   const hydeResult = await generateHydes(ctx.description, languages, token.text)
 
   const allTexts = collectAllTexts(hydeResult)
-  const embeddingResult = await fetchEmbeddings(allTexts, ctx.baseUrl)
+  const embeddingResult = await fetchEmbeddingBatch(allTexts, ctx.baseUrl)
   if (!embeddingResult.ok) return invalid(embeddingResult.error.message)
 
   const hydes = flattenHydes(hydeResult, embeddingResult.value)

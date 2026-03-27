@@ -5,8 +5,8 @@ import { companionFilename, buildCompanionMarkdown, parseCompanionEntries } from
 import { toEmbeddableText } from "./text"
 import { chunkText } from "./chunk"
 import { diffChunks, type EmbeddingEntry } from "./diff"
-import { fetchEmbeddings } from "./client"
-import { EMBEDDING_SYNC_DEBOUNCE } from "./constants"
+import { fetchEmbeddingBatch } from "./client"
+import { EMBEDDING_SYNC_DEBOUNCE, MAX_EMBEDDING_BATCH_SIZE } from "./constants"
 import { detectLanguage } from "~/lib/language/detect"
 
 type ToProseFn = (block: unknown) => string | null
@@ -21,10 +21,21 @@ export interface EmbeddingSyncDeps {
   toProseFns: Record<string, ToProseFn>
 }
 
+interface NeededChunk {
+  index: number
+  text: string
+  hash: string
+}
+
 interface FileChunks {
   filename: string
   entries: EmbeddingEntry[]
-  needed: { index: number; text: string; hash: string }[]
+  needed: NeededChunk[]
+}
+
+interface TaggedChunk {
+  filename: string
+  chunk: NeededChunk
 }
 
 const findDirtyFiles = (prev: FileStore, next: FileStore): string[] =>
@@ -46,30 +57,53 @@ const prepareFile = (
   return { filename, entries: keep, needed }
 }
 
-const distributeEmbeddings = (
-  fileChunks: FileChunks[],
-  allEmbeddings: number[][]
-): Map<string, EmbeddingEntry[]> => {
-  const result = new Map<string, EmbeddingEntry[]>()
-  let embeddingIdx = 0
+const tagNeededChunks = (fileChunks: FileChunks[]): TaggedChunk[] =>
+  fileChunks.flatMap((fc) => fc.needed.map((chunk) => ({ filename: fc.filename, chunk })))
 
-  for (const fc of fileChunks) {
-    const entries = [...fc.entries]
-
-    for (const chunk of fc.needed) {
-      const language = detectLanguage(chunk.text)
-      entries.push({
-        hash: chunk.hash,
-        text: chunk.text,
-        embedding: allEmbeddings[embeddingIdx++],
-        ...(language ? { language } : {}),
-      })
-    }
-
-    result.set(fc.filename, entries)
+const toBatches = (tagged: TaggedChunk[]): TaggedChunk[][] => {
+  const batches: TaggedChunk[][] = []
+  for (let i = 0; i < tagged.length; i += MAX_EMBEDDING_BATCH_SIZE) {
+    batches.push(tagged.slice(i, i + MAX_EMBEDDING_BATCH_SIZE))
   }
+  return batches
+}
 
-  return result
+const toEntryWithEmbedding = (chunk: NeededChunk, embedding: number[]): EmbeddingEntry => {
+  const language = detectLanguage(chunk.text)
+  return {
+    hash: chunk.hash,
+    text: chunk.text,
+    embedding,
+    ...(language ? { language } : {}),
+  }
+}
+
+const mergeNewEntries = (
+  batch: TaggedChunk[],
+  embeddings: number[][],
+  accumulated: Map<string, EmbeddingEntry[]>
+): void => {
+  for (let i = 0; i < batch.length; i++) {
+    const { filename, chunk } = batch[i]
+    const entries = accumulated.get(filename) ?? []
+    entries.push(toEntryWithEmbedding(chunk, embeddings[i]))
+    accumulated.set(filename, entries)
+  }
+}
+
+const writeCompanions = (
+  accumulated: Map<string, EmbeddingEntry[]>,
+  fileChunks: FileChunks[],
+  deps: EmbeddingSyncDeps
+): void => {
+  for (const fc of fileChunks) {
+    const newEntries = accumulated.get(fc.filename)
+    if (!newEntries) continue
+
+    const allEntries = [...fc.entries, ...newEntries]
+    const companion = companionFilename(fc.filename)
+    deps.updateFile(companion, buildCompanionMarkdown(allEntries))
+  }
 }
 
 const processSync = async (
@@ -95,29 +129,33 @@ const processSync = async (
     return prepareFile(filename, content, companion, deps.toProseFns)
   })
 
-  const allNeeded = fileChunks.flatMap((fc) => fc.needed)
-  if (allNeeded.length === 0) return
+  const allTagged = tagNeededChunks(fileChunks)
+  if (allTagged.length === 0) return
 
-  const texts = allNeeded.map((c) => c.text)
-  const result = await fetchEmbeddings(texts, deps.baseUrl)
+  const batches = toBatches(allTagged)
+  const accumulated = new Map<string, EmbeddingEntry[]>()
 
-  if (!result.ok) {
-    console.error("[embeddings] fetch failed:", result.error)
-    return
+  for (const batch of batches) {
+    const texts = batch.map((t) => t.chunk.text)
+    const result = await fetchEmbeddingBatch(texts, deps.baseUrl)
+
+    if (!result.ok) {
+      console.error("[embeddings] fetch failed:", result.error)
+      return
+    }
+
+    mergeNewEntries(batch, result.value, accumulated)
+    writeCompanions(accumulated, fileChunks, deps)
   }
 
-  const distributed = distributeEmbeddings(fileChunks, result.value)
-
-  for (const [filename, entries] of distributed) {
-    const companion = companionFilename(filename)
-    const markdown = buildCompanionMarkdown(entries)
-    deps.updateFile(companion, markdown)
-  }
-
-  console.debug(`[embeddings] synced ${dirty.length} files, ${allNeeded.length} new chunks`)
+  console.debug(`[embeddings] synced ${dirty.length} files, ${allTagged.length} new chunks`)
 }
 
-export const startEmbeddingSync = (deps: EmbeddingSyncDeps): (() => void) => {
+export interface EmbeddingSyncHandle {
+  ready: Promise<void>
+}
+
+export const startEmbeddingSync = (deps: EmbeddingSyncDeps): EmbeddingSyncHandle => {
   let previousFiles: FileStore = {}
   let syncing = false
 
@@ -136,9 +174,10 @@ export const startEmbeddingSync = (deps: EmbeddingSyncDeps): (() => void) => {
     }
   }
 
-  run()
+  const ready = run()
 
   const debouncedRun = debounce(run, EMBEDDING_SYNC_DEBOUNCE)
+  deps.subscribe(debouncedRun)
 
-  return deps.subscribe(debouncedRun)
+  return { ready }
 }
