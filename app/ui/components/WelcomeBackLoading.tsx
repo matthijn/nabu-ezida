@@ -28,9 +28,6 @@ export const WelcomeBackLoading = ({ progress, statusLabel }: WelcomeBackLoading
         <span className="text-caption font-caption text-subtext-color text-center">
           {statusLabel}
         </span>
-        <span className="text-caption font-caption text-neutral-400 text-center tabular-nums">
-          {progress}%
-        </span>
       </div>
     </div>
   </div>

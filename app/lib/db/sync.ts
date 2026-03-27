@@ -71,6 +71,11 @@ const buildInsertSql = (table: string, rows: Record<string, unknown>[]): string 
 const effectiveFile = (config: ProjectionConfig, filename: string): string =>
   config.fileMapper?.(filename) ?? filename
 
+const isEmbeddingsFile = (filename: string): boolean => filename.endsWith(".embeddings.hidden.md")
+
+const isEmbeddingsProjection = (config: ProjectionConfig): boolean =>
+  config.fileMapper !== undefined
+
 const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: string): string => {
   const file = effectiveFile(projection.config, filename)
   return projection.schemas
@@ -89,19 +94,24 @@ export const syncFiles = async (
   const statements: string[] = []
 
   for (const filename of plan.deleted) {
+    const embedded = isEmbeddingsFile(filename)
     for (const p of projections) {
+      if (embedded !== isEmbeddingsProjection(p.config)) continue
       statements.push(buildProjectionDeleteSql(p, filename))
     }
   }
 
   for (const filename of plan.changed) {
+    const embedded = isEmbeddingsFile(filename)
     for (const p of projections) {
+      if (embedded !== isEmbeddingsProjection(p.config)) continue
       statements.push(buildProjectionDeleteSql(p, filename))
     }
 
     const raw = files[filename]
 
     for (const { config, jsonSchema } of projections) {
+      if (embedded !== isEmbeddingsProjection(config)) continue
       if (!isAllowedFile(filename, config.allowedFiles)) continue
 
       const file = effectiveFile(config, filename)

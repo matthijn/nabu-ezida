@@ -199,11 +199,7 @@ export default function ProjectLayout() {
       if (isCreateFileCommand(command)) {
         localFileCount++
         setFileCount(localFileCount)
-        const label =
-          localTotalFiles > 0
-            ? `Loading files... (${localFileCount}/${localTotalFiles})`
-            : `Loading files... (${localFileCount})`
-        setStatusLabel(label)
+        setStatusLabel("Loading files...")
       }
       resolveIfFilesLoaded()
     }
@@ -211,7 +207,7 @@ export default function ProjectLayout() {
     const handleDbSyncProgress: OnDbSyncProgress = (processed, total) => {
       setDbSyncProcessed(processed)
       setDbSyncTotal(total)
-      setStatusLabel(`Syncing database... (${processed}/${total})`)
+      setStatusLabel("Syncing database...")
     }
 
     const connection = createWebSocket(params.projectId, {
