@@ -3,26 +3,31 @@ export interface PoolOptions {
   target?: number
 }
 
+export interface PoolResult<R> {
+  results: R[]
+  consumed: number
+}
+
 export const processPool = <T, R>(
   items: T[],
   fn: (item: T) => Promise<R[]>,
   onResults: (results: R[]) => void,
   opts: PoolOptions
-): Promise<R[]> => {
+): Promise<PoolResult<R>> => {
   const { concurrency, target } = opts
   const all: R[] = []
   let cursor = 0
   let inFlight = 0
   let done = false
 
-  return new Promise<R[]>((resolve) => {
+  return new Promise<PoolResult<R>>((resolve) => {
     const isComplete = (): boolean => done || (cursor >= items.length && inFlight === 0)
     const hasReachedTarget = (): boolean => target !== undefined && all.length >= target
 
     const settle = () => {
       if (!done) {
         done = true
-        resolve([...all])
+        resolve({ results: [...all], consumed: cursor })
       }
     }
 

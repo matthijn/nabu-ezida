@@ -124,12 +124,20 @@ describe("fuseCosineResults", () => {
     {
       name: "multi-hyde disjoint chunks merged and ranked",
       cosinePerHyde: [
-        [chunk("a.md", "h1", 0.3)],
+        [chunk("a.md", "h1", 0.35)],
         [chunk("b.md", "h2", 0.5)],
         [chunk("c.md", "h3", 0.4)],
       ],
       limit: 50,
       expectedFiles: ["b.md", "c.md", "a.md"],
+    },
+    {
+      name: "filters out chunks at or below 0.3",
+      cosinePerHyde: [
+        [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.3), chunk("c.md", "h3", 0.1)],
+      ],
+      limit: 50,
+      expectedFiles: ["a.md"],
     },
   ]
 

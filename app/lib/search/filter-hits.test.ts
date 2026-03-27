@@ -6,7 +6,8 @@ describe("extractMarkedSections", () => {
     name: string
     text: string
     file: string
-    expected: { file: string; text: string }[]
+    id?: string
+    expected: { file: string; id?: string; text: string }[]
   }[] = [
     {
       name: "single mark span → one hit",
@@ -59,9 +60,26 @@ describe("extractMarkedSections", () => {
       file: "multi.md",
       expected: [{ file: "multi.md", text: "Line one.\nLine two." }],
     },
+    {
+      name: "id is preserved on output hits",
+      text: "Preamble. <mark>Relevant section.</mark> Trailing.",
+      file: "callout.md",
+      id: "callout-abc",
+      expected: [{ file: "callout.md", id: "callout-abc", text: "Relevant section." }],
+    },
+    {
+      name: "id is preserved across multiple marks",
+      text: "<mark>First.</mark> Gap. <mark>Second.</mark>",
+      file: "ann.md",
+      id: "ann-1",
+      expected: [
+        { file: "ann.md", id: "ann-1", text: "First." },
+        { file: "ann.md", id: "ann-1", text: "Second." },
+      ],
+    },
   ]
 
-  it.each(cases)("$name", ({ text, file, expected }) => {
-    expect(extractMarkedSections(text, file)).toEqual(expected)
+  it.each(cases)("$name", ({ text, file, id, expected }) => {
+    expect(extractMarkedSections(text, file, id)).toEqual(expected)
   })
 })

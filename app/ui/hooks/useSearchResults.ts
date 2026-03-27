@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useSyncExternalStore } from "react"
 import { getFiles, subscribe } from "~/lib/files/store"
 import { getFileRaw } from "~/lib/files"
@@ -12,13 +12,17 @@ import {
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
-import { streamFilterHits } from "~/lib/search/filter-hits"
+import { filterOneHit } from "~/lib/search/filter-hits"
 import { ensureDescription } from "~/lib/search/ensure-description"
+import { processPool } from "~/lib/utils/pool"
 import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 import type { HydeQuery } from "~/lib/search/semantic"
 
-type SearchPhase = "idle" | "searching" | "filtering" | "done"
+export type SearchPhase = "idle" | "searching" | "filtering" | "done"
+
+const FILTER_CHUNK_TARGET = 10
+const FILTER_CONCURRENCY = 5
 
 interface SettledState {
   results: SearchHit[]
@@ -26,9 +30,17 @@ interface SettledState {
   error: string | null
   searchId: string | null
   phase: SearchPhase
+  hasMore: boolean
 }
 
-const EMPTY: SettledState = { results: [], hydes: [], error: null, searchId: null, phase: "idle" }
+const EMPTY: SettledState = {
+  results: [],
+  hydes: [],
+  error: null,
+  searchId: null,
+  phase: "idle",
+  hasMore: false,
+}
 
 const DB_POLL_INTERVAL = 250
 
@@ -38,21 +50,64 @@ export interface SearchResults {
   hydes: HydeQuery[]
   phase: SearchPhase
   error: string | null
+  hasMore: boolean
+  loadMore: () => void
 }
 
 const readDescription = (): string | undefined =>
   getSettings(getFileRaw(SETTINGS_FILE))?.description
 
+interface FilterState {
+  rawHits: SearchHit[]
+  cursor: number
+  description: string
+  highlight: string
+  loading: boolean
+  cancelled: boolean
+}
+
 export const useSearchResults = (searchId: string, revision = 0): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const search = findSearchById(files, searchId)
   const [settled, setSettled] = useState<SettledState>(EMPTY)
+  const filterRef = useRef<FilterState | null>(null)
+
+  const filterNextChunk = useCallback(async () => {
+    const state = filterRef.current
+    if (!state || state.loading || state.cancelled || state.cursor >= state.rawHits.length) return
+
+    state.loading = true
+    setSettled((prev) => ({ ...prev, phase: "filtering" }))
+
+    const remaining = state.rawHits.slice(state.cursor)
+    const filterFn = (hit: SearchHit) => filterOneHit(hit, state.description, state.highlight)
+    const appendHits = (hits: SearchHit[]) => {
+      if (state.cancelled) return
+      setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
+    }
+
+    const { consumed } = await processPool(remaining, filterFn, appendHits, {
+      concurrency: FILTER_CONCURRENCY,
+      target: FILTER_CHUNK_TARGET,
+    })
+
+    if (state.cancelled) return
+
+    state.cursor += consumed
+    state.loading = false
+
+    const hasMore = state.cursor < state.rawHits.length
+    setSettled((prev) => ({ ...prev, phase: hasMore ? "idle" : "done", hasMore }))
+  }, [])
 
   useEffect(() => {
     if (!search) return
 
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | null = null
+
+    if (filterRef.current) filterRef.current.cancelled = true
+    filterRef.current = null
 
     const run = async () => {
       const db = getDatabase()
@@ -61,7 +116,14 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
         return
       }
 
-      setSettled({ results: [], hydes: [], error: null, searchId, phase: "searching" })
+      setSettled({
+        results: [],
+        hydes: [],
+        error: null,
+        searchId,
+        phase: "searching",
+        hasMore: false,
+      })
 
       const description = await ensureDescription(readDescription(), db)
       const resolved = await resolveSemanticSql(search.sql, {
@@ -81,6 +143,7 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
           error: resolved.error.message,
           searchId,
           phase: "done",
+          hasMore: false,
         })
         return
       }
@@ -100,29 +163,32 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
           error: sanitizeSemanticError(rawHits.error.message),
           searchId,
           phase: "done",
+          hasMore: false,
         })
         return
       }
 
-      setSettled((prev) => ({ ...prev, hydes, phase: "filtering" }))
+      setSettled((prev) => ({ ...prev, hydes }))
 
-      const appendHits = (hits: SearchHit[]) => {
-        if (cancelled) return
-        setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
+      filterRef.current = {
+        rawHits: rawHits.value,
+        cursor: 0,
+        description,
+        highlight: search.highlight,
+        loading: false,
+        cancelled,
       }
 
-      await streamFilterHits(rawHits.value, description, search.highlight, appendHits)
-      if (cancelled) return
-
-      setSettled((prev) => ({ ...prev, phase: "done" }))
+      filterNextChunk()
     }
 
     run()
     return () => {
       cancelled = true
+      if (filterRef.current) filterRef.current.cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [search, searchId, revision])
+  }, [search, searchId, revision, filterNextChunk])
 
   return {
     search,
@@ -130,5 +196,7 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
     hydes: settled.hydes,
     phase: settled.phase,
     error: settled.error,
+    hasMore: settled.hasMore,
+    loadMore: filterNextChunk,
   }
 }

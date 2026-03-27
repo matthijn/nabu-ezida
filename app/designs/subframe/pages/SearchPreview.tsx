@@ -12,8 +12,6 @@ import { FeatherBarChart2 } from "@subframe/core";
 import { FeatherBookmark } from "@subframe/core";
 import { FeatherBookOpen } from "@subframe/core";
 import { FeatherChevronDown } from "@subframe/core";
-import { FeatherChevronLeft } from "@subframe/core";
-import { FeatherChevronRight } from "@subframe/core";
 import { FeatherExternalLink } from "@subframe/core";
 import { FeatherFileText } from "@subframe/core";
 import { FeatherLayers } from "@subframe/core";
@@ -212,30 +210,20 @@ function SearchPreview() {
                     Filter by tag:
                   </span>
                   <ToggleGroup value="" onValueChange={(value: string) => {}}>
-                    <ToggleGroup.Item icon={null} value="3d6f5466">
+                    <ToggleGroup.Item icon={null} value="646d6531">
                       All
                     </ToggleGroup.Item>
-                    <ToggleGroup.Item icon={null} value="3eaa07e2">
+                    <ToggleGroup.Item icon={null} value="ac902411">
                       Framework
                     </ToggleGroup.Item>
-                    <ToggleGroup.Item icon={null} value="98c6d5ef">
+                    <ToggleGroup.Item icon={null} value="b96172f0">
                       Corpus
                     </ToggleGroup.Item>
-                    <ToggleGroup.Item icon={null} value="7aab6809">
+                    <ToggleGroup.Item icon={null} value="7f2fc7bb">
                       Literature
                     </ToggleGroup.Item>
                   </ToggleGroup>
                 </div>
-              </div>
-            </div>
-            <div className="flex w-full items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-body-bold font-body-bold text-default-font">
-                  24 results
-                </span>
-                <span className="text-body font-body text-subtext-color">
-                  across 8 documents
-                </span>
               </div>
             </div>
             <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-200" />
@@ -602,36 +590,22 @@ function SearchPreview() {
                 </div>
               </div>
             </div>
-            <div className="flex w-full items-center justify-center gap-4 py-4">
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronLeft />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-brand-600">
-                  <span className="text-body-bold font-body-bold text-white">
-                    1
-                  </span>
-                </div>
-                <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-neutral-100 cursor-pointer">
-                  <span className="text-body font-body text-default-font">
-                    2
-                  </span>
-                </div>
-                <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-neutral-100 cursor-pointer">
-                  <span className="text-body font-body text-default-font">
-                    3
-                  </span>
-                </div>
-              </div>
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronRight />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-solid border-neutral-300 bg-white px-4 py-2 shadow-lg fixed bottom-6 left-1/2 -translate-x-1/2">
+          <span className="text-body font-body text-default-font">
+            24 results so far
+          </span>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-solid border-neutral-200 bg-neutral-50 px-4 py-2 shadow-sm fixed bottom-32 left-1/2 -translate-x-1/2 opacity-60 cursor-not-allowed">
+          <span className="text-body font-body text-neutral-500">
+            24 results · No more results found
+          </span>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-solid border-brand-600 bg-brand-600 px-5 py-2.5 shadow-md fixed bottom-20 left-1/2 -translate-x-1/2 cursor-pointer hover:bg-brand-700 hover:border-brand-700 transition-all">
+          <span className="text-body-bold font-body-bold text-white">
+            Search for more
+          </span>
         </div>
       </div>
     </div>

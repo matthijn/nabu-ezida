@@ -52,7 +52,7 @@ const formatEmpty = (sql: string): ToolResult<unknown> => ({
 
 const formatOutput = (id: string, hits: SearchHit[]): string => {
   const lines = hits.map(formatHit).join("\n")
-  return `file://${id}\n${hits.length} results:\n${lines}`
+  return `file://${id}\nresult samples:\n${lines}`
 }
 
 const filterEarly = async (
@@ -61,10 +61,11 @@ const filterEarly = async (
   highlight: string
 ): Promise<SearchHit[]> => {
   const filterFn = (hit: SearchHit) => filterOneHit(hit, description, highlight)
-  return processPool(hits, filterFn, noop, {
+  const { results } = await processPool(hits, filterFn, noop, {
     concurrency: EARLY_RETURN_TARGET,
     target: EARLY_RETURN_TARGET,
   })
+  return results
 }
 
 const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {

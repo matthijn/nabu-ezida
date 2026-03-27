@@ -35,6 +35,10 @@ const toCosineMap = (rows: ScoredChunk[]): Map<string, number> => {
   return map
 }
 
+const MIN_FUSED_SCORE = 0.3
+
+const isAboveMinScore = ([, score]: [string, number]): boolean => score > MIN_FUSED_SCORE
+
 export const fuseCosineResults = (cosinePerHyde: ScoredChunk[][], limit: number): ScoredChunk[] => {
   const scoreMaps = cosinePerHyde.map(toCosineMap)
   const totals = mergeScoreMaps(scoreMaps)
@@ -42,7 +46,10 @@ export const fuseCosineResults = (cosinePerHyde: ScoredChunk[][], limit: number)
   const allChunks = cosinePerHyde.flat()
   const chunkLookup = buildChunkLookup(allChunks)
 
-  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit)
+  const sorted = [...totals.entries()]
+    .filter(isAboveMinScore)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
 
   return sorted.flatMap(([key, score]) => {
     const chunk = chunkLookup.get(key)

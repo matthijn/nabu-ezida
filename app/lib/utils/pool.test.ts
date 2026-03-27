@@ -89,9 +89,9 @@ describe("processPool", () => {
   it.each(cases)("$name", async ({ items, fn, concurrency, target, expectedMin, expectedMax }) => {
     const batches: number[][] = []
     const onResults = (results: number[]) => batches.push(results)
-    const all = await processPool(items, fn, onResults, { concurrency, target })
-    expect(all.length).toBeGreaterThanOrEqual(expectedMin)
-    expect(all.length).toBeLessThanOrEqual(expectedMax)
+    const { results } = await processPool(items, fn, onResults, { concurrency, target })
+    expect(results.length).toBeGreaterThanOrEqual(expectedMin)
+    expect(results.length).toBeLessThanOrEqual(expectedMax)
   })
 
   it("respects concurrency limit", async () => {
@@ -104,7 +104,9 @@ describe("processPool", () => {
       active--
       return [n]
     }
-    await processPool([1, 2, 3, 4, 5, 6], fn, noop, { concurrency: 2 })
+    await processPool([1, 2, 3, 4, 5, 6], fn, noop as (results: number[]) => void, {
+      concurrency: 2,
+    })
     expect(peak).toBeLessThanOrEqual(2)
   })
 
@@ -119,6 +121,27 @@ describe("processPool", () => {
     expect(batches).toEqual([[1], [2], [3]])
   })
 
+  it("consumed reflects items processed with target", async () => {
+    const { results, consumed } = await processPool(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      (n) => immediate([n]),
+      noop as (results: number[]) => void,
+      { concurrency: 1, target: 3 }
+    )
+    expect(results).toHaveLength(3)
+    expect(consumed).toBe(3)
+  })
+
+  it("consumed equals items length without target", async () => {
+    const { consumed } = await processPool(
+      [1, 2, 3],
+      (n) => immediate([n]),
+      noop as (results: number[]) => void,
+      { concurrency: 2 }
+    )
+    expect(consumed).toBe(3)
+  })
+
   it("continues past failed items", async () => {
     let call = 0
     const fn = async (n: number): Promise<number[]> => {
@@ -126,7 +149,9 @@ describe("processPool", () => {
       if (call === 2) throw new Error("boom")
       return [n]
     }
-    const result = await processPool([1, 2, 3], fn, noop, { concurrency: 1 })
-    expect(result).toEqual([1, 3])
+    const { results } = await processPool([1, 2, 3], fn, noop as (results: number[]) => void, {
+      concurrency: 1,
+    })
+    expect(results).toEqual([1, 3])
   })
 })
