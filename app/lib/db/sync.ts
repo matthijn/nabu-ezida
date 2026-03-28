@@ -1,7 +1,7 @@
 import type { FileStore } from "~/lib/files/store"
 import type { TableSchema, JsonSchema, DbError } from "./types"
 import type { ProjectionConfig } from "./projection"
-import type { RunSql } from "./query"
+import type { DbConnection } from "./query"
 import { extractRows } from "./extract"
 import { ok, type Result } from "~/lib/fp/result"
 
@@ -42,32 +42,6 @@ const isAllowedFile = (filename: string, allowedFiles?: string[]): boolean =>
 
 const escapeString = (value: string): string => value.replace(/'/g, "''")
 
-const isNumberArray = (value: unknown[]): value is number[] =>
-  value.length > 0 && typeof value[0] === "number"
-
-const formatValue = (value: unknown): string => {
-  if (value === null || value === undefined) return "NULL"
-  if (typeof value === "boolean") return value.toString()
-  if (typeof value === "number") return value.toString()
-  if (Array.isArray(value)) {
-    if (isNumberArray(value)) return `[${value.join(", ")}]`
-    const items = value.map((v) => `'${escapeString(String(v))}'`).join(", ")
-    return `[${items}]`
-  }
-  return `'${escapeString(String(value))}'`
-}
-
-const buildInsertSql = (table: string, rows: Record<string, unknown>[]): string => {
-  if (rows.length === 0) return ""
-  const columns = Object.keys(rows[0])
-  const columnList = columns.join(", ")
-  const valueRows = rows.map((row) => {
-    const values = columns.map((col) => formatValue(row[col])).join(", ")
-    return `(${values})`
-  })
-  return `INSERT INTO ${table} (${columnList}) VALUES ${valueRows.join(", ")};`
-}
-
 const effectiveFile = (config: ProjectionConfig, filename: string): string =>
   config.fileMapper?.(filename) ?? filename
 
@@ -76,6 +50,18 @@ const isEmbeddingsFile = (filename: string): boolean => filename.endsWith(".embe
 const isEmbeddingsProjection = (config: ProjectionConfig): boolean =>
   config.fileMapper !== undefined
 
+const resolveBlocks = (
+  config: ProjectionConfig,
+  raw: string,
+  getBlocks: (raw: string, language: string) => Record<string, unknown>[],
+  getBlock: (raw: string, language: string) => Record<string, unknown> | null
+): Record<string, unknown>[] =>
+  config.blockParser
+    ? config.blockParser(raw)
+    : config.singleton
+      ? ([getBlock(raw, config.language)].filter(Boolean) as Record<string, unknown>[])
+      : getBlocks(raw, config.language)
+
 const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: string): string => {
   const file = effectiveFile(projection.config, filename)
   return projection.schemas
@@ -83,21 +69,53 @@ const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: st
     .join("\n")
 }
 
+interface TableInsert {
+  columns: TableSchema["columns"]
+  rows: Record<string, unknown>[]
+}
+
+const findTableSchema = (schemas: TableSchema[], tableName: string): TableSchema => {
+  const schema = schemas.find((s) => s.name === tableName)
+  if (!schema) throw new Error(`Unknown table in projection: ${tableName}`)
+  return schema
+}
+
+const accumulateRows = (
+  inserts: Map<string, TableInsert>,
+  schemas: TableSchema[],
+  tableName: string,
+  jsonSchema: JsonSchema,
+  block: Record<string, unknown>,
+  file: string
+): void => {
+  const tableRows = extractRows(tableName, jsonSchema, block, file)
+  for (const { table, rows } of tableRows) {
+    if (rows.length === 0) continue
+    const existing = inserts.get(table)
+    if (existing) {
+      existing.rows.push(...rows)
+    } else {
+      inserts.set(table, { columns: findTableSchema(schemas, table).columns, rows: [...rows] })
+    }
+  }
+}
+
 export const syncFiles = async (
-  runSql: RunSql,
+  conn: DbConnection,
   plan: SyncPlan,
   files: FileStore,
   projections: ProjectionWithSchema[],
   getBlocks: (raw: string, language: string) => Record<string, unknown>[],
   getBlock: (raw: string, language: string) => Record<string, unknown> | null
 ): Promise<Result<void, DbError>> => {
-  const statements: string[] = []
+  const deleteStatements: string[] = []
+  const inserts = new Map<string, TableInsert>()
 
   for (const filename of plan.deleted) {
     const embedded = isEmbeddingsFile(filename)
     for (const p of projections) {
       if (embedded !== isEmbeddingsProjection(p.config)) continue
-      statements.push(buildProjectionDeleteSql(p, filename))
+      deleteStatements.push(buildProjectionDeleteSql(p, filename))
     }
   }
 
@@ -105,31 +123,34 @@ export const syncFiles = async (
     const embedded = isEmbeddingsFile(filename)
     for (const p of projections) {
       if (embedded !== isEmbeddingsProjection(p.config)) continue
-      statements.push(buildProjectionDeleteSql(p, filename))
+      deleteStatements.push(buildProjectionDeleteSql(p, filename))
     }
 
     const raw = files[filename]
 
-    for (const { config, jsonSchema } of projections) {
+    for (const { config, jsonSchema, schemas } of projections) {
       if (embedded !== isEmbeddingsProjection(config)) continue
       if (!isAllowedFile(filename, config.allowedFiles)) continue
 
       const file = effectiveFile(config, filename)
-      const blocks = config.singleton
-        ? ([getBlock(raw, config.language)].filter(Boolean) as Record<string, unknown>[])
-        : getBlocks(raw, config.language)
+      const blocks = resolveBlocks(config, raw, getBlocks, getBlock)
 
       for (const block of blocks) {
-        const tableRows = extractRows(config.tableName, jsonSchema, block, file)
-        for (const { table, rows } of tableRows) {
-          if (rows.length > 0) statements.push(buildInsertSql(table, rows))
-        }
+        accumulateRows(inserts, schemas, config.tableName, jsonSchema, block, file)
       }
     }
   }
 
-  if (statements.length === 0) return ok(undefined)
+  if (deleteStatements.length > 0) {
+    const result = await conn.runSql(deleteStatements.join("\n"))
+    if (!result.ok) return result
+  }
 
-  const sql = statements.join("\n")
-  return runSql(sql)
+  for (const [tableName, { columns, rows }] of inserts) {
+    if (rows.length === 0) continue
+    const result = await conn.insertTable(tableName, columns, rows)
+    if (!result.ok) return result
+  }
+
+  return ok(undefined)
 }

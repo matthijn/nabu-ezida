@@ -66,10 +66,10 @@ const runSync = async (
   let processed = 0
   const batches = batchSyncPlan(plan, DB_SYNC_BATCH_SIZE)
 
-  await executeWithConnection(db.instance, async (runSql) => {
+  await executeWithConnection(db.instance, async (conn) => {
     for (const batch of batches) {
       const result = await syncFiles(
-        runSql,
+        conn,
         batch,
         currentFiles,
         withSchemas,

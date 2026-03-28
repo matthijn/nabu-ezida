@@ -1,8 +1,18 @@
 import type { AsyncDuckDB } from "@duckdb/duckdb-wasm"
 import { ok, err, type Result } from "~/lib/fp/result"
-import type { DbError, QueryResult } from "./types"
+import type { DbColumn, DbError, QueryResult } from "./types"
+import { rowsToArrowTable } from "./arrow"
 
 export type RunSql = (sql: string) => Promise<Result<void, DbError>>
+
+export interface DbConnection {
+  runSql: RunSql
+  insertTable: (
+    tableName: string,
+    columns: DbColumn[],
+    rows: Record<string, unknown>[]
+  ) => Promise<Result<void, DbError>>
+}
 
 const extractMessage = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause)
@@ -33,7 +43,7 @@ export const executeQuery = async <T = unknown>(
 
 export const executeWithConnection = async <T>(
   db: AsyncDuckDB,
-  fn: (runSql: RunSql) => Promise<T>
+  fn: (conn: DbConnection) => Promise<T>
 ): Promise<T> => {
   const conn = await db.connect()
 
@@ -46,8 +56,22 @@ export const executeWithConnection = async <T>(
     }
   }
 
+  const insertTable = async (
+    tableName: string,
+    columns: DbColumn[],
+    rows: Record<string, unknown>[]
+  ): Promise<Result<void, DbError>> => {
+    try {
+      const table = rowsToArrowTable(columns, rows)
+      await conn.insertArrowTable(table, { name: tableName, create: false })
+      return ok(undefined)
+    } catch (cause) {
+      return err(createDbError(`Insert failed: ${extractMessage(cause)}`, cause))
+    }
+  }
+
   try {
-    return await fn(runSql)
+    return await fn({ runSql, insertTable })
   } finally {
     await conn.close()
   }

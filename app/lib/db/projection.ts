@@ -9,4 +9,5 @@ export interface ProjectionConfig {
   expose?: boolean
   fileMapper?: (filename: string) => string
   hiddenColumns?: string[]
+  blockParser?: (raw: string) => Record<string, unknown>[]
 }

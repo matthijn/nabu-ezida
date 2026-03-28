@@ -5,6 +5,7 @@ import {
   isCompanionFile,
   buildCompanionMarkdown,
   parseCompanionEntries,
+  fastParseBlockContents,
 } from "./companion"
 import type { EmbeddingEntry } from "./diff"
 
@@ -87,5 +88,47 @@ describe("roundtrip", () => {
     const companion = companionFilename(original)
     const recovered = sourceFilename(companion)
     expect(recovered).toBe(original)
+  })
+})
+
+describe("fastParseBlockContents", () => {
+  const cases: { name: string; input: string; expected: string[] }[] = [
+    {
+      name: "single block",
+      input: '```json-embeddings\n{"hash":"a","text":"hi","embedding":[0.1]}\n```',
+      expected: ['{"hash":"a","text":"hi","embedding":[0.1]}'],
+    },
+    {
+      name: "multiple blocks",
+      input: '```json-embeddings\n{"hash":"a"}\n```\n\n```json-embeddings\n{"hash":"b"}\n```',
+      expected: ['{"hash":"a"}', '{"hash":"b"}'],
+    },
+    {
+      name: "no blocks",
+      input: "just plain text",
+      expected: [],
+    },
+    {
+      name: "wrong language ignored",
+      input: '```json-callout\n{"id":"x"}\n```',
+      expected: [],
+    },
+    {
+      name: "roundtrip with buildCompanionMarkdown",
+      input: buildCompanionMarkdown([
+        { hash: "aaa", text: "hello", embedding: [0.1, 0.2] },
+        { hash: "bbb", text: "world", embedding: [0.3, 0.4] },
+      ]),
+      expected: [
+        '{"hash":"aaa","text":"hello","embedding":[0.1,0.2]}',
+        '{"hash":"bbb","text":"world","embedding":[0.3,0.4]}',
+      ],
+    },
+  ]
+
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      expect(fastParseBlockContents(input)).toEqual(expected)
+    })
   })
 })

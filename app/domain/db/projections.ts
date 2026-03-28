@@ -5,6 +5,28 @@ import { CalloutSchema } from "~/domain/data-blocks/callout/schema"
 import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
 import { Settings } from "~/domain/data-blocks/settings/schema"
 import { EmbeddingRowSchema } from "~/domain/embeddings/schema"
+import { fastParseBlockContents } from "~/lib/embeddings/companion"
+
+const isValidEmbeddingBlock = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" &&
+  v !== null &&
+  typeof (v as Record<string, unknown>).hash === "string" &&
+  typeof (v as Record<string, unknown>).text === "string" &&
+  Array.isArray((v as Record<string, unknown>).embedding)
+
+const parseCompanionBlock = (content: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(content)
+    return isValidEmbeddingBlock(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+const parseCompanionBlocksForDb = (raw: string): Record<string, unknown>[] =>
+  fastParseBlockContents(raw)
+    .map(parseCompanionBlock)
+    .filter((b): b is Record<string, unknown> => b !== null)
 
 export const projections: ProjectionConfig[] = [
   {
@@ -33,6 +55,7 @@ export const projections: ProjectionConfig[] = [
     singleton: false,
     fileMapper: (f) => f.replace(/\.embeddings\.hidden\.md$/, ".md"),
     hiddenColumns: ["hash", "embedding"],
+    blockParser: parseCompanionBlocksForDb,
   },
 ]
 

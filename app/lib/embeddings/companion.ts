@@ -41,3 +41,21 @@ export const parseCompanionEntries = (markdown: string): EmbeddingEntry[] =>
   findBlocksByLanguage(markdown, LANGUAGE)
     .map((block) => parseEntry(block.content))
     .filter((e): e is EmbeddingEntry => e !== null)
+
+const FENCE_OPEN = `\`\`\`${LANGUAGE}\n`
+const FENCE_CLOSE = "\n```"
+
+export const fastParseBlockContents = (markdown: string): string[] => {
+  const blocks: string[] = []
+  let pos = 0
+  while (pos < markdown.length) {
+    const openIdx = markdown.indexOf(FENCE_OPEN, pos)
+    if (openIdx === -1) break
+    const contentStart = openIdx + FENCE_OPEN.length
+    const closeIdx = markdown.indexOf(FENCE_CLOSE, contentStart)
+    if (closeIdx === -1) break
+    blocks.push(markdown.slice(contentStart, closeIdx))
+    pos = closeIdx + FENCE_CLOSE.length
+  }
+  return blocks
+}
