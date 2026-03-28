@@ -1,9 +1,11 @@
 import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
 import { getFileRaw, updateFileRaw, finalizeContent } from "~/lib/files"
 import { replaceSingletonBlock } from "~/lib/data-blocks/parse"
-import { SETTINGS_FILE } from "~/lib/files/filename"
+import { SETTINGS_FILE, isHiddenFile } from "~/lib/files/filename"
 import { getSettings } from "~/domain/data-blocks/settings/selectors"
 import { getDatabase } from "~/domain/db/database"
+import { getLlmHost } from "~/lib/agent/env"
+import { fetchEmbeddingBatch } from "~/lib/embeddings/client"
 import { startDescriptionSync } from "~/lib/project-description/sync"
 
 const readDescription = (): string | undefined =>
@@ -22,29 +24,32 @@ const writeDescription = (description: string): void => {
   updateFileRaw(result.path, result.content)
 }
 
-const hasNonSettingsChanges = (prev: FileStore, curr: FileStore): boolean => {
+const hasContentChanges = (prev: FileStore, curr: FileStore): boolean => {
   const allKeys = new Set([...Object.keys(prev), ...Object.keys(curr)])
-  allKeys.delete(SETTINGS_FILE)
   for (const key of allKeys) {
+    if (isHiddenFile(key)) continue
     if (prev[key] !== curr[key]) return true
   }
   return false
 }
 
-const subscribeNonSettings = (listener: () => void): (() => void) => {
+const subscribeContentChanges = (listener: () => void): (() => void) => {
   let previous = getFiles()
   return subscribe(() => {
     const current = getFiles()
-    const changed = hasNonSettingsChanges(previous, current)
+    const changed = hasContentChanges(previous, current)
     previous = current
     if (changed) listener()
   })
 }
+
+const embedTexts = (texts: string[]) => fetchEmbeddingBatch(texts, getLlmHost())
 
 export const startProjectDescription = (): (() => void) =>
   startDescriptionSync({
     getDatabase,
     readDescription,
     writeDescription,
-    subscribe: subscribeNonSettings,
+    subscribe: subscribeContentChanges,
+    embedTexts,
   })

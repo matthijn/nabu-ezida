@@ -1,5 +1,5 @@
 import type { Database } from "~/lib/db/types"
-import { sampleByLanguage } from "~/lib/project-description/sample"
+import { samplePassages } from "~/lib/project-description/sample"
 import { generateDescription } from "~/lib/project-description/generate"
 
 const DEFAULT_DESCRIPTION = "A document collection."
@@ -10,11 +10,9 @@ export const ensureDescription = async (
 ): Promise<string> => {
   if (current) return current
 
-  const result = await sampleByLanguage(db)
+  const result = await samplePassages(db)
   if (!result.ok) return DEFAULT_DESCRIPTION
-
-  const hasContent = result.value.some((s) => s.passages.length > 0)
-  if (!hasContent) return DEFAULT_DESCRIPTION
+  if (result.value.length === 0) return DEFAULT_DESCRIPTION
 
   try {
     return await generateDescription(result.value)
