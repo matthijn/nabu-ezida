@@ -18,6 +18,7 @@ export interface SemanticContext {
   db: Database
   baseUrl: string
   description: string
+  skipCache?: boolean
 }
 
 const LANGUAGES_SQL = "SELECT DISTINCT language FROM files WHERE language IS NOT NULL"
@@ -67,7 +68,7 @@ export const resolveSemanticSql = async (
   if (languages.length === 0)
     return notReady("No languages detected in corpus. Embeddings may still be syncing.")
 
-  const hydeResult = await generateHydes(ctx.description, languages, token.text)
+  const hydeResult = await generateHydes(ctx.description, languages, token.text, ctx.skipCache)
 
   const allTexts = collectAllTexts(hydeResult)
   const embeddingResult = await fetchEmbeddingBatch(allTexts, ctx.baseUrl)

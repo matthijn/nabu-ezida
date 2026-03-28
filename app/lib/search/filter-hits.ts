@@ -1,6 +1,6 @@
 import type { SearchHit } from "~/domain/search"
 import { callLlm, extractText } from "~/lib/agent/client"
-import { cacheInStorage } from "~/lib/utils/storage-cache"
+import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
 import { processPool } from "~/lib/utils/pool"
 
 const SEMANTIC_FILTER_ENDPOINT = "/semantic-filter"
@@ -45,17 +45,33 @@ const callSemanticFilter = async (
   return extractText(blocks) ?? ""
 }
 
-const cachedCallSemanticFilter = cacheInStorage("filter", callSemanticFilter)
+const FILTER_CACHE_PREFIX = "filter"
+const FILTER_CACHE_CAP = 20_000
+
+const cachedCallSemanticFilter = async (
+  description: string,
+  intent: string,
+  passage: string
+): Promise<string> => {
+  const key = buildKey([intent, passage])
+  const cached = await tryGet<string>(FILTER_CACHE_PREFIX, key)
+  if (cached !== undefined) return cached
+  const result = await callSemanticFilter(description, intent, passage)
+  await tryPut(FILTER_CACHE_PREFIX, key, result, FILTER_CACHE_CAP)
+  return result
+}
 
 export const filterOneHit = async (
   hit: SearchHit,
   description: string,
-  intent: string
+  intent: string,
+  skipCache = false
 ): Promise<SearchHit[]> => {
   if (!hit.text) return [hit]
 
   try {
-    const response = await cachedCallSemanticFilter(description, intent, hit.text)
+    const call = skipCache ? callSemanticFilter : cachedCallSemanticFilter
+    const response = await call(description, intent, hit.text)
     if (!response || !hasMarkedSpans(response)) return []
 
     return extractMarkedSections(response.trim(), hit.file, hit.id)

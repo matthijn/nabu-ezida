@@ -62,6 +62,7 @@ interface FilterState {
   cursor: number
   description: string
   highlight: string
+  skipCache: boolean
   loading: boolean
   cancelled: boolean
 }
@@ -69,7 +70,7 @@ interface FilterState {
 export const useSearchResults = (
   searchId: string,
   revision = 0,
-  skipLlmFilter = false
+  skipCache = false
 ): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const search = findSearchById(files, searchId)
@@ -84,7 +85,8 @@ export const useSearchResults = (
     setSettled((prev) => ({ ...prev, phase: "filtering" }))
 
     const remaining = state.rawHits.slice(state.cursor)
-    const filterFn = (hit: SearchHit) => filterOneHit(hit, state.description, state.highlight)
+    const filterFn = (hit: SearchHit) =>
+      filterOneHit(hit, state.description, state.highlight, state.skipCache)
     const appendHits = (hits: SearchHit[]) => {
       if (state.cancelled) return
       setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
@@ -134,6 +136,7 @@ export const useSearchResults = (
         db,
         baseUrl: getLlmHost(),
         description,
+        skipCache,
       })
       if (cancelled) return
       if (!resolved.ok) {
@@ -174,21 +177,12 @@ export const useSearchResults = (
 
       setSettled((prev) => ({ ...prev, hydes }))
 
-      if (skipLlmFilter) {
-        setSettled((prev) => ({
-          ...prev,
-          results: rawHits.value,
-          phase: "done",
-          hasMore: false,
-        }))
-        return
-      }
-
       filterRef.current = {
         rawHits: rawHits.value,
         cursor: 0,
         description,
         highlight: search.highlight,
+        skipCache,
         loading: false,
         cancelled,
       }
@@ -202,7 +196,7 @@ export const useSearchResults = (
       if (filterRef.current) filterRef.current.cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [search, searchId, revision, filterNextChunk])
+  }, [search, searchId, revision, skipCache, filterNextChunk])
 
   return {
     search,

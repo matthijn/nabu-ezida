@@ -42,10 +42,16 @@ const callHydeGenerator = async (
   return result.data
 }
 
-const cachedCallHydeGenerator = cacheInStorage("hyde", callHydeGenerator)
+const HYDE_CACHE_CAP = 1_000
+
+const cachedCallHydeGenerator = cacheInStorage("hyde", callHydeGenerator, HYDE_CACHE_CAP)
 
 export const generateHydes = (
   description: string,
   languages: string[],
-  query: string
-): Promise<HydeResult> => cachedCallHydeGenerator(description, languages.join("\0"), query)
+  query: string,
+  skipCache = false
+): Promise<HydeResult> => {
+  const call = skipCache ? callHydeGenerator : cachedCallHydeGenerator
+  return call(description, languages.join("\0"), query)
+}

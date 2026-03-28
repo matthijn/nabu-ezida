@@ -32,7 +32,12 @@ export const DEBUG_TOGGLES: DebugToggle[] = [
     defaultValue: false,
   },
   { key: "stepCompaction", label: "Step compaction", icon: <FeatherFilter />, defaultValue: false },
-  { key: "skipLlmFilter", label: "Skip LLM filter", icon: <FeatherFilter />, defaultValue: false },
+  {
+    key: "skipSearchCache",
+    label: "Skip search cache",
+    icon: <FeatherFilter />,
+    defaultValue: false,
+  },
 ]
 
 export type DebugOptions = Record<string, boolean>
