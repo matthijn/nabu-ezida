@@ -225,7 +225,7 @@ export default function ProjectLayout() {
       if (cancelled) return
       setDbReady(true)
 
-      setStatusLabel("Building embeddings...")
+      setStatusLabel("Understanding your content...")
       await startEmbeddings()
       if (cancelled) return
       setEmbeddingsDone(true)

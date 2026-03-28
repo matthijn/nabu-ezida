@@ -75,7 +75,8 @@ export default function ProjectSearch() {
   const [revision, _setRevision] = useState(0)
   const { search, results, hydes, phase, error, hasMore, loadMore } = useSearchResults(
     params.searchId ?? "",
-    revision
+    revision,
+    !!debugOptions.skipLlmFilter
   )
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)

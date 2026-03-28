@@ -66,7 +66,11 @@ interface FilterState {
   cancelled: boolean
 }
 
-export const useSearchResults = (searchId: string, revision = 0): SearchResults => {
+export const useSearchResults = (
+  searchId: string,
+  revision = 0,
+  skipLlmFilter = false
+): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const search = findSearchById(files, searchId)
   const [settled, setSettled] = useState<SettledState>(EMPTY)
@@ -169,6 +173,16 @@ export const useSearchResults = (searchId: string, revision = 0): SearchResults 
       }
 
       setSettled((prev) => ({ ...prev, hydes }))
+
+      if (skipLlmFilter) {
+        setSettled((prev) => ({
+          ...prev,
+          results: rawHits.value,
+          phase: "done",
+          hasMore: false,
+        }))
+        return
+      }
 
       filterRef.current = {
         rawHits: rawHits.value,
