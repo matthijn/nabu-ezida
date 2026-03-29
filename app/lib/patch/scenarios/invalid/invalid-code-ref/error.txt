@@ -1,7 +1,5 @@
-json-attributes.annotations: Code "nonexistent-code-id" not found Available: {}
+json-annotations: Code "nonexistent-code-id" not found Available: {}
 Current block:
-```json-attributes
-{
-  "tags": ["interview"]
-}
+```json-annotations
+[]
 ```

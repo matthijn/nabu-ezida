@@ -1,4 +1,4 @@
-import { parseCodeBlocks, type CodeBlock } from "./parse"
+import { parseCodeBlocks, replaceBlockContents, type CodeBlock } from "./parse"
 import { getLabelKey, getIdPaths } from "~/lib/data-blocks/registry"
 import type { IdPathConfig } from "~/lib/data-blocks/definition"
 import { tryParseJson, isObject, parsePath } from "./json"
@@ -45,23 +45,10 @@ export const fillMissingIds = (markdown: string, originalContent?: string): Fill
     return { content: markdown, generated: [] }
   }
 
-  let result = markdown
-  let offset = 0
-  const generated: GeneratedId[] = []
+  const content = replaceBlockContents(markdown, updates)
+  const generated = updates.flatMap((u) => u.ids)
 
-  for (const { block, newContent, ids } of updates) {
-    const blockStart = block.start + offset
-    const blockEnd = block.end + offset
-    const original = result.slice(blockStart, blockEnd)
-    const replaced = original.replace(block.content, newContent)
-
-    result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
-    offset += replaced.length - original.length
-
-    generated.push(...ids)
-  }
-
-  return { content: result, generated }
+  return { content, generated }
 }
 
 export const buildGeneratedIdsList = (
@@ -201,6 +188,21 @@ const fillIdPath = (
         id: resolved.newId,
         type: language,
         label: getBlockLabel(parsed, language),
+        source: resolved.source,
+      })
+    }
+  } else if (pathInfo.type === "root-array") {
+    if (!Array.isArray(parsed)) return ids
+
+    for (const item of parsed) {
+      if (!isObject(item)) continue
+      const resolved = resolveId(item[pathInfo.itemField], config.prefix, originalContent)
+      if (!resolved) continue
+      item[pathInfo.itemField] = resolved.newId
+      ids.push({
+        id: resolved.newId,
+        type: language,
+        label: null,
         source: resolved.source,
       })
     }

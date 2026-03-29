@@ -122,6 +122,12 @@ export const startDatabase = async (onProgress?: OnDbSyncProgress): Promise<void
   console.debug("[db] ready. Use window.query('SELECT ...') to query.")
 }
 
+export const syncOnce = async (): Promise<void> => {
+  if (!database) return
+  const withSchemas = buildProjectionsWithSchemas()
+  await runSync(database, withSchemas, getBlocksUntyped, getBlockUntyped)
+}
+
 export const startBackgroundSync = (): void => {
   if (!database) return
   const withSchemas = buildProjectionsWithSchemas()

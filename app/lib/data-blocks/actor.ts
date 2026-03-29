@@ -1,5 +1,5 @@
 import equal from "fast-deep-equal"
-import { parseCodeBlocks, type CodeBlock } from "./parse"
+import { parseCodeBlocks, replaceBlockContents, type CodeBlock } from "./parse"
 import { getActorPaths, isSingleton } from "~/lib/data-blocks/registry"
 import { parsePath, tryParseJson, isObject, type ParsedPath } from "./json"
 
@@ -7,7 +7,7 @@ export const stampActors = (original: string, updated: string, actor: Actor): st
   const newBlocks = parseCodeBlocks(updated)
   const oldBlocks = parseCodeBlocks(original)
 
-  const updates: BlockUpdate[] = []
+  const updates: { block: CodeBlock; newContent: string }[] = []
 
   for (const newBlock of newBlocks) {
     const actorPaths = getActorPaths(newBlock.language)
@@ -30,15 +30,10 @@ export const stampActors = (original: string, updated: string, actor: Actor): st
 
   if (updates.length === 0) return updated
 
-  return applyBlockUpdates(updated, updates)
+  return replaceBlockContents(updated, updates)
 }
 
 type Actor = "ai" | "user"
-
-interface BlockUpdate {
-  block: CodeBlock
-  newContent: string
-}
 
 const withoutField = (obj: Record<string, unknown>, field: string): Record<string, unknown> => {
   const { [field]: _, ...rest } = obj
@@ -121,6 +116,37 @@ const stampArrayActors = (
   }
 }
 
+const stampRootArrayActors = (
+  oldParsed: unknown,
+  newParsed: unknown,
+  itemField: string,
+  actor: Actor
+): void => {
+  if (!Array.isArray(newParsed)) return
+
+  const oldArr = Array.isArray(oldParsed) ? oldParsed : []
+  const oldById = new Map(
+    oldArr
+      .filter(isObject)
+      .filter((item) => item.id)
+      .map((item) => [item.id as string, item])
+  )
+
+  for (const item of newParsed) {
+    if (!isObject(item)) continue
+
+    const oldItem = item.id ? oldById.get(item.id as string) : undefined
+
+    if (!oldItem) {
+      item[itemField] = actor
+    } else {
+      const oldWithout = withoutField(oldItem, itemField)
+      const newWithout = withoutField(item, itemField)
+      item[itemField] = equal(oldWithout, newWithout) ? oldItem[itemField] : actor
+    }
+  }
+}
+
 const stampActorPath = (
   oldParsed: Record<string, unknown> | null,
   newParsed: Record<string, unknown>,
@@ -131,24 +157,9 @@ const stampActorPath = (
 
   if (pathInfo.type === "root") {
     stampRootActor(oldParsed, newParsed, pathInfo.field, actor)
+  } else if (pathInfo.type === "root-array") {
+    stampRootArrayActors(oldParsed, newParsed, pathInfo.itemField, actor)
   } else {
     stampArrayActors(oldParsed, newParsed, pathInfo.arrayField, pathInfo.itemField, actor)
   }
-}
-
-const applyBlockUpdates = (markdown: string, updates: BlockUpdate[]): string => {
-  let result = markdown
-  let offset = 0
-
-  for (const { block, newContent } of updates) {
-    const blockStart = block.start + offset
-    const blockEnd = block.end + offset
-    const section = result.slice(blockStart, blockEnd)
-    const replaced = section.replace(block.content, newContent)
-
-    result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
-    offset += replaced.length - section.length
-  }
-
-  return result
 }

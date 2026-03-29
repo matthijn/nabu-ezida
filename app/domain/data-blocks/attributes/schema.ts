@@ -31,7 +31,9 @@ export type Annotation = z.infer<typeof AnnotationSchema>
 
 export const DocumentMeta = z.object({
   tags: z.array(slug).optional().describe("Tag IDs from settings"),
-  annotations: z.array(AnnotationSchema).optional(),
+  type: z.string().optional().describe("Auto-classified document format"),
+  source: z.string().optional().describe("Auto-classified document source"),
+  subject: z.string().optional().describe("Auto-classified topic, 3-5 words"),
 })
 
 export type DocumentMeta = z.infer<typeof DocumentMeta>

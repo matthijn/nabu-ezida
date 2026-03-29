@@ -1,5 +1,6 @@
 import type { FileStore } from "~/lib/files/store"
 import { debounce } from "~/lib/utils/debounce"
+import { processPool } from "~/lib/utils/pool"
 import { isEmbeddableFile } from "./filter"
 import { companionFilename, buildCompanionMarkdown, parseCompanionEntries } from "./companion"
 import { toEmbeddableText } from "./text"
@@ -7,11 +8,12 @@ import { chunkText } from "./chunk"
 import { diffChunks, type EmbeddingEntry } from "./diff"
 import { fetchEmbeddingBatch } from "./client"
 import { EMBEDDING_SYNC_DEBOUNCE, MAX_EMBEDDING_BATCH_SIZE } from "./constants"
+
 import { detectLanguage } from "~/lib/language/detect"
 
 type ToProseFn = (block: unknown) => string | null
 
-export interface EmbeddingSyncDeps {
+interface EmbeddingSyncDeps {
   getFiles: () => FileStore
   getFile: (f: string) => string | undefined
   updateFile: (f: string, content: string) => void
@@ -19,6 +21,7 @@ export interface EmbeddingSyncDeps {
   subscribe: (listener: () => void) => () => void
   baseUrl: string
   toProseFns: Record<string, ToProseFn>
+  onProgress?: (processed: number, total: number) => void
 }
 
 interface NeededChunk {
@@ -134,24 +137,34 @@ const processSync = async (
 
   const batches = toBatches(allTagged)
   const accumulated = new Map<string, EmbeddingEntry[]>()
+  let processedChunks = 0
+  deps.onProgress?.(0, allTagged.length)
 
-  for (const batch of batches) {
+  const embedBatch = async (batch: TaggedChunk[]): Promise<number[]> => {
     const texts = batch.map((t) => t.chunk.text)
     const result = await fetchEmbeddingBatch(texts, deps.baseUrl)
 
     if (!result.ok) {
       console.error("[embeddings] fetch failed:", result.error)
-      return
+      return []
     }
 
     mergeNewEntries(batch, result.value, accumulated)
     writeCompanions(accumulated, fileChunks, deps)
+    return [batch.length]
   }
 
-  console.debug(`[embeddings] synced ${dirty.length} files, ${allTagged.length} new chunks`)
+  const reportBatchProgress = (counts: number[]) => {
+    processedChunks += counts[0]
+    deps.onProgress?.(processedChunks, allTagged.length)
+  }
+
+  await processPool(batches, embedBatch, reportBatchProgress, {})
+
+  console.debug(`[embeddings] synced ${dirty.length} files, ${processedChunks} new chunks`)
 }
 
-export interface EmbeddingSyncHandle {
+interface EmbeddingSyncHandle {
   ready: Promise<void>
 }
 

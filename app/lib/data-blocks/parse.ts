@@ -115,6 +115,26 @@ export const replaceSingletonBlock = (
   return markdown.trimEnd() + "\n\n" + formatBlock(language, newContent)
 }
 
+export const replaceBlockContents = (
+  markdown: string,
+  updates: { block: CodeBlock; newContent: string }[]
+): string => {
+  let result = markdown
+  let offset = 0
+
+  for (const { block, newContent } of updates) {
+    const blockStart = block.start + offset
+    const blockEnd = block.end + offset
+    const section = result.slice(blockStart, blockEnd)
+    const replaced = section.replace(block.content, newContent)
+
+    result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
+    offset += replaced.length - section.length
+  }
+
+  return result
+}
+
 export const extractProse = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown)
   let prose = markdown

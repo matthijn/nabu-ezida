@@ -1,9 +1,11 @@
-export interface PoolOptions {
-  concurrency: number
+const DEFAULT_CONCURRENCY = 5
+
+interface PoolOptions {
+  concurrency?: number
   target?: number
 }
 
-export interface PoolResult<R> {
+interface PoolResult<R> {
   results: R[]
   consumed: number
 }
@@ -14,7 +16,7 @@ export const processPool = <T, R>(
   onResults: (results: R[]) => void,
   opts: PoolOptions
 ): Promise<PoolResult<R>> => {
-  const { concurrency, target } = opts
+  const { concurrency = DEFAULT_CONCURRENCY, target } = opts
   const all: R[] = []
   let cursor = 0
   let inFlight = 0

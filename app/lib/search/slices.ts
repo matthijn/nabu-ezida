@@ -1,11 +1,10 @@
 import type { SearchHit } from "~/domain/search"
-import type {
-  Annotation,
-  DocumentMeta as DocumentMetaType,
-} from "~/domain/data-blocks/attributes/schema"
-import { findSingletonBlock } from "~/lib/data-blocks/parse"
-import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
+import type { Annotation } from "~/domain/data-blocks/attributes/schema"
 import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
+import { AnnotationsBlockSchema } from "~/domain/data-blocks/annotations/schema"
+import { findSingletonBlock } from "~/lib/data-blocks/parse"
+import { getBlock } from "~/lib/data-blocks/query"
+import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
 
 interface Range {
   start: number
@@ -37,18 +36,21 @@ const boundingRange = (base: Range, extras: Range[]): Range => {
   return { start, end }
 }
 
-const parseDocumentMeta = (fileContent: string): DocumentMetaType | null => {
+const parseTags = (fileContent: string): string[] | undefined => {
   const block = findSingletonBlock(fileContent, "json-attributes")
-  if (!block) return null
+  if (!block) return undefined
   try {
     const parsed = DocumentMeta.safeParse(JSON.parse(block.content))
-    return parsed.success ? parsed.data : null
+    return parsed.success ? parsed.data.tags : undefined
   } catch {
-    return null
+    return undefined
   }
 }
 
-const formatAttributesBlock = (meta: { tags?: string[]; annotations: Annotation[] }): string => {
+const parseAnnotations = (fileContent: string): Annotation[] =>
+  getBlock(fileContent, "json-annotations", AnnotationsBlockSchema) ?? []
+
+const formatAnnotationsBlock = (meta: { tags?: string[]; annotations: Annotation[] }): string => {
   const obj: Record<string, unknown> = {}
   if (meta.tags) obj.tags = meta.tags
   if (meta.annotations.length > 0) obj.annotations = meta.annotations
@@ -90,13 +92,18 @@ export const extractSearchSlice = (hit: SearchHit, fileContent: string): string 
   if (!hit.text) return null
   if (!fileContent) return hit.text
 
-  const meta = parseDocumentMeta(fileContent)
-  if (!meta?.annotations?.length) return hit.text
+  const annotations = parseAnnotations(fileContent)
+  if (annotations.length === 0) return hit.text
 
   const prose = stripAttributesBlock(fileContent)
-  const { text, annotations } = expandSliceWithAnnotations(hit.text, prose, meta.annotations)
-  if (annotations.length === 0) return text
+  const tags = parseTags(fileContent)
+  const { text, annotations: overlapping } = expandSliceWithAnnotations(
+    hit.text,
+    prose,
+    annotations
+  )
+  if (overlapping.length === 0) return text
 
-  const block = formatAttributesBlock({ tags: meta.tags, annotations })
+  const block = formatAnnotationsBlock({ tags, annotations: overlapping })
   return `${text}\n\n${block}`
 }

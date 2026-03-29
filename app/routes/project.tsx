@@ -32,10 +32,12 @@ import {
 import {
   startDatabase,
   waitForDatabase,
+  syncOnce,
   startBackgroundSync,
   type OnDbSyncProgress,
 } from "~/domain/db/database"
 import { startEmbeddings } from "~/domain/embeddings/init"
+import { startTopicAssignment } from "~/domain/topic-assignment/init"
 import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
 import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
@@ -107,9 +109,10 @@ const isSyncMetaCommand = (command: Command): command is Command & { fileCount: 
 
 const isCreateFileCommand = (command: Command): boolean => command.action === "CreateFile"
 
-const FILE_WEIGHT = 40
-const DB_WEIGHT = 50
+const FILE_WEIGHT = 35
+const DB_WEIGHT = 40
 const EMBEDDING_WEIGHT = 10
+const TOPIC_WEIGHT = 15
 
 const computeFileProgress = (loaded: number, total: number): number => {
   if (loaded === 0) return 0
@@ -117,8 +120,8 @@ const computeFileProgress = (loaded: number, total: number): number => {
   return Math.round((loaded / total) * FILE_WEIGHT)
 }
 
-const computeDbProgress = (processed: number, total: number): number =>
-  total === 0 ? 0 : Math.round((processed / total) * DB_WEIGHT)
+const computeWeightedProgress = (processed: number, total: number, weight: number): number =>
+  total === 0 ? 0 : Math.round((processed / total) * weight)
 
 export interface ProjectContextValue {
   files: Record<string, string>
@@ -131,7 +134,6 @@ export interface ProjectContextValue {
     filename: string
   ) => { text: string; color: string; reason?: string; code?: string }[] | undefined
   tagDefinitions: TagDefinition[]
-  dbReady: boolean
 }
 
 export const useProject = () => useOutletContext<ProjectContextValue>()
@@ -143,14 +145,16 @@ export default function ProjectLayout() {
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
-  const [dbReady, setDbReady] = useState(false)
   const [loading, setLoading] = useState(true)
   const [statusLabel, setStatusLabel] = useState("Connecting...")
   const [fileCount, setFileCount] = useState(0)
   const [totalFiles, setTotalFiles] = useState(0)
   const [dbSyncProcessed, setDbSyncProcessed] = useState(0)
   const [dbSyncTotal, setDbSyncTotal] = useState(0)
-  const [embeddingsDone, setEmbeddingsDone] = useState(false)
+  const [embeddingProcessed, setEmbeddingProcessed] = useState(0)
+  const [embeddingTotal, setEmbeddingTotal] = useState(0)
+  const [topicProcessed, setTopicProcessed] = useState(0)
+  const [topicTotal, setTopicTotal] = useState(0)
   useNotifications()
 
   useEffect(() => {
@@ -223,13 +227,27 @@ export default function ProjectLayout() {
       setStatusLabel("Syncing database...")
       await waitForDatabase()
       if (cancelled) return
-      setDbReady(true)
 
       setStatusLabel("Understanding your content...")
-      await startEmbeddings()
+      await startEmbeddings((processed, total) => {
+        setEmbeddingProcessed(processed)
+        setEmbeddingTotal(total)
+      })
       if (cancelled) return
-      setEmbeddingsDone(true)
+      setEmbeddingProcessed((t) => Math.max(t, 1))
+      setEmbeddingTotal((t) => Math.max(t, 1))
 
+      setStatusLabel("Classifying documents...")
+      await startTopicAssignment((processed, total) => {
+        setTopicProcessed(processed)
+        setTopicTotal(total)
+      })
+      if (cancelled) return
+      setTopicProcessed((t) => Math.max(t, 1))
+      setTopicTotal((t) => Math.max(t, 1))
+
+      setStatusLabel("Finalizing...")
+      await syncOnce()
       startBackgroundSync()
       setLoading(false)
     }
@@ -361,9 +379,14 @@ export default function ProjectLayout() {
   }
 
   const fileProgress = computeFileProgress(fileCount, totalFiles)
-  const dbProgress = computeDbProgress(dbSyncProcessed, dbSyncTotal)
-  const embeddingsProgress = embeddingsDone ? EMBEDDING_WEIGHT : 0
-  const totalProgress = fileProgress + dbProgress + embeddingsProgress
+  const dbProgress = computeWeightedProgress(dbSyncProcessed, dbSyncTotal, DB_WEIGHT)
+  const embeddingsProgress = computeWeightedProgress(
+    embeddingProcessed,
+    embeddingTotal,
+    EMBEDDING_WEIGHT
+  )
+  const topicsProgress = computeWeightedProgress(topicProcessed, topicTotal, TOPIC_WEIGHT)
+  const totalProgress = fileProgress + dbProgress + embeddingsProgress + topicsProgress
 
   return (
     <NabuProvider key={params.projectId}>
@@ -386,7 +409,7 @@ export default function ProjectLayout() {
               onRequestCompaction={requestCompaction}
             />
           }
-          rightPanel={<NabuChatSidebar dbReady={dbReady} />}
+          rightPanel={<NabuChatSidebar appReady={!loading} />}
         >
           <div className="flex h-full w-full items-start bg-default-background">
             <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch">
@@ -400,7 +423,6 @@ export default function ProjectLayout() {
                   getFileTags,
                   getFileAnnotations,
                   tagDefinitions,
-                  dbReady,
                 }}
               />
             </div>

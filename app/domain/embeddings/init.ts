@@ -1,15 +1,11 @@
 import { subscribe, getFiles, getFile, updateFileRaw, deleteFile } from "~/lib/files/store"
 import { getLlmHost } from "~/lib/agent/env"
 import { startEmbeddingSync } from "~/lib/embeddings/sync"
-import { calloutToProse } from "~/domain/data-blocks/callout/toProse"
-import { attributesToProse } from "~/domain/data-blocks/attributes/toProse"
+import { toProseFns } from "~/domain/data-blocks/prose-registry"
 
-const toProseFns: Record<string, (block: unknown) => string | null> = {
-  "json-callout": calloutToProse,
-  "json-attributes": attributesToProse,
-}
+type OnSyncProgress = (processed: number, total: number) => void
 
-export const startEmbeddings = (): Promise<void> =>
+export const startEmbeddings = (onProgress?: OnSyncProgress): Promise<void> =>
   startEmbeddingSync({
     getFiles,
     getFile,
@@ -18,4 +14,5 @@ export const startEmbeddings = (): Promise<void> =>
     subscribe,
     baseUrl: getLlmHost(),
     toProseFns,
+    onProgress,
   }).ready

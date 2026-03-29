@@ -99,13 +99,7 @@ describe("patch_json_block", () => {
       args: {
         path: "doc.md",
         language: "json-attributes",
-        operations: [
-          {
-            op: "add",
-            path: "/annotations/-",
-            value: { text: "No blocks here", reason: "r", color: "red" },
-          },
-        ],
+        operations: [{ op: "add", path: "/tags/-", value: "interview" }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -285,14 +279,14 @@ describe("patch_json_block", () => {
     },
     {
       name: "annotation text not found in document — error",
-      files: { "doc.md": doc({ annotations: [] }) },
+      files: { "doc.md": doc([], "json-annotations") },
       args: {
         path: "doc.md",
-        language: "json-attributes",
+        language: "json-annotations",
         operations: [
           {
             op: "add",
-            path: "/annotations/-",
+            path: "/-",
             value: {
               text: "completely nonexistent phrase that appears nowhere",
               reason: "r",

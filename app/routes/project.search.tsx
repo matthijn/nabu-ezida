@@ -102,7 +102,6 @@ export default function ProjectSearch() {
   )
 
   const isFiltering = phase === "filtering"
-  const isDone = phase === "done"
   const fileCount = useMemo(() => countUniqueFiles(filteredResults), [filteredResults])
 
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -165,7 +164,7 @@ export default function ProjectSearch() {
   }
 
   return (
-    <div className="flex h-full w-full flex-col gap-2 bg-neutral-100 p-2">
+    <div className="flex h-full w-full flex-col gap-2 bg-neutral-100 p-2 pb-0">
       <div className="flex-1 overflow-auto rounded-xl bg-default-background px-12 pt-8">
         <div className="flex w-full max-w-[1024px] flex-col items-start gap-6">
           <SearchHeader
@@ -201,7 +200,6 @@ export default function ProjectSearch() {
           count={filteredResults.length}
           fileCount={fileCount}
           isFiltering={isFiltering}
-          isDone={isDone}
         />
       </div>
     </div>

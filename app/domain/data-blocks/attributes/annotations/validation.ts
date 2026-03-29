@@ -23,16 +23,14 @@ export const validateAnnotations = (
   for (const annotation of annotations) {
     if (!textExistsInProse(annotation.text, context.documentProse)) {
       errors.push({
-        block: "json-attributes",
-        field: "annotations",
+        block: "json-annotations",
         message: `Text "${annotation.text}" not found in document. Use exact text from the document. If unsure, use FUZZY[[approximate text]] for fuzzy matching (e.g. "text": "FUZZY[[somthing like this]]").`,
       })
     }
 
     if (annotation.code && !codeExists(annotation.code, context.availableCodes)) {
       errors.push({
-        block: "json-attributes",
-        field: "annotations",
+        block: "json-annotations",
         message: `Code "${annotation.code}" not found`,
         hint: formatAvailableCodes(context.availableCodes),
       })
@@ -43,4 +41,4 @@ export const validateAnnotations = (
 }
 
 export const patchAnnotationRequired = (schema: Record<string, unknown>): Record<string, unknown> =>
-  removeFromRequired(schema, ["properties", "annotations", "items"], ["color", "code"])
+  removeFromRequired(schema, ["items"], ["color", "code"])

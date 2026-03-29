@@ -1,13 +1,14 @@
 import type { Annotation as StoredAnnotation } from "../schema"
 import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
-import { getAttributes } from "../selectors"
+import { getBlock } from "~/lib/data-blocks/query"
+import { AnnotationsBlockSchema } from "~/domain/data-blocks/annotations/schema"
 import type { FileStore } from "~/lib/files"
 import { findIn, findFileFor } from "~/lib/files/collect"
 
 export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }
 
 export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
-  getAttributes(raw)?.annotations ?? []
+  getBlock(raw, "json-annotations", AnnotationsBlockSchema) ?? []
 
 export const getAnnotationCount = (raw: string): number => getStoredAnnotations(raw).length
 

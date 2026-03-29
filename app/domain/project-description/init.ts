@@ -1,7 +1,7 @@
-import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
 import { getFileRaw, updateFileRaw, finalizeContent } from "~/lib/files"
 import { replaceSingletonBlock } from "~/lib/data-blocks/parse"
-import { SETTINGS_FILE, isHiddenFile } from "~/lib/files/filename"
+import { SETTINGS_FILE } from "~/lib/files/filename"
+import { subscribeContentChanges } from "~/lib/files/subscribe-content"
 import { getSettings } from "~/domain/data-blocks/settings/selectors"
 import { getDatabase } from "~/domain/db/database"
 import { getLlmHost } from "~/lib/agent/env"
@@ -22,25 +22,6 @@ const writeDescription = (description: string): void => {
     return
   }
   updateFileRaw(result.path, result.content)
-}
-
-const hasContentChanges = (prev: FileStore, curr: FileStore): boolean => {
-  const allKeys = new Set([...Object.keys(prev), ...Object.keys(curr)])
-  for (const key of allKeys) {
-    if (isHiddenFile(key)) continue
-    if (prev[key] !== curr[key]) return true
-  }
-  return false
-}
-
-const subscribeContentChanges = (listener: () => void): (() => void) => {
-  let previous = getFiles()
-  return subscribe(() => {
-    const current = getFiles()
-    const changed = hasContentChanges(previous, current)
-    previous = current
-    if (changed) listener()
-  })
 }
 
 const embedTexts = (texts: string[]) => fetchEmbeddingBatch(texts, getLlmHost())

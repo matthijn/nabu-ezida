@@ -21,6 +21,10 @@ export {
 } from "./store"
 
 export { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
+export {
+  getDocumentType,
+  getDocumentSubject,
+} from "~/domain/data-blocks/attributes/topics/selectors"
 export { getAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
 export { getCodeTitle } from "~/domain/data-blocks/callout/codes/selectors"
 export { getTagDefinitions } from "~/domain/data-blocks/settings/tags/selectors"

@@ -10,7 +10,7 @@ const icons: EntityIcons = {
 }
 
 const fileWithAnnotation = (id: string, text: string, color: string): string =>
-  `# Doc\n\n\`\`\`json-attributes\n${JSON.stringify({ annotations: [{ id, text, color, reason: "test" }] })}\n\`\`\``
+  `# Doc\n\n\`\`\`json-annotations\n${JSON.stringify([{ id, text, color, reason: "test" }])}\n\`\`\``
 
 const fileWithCallout = (id: string, title: string, color: string): string =>
   `# Codebook\n\n\`\`\`json-callout\n${JSON.stringify({ id, type: "codebook-code", title, content: "detail", color, collapsed: false })}\n\`\`\``

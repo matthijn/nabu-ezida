@@ -35,10 +35,8 @@ describe("validateMarkdownBlocks", () => {
 
 This is some text about cats and dogs.
 
-\`\`\`json-attributes
-{
-  "annotations": [{"text": "cats", "reason": "animal", "color": "red"}]
-}
+\`\`\`json-annotations
+[{"text": "cats", "reason": "animal", "color": "red"}]
 \`\`\``,
         expectValid: true,
       },
@@ -48,10 +46,8 @@ This is some text about cats and dogs.
 
 This document has no animals.
 
-\`\`\`json-attributes
-{
-  "annotations": [{"text": "cats", "reason": "animal", "color": "red"}]
-}
+\`\`\`json-annotations
+[{"text": "cats", "reason": "animal", "color": "red"}]
 \`\`\``,
         expectValid: false,
         expectErrorContains: "not found in document",
@@ -62,10 +58,8 @@ This document has no animals.
 
 CATS are great.
 
-\`\`\`json-attributes
-{
-  "annotations": [{"text": "cats", "reason": "animal", "color": "red"}]
-}
+\`\`\`json-annotations
+[{"text": "cats", "reason": "animal", "color": "red"}]
 \`\`\``,
         expectValid: true,
       },
@@ -86,10 +80,8 @@ CATS are great.
         name: "accepts annotation when code exists",
         markdown: `# Test
 
-\`\`\`json-attributes
-{
-  "annotations": [{"text": "test", "reason": "note", "code": "abc123"}]
-}
+\`\`\`json-annotations
+[{"text": "test", "reason": "note", "code": "abc123"}]
 \`\`\``,
         context: {
           documentProse: "This is a test.",
@@ -102,10 +94,8 @@ CATS are great.
         name: "rejects annotation when code not found",
         markdown: `# Test
 
-\`\`\`json-attributes
-{
-  "annotations": [{"text": "test", "reason": "note", "code": "nonexistent"}]
-}
+\`\`\`json-annotations
+[{"text": "test", "reason": "note", "code": "nonexistent"}]
 \`\`\``,
         context: {
           documentProse: "This is a test.",
@@ -190,26 +180,21 @@ CATS are great.
     it("includes original block content in error when validation fails", () => {
       const original = `# Test
 
-\`\`\`json-attributes
-{
-  "tags": ["old-tag"]
-}
+\`\`\`json-annotations
+[{"text": "old one", "reason": "original", "color": "blue"}]
 \`\`\``
 
       const patched = `# Test
 
-\`\`\`json-attributes
-{
-  "tags": ["old-tag"],
-  "annotations": [{"text": "nonexistent", "reason": "test", "color": "red"}]
-}
+\`\`\`json-annotations
+[{"text": "nonexistent", "reason": "test", "color": "red"}]
 \`\`\``
 
       const result = validateMarkdownBlocks(patched, { original })
 
       expect(result.valid).toBe(false)
-      expect(result.errors[0].currentBlock).toContain("old-tag")
-      expect(result.errors[0].currentBlock).not.toContain("annotations")
+      expect(result.errors[0].currentBlock).toContain("old one")
+      expect(result.errors[0].currentBlock).not.toContain("nonexistent")
     })
 
     it("matches blocks by id for non-singleton blocks", () => {

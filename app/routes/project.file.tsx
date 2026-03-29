@@ -13,6 +13,7 @@ import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
+import { DocumentStatusBar } from "~/ui/components/DocumentStatusBar"
 import {
   FeatherBold,
   FeatherCode2,
@@ -98,66 +99,71 @@ export default function ProjectFile() {
   }
 
   return (
-    <>
-      <FileHeader
-        title={toDisplayName(currentFile)}
-        tags={tags}
-        pinned={false}
-        onPin={() => undefined}
-        onShare={() => undefined}
-        onCopyRaw={copyRawMarkdown}
-        menuItems={[
-          { icon: <FeatherCopy />, label: "Duplicate", onClick: () => undefined },
-          { icon: <FeatherFileText />, label: "Export", onClick: () => undefined },
-          { icon: <FeatherTrash />, label: "Delete", onClick: () => undefined },
-        ]}
-        onAddTag={() => undefined}
-      />
-      <div className="flex w-full grow shrink basis-0 min-h-0 items-stretch overflow-hidden">
-        <div
-          ref={scrollContainerRef}
-          className="flex grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto"
-        >
-          <EditorToolbar
-            groups={[
-              [
-                { icon: <FeatherHeading1 /> },
-                { icon: <FeatherHeading2 /> },
-                { icon: <FeatherHeading3 /> },
-              ],
-              [
-                { icon: <FeatherBold /> },
-                { icon: <FeatherItalic /> },
-                { icon: <FeatherUnderline /> },
-                { icon: <FeatherStrikethrough /> },
-              ],
-              [{ icon: <FeatherLink /> }, { icon: <FeatherImage /> }],
-              [
-                { icon: <FeatherList /> },
-                { icon: <FeatherListOrdered /> },
-                { icon: <FeatherListChecks /> },
-              ],
-              [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
-            ]}
-          />
-          <div
-            ref={editorContainerRef}
-            className="relative flex w-full grow flex-col items-start gap-8 pt-8"
-          >
-            <MilkdownEditor
-              key={`${currentFile}-${debugOptions.renderAsJson}`}
-              content={formatContent(content, currentFile)}
-              debugMode={debugOptions.renderAsJson}
-              spotlight={spotlight}
-            />
-          </div>
-        </div>
-        <ScrollGutter
-          contentRef={editorContainerRef}
-          scrollContainerRef={scrollContainerRef}
-          onScrollTo={handleScrollTo}
+    <div className="flex h-full w-full flex-col gap-2 bg-neutral-100 p-2 pb-0">
+      <div className="flex flex-1 min-h-0 flex-col rounded-xl bg-default-background overflow-hidden">
+        <FileHeader
+          title={toDisplayName(currentFile)}
+          tags={tags}
+          pinned={false}
+          onPin={() => undefined}
+          onShare={() => undefined}
+          onCopyRaw={copyRawMarkdown}
+          menuItems={[
+            { icon: <FeatherCopy />, label: "Duplicate", onClick: () => undefined },
+            { icon: <FeatherFileText />, label: "Export", onClick: () => undefined },
+            { icon: <FeatherTrash />, label: "Delete", onClick: () => undefined },
+          ]}
+          onAddTag={() => undefined}
         />
+        <div className="flex w-full grow shrink basis-0 min-h-0 items-stretch overflow-hidden">
+          <div
+            ref={scrollContainerRef}
+            className="flex grow shrink-0 basis-0 flex-col items-start pl-12 pr-6 py-6 overflow-auto"
+          >
+            <EditorToolbar
+              groups={[
+                [
+                  { icon: <FeatherHeading1 /> },
+                  { icon: <FeatherHeading2 /> },
+                  { icon: <FeatherHeading3 /> },
+                ],
+                [
+                  { icon: <FeatherBold /> },
+                  { icon: <FeatherItalic /> },
+                  { icon: <FeatherUnderline /> },
+                  { icon: <FeatherStrikethrough /> },
+                ],
+                [{ icon: <FeatherLink /> }, { icon: <FeatherImage /> }],
+                [
+                  { icon: <FeatherList /> },
+                  { icon: <FeatherListOrdered /> },
+                  { icon: <FeatherListChecks /> },
+                ],
+                [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
+              ]}
+            />
+            <div
+              ref={editorContainerRef}
+              className="relative flex w-full grow flex-col items-start gap-8 pt-8"
+            >
+              <MilkdownEditor
+                key={`${currentFile}-${debugOptions.renderAsJson}`}
+                content={formatContent(content, currentFile)}
+                debugMode={debugOptions.renderAsJson}
+                spotlight={spotlight}
+              />
+            </div>
+          </div>
+          <ScrollGutter
+            contentRef={editorContainerRef}
+            scrollContainerRef={scrollContainerRef}
+            onScrollTo={handleScrollTo}
+          />
+        </div>
       </div>
-    </>
+      <div className="rounded-xl border border-solid border-neutral-border bg-default-background">
+        <DocumentStatusBar content={rawContent ?? ""} />
+      </div>
+    </div>
   )
 }

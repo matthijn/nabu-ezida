@@ -12,6 +12,14 @@ type ResolveResult = { ok: true; ops: JsonPatchOp[] } | { ok: false; error: stri
 type ValueOp = JsonPatchOp & { value: unknown }
 
 export const parseFuzzyFieldPattern = (pattern: string): FuzzyFieldPattern => {
+  const rootArrayMatch = pattern.match(/^\*\.(.+)$/)
+  if (rootArrayMatch) {
+    const field = rootArrayMatch[1]
+    const parentRegex = new RegExp(`^\\/[^/]+$`)
+    const directRegex = new RegExp(`^\\/[^/]+\\/${escapeRegex(field)}$`)
+    return { parentRegex, directRegex, field }
+  }
+
   const starIndex = pattern.indexOf(".*.")
   if (starIndex === -1) throw new Error(`invalid fuzzy field pattern: ${pattern}`)
   const arraySegment = pattern.slice(0, starIndex)

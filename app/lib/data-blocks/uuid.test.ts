@@ -68,22 +68,20 @@ describe("fillMissingIds", () => {
     })
   })
 
-  describe("nested IDs (json-attributes.annotations)", () => {
+  describe("nested IDs (json-annotations)", () => {
     it("fills missing id on annotations", () => {
       const input = `# Doc
 
-\`\`\`json-attributes
-{
-  "annotations": [
-    { "text": "hello", "reason": "test", "color": "blue" }
-  ]
-}
+\`\`\`json-annotations
+[
+  { "text": "hello", "reason": "test", "color": "blue" }
+]
 \`\`\``
 
       const result = fillMissingIds(input)
 
       expect(result.generated).toHaveLength(1)
-      expect(result.generated[0].type).toBe("json-attributes.annotations")
+      expect(result.generated[0].type).toBe("json-annotations")
       expect(result.generated[0].id).toMatch(/^annotation-/)
       expect(result.content).toContain(`"id": "${result.generated[0].id}"`)
     })
@@ -91,13 +89,11 @@ describe("fillMissingIds", () => {
     it("fills multiple missing annotation ids", () => {
       const input = `# Doc
 
-\`\`\`json-attributes
-{
-  "annotations": [
-    { "text": "first", "reason": "a", "color": "blue" },
-    { "text": "second", "reason": "b", "color": "red" }
-  ]
-}
+\`\`\`json-annotations
+[
+  { "text": "first", "reason": "a", "color": "blue" },
+  { "text": "second", "reason": "b", "color": "red" }
+]
 \`\`\``
 
       const result = fillMissingIds(input)
@@ -111,12 +107,10 @@ describe("fillMissingIds", () => {
     it("preserves existing annotation ids", () => {
       const input = `# Doc
 
-\`\`\`json-attributes
-{
-  "annotations": [
-    { "id": "ann_existing", "text": "hello", "reason": "test", "color": "blue" }
-  ]
-}
+\`\`\`json-annotations
+[
+  { "id": "ann_existing", "text": "hello", "reason": "test", "color": "blue" }
+]
 \`\`\``
 
       const result = fillMissingIds(input)
@@ -128,13 +122,11 @@ describe("fillMissingIds", () => {
     it("fills only missing ids in mixed array", () => {
       const input = `# Doc
 
-\`\`\`json-attributes
-{
-  "annotations": [
-    { "id": "ann_existing", "text": "first", "reason": "a", "color": "blue" },
-    { "text": "second", "reason": "b", "color": "red" }
-  ]
-}
+\`\`\`json-annotations
+[
+  { "id": "ann_existing", "text": "first", "reason": "a", "color": "blue" },
+  { "text": "second", "reason": "b", "color": "red" }
+]
 \`\`\``
 
       const result = fillMissingIds(input)
@@ -165,12 +157,10 @@ describe("fillMissingIds", () => {
 
     const annotationBlock = (id: string) => `# Doc
 
-\`\`\`json-attributes
-{
-  "annotations": [
-    { "id": "${id}", "text": "hello", "reason": "test", "color": "blue" }
-  ]
-}
+\`\`\`json-annotations
+[
+  { "id": "${id}", "text": "hello", "reason": "test", "color": "blue" }
+]
 \`\`\``
 
     const emptyOriginal = "# Doc\n\nSome content"

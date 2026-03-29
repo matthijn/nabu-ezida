@@ -3,6 +3,7 @@ import { toBlockSchema, type BlockSchemaDefinition } from "./json-schema"
 import { jsonAttributes } from "~/domain/data-blocks/attributes/definition"
 import { jsonSettings } from "~/domain/data-blocks/settings/definition"
 import { jsonCallout } from "~/domain/data-blocks/callout/definition"
+import { jsonAnnotations } from "~/domain/data-blocks/annotations/definition"
 
 type AnyBlockConfig = BlockTypeConfig
 
@@ -10,6 +11,7 @@ const blockTypes: Record<string, AnyBlockConfig> = {
   "json-attributes": jsonAttributes as AnyBlockConfig,
   "json-settings": jsonSettings as AnyBlockConfig,
   "json-callout": jsonCallout as AnyBlockConfig,
+  "json-annotations": jsonAnnotations as AnyBlockConfig,
 }
 
 export const getBlockConfig = (language: string): AnyBlockConfig | undefined => blockTypes[language]

@@ -823,10 +823,10 @@ const LastWriteBar = ({ entry, currentFile, onClick }: LastWriteBarProps) => {
 }
 
 interface NabuChatSidebarProps {
-  dbReady: boolean
+  appReady: boolean
 }
 
-export const NabuChatSidebar = ({ dbReady }: NabuChatSidebarProps) => {
+export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
   const navigate = useNavigate()
   const params = useParams<{ projectId: string }>()
 
@@ -861,7 +861,7 @@ export const NabuChatSidebar = ({ dbReady }: NabuChatSidebarProps) => {
 
   const didAutoSend = useRef(false)
   useEffect(() => {
-    if (!dbReady) return
+    if (!appReady) return
     if (history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       send(pickGreeting(), getDeps())
@@ -872,7 +872,7 @@ export const NabuChatSidebar = ({ dbReady }: NabuChatSidebarProps) => {
         },
       ])
     }
-  }, [dbReady, history.length, send, getDeps])
+  }, [appReady, history.length, send, getDeps])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return

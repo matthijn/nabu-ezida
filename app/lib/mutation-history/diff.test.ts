@@ -4,6 +4,9 @@ import type { HistoryEntry } from "./types"
 
 const TS = 1000
 
+const buildAnnotations = (annotations: object[]): string =>
+  ["```json-annotations", JSON.stringify(annotations, null, 2), "```"].join("\n")
+
 const buildAttributes = (attrs: object): string =>
   ["```json-attributes", JSON.stringify(attrs, null, 2), "```"].join("\n")
 
@@ -44,9 +47,7 @@ describe("diffFileContent", () => {
     {
       name: "empty → one annotation (added with color + text updated)",
       oldRaw: "",
-      newRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })
-      ),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-1", "hello world")])),
       expected: [
         {
           verb: "added",
@@ -60,9 +61,7 @@ describe("diffFileContent", () => {
     },
     {
       name: "one annotation → empty (removed + text updated)",
-      oldRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "hello world")] })
-      ),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "hello world")])),
       newRaw: "",
       expected: [
         {
@@ -77,8 +76,8 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation text changed (updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "old text")] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "new text")] })),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "old text")])),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-1", "new text")])),
       expected: [
         {
           verb: "updated",
@@ -91,12 +90,8 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation color changed (updated)",
-      oldRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "red" })] })
-      ),
-      newRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "text", { color: "blue" })] })
-      ),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text", { color: "red" })])),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text", { color: "blue" })])),
       expected: [
         {
           verb: "updated",
@@ -110,14 +105,10 @@ describe("diffFileContent", () => {
     {
       name: "annotation code changed (updated)",
       oldRaw: buildDoc(
-        buildAttributes({
-          annotations: [annotation("annotation-1", "text", { code: "code_1", color: undefined })],
-        })
+        buildAnnotations([annotation("annotation-1", "text", { code: "code_1", color: undefined })])
       ),
       newRaw: buildDoc(
-        buildAttributes({
-          annotations: [annotation("annotation-1", "text", { code: "code_2", color: undefined })],
-        })
+        buildAnnotations([annotation("annotation-1", "text", { code: "code_2", color: undefined })])
       ),
       expected: [
         { verb: "updated", entityKind: "annotation", entityId: "annotation-1", label: "text" },
@@ -125,12 +116,8 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation reason changed (updated)",
-      oldRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "old" })] })
-      ),
-      newRaw: buildDoc(
-        buildAttributes({ annotations: [annotation("annotation-1", "text", { reason: "new" })] })
-      ),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text", { reason: "old" })])),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text", { reason: "new" })])),
       expected: [
         {
           verb: "updated",
@@ -143,11 +130,9 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation review changed (updated)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "text")] })),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text")])),
       newRaw: buildDoc(
-        buildAttributes({
-          annotations: [annotation("annotation-1", "text", { review: "needs check" })],
-        })
+        buildAnnotations([annotation("annotation-1", "text", { review: "needs check" })])
       ),
       expected: [
         {
@@ -161,8 +146,8 @@ describe("diffFileContent", () => {
     },
     {
       name: "two annotations: one added, one removed",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "keep me")] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-2", "new one")] })),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "keep me")])),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-2", "new one")])),
       expected: [
         {
           verb: "removed",
@@ -182,8 +167,8 @@ describe("diffFileContent", () => {
     },
     {
       name: "same annotation unchanged (empty result)",
-      oldRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "same")] })),
-      newRaw: buildDoc(buildAttributes({ annotations: [annotation("annotation-1", "same")] })),
+      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "same")])),
+      newRaw: buildDoc(buildAnnotations([annotation("annotation-1", "same")])),
       expected: [],
     },
     {
@@ -258,7 +243,8 @@ describe("diffFileContent", () => {
       name: "composite: annotation + tag in same diff",
       oldRaw: buildDoc(buildAttributes({ tags: ["old-tag"] })),
       newRaw: buildDoc(
-        buildAttributes({ tags: ["new-tag"], annotations: [annotation("annotation-1", "hello")] })
+        buildAttributes({ tags: ["new-tag"] }),
+        buildAnnotations([annotation("annotation-1", "hello")])
       ),
       expected: [
         {
@@ -292,10 +278,9 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation added + prose changed emits both",
-      oldRaw: "# Title\n\nOld text.\n\n" + buildAttributes({}),
+      oldRaw: "# Title\n\nOld text.\n\n" + buildAnnotations([]),
       newRaw:
-        "# Title\n\nNew text.\n\n" +
-        buildAttributes({ annotations: [annotation("annotation-1", "New text.")] }),
+        "# Title\n\nNew text.\n\n" + buildAnnotations([annotation("annotation-1", "New text.")]),
       expected: [
         {
           verb: "added",

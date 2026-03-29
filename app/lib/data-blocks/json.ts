@@ -1,10 +1,16 @@
 export type ParsedPath =
   | { type: "root"; field: string }
   | { type: "array"; arrayField: string; itemField: string }
+  | { type: "root-array"; itemField: string }
 
 export const parsePath = (path: string): ParsedPath | null => {
   if (!path.includes(".")) {
     return { type: "root", field: path }
+  }
+
+  const rootArrayMatch = path.match(/^\*\.([^.]+)$/)
+  if (rootArrayMatch) {
+    return { type: "root-array", itemField: rootArrayMatch[1] }
   }
 
   const match = path.match(/^([^.]+)\.\*\.([^.]+)$/)

@@ -47,8 +47,11 @@ export const removeFromRequired = (
     return { ...target, required: required.filter((f) => !fields.includes(f)) }
   })
 
-const actorSchemaPath = (parsed: ParsedPath): string[] =>
-  parsed.type === "root" ? [] : ["properties", parsed.arrayField, "items"]
+const actorSchemaPath = (parsed: ParsedPath): string[] => {
+  if (parsed.type === "root") return []
+  if (parsed.type === "root-array") return ["items"]
+  return ["properties", parsed.arrayField, "items"]
+}
 
 const stripActorFields = (schema: JsonSchema, actorPaths: ActorPathConfig[]): JsonSchema =>
   actorPaths.reduce((s, { path }) => {
