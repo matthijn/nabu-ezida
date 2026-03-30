@@ -101,33 +101,35 @@ export default function ProjectSearch() {
     [results, activeTags, getFileTags]
   )
 
+  const isSearching = phase === "searching"
   const isFiltering = phase === "filtering"
   const fileCount = useMemo(() => countUniqueFiles(filteredResults), [filteredResults])
 
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const didTriggerRef = useRef(false)
+  const loadMoreRef = useRef(loadMore)
+  const hasMoreRef = useRef(hasMore)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
-    if (!isFiltering) didTriggerRef.current = false
-  }, [isFiltering])
+    loadMoreRef.current = loadMore
+    hasMoreRef.current = hasMore
+  })
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
+  const scrollRef = useCallback((el: HTMLDivElement | null) => {
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+    if (!el) return
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMore && !didTriggerRef.current) {
-          didTriggerRef.current = true
-          loadMore()
-        }
-      },
-      { threshold: 0 }
-    )
+    const onScroll = () => {
+      const remaining = el.scrollHeight - el.scrollTop - el.clientHeight
+      const isNearBottom = remaining < el.clientHeight
+      if (isNearBottom && hasMoreRef.current) loadMoreRef.current()
+    }
 
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasMore, loadMore])
+    el.addEventListener("scroll", onScroll, { passive: true })
+    cleanupRef.current = () => el.removeEventListener("scroll", onScroll)
+  }, [])
 
   const showDebugSql = !!debugOptions.renderAsJson
 
@@ -135,14 +137,6 @@ export default function ProjectSearch() {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <span className="text-subtext-color">Invalid search URL</span>
-      </div>
-    )
-  }
-
-  if (phase === "searching") {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <span className="text-subtext-color">Searching...</span>
       </div>
     )
   }
@@ -165,7 +159,10 @@ export default function ProjectSearch() {
 
   return (
     <div className="flex h-full w-full flex-col gap-2 bg-neutral-100 p-2 pb-0">
-      <div className="flex-1 overflow-auto rounded-xl bg-default-background px-12 pt-8">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-auto rounded-xl bg-default-background px-12 pt-8"
+      >
         <div className="flex w-full max-w-[1024px] flex-col items-start gap-6">
           <SearchHeader
             title={search.title}
@@ -190,7 +187,6 @@ export default function ProjectSearch() {
             hits={filteredResults}
             files={files}
             projectId={params.projectId}
-            sentinelRef={sentinelRef}
             onNavigate={navigate}
           />
         </div>
@@ -199,6 +195,7 @@ export default function ProjectSearch() {
         <SearchStatusBar
           count={filteredResults.length}
           fileCount={fileCount}
+          isSearching={isSearching}
           isFiltering={isFiltering}
         />
       </div>

@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSyncExternalStore } from "react"
 import { getFiles, subscribe } from "~/lib/files/store"
-import { getFileRaw } from "~/lib/files"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
-import { getSettings } from "~/domain/data-blocks/settings/selectors"
-import { SETTINGS_FILE } from "~/lib/files/filename"
 import { getDatabase } from "~/domain/db/database"
 import {
   executeSearch,
@@ -12,17 +9,13 @@ import {
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
-import { filterOneHit } from "~/lib/search/filter-hits"
-import { ensureDescription } from "~/lib/search/ensure-description"
-import { processPool } from "~/lib/utils/pool"
+import { filterBatch, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
+import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 import type { HydeQuery } from "~/lib/search/semantic"
 
 export type SearchPhase = "idle" | "searching" | "filtering" | "done"
-
-const FILTER_CHUNK_TARGET = 10
-const FILTER_CONCURRENCY = 5
 
 interface SettledState {
   results: SearchHit[]
@@ -54,13 +47,10 @@ export interface SearchResults {
   loadMore: () => void
 }
 
-const readDescription = (): string | undefined =>
-  getSettings(getFileRaw(SETTINGS_FILE))?.description
-
 interface FilterState {
   rawHits: SearchHit[]
   cursor: number
-  description: string
+  pageCount: number
   highlight: string
   skipCache: boolean
   loading: boolean
@@ -82,24 +72,23 @@ export const useSearchResults = (
     if (!state || state.loading || state.cancelled || state.cursor >= state.rawHits.length) return
 
     state.loading = true
+    state.pageCount = 0
     setSettled((prev) => ({ ...prev, phase: "filtering" }))
 
-    const remaining = state.rawHits.slice(state.cursor)
-    const filterFn = (hit: SearchHit) =>
-      filterOneHit(hit, state.description, state.highlight, state.skipCache)
-    const appendHits = (hits: SearchHit[]) => {
-      if (state.cancelled) return
-      setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
+    while (state.pageCount < FILTER_BATCH_SIZE && state.cursor < state.rawHits.length) {
+      const chunk = state.rawHits.slice(state.cursor, state.cursor + FILTER_BATCH_SIZE)
+      state.cursor += chunk.length
+
+      try {
+        const hits = await filterBatch(chunk, state.highlight, state.skipCache)
+        if (state.cancelled) return
+        state.pageCount += hits.length
+        setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
+      } catch {
+        if (state.cancelled) return
+      }
     }
 
-    const { consumed } = await processPool(remaining, filterFn, appendHits, {
-      concurrency: FILTER_CONCURRENCY,
-      target: FILTER_CHUNK_TARGET,
-    })
-
-    if (state.cancelled) return
-
-    state.cursor += consumed
     state.loading = false
 
     const hasMore = state.cursor < state.rawHits.length
@@ -131,11 +120,11 @@ export const useSearchResults = (
         hasMore: false,
       })
 
-      const description = await ensureDescription(readDescription(), db)
+      const tree = buildClassificationTree(getFiles()) ?? ""
       const resolved = await resolveSemanticSql(search.sql, {
         db,
         baseUrl: getLlmHost(),
-        description,
+        tree,
         skipCache,
       })
       if (cancelled) return
@@ -175,12 +164,14 @@ export const useSearchResults = (
         return
       }
 
+      console.log("[SEARCH] raw hits before filtering:", rawHits.value.slice(0, 5))
+
       setSettled((prev) => ({ ...prev, hydes }))
 
       filterRef.current = {
         rawHits: rawHits.value,
         cursor: 0,
-        description,
+        pageCount: 0,
         highlight: search.highlight,
         skipCache,
         loading: false,

@@ -4,15 +4,39 @@ import { StatusBar, STATUS_TEXT } from "./StatusBar"
 interface SearchStatusBarProps {
   count: number
   fileCount: number
+  isSearching: boolean
   isFiltering: boolean
 }
 
-const statusText = (count: number, fileCount: number): string =>
+const resultText = (count: number, fileCount: number): string =>
   `Showing ${count} results across ${fileCount} files`
 
-export const SearchStatusBar = ({ count, fileCount, isFiltering }: SearchStatusBarProps) => (
+const isLoading = (isSearching: boolean, isFiltering: boolean): boolean =>
+  isSearching || isFiltering
+
+const isNarrowingDown = (isFiltering: boolean, count: number): boolean => isFiltering && count === 0
+
+const displayText = (
+  isSearching: boolean,
+  isFiltering: boolean,
+  count: number,
+  fileCount: number
+): string => {
+  if (isSearching) return "Pre-selecting in corpus"
+  if (isNarrowingDown(isFiltering, count)) return "Narrowing down results"
+  return resultText(count, fileCount)
+}
+
+export const SearchStatusBar = ({
+  count,
+  fileCount,
+  isSearching,
+  isFiltering,
+}: SearchStatusBarProps) => (
   <StatusBar>
-    {isFiltering && <FeatherLoader2 className="text-subtext-color animate-spin" />}
-    <span className={STATUS_TEXT}>{statusText(count, fileCount)}</span>
+    {isLoading(isSearching, isFiltering) && (
+      <FeatherLoader2 className="text-subtext-color animate-spin" />
+    )}
+    <span className={STATUS_TEXT}>{displayText(isSearching, isFiltering, count, fileCount)}</span>
   </StatusBar>
 )

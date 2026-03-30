@@ -9,11 +9,10 @@ import {
   resolveSemanticSql,
   sanitizeSemanticError,
 } from "~/lib/search"
-import { filterOneHit } from "~/lib/search/filter-hits"
-import { processPool } from "~/lib/utils/pool"
-import { noop } from "~/lib/utils/noop"
+import { filterBatch, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
 import { updateSearchEntries, readSettings } from "./settings"
-import { ensureDescription } from "~/lib/search/ensure-description"
+import { buildClassificationTree } from "~/lib/topic-assignment/tree"
+import { getFiles } from "~/lib/files/store"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 
 const generateShortId = (): string => {
@@ -25,7 +24,6 @@ const generateShortId = (): string => {
 const generateSearchId = (): string => `search-${generateShortId()}`
 
 const MAX_UNSAVED = 3
-const EARLY_RETURN_TARGET = 3
 
 const isUnsaved = (entry: SearchEntry): boolean => !entry.saved
 
@@ -55,19 +53,6 @@ const formatOutput = (id: string, hits: SearchHit[]): string => {
   return `file://${id}\nresult samples:\n${lines}`
 }
 
-const filterEarly = async (
-  hits: SearchHit[],
-  description: string,
-  highlight: string
-): Promise<SearchHit[]> => {
-  const filterFn = (hit: SearchHit) => filterOneHit(hit, description, highlight)
-  const { results } = await processPool(hits, filterFn, noop, {
-    concurrency: EARLY_RETURN_TARGET,
-    target: EARLY_RETURN_TARGET,
-  })
-  return results
-}
-
 const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = SearchArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
@@ -75,13 +60,12 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const settings = readSettings()
-  const description = await ensureDescription(settings.description, db)
+  const tree = buildClassificationTree(getFiles()) ?? ""
 
   const resolved = await resolveSemanticSql(parsed.data.sql, {
     db,
     baseUrl: getLlmHost(),
-    description,
+    tree,
   })
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
@@ -92,10 +76,11 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   if (!rawHits.ok) return { status: "error", output: sanitizeSemanticError(rawHits.error.message) }
 
-  const filtered = await filterEarly(rawHits.value, description, parsed.data.highlight)
+  const firstChunk = rawHits.value.slice(0, FILTER_BATCH_SIZE)
+  const filtered = await filterBatch(firstChunk, parsed.data.highlight)
   if (hasNoResults(filtered)) return formatEmpty(parsed.data.sql)
 
-  return saveSearch(parsed.data, settings, (id) => formatOutput(id, filtered))
+  return saveSearch(parsed.data, readSettings(), (id) => formatOutput(id, filtered))
 }
 
 const saveSearch = (

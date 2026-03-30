@@ -16,7 +16,6 @@ export type TagDefinition = z.infer<typeof TagDefinition>
 export const Settings = z.object({
   tags: z.array(TagDefinition).optional(),
   searches: z.array(SearchEntrySchema).optional(),
-  description: z.string().optional(),
 })
 
 export type Settings = z.infer<typeof Settings>

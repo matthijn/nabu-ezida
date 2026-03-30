@@ -5,7 +5,6 @@ import { TagBadge } from "~/ui/components/TagBadge"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
-import type { RefObject } from "react"
 import { toDisplayName } from "~/lib/files/filename"
 import { extractSearchSlice } from "~/lib/search"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
@@ -15,7 +14,6 @@ export interface SearchResultListProps {
   hits: SearchHit[]
   files: FileStore
   projectId: string
-  sentinelRef?: RefObject<HTMLDivElement | null>
   onNavigate?: (url: string) => void
 }
 
@@ -99,13 +97,7 @@ const RunGroupCard = ({
   )
 }
 
-export const SearchResultList = ({
-  hits,
-  files,
-  projectId,
-  sentinelRef,
-  onNavigate,
-}: SearchResultListProps) => {
+export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchResultListProps) => {
   const groups = useMemo(() => groupByRun(hits), [hits])
 
   return (
@@ -119,7 +111,6 @@ export const SearchResultList = ({
           onNavigate={onNavigate}
         />
       ))}
-      <div ref={sentinelRef} className="h-px w-full" />
     </div>
   )
 }

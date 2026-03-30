@@ -6,7 +6,6 @@ import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } 
 import { executeWithConnection } from "~/lib/db/query"
 import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
 import { projections, toJsonSchema } from "./projections"
-import { startProjectDescription } from "~/domain/project-description/init"
 import type { Database } from "~/lib/db/types"
 
 const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
@@ -137,7 +136,6 @@ export const startBackgroundSync = (): void => {
   }, 200)
 
   subscribe(debouncedSync)
-  startProjectDescription()
   console.debug("[db] background sync started")
 }
 

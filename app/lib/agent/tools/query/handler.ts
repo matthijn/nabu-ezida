@@ -4,8 +4,8 @@ import { registerSpecialHandler } from "../../executors/delegation"
 import { getDatabase } from "~/domain/db/database"
 import { getLlmHost } from "~/lib/agent/env"
 import { executeHybridLocal, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
-import { readSettings } from "../search/settings"
-import { ensureDescription } from "~/lib/search/ensure-description"
+import { buildClassificationTree } from "~/lib/topic-assignment/tree"
+import { getFiles } from "~/lib/files/store"
 import { capRows } from "./truncate"
 
 const MAX_QUERY_ROWS = 50
@@ -32,13 +32,12 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const settings = readSettings()
-  const description = await ensureDescription(settings.description, db)
+  const tree = buildClassificationTree(getFiles()) ?? ""
 
   const resolved = await resolveSemanticSql(parsed.data.sql, {
     db,
     baseUrl: getLlmHost(),
-    description,
+    tree,
   })
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 

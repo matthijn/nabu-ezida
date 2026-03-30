@@ -17,26 +17,48 @@ export type ResolveError =
 export interface SemanticContext {
   db: Database
   baseUrl: string
-  description: string
+  tree: string
   skipCache?: boolean
 }
 
-const LANGUAGES_SQL = "SELECT DISTINCT language FROM files WHERE language IS NOT NULL"
+const LANGUAGE_STATS_SQL = `
+  SELECT language, COUNT(*) as cnt,
+         COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () as pct
+  FROM files WHERE language IS NOT NULL
+  GROUP BY language`
 
-interface LanguageRow {
+interface LanguageStatsRow {
   language: string
+  cnt: number
+  pct: number
+}
+
+const DEFAULT_LANGUAGE = "eng"
+const SIGNIFICANCE_THRESHOLD = 10
+
+export const filterSignificantLanguages = (
+  rows: LanguageStatsRow[],
+  threshold = SIGNIFICANCE_THRESHOLD
+): string[] => {
+  const significant = rows.filter((r) => r.pct > threshold).map((r) => r.language)
+  if (!significant.includes(DEFAULT_LANGUAGE)) significant.push(DEFAULT_LANGUAGE)
+  return significant
 }
 
 const fetchLanguages = async (db: Database): Promise<string[]> => {
-  const result = await db.query<LanguageRow>(LANGUAGES_SQL)
+  const result = await db.query<LanguageStatsRow>(LANGUAGE_STATS_SQL)
   if (!result.ok) return []
-  return result.value.rows.map((r) => r.language)
+  return filterSignificantLanguages(result.value.rows)
 }
 
-const flattenHydes = (hydeResult: HydeResult, vectors: number[][]): HydeQuery[] => {
+const flattenHydes = (
+  language: string,
+  hydeResult: HydeResult,
+  vectors: number[][]
+): HydeQuery[] => {
   const entries: HydeQuery[] = []
   let idx = 0
-  for (const [language, texts] of Object.entries(hydeResult)) {
+  for (const texts of Object.values(hydeResult)) {
     for (const text of texts) {
       entries.push({ text, language, cosineVector: vectors[idx++] })
     }
@@ -51,6 +73,21 @@ const invalid = (message: string): Result<ResolvedQuery, ResolveError> =>
 
 const notReady = (message: string): Result<ResolvedQuery, ResolveError> =>
   err({ type: "not_ready", message })
+
+const generateAndEmbedForLanguage = async (
+  tree: string,
+  language: string,
+  query: string,
+  baseUrl: string,
+  skipCache?: boolean
+): Promise<Result<HydeQuery[], { message: string }>> => {
+  const hydeResult = await generateHydes(tree, language, query, skipCache)
+  const allTexts = collectAllTexts(hydeResult)
+  if (allTexts.length === 0) return ok([])
+  const embeddingResult = await fetchEmbeddingBatch(allTexts, baseUrl)
+  if (!embeddingResult.ok) return err(embeddingResult.error)
+  return ok(flattenHydes(language, hydeResult, embeddingResult.value))
+}
 
 export const resolveSemanticSql = async (
   sql: string,
@@ -68,13 +105,18 @@ export const resolveSemanticSql = async (
   if (languages.length === 0)
     return notReady("No languages detected in corpus. Embeddings may still be syncing.")
 
-  const hydeResult = await generateHydes(ctx.description, languages, token.text, ctx.skipCache)
+  const results = await Promise.all(
+    languages.map((language) =>
+      generateAndEmbedForLanguage(ctx.tree, language, token.text, ctx.baseUrl, ctx.skipCache)
+    )
+  )
 
-  const allTexts = collectAllTexts(hydeResult)
-  const embeddingResult = await fetchEmbeddingBatch(allTexts, ctx.baseUrl)
-  if (!embeddingResult.ok) return invalid(embeddingResult.error.message)
+  const allHydes: HydeQuery[] = []
+  for (const result of results) {
+    if (!result.ok) return invalid(result.error.message)
+    allHydes.push(...result.value)
+  }
 
-  const hydes = flattenHydes(hydeResult, embeddingResult.value)
-  const plan = buildHybridPlan(sql, token, ctx.description, hydes)
+  const plan = buildHybridPlan(sql, token, ctx.tree, allHydes)
   return ok({ type: "hybrid", plan })
 }

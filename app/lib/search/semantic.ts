@@ -15,7 +15,7 @@ export interface HydeQuery {
 
 export interface HybridSearchPlan {
   intent: string
-  description: string
+  tree: string
   baseSql: string
   hydes: HydeQuery[]
   limit: number | undefined
@@ -163,12 +163,12 @@ export const buildCosineQuery = (baseSql: string, hyde: HydeQuery): string => {
 export const buildHybridPlan = (
   sql: string,
   token: SemanticToken,
-  description: string,
+  tree: string,
   hydes: HydeQuery[]
 ): HybridSearchPlan => {
   const baseSql = stripSemanticToken(sql, token)
   const limit = extractLimit(sql)
-  return { intent: token.text, description, baseSql, hydes, limit }
+  return { intent: token.text, tree, baseSql, hydes, limit }
 }
 
 const aliasSemanticTokens = (sql: string, tokens: SemanticToken[]): string => {
