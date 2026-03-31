@@ -108,6 +108,15 @@ const SectionHeader = ({ label }: { label: string }) => (
   </div>
 )
 
+const SavedSearchesEmpty = () => (
+  <div className="flex w-full items-center gap-2 px-6 py-4">
+    <FeatherBookmark className="flex-none text-caption text-neutral-400" />
+    <span className="text-caption font-caption text-subtext-color">
+      Click the bookmark icon on a search to save it
+    </span>
+  </div>
+)
+
 const matchesSearch = (entry: SearchEntry, query: string): boolean =>
   matchesAny(query, [entry.title, entry.description])
 
@@ -156,37 +165,39 @@ export function SearchSidebar({
           <>
             <SectionHeader label="RECENT SEARCHES" />
             {filteredRecent.map((entry) => (
-              <SearchItem
-                key={entry.id}
-                entry={entry}
-                selected={entry.id === selectedId}
-                highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
-                onSave={() => onSave(entry.id)}
-                onRemove={() => onRemove(entry.id)}
-                onSelect={() => onSelect(entry.id)}
-                onMouseEnter={() => setHoveredId(entry.id)}
-              />
+              <div key={entry.id} className="w-full opacity-60">
+                <SearchItem
+                  entry={entry}
+                  selected={entry.id === selectedId}
+                  highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
+                  onSave={() => onSave(entry.id)}
+                  onRemove={() => onRemove(entry.id)}
+                  onSelect={() => onSelect(entry.id)}
+                  onMouseEnter={() => setHoveredId(entry.id)}
+                />
+              </div>
             ))}
           </>
         )}
-        {hasEntries(filteredRecent) && hasEntries(filteredSaved) && (
-          <div className="flex h-px w-full flex-none bg-neutral-200 my-2" />
-        )}
-        {hasEntries(filteredSaved) && (
+        {(hasEntries(filteredRecent) || hasEntries(filteredSaved)) && (
           <>
             <SectionHeader label="SAVED SEARCHES" />
-            {filteredSaved.map((entry) => (
-              <SearchItem
-                key={entry.id}
-                entry={entry}
-                selected={entry.id === selectedId}
-                highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
-                onSave={() => onSave(entry.id)}
-                onRemove={() => onRemove(entry.id)}
-                onSelect={() => onSelect(entry.id)}
-                onMouseEnter={() => setHoveredId(entry.id)}
-              />
-            ))}
+            {hasEntries(filteredSaved) ? (
+              filteredSaved.map((entry) => (
+                <SearchItem
+                  key={entry.id}
+                  entry={entry}
+                  selected={entry.id === selectedId}
+                  highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
+                  onSave={() => onSave(entry.id)}
+                  onRemove={() => onRemove(entry.id)}
+                  onSelect={() => onSelect(entry.id)}
+                  onMouseEnter={() => setHoveredId(entry.id)}
+                />
+              ))
+            ) : (
+              <SavedSearchesEmpty />
+            )}
           </>
         )}
         {!hasEntries(filteredRecent) && !hasEntries(filteredSaved) && (
