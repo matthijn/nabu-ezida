@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import { FeatherSearch } from "@subframe/core"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground } from "~/ui/theme/radix"
@@ -13,6 +14,7 @@ interface CodesSidebarProps {
   codebook: Codebook
   onEditCode?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
+  onSearchCode?: (code: Code) => void
 }
 
 const filterCategories = (categories: CodeCategory[], query: string): CodeCategory[] => {
@@ -24,7 +26,12 @@ const filterCategories = (categories: CodeCategory[], query: string): CodeCatego
   }, [])
 }
 
-export const CodesSidebar = ({ codebook, onEditCode, onFileSelect }: CodesSidebarProps) => {
+export const CodesSidebar = ({
+  codebook,
+  onEditCode,
+  onFileSelect,
+  onSearchCode,
+}: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
 
@@ -89,6 +96,13 @@ export const CodesSidebar = ({ codebook, onEditCode, onFileSelect }: CodesSideba
               <span className="text-heading-3 font-heading-3 text-default-font">
                 {hoveredCode.name}
               </span>
+              <button
+                className="ml-auto flex-none cursor-pointer"
+                style={{ color: solidBackground(hoveredCode.color) }}
+                onClick={() => onSearchCode?.(hoveredCode)}
+              >
+                <FeatherSearch className="h-4 w-4" />
+              </button>
             </div>
             <CodeDetail code={hoveredCode} />
           </motion.div>

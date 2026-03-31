@@ -1,7 +1,6 @@
 import { tool, registerTool, ok, partial } from "../../executors/tool"
 import { runLocalShell as def } from "./def"
 import { createShell } from "../shell/shell"
-import { initJq } from "../shell/commands/jq"
 
 export interface ShellCommandOutput {
   stdout: string
@@ -13,7 +12,6 @@ const runLocalShell = registerTool(
   tool({
     ...def,
     handler: async (files, { commands }) => {
-      await initJq()
       const shell = createShell(files)
 
       let hasRealError = false

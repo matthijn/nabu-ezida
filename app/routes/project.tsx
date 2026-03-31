@@ -14,7 +14,7 @@ import {
   toggleSearchSaved,
   removeSearch,
 } from "~/domain/data-blocks/settings/searches/selectors"
-import { updateSearchEntries } from "~/lib/agent/tools/search/settings"
+import { updateSearchEntries, saveNewSearch } from "~/lib/agent/tools/search/settings"
 import { NabuProvider, NabuChatSidebar } from "~/ui/components/nabu"
 import { DebugMenuButton, DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
@@ -343,6 +343,18 @@ export default function ProjectLayout() {
     )
   }
 
+  const handleSearchCode = (code: Code) => {
+    const id = saveNewSearch({
+      title: code.name,
+      description: `Passages related to "${code.name}"`,
+      highlight: code.name,
+      sql: `SELECT file, id, text FROM annotations WHERE code = '${code.id}'`,
+    })
+    if (!id) return
+    dismissSidebarRef.current?.()
+    navigate(`/project/${params.projectId}/search/${id}`)
+  }
+
   const sidebarPanels = {
     documents: (
       <DocumentsSidebar
@@ -372,6 +384,7 @@ export default function ProjectLayout() {
               codebook={codebook}
               onEditCode={handleEditCode}
               onFileSelect={handleDocumentSelect}
+              onSearchCode={handleSearchCode}
             />
           ),
         }
