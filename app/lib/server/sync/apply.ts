@@ -5,70 +5,85 @@ import {
   getFileRaw,
   applyFilePatch,
   withoutPersist,
+  schedulePersist,
 } from "~/lib/files"
+import { migrateFile } from "~/lib/data-blocks/migrate"
+import { migrations } from "~/domain/data-blocks/migrations"
 import type { Command } from "./types"
 
-const applyCommandInner = (command: Command): void => {
-  const { action, path, content, diff, newPath } = command
+interface ResolvedContent {
+  path: string
+  content: string
+}
 
-  if (!path) return
+const patchOptions = { skipCodeValidation: true, actor: "user" } as const
+
+const resolveContent = (command: Command): ResolvedContent | undefined => {
+  const { action, path, content, diff } = command
+  if (!path) return undefined
 
   switch (action) {
     case "CreateFile":
       if (diff) {
-        applyCreateFile(path, diff)
-      } else if (content !== undefined) {
-        updateFileRaw(path, content)
+        const result = applyFilePatch(path, "", diff, patchOptions)
+        if (result.status === "ok") return { path: result.path, content: result.content }
+        console.error(`[apply] createFile failed: "${path}"`, result.error)
+        return undefined
       }
-      break
+      if (content !== undefined) return { path, content }
+      return undefined
 
     case "UpdateFile":
       if (diff) {
-        applyUpdateFile(path, diff)
-      } else if (content !== undefined) {
-        updateFileRaw(path, content)
+        const current = getFileRaw(path)
+        const result = applyFilePatch(path, current, diff, patchOptions)
+        if (result.status === "ok") return { path: result.path, content: result.content }
+        console.error(`[apply] updateFile failed: "${path}"`, result.error)
+        return undefined
       }
-      break
+      if (content !== undefined) return { path, content }
+      return undefined
 
     case "WriteFile":
-      if (content !== undefined) {
-        updateFileRaw(path, content)
-      }
-      break
+      if (content !== undefined) return { path, content }
+      return undefined
 
+    default:
+      return undefined
+  }
+}
+
+const applyCommandInner = (command: Command): string | undefined => {
+  const { action, path, newPath } = command
+  if (!path) return undefined
+
+  const resolved = resolveContent(command)
+  if (resolved) {
+    const migrated = migrateFile(resolved.content, migrations)
+    updateFileRaw(resolved.path, migrated.markdown)
+    return migrated.changed ? resolved.path : undefined
+  }
+
+  switch (action) {
     case "DeleteFile":
       deleteFile(path)
-      break
+      return undefined
 
     case "RenameFile":
-      if (!newPath) return
+      if (!newPath) return undefined
       renameFile(path, newPath)
-      break
+      return undefined
 
     case "Commit":
     case "SyncMeta":
-      break
+      return undefined
+
+    default:
+      return undefined
   }
 }
 
-export const applyCommand = (command: Command): void =>
-  withoutPersist(() => applyCommandInner(command))
-
-const applyCreateFile = (path: string, diff: string): void => {
-  const result = applyFilePatch(path, "", diff, { skipCodeValidation: true, actor: "user" })
-  if (result.status === "ok") {
-    updateFileRaw(result.path, result.content)
-  } else {
-    console.error(`[apply] createFile failed: "${path}"`, result.error)
-  }
-}
-
-const applyUpdateFile = (path: string, diff: string): void => {
-  const current = getFileRaw(path)
-  const result = applyFilePatch(path, current, diff, { skipCodeValidation: true, actor: "user" })
-  if (result.status === "ok") {
-    updateFileRaw(result.path, result.content)
-  } else {
-    console.error(`[apply] updateFile failed: "${path}"`, result.error)
-  }
+export const applyCommand = (command: Command): void => {
+  const migratedPath = withoutPersist(() => applyCommandInner(command))
+  if (migratedPath) schedulePersist(migratedPath)
 }

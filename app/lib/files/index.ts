@@ -18,6 +18,7 @@ export {
   setPendingRefsSuppressed,
   resolvePendingRefsInBulk,
   withoutPersist,
+  schedulePersist,
 } from "./store"
 
 export { getTags } from "~/domain/data-blocks/attributes/tags/selectors"

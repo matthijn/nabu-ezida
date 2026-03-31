@@ -42,6 +42,10 @@ export const setPendingRefsSuppressed = (suppressed: boolean): void => {
   pendingRefsSuppressed = suppressed
 }
 
+export const schedulePersist = (path: string): void => {
+  persistWrite(path)
+}
+
 export const withoutPersist = <T>(fn: () => T): T => {
   persistSuppressed = true
   try {
