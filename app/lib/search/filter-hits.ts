@@ -58,16 +58,14 @@ export const reconstructHits = (
 interface PreparedHit {
   hit: SearchHit
   sentences: string[]
-  label: string
   numbered: string
 }
 
-const prepareHit = (hit: SearchHit, index: number): PreparedHit | null => {
+const prepareHit = (hit: SearchHit): PreparedHit | null => {
   if (!hit.text) return null
   const sentences = splitSentences(hit.text)
   if (sentences.length === 0) return null
-  const label = toLetter(index)
-  return { hit, sentences, label, numbered: formatNumberedPassage(sentences) }
+  return { hit, sentences, numbered: formatNumberedPassage(sentences) }
 }
 
 const buildBatchSchema = (labels: string[]) =>
@@ -75,54 +73,80 @@ const buildBatchSchema = (labels: string[]) =>
     Object.fromEntries(labels.map((label) => [label, z.array(z.array(z.number().int().min(1)))]))
   )
 
-const formatBatchPassage = (prepared: PreparedHit[]): string =>
-  prepared.map((p) => `[${p.label}]\n${p.numbered}`).join("\n\n")
+const formatBatchPassage = (prepared: PreparedHit[], labels: string[]): string =>
+  prepared.map((p, i) => `[${labels[i]}]\n${p.numbered}`).join("\n\n")
 
 const callSemanticFilterBatch = async (
   intent: string,
   prepared: PreparedHit[]
-): Promise<Record<string, number[][]>> => {
-  const labels = prepared.map((p) => p.label)
+): Promise<number[][][]> => {
+  const labels = prepared.map((_, i) => toLetter(i))
   const schema = buildBatchSchema(labels)
 
   const blocks = await callLlm({
     endpoint: SEMANTIC_FILTER_ENDPOINT,
     messages: [
       toSystem(intent),
-      toSystem(formatBatchPassage(prepared)),
+      toSystem(formatBatchPassage(prepared, labels)),
       toSystem(FILTER_CALL_TO_ACTION),
     ],
     responseFormat: toResponseFormat(schema),
   })
 
   const text = extractText(blocks)
-  if (!text) return {}
+  if (!text) return prepared.map(() => [])
 
   const parsed = schema.safeParse(JSON.parse(text))
-  return parsed.success ? parsed.data : {}
+  if (!parsed.success) return prepared.map(() => [])
+
+  return labels.map((label) => parsed.data[label] ?? [])
 }
 
 const FILTER_CACHE_PREFIX = "filter"
 const FILTER_CACHE_CAP = 20_000
 
+const hitCacheKey = (intent: string, numbered: string): string => buildKey([intent, numbered])
+
+const lookupHitCache = async (
+  intent: string,
+  prepared: PreparedHit[]
+): Promise<(number[][] | undefined)[]> =>
+  Promise.all(
+    prepared.map((p) => tryGet<number[][]>(FILTER_CACHE_PREFIX, hitCacheKey(intent, p.numbered)))
+  )
+
+const cacheHitResults = async (
+  intent: string,
+  prepared: PreparedHit[],
+  results: number[][][]
+): Promise<void> => {
+  await Promise.all(
+    prepared.map((p, i) =>
+      tryPut(FILTER_CACHE_PREFIX, hitCacheKey(intent, p.numbered), results[i], FILTER_CACHE_CAP)
+    )
+  )
+}
+
 const cachedCallSemanticFilterBatch = async (
   intent: string,
   prepared: PreparedHit[]
-): Promise<Record<string, number[][]>> => {
-  const key = buildKey([intent, ...prepared.map((p) => p.numbered)])
-  const cached = await tryGet<Record<string, number[][]>>(FILTER_CACHE_PREFIX, key)
-  if (cached !== undefined) return cached
-  const result = await callSemanticFilterBatch(intent, prepared)
-  await tryPut(FILTER_CACHE_PREFIX, key, result, FILTER_CACHE_CAP)
-  return result
+): Promise<number[][][]> => {
+  const cached = await lookupHitCache(intent, prepared)
+
+  const uncached = prepared.filter((_, i) => cached[i] === undefined)
+
+  if (uncached.length === 0) return cached as number[][][]
+
+  const fresh = await callSemanticFilterBatch(intent, uncached)
+  await cacheHitResults(intent, uncached, fresh)
+
+  let freshIdx = 0
+  return cached.map((v) => v ?? fresh[freshIdx++])
 }
 
-const reconstructBatchHits = (
-  prepared: PreparedHit[],
-  results: Record<string, number[][]>
-): SearchHit[] =>
-  prepared.flatMap((p) => {
-    const groups = results[p.label]
+const reconstructBatchHits = (prepared: PreparedHit[], results: number[][][]): SearchHit[] =>
+  prepared.flatMap((p, i) => {
+    const groups = results[i]
     if (!groups || groups.length === 0) return []
     return reconstructHits(p.sentences, groups, p.hit.file, p.hit.id)
   })
