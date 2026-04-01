@@ -59,8 +59,12 @@ const offsetToPos = (doc: Node, offset: number, shouldSkip: NodeFilter): number 
 export const textOffsetToPos = (doc: Node, offset: number): number =>
   offsetToPos(doc, offset, isHiddenCodeBlock)
 
-export const findAllTextRanges = (doc: Node, searchText: string): TextRange[] => {
-  const docText = proseTextContent(doc)
+export const findAllTextRanges = (
+  doc: Node,
+  searchText: string,
+  cachedText?: string
+): TextRange[] => {
+  const docText = cachedText ?? proseTextContent(doc)
   const ranges: TextRange[] = []
   let start = 0
   while (true) {

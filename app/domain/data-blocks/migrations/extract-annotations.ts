@@ -27,7 +27,7 @@ const upgradeMarkdown = (markdown: string): string => {
 
   const annotationsBlock = formatBlock("json-annotations", JSON.stringify({ annotations }, null, 2))
 
-  return withCleanedBlock.trimEnd() + "\n\n" + annotationsBlock
+  return withCleanedBlock.trimEnd() + "\n\n" + annotationsBlock + "\n"
 }
 
 export const extractAnnotations: Migration = {

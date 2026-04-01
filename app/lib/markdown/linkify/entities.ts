@@ -11,6 +11,9 @@ const buildEntityIdPattern = (prefixes: string[]): RegExp => {
   )
 }
 
+const needsEntityScan = (text: string, prefixes: string[]): boolean =>
+  prefixes.some((p) => text.includes(p + "-")) || text.includes(".md")
+
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const QUOTES = new Set(['"', "'"])
 const FILE_PROTOCOL = "file://"
@@ -74,7 +77,9 @@ const tryStripBefore = (before: string, name: string): number => {
 }
 
 export const resolveIdentifiers = (text: string, resolveName: NameResolver): string => {
-  const pattern = buildEntityIdPattern(getEntityPrefixes())
+  const prefixes = getEntityPrefixes()
+  if (!needsEntityScan(text, prefixes)) return text
+  const pattern = buildEntityIdPattern(prefixes)
   return text.replace(pattern, (match, bareId: string | undefined) => {
     if (!bareId) return match
     return resolveName(bareId) ?? match
@@ -86,7 +91,9 @@ export const linkifyEntityIds = (
   resolveName: NameResolver,
   formatMissing?: MissingFormatter
 ): string => {
-  const pattern = buildEntityIdPattern(getEntityPrefixes())
+  const prefixes = getEntityPrefixes()
+  if (!needsEntityScan(text, prefixes)) return text
+  const pattern = buildEntityIdPattern(prefixes)
   let result = ""
   let lastIndex = 0
 

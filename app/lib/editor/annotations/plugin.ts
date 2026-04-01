@@ -9,7 +9,7 @@ import {
   createMarkerDecorations,
   createReviewDecorations,
 } from "./decorations"
-import { findAllTextRanges } from "~/lib/editor/text"
+import { findAllTextRanges, proseTextContent } from "~/lib/editor/text"
 
 const pluginKey = new PluginKey("annotations")
 
@@ -18,9 +18,10 @@ export const annotationsMeta = pluginKey
 const toResolvedAnnotations = (
   a: Annotation,
   doc: Node,
+  docText: string,
   startIndex: number
 ): ResolvedAnnotation[] =>
-  findAllTextRanges(doc, a.text).map((range, i) => {
+  findAllTextRanges(doc, a.text, docText).map((range, i) => {
     const resolved: ResolvedAnnotation = {
       index: startIndex + i,
       from: range.from,
@@ -33,9 +34,10 @@ const toResolvedAnnotations = (
   })
 
 const resolveAnnotations = (doc: Node, annotations: Annotation[]): ResolvedAnnotation[] => {
+  const docText = proseTextContent(doc)
   let index = 0
   return annotations.flatMap((a) => {
-    const resolved = toResolvedAnnotations(a, doc, index)
+    const resolved = toResolvedAnnotations(a, doc, docText, index)
     index += Math.max(resolved.length, 1)
     return resolved
   })

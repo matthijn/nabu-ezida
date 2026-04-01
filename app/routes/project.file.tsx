@@ -3,11 +3,7 @@ import { useSearchParams } from "react-router"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { parseSpotlight } from "~/lib/editor/spotlight"
 import { useProject } from "./project"
-import { linkifyEntityIds } from "~/lib/markdown/linkify/entities"
-import { linkifyTags } from "~/lib/markdown/linkify/tags"
 import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
-import { findTagDefinitionByLabel } from "~/domain/data-blocks/settings/tags/selectors"
-import { resolveEntityName } from "~/lib/files/selectors"
 import { toDisplayName } from "~/lib/files/filename"
 import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
@@ -88,12 +84,8 @@ export default function ProjectFile() {
     if (!rawContent || !currentFile) return rawContent
     if (isJsonFile(currentFile)) return rawContent
     if (debugOptions.renderAsJson) return toExtraPretty(rawContent)
-    const withEntities = linkifyEntityIds(rawContent, (id) => resolveEntityName(files, id))
-    return linkifyTags(withEntities, (label) => {
-      const def = findTagDefinitionByLabel(files, label)
-      return def ? { id: def.id, display: def.display } : null
-    })
-  }, [rawContent, currentFile, debugOptions.renderAsJson, files])
+    return rawContent
+  }, [rawContent, currentFile, debugOptions.renderAsJson])
   const copyRawMarkdown = useCallback(() => {
     if (rawContent) navigator.clipboard.writeText(rawContent)
   }, [rawContent])
@@ -177,7 +169,7 @@ export default function ProjectFile() {
               className="relative flex w-full grow flex-col items-start gap-8 pt-8"
             >
               <MilkdownEditor
-                key={`${currentFile}-${debugOptions.renderAsJson}`}
+                key={String(debugOptions.renderAsJson)}
                 content={formatContent(content, currentFile)}
                 debugMode={debugOptions.renderAsJson}
                 spotlight={spotlight}

@@ -3,9 +3,14 @@ type TagResolver = (label: string) => { id: string; display: string } | null
 const SLUG_PATTERN = /[a-z0-9]+(-[a-z0-9]+)*/
 const TAG_PATTERN = new RegExp(`\`[^\`]*\`|\\[[^\\]]*\\]\\([^)]+\\)|#(${SLUG_PATTERN.source})`, "g")
 
+const TAG_MARKER = /#[a-z0-9]/
+
+const needsTagScan = (text: string): boolean => TAG_MARKER.test(text)
+
 const isWordChar = (ch: string | undefined): boolean => ch !== undefined && /\w/.test(ch)
 
 export const linkifyTags = (text: string, resolveTag: TagResolver): string => {
+  if (!needsTagScan(text)) return text
   const pattern = new RegExp(TAG_PATTERN.source, "g")
   let result = ""
   let lastIndex = 0
