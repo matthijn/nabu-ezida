@@ -21,14 +21,13 @@ const fileColumn: DbColumn = { name: "file", type: "VARCHAR", nullable: false }
 
 const buildColumns = (schema: JsonSchema): DbColumn[] => {
   const properties = schema.properties ?? {}
-  const required = new Set(schema.required ?? [])
 
   return Object.entries(properties)
     .filter(([, prop]) => isScalarOrListProp(prop))
     .map(([name, prop]) => ({
       name,
       type: jsonTypeToDuckDb(prop),
-      nullable: !required.has(name),
+      nullable: true,
     }))
 }
 

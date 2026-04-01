@@ -10,6 +10,7 @@ export const jsonCallout: BlockTypeConfig = {
   constraints: [],
   renderer: "callout",
   singleton: false,
+  projected: true,
   labelKey: "title",
   idPaths: [{ path: "id", prefix: "callout" }],
   actorPaths: [{ path: "actor" }],

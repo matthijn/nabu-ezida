@@ -9,5 +9,5 @@ The participant mentioned they prefer coffee over tea.
 ```
 
 ```json-annotations
-[]
+{"annotations": []}
 ```

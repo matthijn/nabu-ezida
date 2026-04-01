@@ -12,6 +12,7 @@ import {
   extractLimit,
   buildCosineQuery,
   buildHybridPlan,
+  sqlQueriesFilesTable,
   type SemanticToken,
   type HydeQuery,
 } from "./semantic"
@@ -399,6 +400,30 @@ describe("buildCosineQuery", () => {
     for (const fragment of expectedContains) {
       expect(result).toContain(fragment)
     }
+  })
+})
+
+describe("sqlQueriesFilesTable", () => {
+  const cases: { name: string; sql: string; expected: boolean }[] = [
+    { name: "FROM files", sql: "SELECT file FROM files", expected: true },
+    { name: "FROM files with alias", sql: "SELECT f.file FROM files f", expected: true },
+    {
+      name: "FROM annotations",
+      sql: "SELECT file FROM annotations WHERE code = 'x'",
+      expected: false,
+    },
+    { name: "FROM callout", sql: "SELECT file, id FROM callout", expected: false },
+    { name: "FROM attributes", sql: "SELECT file FROM attributes", expected: false },
+    { name: "case insensitive", sql: "SELECT file FROM FILES", expected: true },
+    {
+      name: "files in subquery only",
+      sql: "SELECT a.file FROM annotations a WHERE a.file IN (SELECT file FROM files)",
+      expected: true,
+    },
+  ]
+
+  it.each(cases)("$name", ({ sql, expected }) => {
+    expect(sqlQueriesFilesTable(sql)).toBe(expected)
   })
 })
 

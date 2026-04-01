@@ -5,7 +5,7 @@ import type { HistoryEntry } from "./types"
 const TS = 1000
 
 const buildAnnotations = (annotations: object[]): string =>
-  ["```json-annotations", JSON.stringify(annotations, null, 2), "```"].join("\n")
+  ["```json-annotations", JSON.stringify({ annotations }, null, 2), "```"].join("\n")
 
 const buildAttributes = (attrs: object): string =>
   ["```json-attributes", JSON.stringify(attrs, null, 2), "```"].join("\n")

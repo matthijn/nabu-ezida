@@ -4,6 +4,7 @@ import { findCalloutById } from "~/domain/data-blocks/callout/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 import { toDisplayName } from "./filename"
+import { resolveIdentifiers } from "~/lib/markdown/linkify/entities"
 
 export const resolveEntityName = (files: FileStore, id: string): string | null =>
   id.startsWith("annotation-")
@@ -17,3 +18,8 @@ export const resolveEntityName = (files: FileStore, id: string): string | null =
           : id.endsWith(".md") && id.toLowerCase() in files
             ? toDisplayName(id.toLowerCase())
             : null
+
+export const buildIdentifierResolver = (files: FileStore): ((text: string) => string) => {
+  const resolveName = (id: string): string | null => resolveEntityName(files, id)
+  return (text: string) => resolveIdentifiers(text, resolveName)
+}

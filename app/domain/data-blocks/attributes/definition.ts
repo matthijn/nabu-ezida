@@ -10,5 +10,6 @@ export const jsonAttributes: BlockTypeConfig<DocumentMeta, ValidationContext> = 
   constraints: ["tags: must be tag IDs defined in settings"],
   renderer: "hidden",
   singleton: true,
+  projected: true,
   validate: (parsed, context) => validateTags(parsed.tags, context),
 }

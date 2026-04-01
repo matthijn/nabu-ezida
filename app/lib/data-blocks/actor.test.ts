@@ -4,7 +4,8 @@ import { stampActors } from "./actor"
 const md = (block: string, language = "json-annotations") =>
   `# Doc\n\n\`\`\`${language}\n${block}\n\`\`\``
 
-const annotations = (arr: Record<string, unknown>[]) => JSON.stringify(arr, null, 2)
+const annotations = (arr: Record<string, unknown>[]) =>
+  JSON.stringify({ annotations: arr }, null, 2)
 
 const callout = (obj: Record<string, unknown>) =>
   JSON.stringify(
@@ -25,7 +26,8 @@ const parseBlock = (markdown: string, language = "json-annotations"): unknown =>
   const regex = new RegExp(`\`\`\`${language}\\n([\\s\\S]*?)\\n\`\`\``)
   const match = markdown.match(regex)
   if (!match) throw new Error("expected block match")
-  return JSON.parse(match[1])
+  const parsed = JSON.parse(match[1])
+  return language === "json-annotations" ? parsed.annotations : parsed
 }
 
 describe("stampActors", () => {

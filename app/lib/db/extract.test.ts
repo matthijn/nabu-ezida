@@ -7,7 +7,7 @@ describe("extractRows", () => {
     name: string
     tableName: string
     schema: JsonSchema
-    data: Record<string, unknown>
+    data: unknown
     filename: string
     expected: unknown
   }[] = [

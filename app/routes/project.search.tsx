@@ -4,11 +4,13 @@ import { useProject } from "./project"
 import { useSearchResults } from "~/ui/hooks/useSearchResults"
 import { SearchHeader } from "~/ui/components/search/SearchHeader"
 import { SearchResultList } from "~/ui/components/search/SearchResultList"
-import { SearchStatusBar } from "~/ui/components/SearchStatusBar"
+import { StatusBar } from "~/ui/components/StatusBar"
 import type { SearchHit } from "~/domain/search"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { formatDebugSql } from "~/lib/search"
 import type { HydeQuery } from "~/lib/search/semantic"
+import type { SearchPhase } from "~/ui/hooks/useSearchResults"
+import { buildIdentifierResolver } from "~/lib/files/selectors"
 
 const collectUniqueFiles = (hits: SearchHit[]): string[] => [...new Set(hits.map((h) => h.file))]
 
@@ -68,15 +70,23 @@ const formatHydeDebug = (hydes: HydeQuery[]): string => {
 
 const countUniqueFiles = (hits: SearchHit[]): number => new Set(hits.map((h) => h.file)).size
 
+const searchStatusText = (phase: SearchPhase, count: number, fileCount: number): string | null => {
+  if (phase === "searching") return "Pre-selecting in corpus"
+  if (phase === "filtering" && count === 0) return "Narrowing down results"
+  if (count > 0) return `Showing ${count} results across ${fileCount} files`
+  return null
+}
+
 export default function ProjectSearch() {
   const params = useParams<{ projectId: string; searchId: string }>()
   const navigate = useNavigate()
-  const { files, debugOptions, getFileTags, tagDefinitions } = useProject()
+  const { files, dbReady, debugOptions, getFileTags, tagDefinitions } = useProject()
   const [revision, _setRevision] = useState(0)
   const { search, results, hydes, phase, error, hasMore, loadMore } = useSearchResults(
     params.searchId ?? "",
     revision,
-    !!debugOptions.skipSearchCache
+    !!debugOptions.skipSearchCache,
+    dbReady
   )
   const tagOptions = useMemo(() => {
     const uniqueFiles = collectUniqueFiles(results)
@@ -101,9 +111,9 @@ export default function ProjectSearch() {
     [results, activeTags, getFileTags]
   )
 
-  const isSearching = phase === "searching"
-  const isFiltering = phase === "filtering"
   const fileCount = useMemo(() => countUniqueFiles(filteredResults), [filteredResults])
+  const statusText = searchStatusText(phase, filteredResults.length, fileCount)
+  const isDone = phase === "done"
 
   const loadMoreRef = useRef(loadMore)
   const hasMoreRef = useRef(hasMore)
@@ -130,6 +140,8 @@ export default function ProjectSearch() {
     el.addEventListener("scroll", onScroll, { passive: true })
     cleanupRef.current = () => el.removeEventListener("scroll", onScroll)
   }, [])
+
+  const resolveIds = useMemo(() => buildIdentifierResolver(files), [files])
 
   const showDebugSql = !!debugOptions.renderAsJson
 
@@ -165,8 +177,8 @@ export default function ProjectSearch() {
       >
         <div className="flex w-full max-w-[1024px] flex-col items-start gap-6">
           <SearchHeader
-            title={search.title}
-            description={search.description}
+            title={resolveIds(search.title)}
+            description={resolveIds(search.description)}
             tags={tagOptions}
             activeTags={activeTags}
             onToggleTag={handleToggleTag}
@@ -183,21 +195,22 @@ export default function ProjectSearch() {
               )}
             </div>
           )}
-          <SearchResultList
-            hits={filteredResults}
-            files={files}
-            projectId={params.projectId}
-            onNavigate={navigate}
-          />
+          {isDone && results.length === 0 ? (
+            <div className="flex w-full items-center justify-center py-16">
+              <span className="text-body font-body text-subtext-color">No results found</span>
+            </div>
+          ) : (
+            <SearchResultList
+              hits={filteredResults}
+              files={files}
+              projectId={params.projectId}
+              onNavigate={navigate}
+            />
+          )}
         </div>
       </div>
       <div className="rounded-xl border border-solid border-neutral-border bg-default-background">
-        <SearchStatusBar
-          count={filteredResults.length}
-          fileCount={fileCount}
-          isSearching={isSearching}
-          isFiltering={isFiltering}
-        />
+        <StatusBar text={statusText} />
       </div>
     </div>
   )

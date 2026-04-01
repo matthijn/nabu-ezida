@@ -11,6 +11,7 @@ export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
   constraints: ["tags: each tag label must be unique"],
   renderer: "hidden",
   singleton: true,
+  projected: true,
   allowedFiles: ["settings.hidden.md"],
   idPaths: [
     { path: "tags.*.id", prefix: "tag" },

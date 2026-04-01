@@ -41,4 +41,4 @@ export const validateAnnotations = (
 }
 
 export const patchAnnotationRequired = (schema: Record<string, unknown>): Record<string, unknown> =>
-  removeFromRequired(schema, ["items"], ["color", "code"])
+  removeFromRequired(schema, ["properties", "annotations", "items"], ["color", "code"])

@@ -11,6 +11,7 @@ import {
   getTagDefinitions,
 } from "~/lib/files"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
+import { buildIdentifierResolver } from "~/lib/files/selectors"
 
 export const useFiles = () => {
   const files = useSyncExternalStore(subscribe, getFiles)
@@ -21,6 +22,7 @@ export const useFiles = () => {
   const getFileLineCountFn = (filename: string): number => getFileLineCount(filename)
   const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
   const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
+  const resolveIds = buildIdentifierResolver(files)
 
   return {
     files,
@@ -31,5 +33,6 @@ export const useFiles = () => {
     getFileLineCount: getFileLineCountFn,
     getFileAnnotations,
     tagDefinitions,
+    resolveIds,
   }
 }

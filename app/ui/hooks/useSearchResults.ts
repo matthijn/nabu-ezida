@@ -8,8 +8,10 @@ import {
   executeHybridLocal,
   resolveSemanticSql,
   sanitizeSemanticError,
+  sqlQueriesFilesTable,
 } from "~/lib/search"
-import { filterBatch, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
+import { filterAndGrow, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
+import { growHits } from "~/lib/search/slices"
 import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getLlmHost } from "~/lib/agent/env"
 import type { SearchEntry, SearchHit } from "~/domain/search"
@@ -35,8 +37,6 @@ const EMPTY: SettledState = {
   hasMore: false,
 }
 
-const DB_POLL_INTERVAL = 250
-
 export interface SearchResults {
   search: SearchEntry | undefined
   results: SearchHit[]
@@ -60,7 +60,8 @@ interface FilterState {
 export const useSearchResults = (
   searchId: string,
   revision = 0,
-  skipCache = false
+  skipCache = false,
+  dbReady = false
 ): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
   const search = findSearchById(files, searchId)
@@ -80,7 +81,7 @@ export const useSearchResults = (
       state.cursor += chunk.length
 
       try {
-        const hits = await filterBatch(chunk, state.highlight, state.skipCache)
+        const hits = await filterAndGrow(chunk, state.highlight, getFiles(), state.skipCache)
         if (state.cancelled) return
         state.pageCount += hits.length
         setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
@@ -96,21 +97,17 @@ export const useSearchResults = (
   }, [])
 
   useEffect(() => {
-    if (!search) return
+    if (!search || !dbReady) return
+
+    const db = getDatabase()
+    if (!db) return
 
     let cancelled = false
-    let timer: ReturnType<typeof setTimeout> | null = null
 
     if (filterRef.current) filterRef.current.cancelled = true
     filterRef.current = null
 
     const run = async () => {
-      const db = getDatabase()
-      if (!db) {
-        if (!cancelled) timer = setTimeout(run, DB_POLL_INTERVAL)
-        return
-      }
-
       setSettled({
         results: [],
         hydes: [],
@@ -129,10 +126,6 @@ export const useSearchResults = (
       })
       if (cancelled) return
       if (!resolved.ok) {
-        if (resolved.error.type === "not_ready") {
-          if (!cancelled) timer = setTimeout(run, DB_POLL_INTERVAL)
-          return
-        }
         setSettled({
           results: [],
           hydes: [],
@@ -168,6 +161,20 @@ export const useSearchResults = (
 
       setSettled((prev) => ({ ...prev, hydes }))
 
+      if (rawHits.value.length === 0) {
+        setSettled((prev) => ({ ...prev, hydes, phase: "done", hasMore: false }))
+        return
+      }
+
+      const needsFiltering = sqlQueriesFilesTable(search.sql)
+
+      if (!needsFiltering) {
+        const grown = growHits(rawHits.value, getFiles())
+        if (cancelled) return
+        setSettled((prev) => ({ ...prev, results: grown, phase: "done", hasMore: false }))
+        return
+      }
+
       filterRef.current = {
         rawHits: rawHits.value,
         cursor: 0,
@@ -185,9 +192,8 @@ export const useSearchResults = (
     return () => {
       cancelled = true
       if (filterRef.current) filterRef.current.cancelled = true
-      if (timer) clearTimeout(timer)
     }
-  }, [search, searchId, revision, skipCache, filterNextChunk])
+  }, [search, searchId, revision, skipCache, dbReady, filterNextChunk])
 
   return {
     search,

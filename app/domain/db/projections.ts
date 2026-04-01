@@ -1,9 +1,9 @@
 import { z } from "zod"
 import type { ProjectionConfig } from "~/lib/db/projection"
 import type { JsonSchema } from "~/lib/db/types"
-import { CalloutSchema } from "~/domain/data-blocks/callout/schema"
-import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
-import { Settings } from "~/domain/data-blocks/settings/schema"
+import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
+import { getProjectedConfigs } from "~/lib/data-blocks/registry"
+import { getBlock, getBlocks } from "~/lib/data-blocks/query"
 import { EmbeddingRowSchema } from "~/domain/embeddings/schema"
 import { fastParseBlockContents } from "~/lib/embeddings/companion"
 
@@ -28,35 +28,56 @@ const parseCompanionBlocksForDb = (raw: string): Record<string, unknown>[] =>
     .map(parseCompanionBlock)
     .filter((b): b is Record<string, unknown> => b !== null)
 
+const stripLanguagePrefix = (language: string): string => language.replace("json-", "")
+
+const buildBlockParser = (
+  language: string,
+  schema: z.ZodType,
+  singleton: boolean,
+  rowPath?: string
+) => {
+  const parseBlocks = (raw: string): unknown[] =>
+    singleton ? [getBlock(raw, language, schema)].filter(Boolean) : getBlocks(raw, language, schema)
+
+  if (!rowPath) return parseBlocks
+
+  return (raw: string): unknown[] =>
+    parseBlocks(raw).flatMap((block) => {
+      const items = (block as Record<string, unknown>)[rowPath]
+      return Array.isArray(items) ? items : []
+    })
+}
+
+const getRowSchema = (config: BlockTypeConfig): z.ZodType => {
+  if (!config.rowPath) return config.schema
+  const arraySchema = (config.schema as z.ZodObject<Record<string, z.ZodType>>).shape[
+    config.rowPath
+  ]
+  return (arraySchema as z.ZodArray<z.ZodType>).element
+}
+
+const toProjectionConfig = ([language, config]: [string, BlockTypeConfig]): ProjectionConfig => ({
+  language,
+  tableName: stripLanguagePrefix(language),
+  schema: getRowSchema(config),
+  singleton: config.singleton,
+  blockParser: buildBlockParser(language, config.schema, config.singleton, config.rowPath),
+  allowedFiles: config.allowedFiles,
+})
+
+const embeddingsProjection: ProjectionConfig = {
+  language: "json-embeddings",
+  tableName: "files",
+  schema: EmbeddingRowSchema,
+  singleton: false,
+  blockParser: parseCompanionBlocksForDb,
+  fileMapper: (f) => f.replace(/\.embeddings\.hidden\.md$/, ".md"),
+  hiddenColumns: ["hash", "embedding"],
+}
+
 export const projections: ProjectionConfig[] = [
-  {
-    language: "json-callout",
-    tableName: "callout",
-    schema: CalloutSchema,
-    singleton: false,
-  },
-  {
-    language: "json-attributes",
-    tableName: "attributes",
-    schema: DocumentMeta,
-    singleton: true,
-  },
-  {
-    language: "json-settings",
-    tableName: "settings",
-    schema: Settings,
-    singleton: true,
-    allowedFiles: ["settings.hidden.md"],
-  },
-  {
-    language: "json-embeddings",
-    tableName: "files",
-    schema: EmbeddingRowSchema,
-    singleton: false,
-    fileMapper: (f) => f.replace(/\.embeddings\.hidden\.md$/, ".md"),
-    hiddenColumns: ["hash", "embedding"],
-    blockParser: parseCompanionBlocksForDb,
-  },
+  ...getProjectedConfigs().map(toProjectionConfig),
+  embeddingsProjection,
 ]
 
 export const toJsonSchema = (config: ProjectionConfig): JsonSchema =>

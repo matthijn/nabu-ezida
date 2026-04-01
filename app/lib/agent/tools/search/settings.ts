@@ -8,7 +8,7 @@ import type { SearchEntry } from "~/domain/search"
 export interface NewSearchData {
   title: string
   description: string
-  highlight: string
+  highlight?: string
   sql: string
 }
 
@@ -50,7 +50,7 @@ export const saveNewSearch = (data: NewSearchData): string | null => {
     id,
     title: data.title,
     description: data.description,
-    highlight: data.highlight,
+    highlight: data.highlight ?? "",
     saved: false,
     createdAt: Date.now(),
     sql: data.sql,

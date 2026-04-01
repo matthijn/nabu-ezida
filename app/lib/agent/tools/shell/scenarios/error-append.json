@@ -8,7 +8,7 @@
     "output": [
       {
         "stdout": "",
-        "stderr": "This is not bash. '>>' is not supported.\nUse only: cat, head, tail, ls, grep, find, wc, blocks, jq, cut, sort, uniq, tr, sed, echo",
+        "stderr": "This is not bash. '>>' is not supported.\nUse only: cat, ls, grep, find, wc, echo",
         "outcome": {
           "type": "exit",
           "exit_code": 1

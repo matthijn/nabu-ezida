@@ -2,15 +2,19 @@
 @@
 -```json-annotations
 -// start json-annotations
--[]
+-{
+-	"annotations": []
+-}
 -// end json-annotations
 -```
 +```json-annotations
-+[
-+  {
-+    "text": "this text does not exist in the document",
-+    "reason": "test reason",
-+    "color": "red"
-+  }
-+]
++{
++  "annotations": [
++    {
++      "text": "this text does not exist in the document",
++      "reason": "test reason",
++      "color": "red"
++    }
++  ]
++}
 +```

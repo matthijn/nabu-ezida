@@ -13,7 +13,14 @@ import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
-import { DocumentStatusBar } from "~/ui/components/DocumentStatusBar"
+import { StatusBar } from "~/ui/components/StatusBar"
+import { computeTextStats, formatStatsLabel, formatStatsDetail } from "~/lib/text/stats"
+import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
+import {
+  getDocumentType,
+  getDocumentSource,
+  getDocumentSubject,
+} from "~/domain/data-blocks/attributes/topics/selectors"
 import {
   FeatherBold,
   FeatherCode2,
@@ -33,6 +40,29 @@ import {
   FeatherTrash,
   FeatherUnderline,
 } from "@subframe/core"
+
+const formatClassificationLine = (
+  type: string | undefined,
+  source: string | undefined,
+  subject: string | undefined
+): string | null => {
+  const parts = [type, source, subject].filter(Boolean)
+  return parts.length > 0 ? parts.join(" \u00b7 ") : null
+}
+
+const documentStatusTooltip = (content: string): string => {
+  const stats = computeTextStats(stripAttributesBlock(content))
+  const detail = formatStatsDetail(stats)
+  const classification = formatClassificationLine(
+    getDocumentType(content),
+    getDocumentSource(content),
+    getDocumentSubject(content)
+  )
+  return classification ? `${detail}\n${classification}` : detail
+}
+
+const documentStatusText = (content: string): string =>
+  formatStatsLabel(computeTextStats(stripAttributesBlock(content)))
 
 const getFileRaw = (files: Record<string, string>, filename: string): string | undefined =>
   files[filename]
@@ -162,7 +192,10 @@ export default function ProjectFile() {
         </div>
       </div>
       <div className="rounded-xl border border-solid border-neutral-border bg-default-background">
-        <DocumentStatusBar content={rawContent ?? ""} />
+        <StatusBar
+          text={rawContent ? documentStatusText(rawContent) : null}
+          tooltip={rawContent ? documentStatusTooltip(rawContent) : undefined}
+        />
       </div>
     </div>
   )

@@ -43,6 +43,9 @@ export const getEntityPrefixes = (): string[] => [
   ...new Set(Object.values(blockTypes).flatMap((c) => c.idPaths?.map((p) => p.prefix) ?? [])),
 ]
 
+export const getProjectedConfigs = (): [string, AnyBlockConfig][] =>
+  Object.entries(blockTypes).filter(([, config]) => config.projected)
+
 export const getBlockSchemaDefinitions = (): BlockSchemaDefinition[] =>
   Object.entries(blockTypes).map(([language, config]) => ({
     language,

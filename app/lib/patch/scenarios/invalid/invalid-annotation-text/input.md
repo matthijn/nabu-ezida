@@ -9,5 +9,5 @@ The participant discussed their morning routine.
 ```
 
 ```json-annotations
-[]
+{"annotations": []}
 ```

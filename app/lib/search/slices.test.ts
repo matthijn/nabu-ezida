@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 import { extractSearchSlice } from "./slices"
 
 const makeAnnotations = (annotations: { text: string; reason: string; color: string }[]): string =>
-  "```json-annotations\n" + JSON.stringify(annotations) + "\n```"
+  "```json-annotations\n" + JSON.stringify({ annotations }) + "\n```"
 
 const makeAttrs = (attrs: { tags?: string[] }): string =>
   "```json-attributes\n" + JSON.stringify(attrs) + "\n```"
@@ -19,14 +19,8 @@ const makeDoc = (
 }
 
 const formatExpectedBlock = (
-  annotations: { text: string; reason: string; color: string }[],
-  tags?: string[]
-): string => {
-  const obj: Record<string, unknown> = {}
-  if (tags) obj.tags = tags
-  if (annotations.length > 0) obj.annotations = annotations
-  return "```json-attributes\n" + JSON.stringify(obj) + "\n```"
-}
+  annotations: { text: string; reason: string; color: string }[]
+): string => "```json-annotations\n" + JSON.stringify({ annotations }) + "\n```"
 
 describe("extractSearchSlice", () => {
   const cases: {
@@ -68,7 +62,7 @@ describe("extractSearchSlice", () => {
       expected: "paragraph one",
     },
     {
-      name: "appends filtered attributes when annotation overlaps",
+      name: "appends overlapping annotations block",
       hit: { file: "doc.md", text: "key insight here" },
       fileContent: makeDoc("intro text\n\nkey insight here and more", [
         { text: "key insight here", reason: "important", color: "blue" },
@@ -105,7 +99,7 @@ describe("extractSearchSlice", () => {
       expected: `AAA BBB\n\n${formatExpectedBlock([{ text: "AAA BBB", reason: "a", color: "blue" }])}`,
     },
     {
-      name: "preserves tags in filtered attributes block",
+      name: "ignores tags in attributes block",
       hit: { file: "doc.md", text: "key insight" },
       fileContent: makeDoc(
         "key insight here",
@@ -114,7 +108,7 @@ describe("extractSearchSlice", () => {
       ),
       expected:
         `key insight\n\n` +
-        formatExpectedBlock([{ text: "key insight", reason: "r", color: "blue" }], ["interview"]),
+        formatExpectedBlock([{ text: "key insight", reason: "r", color: "blue" }]),
     },
   ]
 

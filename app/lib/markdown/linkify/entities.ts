@@ -73,6 +73,14 @@ const tryStripBefore = (before: string, name: string): number => {
   return 0
 }
 
+export const resolveIdentifiers = (text: string, resolveName: NameResolver): string => {
+  const pattern = buildEntityIdPattern(getEntityPrefixes())
+  return text.replace(pattern, (match, bareId: string | undefined) => {
+    if (!bareId) return match
+    return resolveName(bareId) ?? match
+  })
+}
+
 export const linkifyEntityIds = (
   text: string,
   resolveName: NameResolver,

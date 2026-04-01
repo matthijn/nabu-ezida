@@ -8,6 +8,7 @@ import {
   executeHybridLocal,
   resolveSemanticSql,
   sanitizeSemanticError,
+  sqlQueriesFilesTable,
 } from "~/lib/search"
 import { filterBatch, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
 import { saveNewSearch } from "./settings"
@@ -57,8 +58,11 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   if (!rawHits.ok) return { status: "error", output: sanitizeSemanticError(rawHits.error.message) }
 
+  const needsFiltering = sqlQueriesFilesTable(parsed.data.sql)
   const firstChunk = rawHits.value.slice(0, FILTER_BATCH_SIZE)
-  const filtered = await filterBatch(firstChunk, parsed.data.highlight)
+  const filtered = needsFiltering
+    ? await filterBatch(firstChunk, parsed.data.highlight)
+    : firstChunk
   if (hasNoResults(filtered)) return formatEmpty(parsed.data.sql)
 
   const id = saveNewSearch(parsed.data)

@@ -7,6 +7,7 @@ const annotationToProse = (a: Annotation): string => {
 }
 
 export const annotationsToProse = (block: unknown): string | null => {
-  if (!Array.isArray(block) || block.length === 0) return null
-  return block.map(annotationToProse).join("\n\n")
+  const { annotations } = block as { annotations: Annotation[] }
+  if (!annotations || annotations.length === 0) return null
+  return annotations.map(annotationToProse).join("\n\n")
 }

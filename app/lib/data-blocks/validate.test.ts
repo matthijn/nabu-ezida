@@ -36,7 +36,7 @@ describe("validateMarkdownBlocks", () => {
 This is some text about cats and dogs.
 
 \`\`\`json-annotations
-[{"text": "cats", "reason": "animal", "color": "red"}]
+{"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
         expectValid: true,
       },
@@ -47,7 +47,7 @@ This is some text about cats and dogs.
 This document has no animals.
 
 \`\`\`json-annotations
-[{"text": "cats", "reason": "animal", "color": "red"}]
+{"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
         expectValid: false,
         expectErrorContains: "not found in document",
@@ -59,7 +59,7 @@ This document has no animals.
 CATS are great.
 
 \`\`\`json-annotations
-[{"text": "cats", "reason": "animal", "color": "red"}]
+{"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
         expectValid: true,
       },
@@ -81,7 +81,7 @@ CATS are great.
         markdown: `# Test
 
 \`\`\`json-annotations
-[{"text": "test", "reason": "note", "code": "abc123"}]
+{"annotations": [{"text": "test", "reason": "note", "code": "abc123"}]}
 \`\`\``,
         context: {
           documentProse: "This is a test.",
@@ -95,7 +95,7 @@ CATS are great.
         markdown: `# Test
 
 \`\`\`json-annotations
-[{"text": "test", "reason": "note", "code": "nonexistent"}]
+{"annotations": [{"text": "test", "reason": "note", "code": "nonexistent"}]}
 \`\`\``,
         context: {
           documentProse: "This is a test.",
@@ -181,13 +181,13 @@ CATS are great.
       const original = `# Test
 
 \`\`\`json-annotations
-[{"text": "old one", "reason": "original", "color": "blue"}]
+{"annotations": [{"text": "old one", "reason": "original", "color": "blue"}]}
 \`\`\``
 
       const patched = `# Test
 
 \`\`\`json-annotations
-[{"text": "nonexistent", "reason": "test", "color": "red"}]
+{"annotations": [{"text": "nonexistent", "reason": "test", "color": "red"}]}
 \`\`\``
 
       const result = validateMarkdownBlocks(patched, { original })

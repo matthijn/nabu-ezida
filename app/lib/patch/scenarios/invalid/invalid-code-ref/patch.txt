@@ -2,15 +2,19 @@
 @@
 -```json-annotations
 -// start json-annotations
--[]
+-{
+-	"annotations": []
+-}
 -// end json-annotations
 -```
 +```json-annotations
-+[
-+  {
-+    "text": "coffee",
-+    "reason": "preference mentioned",
-+    "code": "nonexistent-code-id"
-+  }
-+]
++{
++  "annotations": [
++    {
++      "text": "coffee",
++      "reason": "preference mentioned",
++      "code": "nonexistent-code-id"
++    }
++  ]
++}
 +```

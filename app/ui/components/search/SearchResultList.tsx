@@ -6,7 +6,6 @@ import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
 import { toDisplayName } from "~/lib/files/filename"
-import { extractSearchSlice } from "~/lib/search"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 
@@ -39,17 +38,11 @@ const hitIsFileOnly = (hit: SearchHit): boolean => !hitHasId(hit) && !hitHasText
 const hitKey = (hit: SearchHit, index: number): string =>
   hit.id ?? (hit.text ? `text-${index}` : `file-${index}`)
 
-const SearchSlicePreview = ({ hit, fileContent }: { hit: SearchHit; fileContent: string }) => {
-  const markdown = useMemo(() => extractSearchSlice(hit, fileContent), [hit, fileContent])
-
-  if (!markdown) return null
-
-  return (
-    <div className="w-full rounded-md border border-solid border-neutral-200 px-4 py-3">
-      <MilkdownEditor content={markdown} readOnly />
-    </div>
-  )
-}
+const SearchSlicePreview = ({ text }: { text: string }) => (
+  <div className="w-full rounded-md border border-solid border-neutral-200 px-4 py-3">
+    <MilkdownEditor content={text} readOnly />
+  </div>
+)
 
 const RunGroupCard = ({
   group,
@@ -89,9 +82,9 @@ const RunGroupCard = ({
         <IconButton size="small" icon={<FeatherExternalLink />} onClick={handleOpenFile} />
       </div>
       <div className="flex w-full flex-col items-start gap-4 px-6 py-5">
-        {hitsToRender.map((hit, i) => (
-          <SearchSlicePreview key={hitKey(hit, i)} hit={hit} fileContent={content} />
-        ))}
+        {hitsToRender.map((hit, i) =>
+          hit.text ? <SearchSlicePreview key={hitKey(hit, i)} text={hit.text} /> : null
+        )}
       </div>
     </div>
   )

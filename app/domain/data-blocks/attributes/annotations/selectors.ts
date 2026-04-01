@@ -8,7 +8,7 @@ import { findIn, findFileFor } from "~/lib/files/collect"
 export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }
 
 export const getStoredAnnotations = (raw: string): StoredAnnotation[] =>
-  getBlock(raw, "json-annotations", AnnotationsBlockSchema) ?? []
+  getBlock(raw, "json-annotations", AnnotationsBlockSchema)?.annotations ?? []
 
 export const getAnnotationCount = (raw: string): number => getStoredAnnotations(raw).length
 

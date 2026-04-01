@@ -279,14 +279,14 @@ describe("patch_json_block", () => {
     },
     {
       name: "annotation text not found in document — error",
-      files: { "doc.md": doc([], "json-annotations") },
+      files: { "doc.md": doc({ annotations: [] }, "json-annotations") },
       args: {
         path: "doc.md",
         language: "json-annotations",
         operations: [
           {
             op: "add",
-            path: "/-",
+            path: "/annotations/-",
             value: {
               text: "completely nonexistent phrase that appears nowhere",
               reason: "r",

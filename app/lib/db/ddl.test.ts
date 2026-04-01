@@ -22,8 +22,8 @@ describe("jsonSchemaToTableProjection", () => {
             name: "items",
             columns: [
               { name: "file", type: "VARCHAR", nullable: false },
-              { name: "name", type: "VARCHAR", nullable: false },
-              { name: "active", type: "BOOLEAN", nullable: false },
+              { name: "name", type: "VARCHAR", nullable: true },
+              { name: "active", type: "BOOLEAN", nullable: true },
               { name: "count", type: "INTEGER", nullable: true },
             ],
           },
@@ -76,8 +76,8 @@ describe("jsonSchemaToTableProjection", () => {
             name: "settings_tags",
             columns: [
               { name: "file", type: "VARCHAR", nullable: false },
-              { name: "id", type: "VARCHAR", nullable: false },
-              { name: "label", type: "VARCHAR", nullable: false },
+              { name: "id", type: "VARCHAR", nullable: true },
+              { name: "label", type: "VARCHAR", nullable: true },
             ],
           },
         ],
@@ -114,7 +114,7 @@ describe("jsonSchemaToTableProjection", () => {
             name: "attributes_annotations",
             columns: [
               { name: "file", type: "VARCHAR", nullable: false },
-              { name: "text", type: "VARCHAR", nullable: false },
+              { name: "text", type: "VARCHAR", nullable: true },
               { name: "color", type: "VARCHAR", nullable: true },
             ],
           },

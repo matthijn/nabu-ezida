@@ -43,6 +43,8 @@ import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hidden"
+import { buildIdentifierResolver } from "~/lib/files/selectors"
+import type { SearchEntry } from "~/domain/search"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
@@ -104,6 +106,20 @@ const saveDebugOptions = (options: DebugOptions): void => {
   }
 }
 
+const resolveSearchEntry = (
+  entry: SearchEntry,
+  resolve: (text: string) => string
+): SearchEntry => ({
+  ...entry,
+  title: resolve(entry.title),
+  description: resolve(entry.description),
+})
+
+const resolveSearchEntries = (
+  entries: SearchEntry[],
+  resolve: (text: string) => string
+): SearchEntry[] => entries.map((e) => resolveSearchEntry(e, resolve))
+
 const isSyncMetaCommand = (command: Command): command is Command & { fileCount: number } =>
   command.action === "SyncMeta" && typeof command.fileCount === "number"
 
@@ -126,6 +142,7 @@ const computeWeightedProgress = (processed: number, total: number, weight: numbe
 export interface ProjectContextValue {
   files: Record<string, string>
   currentFile: string | null
+  dbReady: boolean
   debugOptions: DebugOptions
   toggleDebugOption: (key: string) => void
   requestCompaction: () => void
@@ -315,8 +332,15 @@ export default function ProjectLayout() {
     navigate(`/project/${params.projectId}/file/${encodeURIComponent(filename)}`)
   }
 
-  const recentSearches = useMemo(() => getRecentSearches(files), [files])
-  const savedSearches = useMemo(() => getSavedSearches(files), [files])
+  const resolveIds = useMemo(() => buildIdentifierResolver(files), [files])
+  const recentSearches = useMemo(
+    () => resolveSearchEntries(getRecentSearches(files), resolveIds),
+    [files, resolveIds]
+  )
+  const savedSearches = useMemo(
+    () => resolveSearchEntries(getSavedSearches(files), resolveIds),
+    [files, resolveIds]
+  )
 
   const handleSearchSave = (id: string) => {
     const entries = getSearchEntries(files)
@@ -345,9 +369,8 @@ export default function ProjectLayout() {
 
   const handleSearchCode = (code: Code) => {
     const id = saveNewSearch({
-      title: code.name,
-      description: `Passages related to "${code.name}"`,
-      highlight: code.name,
+      title: code.id,
+      description: `Passages coded as: ${code.id}`,
       sql: `SELECT file, id, text FROM annotations WHERE code = '${code.id}'`,
     })
     if (!id) return
@@ -430,6 +453,7 @@ export default function ProjectLayout() {
                 context={{
                   files,
                   currentFile,
+                  dbReady: !loading,
                   debugOptions,
                   toggleDebugOption,
                   requestCompaction,

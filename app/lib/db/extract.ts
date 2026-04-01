@@ -38,17 +38,18 @@ const extractChildRows = (
 export const extractRows = (
   tableName: string,
   jsonSchema: JsonSchema,
-  data: Record<string, unknown>,
+  data: unknown,
   filename: string
 ): TableRows[] => {
-  const rootRow = extractScalars(jsonSchema, data, filename)
+  const obj = data as Record<string, unknown>
+  const rootRow = extractScalars(jsonSchema, obj, filename)
   const result: TableRows[] = [{ table: tableName, rows: [rootRow] }]
   const properties = jsonSchema.properties ?? {}
 
   for (const [field, prop] of Object.entries(properties)) {
     if (!isObjectArray(prop)) continue
 
-    const items = data[field]
+    const items = obj[field]
     if (!Array.isArray(items) || items.length === 0) continue
 
     if (!prop.items) throw new Error(`Object array ${field} missing items schema`)

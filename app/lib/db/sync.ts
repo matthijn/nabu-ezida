@@ -50,18 +50,6 @@ const isEmbeddingsFile = (filename: string): boolean => filename.endsWith(".embe
 const isEmbeddingsProjection = (config: ProjectionConfig): boolean =>
   config.fileMapper !== undefined
 
-const resolveBlocks = (
-  config: ProjectionConfig,
-  raw: string,
-  getBlocks: (raw: string, language: string) => Record<string, unknown>[],
-  getBlock: (raw: string, language: string) => Record<string, unknown> | null
-): Record<string, unknown>[] =>
-  config.blockParser
-    ? config.blockParser(raw)
-    : config.singleton
-      ? ([getBlock(raw, config.language)].filter(Boolean) as Record<string, unknown>[])
-      : getBlocks(raw, config.language)
-
 const buildProjectionDeleteSql = (projection: ProjectionWithSchema, filename: string): string => {
   const file = effectiveFile(projection.config, filename)
   return projection.schemas
@@ -85,7 +73,7 @@ const accumulateRows = (
   schemas: TableSchema[],
   tableName: string,
   jsonSchema: JsonSchema,
-  block: Record<string, unknown>,
+  block: unknown,
   file: string
 ): void => {
   const tableRows = extractRows(tableName, jsonSchema, block, file)
@@ -104,9 +92,7 @@ export const syncFiles = async (
   conn: DbConnection,
   plan: SyncPlan,
   files: FileStore,
-  projections: ProjectionWithSchema[],
-  getBlocks: (raw: string, language: string) => Record<string, unknown>[],
-  getBlock: (raw: string, language: string) => Record<string, unknown> | null
+  projections: ProjectionWithSchema[]
 ): Promise<Result<void, DbError>> => {
   const deleteStatements: string[] = []
   const inserts = new Map<string, TableInsert>()
@@ -133,7 +119,7 @@ export const syncFiles = async (
       if (!isAllowedFile(filename, config.allowedFiles)) continue
 
       const file = effectiveFile(config, filename)
-      const blocks = resolveBlocks(config, raw, getBlocks, getBlock)
+      const blocks = config.blockParser(raw)
 
       for (const block of blocks) {
         accumulateRows(inserts, schemas, config.tableName, jsonSchema, block, file)

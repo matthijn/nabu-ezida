@@ -1,7 +1,9 @@
 import { z } from "zod"
 import type { SearchHit } from "~/domain/search"
+import type { FileStore } from "~/lib/files/store"
 import { callLlm, extractText, toResponseFormat } from "~/lib/agent/client"
 import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
+import { growHits } from "./slices"
 
 export const FILTER_BATCH_SIZE = 10
 
@@ -168,4 +170,14 @@ export const filterBatch = async (
     console.error("[FILTER] batch failed", e)
     return []
   }
+}
+
+export const filterAndGrow = async (
+  hits: SearchHit[],
+  intent: string,
+  files: FileStore,
+  skipCache = false
+): Promise<SearchHit[]> => {
+  const filtered = await filterBatch(hits, intent, skipCache)
+  return growHits(filtered, files)
 }

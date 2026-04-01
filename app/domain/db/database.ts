@@ -1,5 +1,4 @@
 import { subscribe, getFiles, type FileStore } from "~/lib/files/store"
-import { getBlock, getBlocks, getBlockRaw, getBlocksRaw } from "~/lib/data-blocks/query"
 import { debounce } from "~/lib/utils/debounce"
 import { initializeDatabase } from "~/lib/db/init"
 import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
@@ -17,21 +16,6 @@ const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
 
 const generateDdl = (withSchemas: ProjectionWithSchema[]): string =>
   withSchemas.flatMap((p) => p.schemas.map(tableSchemaToDdl)).join("\n\n")
-
-const findProjectionSchema = (language: string) => {
-  const projection = projections.find((p) => p.language === language)
-  if (!projection) throw new Error(`Unknown projection language: ${language}`)
-  return projection.schema
-}
-
-const getBlocksUntyped = (raw: string, language: string): Record<string, unknown>[] =>
-  getBlocks(raw, language, findProjectionSchema(language)) as Record<string, unknown>[]
-
-const getBlockUntyped = (raw: string, language: string): Record<string, unknown> | null =>
-  getBlock(raw, language, findProjectionSchema(language)) as Record<string, unknown> | null
-
-type BlocksParser = (raw: string, language: string) => Record<string, unknown>[]
-type BlockParser = (raw: string, language: string) => Record<string, unknown> | null
 
 export type OnDbSyncProgress = (processed: number, total: number) => void
 
@@ -52,8 +36,6 @@ const batchItemCount = (batch: { deleted: string[]; changed: string[] }): number
 const runSync = async (
   db: Database,
   withSchemas: ProjectionWithSchema[],
-  parseBlocks: BlocksParser,
-  parseBlock: BlockParser,
   onProgress?: OnDbSyncProgress
 ): Promise<void> => {
   const currentFiles = getFiles()
@@ -67,14 +49,7 @@ const runSync = async (
 
   await executeWithConnection(db.instance, async (conn) => {
     for (const batch of batches) {
-      const result = await syncFiles(
-        conn,
-        batch,
-        currentFiles,
-        withSchemas,
-        parseBlocks,
-        parseBlock
-      )
+      const result = await syncFiles(conn, batch, currentFiles, withSchemas)
       if (!result.ok) {
         console.error("[db] sync failed:", result.error)
         return
@@ -106,7 +81,7 @@ export const startDatabase = async (onProgress?: OnDbSyncProgress): Promise<void
   database = result.value
   console.debug("[db] initialized, running initial sync...")
 
-  await runSync(database, withSchemas, getBlocksRaw, getBlockRaw, onProgress)
+  await runSync(database, withSchemas, onProgress)
   dbReadyResolve?.()
 
   if (typeof window !== "undefined") {
@@ -124,7 +99,7 @@ export const startDatabase = async (onProgress?: OnDbSyncProgress): Promise<void
 export const syncOnce = async (): Promise<void> => {
   if (!database) return
   const withSchemas = buildProjectionsWithSchemas()
-  await runSync(database, withSchemas, getBlocksUntyped, getBlockUntyped)
+  await runSync(database, withSchemas)
 }
 
 export const startBackgroundSync = (): void => {
@@ -132,7 +107,7 @@ export const startBackgroundSync = (): void => {
   const withSchemas = buildProjectionsWithSchemas()
 
   const debouncedSync = debounce(() => {
-    if (database) runSync(database, withSchemas, getBlocksUntyped, getBlockUntyped)
+    if (database) runSync(database, withSchemas)
   }, 200)
 
   subscribe(debouncedSync)

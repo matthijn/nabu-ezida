@@ -5,5 +5,7 @@
 ```
 
 ```json-annotations
-[]
+{
+  "annotations": []
+}
 ```

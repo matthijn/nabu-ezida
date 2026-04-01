@@ -1,8 +1,7 @@
 import type { SearchHit } from "~/domain/search"
+import type { FileStore } from "~/lib/files/store"
 import type { Annotation } from "~/domain/data-blocks/attributes/schema"
-import { DocumentMeta } from "~/domain/data-blocks/attributes/schema"
 import { AnnotationsBlockSchema } from "~/domain/data-blocks/annotations/schema"
-import { findSingletonBlock } from "~/lib/data-blocks/parse"
 import { getBlock } from "~/lib/data-blocks/query"
 import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
 
@@ -36,26 +35,11 @@ const boundingRange = (base: Range, extras: Range[]): Range => {
   return { start, end }
 }
 
-const parseTags = (fileContent: string): string[] | undefined => {
-  const block = findSingletonBlock(fileContent, "json-attributes")
-  if (!block) return undefined
-  try {
-    const parsed = DocumentMeta.safeParse(JSON.parse(block.content))
-    return parsed.success ? parsed.data.tags : undefined
-  } catch {
-    return undefined
-  }
-}
-
 const parseAnnotations = (fileContent: string): Annotation[] =>
-  getBlock(fileContent, "json-annotations", AnnotationsBlockSchema) ?? []
+  getBlock(fileContent, "json-annotations", AnnotationsBlockSchema)?.annotations ?? []
 
-const formatAnnotationsBlock = (meta: { tags?: string[]; annotations: Annotation[] }): string => {
-  const obj: Record<string, unknown> = {}
-  if (meta.tags) obj.tags = meta.tags
-  if (meta.annotations.length > 0) obj.annotations = meta.annotations
-  return "```json-attributes\n" + JSON.stringify(obj) + "\n```"
-}
+const formatAnnotationsBlock = (annotations: Annotation[]): string =>
+  "```json-annotations\n" + JSON.stringify({ annotations }) + "\n```"
 
 const expandSliceWithAnnotations = (
   sliceText: string,
@@ -96,7 +80,6 @@ export const extractSearchSlice = (hit: SearchHit, fileContent: string): string 
   if (annotations.length === 0) return hit.text
 
   const prose = stripAttributesBlock(fileContent)
-  const tags = parseTags(fileContent)
   const { text, annotations: overlapping } = expandSliceWithAnnotations(
     hit.text,
     prose,
@@ -104,6 +87,17 @@ export const extractSearchSlice = (hit: SearchHit, fileContent: string): string 
   )
   if (overlapping.length === 0) return text
 
-  const block = formatAnnotationsBlock({ tags, annotations: overlapping })
-  return `${text}\n\n${block}`
+  return `${text}\n\n${formatAnnotationsBlock(overlapping)}`
 }
+
+const growHit = (hit: SearchHit, files: FileStore): SearchHit => {
+  if (!hit.text) return hit
+  const fileContent = files[hit.file]
+  if (!fileContent) return hit
+  const grown = extractSearchSlice(hit, fileContent)
+  if (!grown) return hit
+  return { ...hit, text: grown }
+}
+
+export const growHits = (hits: SearchHit[], files: FileStore): SearchHit[] =>
+  hits.map((hit) => growHit(hit, files))

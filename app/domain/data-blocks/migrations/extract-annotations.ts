@@ -25,7 +25,7 @@ const upgradeMarkdown = (markdown: string): string => {
   const { annotations, ...rest } = result.data
   const withCleanedBlock = replaceBlock(markdown, block, JSON.stringify(rest, null, 2))
 
-  const annotationsBlock = formatBlock("json-annotations", JSON.stringify(annotations, null, 2))
+  const annotationsBlock = formatBlock("json-annotations", JSON.stringify({ annotations }, null, 2))
 
   return withCleanedBlock.trimEnd() + "\n\n" + annotationsBlock
 }

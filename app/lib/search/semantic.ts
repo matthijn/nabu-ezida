@@ -21,6 +21,10 @@ export interface HybridSearchPlan {
   limit: number | undefined
 }
 
+const FILES_TABLE_RE = /\bFROM\s+files\b/i
+
+export const sqlQueriesFilesTable = (sql: string): boolean => FILES_TABLE_RE.test(sql)
+
 const SEMANTIC_PATTERN = /SEMANTIC\('([^']+)'\)/g
 const SCORE_COLUMN = "_semantic_score"
 
