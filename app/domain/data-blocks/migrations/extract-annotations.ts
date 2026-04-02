@@ -5,7 +5,7 @@ import { findSingletonBlock, parseBlockJson, replaceBlock } from "~/lib/data-blo
 const oldAttributesShape = z
   .object({
     tags: z.array(z.string()).optional(),
-    annotations: z.array(z.any()),
+    annotations: z.array(z.unknown()),
   })
   .strict()
 

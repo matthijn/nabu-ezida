@@ -2,7 +2,7 @@ import { z } from "zod"
 import type { Migration } from "~/lib/data-blocks/migrate"
 import { findSingletonBlock, parseBlockJson, replaceBlock } from "~/lib/data-blocks/parse"
 
-const oldAnnotationsShape = z.array(z.any())
+const oldAnnotationsShape = z.array(z.unknown())
 
 const upgradeMarkdown = (markdown: string): string => {
   const block = findSingletonBlock(markdown, "json-annotations")

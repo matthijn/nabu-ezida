@@ -1,4 +1,5 @@
 import type { ToolCall } from "../client"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import type { ToolResult, Operation, Handler } from "../types"
 import {
   getFilesStripped,
@@ -120,6 +121,8 @@ const applyMutation = (op: Operation, placeholderIds: Record<string, string>): M
       pushEntries([fileRenamedEntry(op.path, op.newPath, ts)])
       return { ids: null }
     }
+    default:
+      return exhaustive(op)
   }
 }
 

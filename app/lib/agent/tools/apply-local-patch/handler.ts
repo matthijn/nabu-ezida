@@ -1,4 +1,5 @@
 import type { Operation } from "../../types"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import { tool, registerTool, ok, err, withHint } from "../../executors/tool"
 import { applyLocalPatch as def } from "./def"
 import { detectHint } from "./hints"
@@ -37,6 +38,8 @@ const validateOperation = (files: Map<string, string>, op: Operation): string | 
       if (!files.has(op.path)) return `${op.path}: No such file`
       if (files.has(op.newPath)) return `${op.newPath}: already exists`
       return null
+    default:
+      return exhaustive(op)
   }
 }
 
