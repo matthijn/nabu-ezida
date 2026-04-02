@@ -297,7 +297,10 @@ export default function ProjectLayout() {
 
   useEffect(() => {
     if (loading) return
-    if (params.searchId) return
+    if (params.searchId) {
+      if (currentFile) setCurrentFile(null)
+      return
+    }
 
     if (params.fileId) {
       const decoded = decodeURIComponent(params.fileId)
