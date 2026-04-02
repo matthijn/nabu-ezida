@@ -77,7 +77,7 @@ export default function ProjectFile() {
   const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
-  useScrollToEntity(editorContainerRef)
+  useScrollToEntity(editorContainerRef, currentFile)
 
   const rawContent = currentFile ? getFileRaw(files, currentFile) : undefined
   const content = useMemo(() => {

@@ -26,11 +26,16 @@ interface DefaultPageLayoutProps {
   className?: string
   activeNav?: ActiveNav
   showCodes?: boolean
+  reviewCount?: number
   onNavChange?: (nav: ActiveNav) => void
   dismissSidebarRef?: MutableRefObject<(() => void) | null>
 }
 
-const buildNavItems = (hoveredNav: ActiveNav | null, showCodes: boolean): NavItem[][] => {
+const buildNavItems = (
+  hoveredNav: ActiveNav | null,
+  showCodes: boolean,
+  reviewCount: number
+): NavItem[][] => {
   const primary: NavItem[] = [
     {
       id: "documents",
@@ -56,6 +61,7 @@ const buildNavItems = (hoveredNav: ActiveNav | null, showCodes: boolean): NavIte
           label: "Codes",
           tooltip: "Your qualitative codebook",
           selected: hoveredNav === "codes",
+          badge: reviewCount > 0 ? reviewCount : undefined,
         },
       ]
     : []
@@ -81,6 +87,7 @@ export const DefaultPageLayout = ({
   className,
   activeNav: _activeNav = "documents",
   showCodes = false,
+  reviewCount = 0,
   onNavChange,
   dismissSidebarRef,
 }: DefaultPageLayoutProps) => {
@@ -141,7 +148,7 @@ export const DefaultPageLayout = ({
       <div className="relative z-50 flex h-full flex-none" onMouseLeave={() => setHoveredNav(null)}>
         <div className="relative z-30">
           <MainSidebar
-            navItemGroups={buildNavItems(hoveredNav, showCodes)}
+            navItemGroups={buildNavItems(hoveredNav, showCodes, reviewCount)}
             footerExtra={sidebarFooterExtra}
             onNavItemClick={onNavChange ? (id) => onNavChange(id as ActiveNav) : undefined}
             onNavItemHover={(id) => setHoveredNav(id as ActiveNav)}

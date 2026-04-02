@@ -52,7 +52,10 @@ const observeAndScroll = (
   }
 }
 
-export const useScrollToEntity = (containerRef: RefObject<HTMLElement | null>): void => {
+export const useScrollToEntity = (
+  containerRef: RefObject<HTMLElement | null>,
+  contentKey?: string | null
+): void => {
   const [searchParams] = useSearchParams()
   const target = deriveScrollTarget(searchParams)
   const selector = target?.selector
@@ -72,5 +75,5 @@ export const useScrollToEntity = (containerRef: RefObject<HTMLElement | null>): 
     }
 
     return observeAndScroll(container, selector, block)
-  }, [key, selector, block, containerRef])
+  }, [key, selector, block, containerRef, contentKey])
 }

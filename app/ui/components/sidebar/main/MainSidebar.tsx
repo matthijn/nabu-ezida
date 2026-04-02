@@ -15,6 +15,7 @@ export interface NavItem {
   tooltip?: string
   selected?: boolean
   disabled?: boolean
+  badge?: number
 }
 
 interface UserMenuAction {
@@ -68,6 +69,7 @@ export function MainSidebar({
         icon={item.icon}
         tooltip={item.tooltip}
         selected={item.selected}
+        badge={item.badge}
         className={item.disabled ? "opacity-40 pointer-events-none" : undefined}
         onClick={item.disabled ? undefined : handleNavItemClick(item.id)}
         onMouseEnter={item.disabled ? undefined : handleNavItemHover(item.id)}

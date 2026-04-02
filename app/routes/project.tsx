@@ -39,7 +39,10 @@ import {
 import { startEmbeddings } from "~/domain/embeddings/init"
 import { startTopicAssignment } from "~/domain/topic-assignment/init"
 import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
-import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
+import {
+  getAnnotationCount,
+  getReviewAnnotationCount,
+} from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hidden"
@@ -370,6 +373,19 @@ export default function ProjectLayout() {
     )
   }
 
+  const reviewCount = useMemo(() => getReviewAnnotationCount(files), [files])
+
+  const handleReviewClick = () => {
+    const id = saveNewSearch({
+      title: "Needs review",
+      description: "Annotations flagged for human review",
+      sql: "SELECT file, id, text, review FROM annotations WHERE review IS NOT NULL",
+    })
+    if (!id) return
+    dismissSidebarRef.current?.()
+    navigate(`/project/${params.projectId}/search/${id}`)
+  }
+
   const handleSearchCode = (code: Code) => {
     const id = saveNewSearch({
       title: code.id,
@@ -408,9 +424,11 @@ export default function ProjectLayout() {
           codes: (
             <CodesSidebar
               codebook={codebook}
+              reviewCount={reviewCount}
               onEditCode={handleEditCode}
               onFileSelect={handleDocumentSelect}
               onSearchCode={handleSearchCode}
+              onReviewClick={handleReviewClick}
             />
           ),
         }
@@ -438,6 +456,7 @@ export default function ProjectLayout() {
         <DefaultPageLayout
           activeNav={activeNav}
           showCodes={!!codebook}
+          reviewCount={reviewCount}
           onNavChange={setActiveNav}
           dismissSidebarRef={dismissSidebarRef}
           sidebarPanels={sidebarPanels}

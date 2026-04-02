@@ -20,10 +20,7 @@ import { AnnotationHover } from "./AnnotationHover"
 import { ReadOnlyProvider } from "./ReadOnlyContext"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
-import type { Annotation } from "~/domain/data-blocks/attributes/annotations/selectors"
 import type { Spotlight } from "~/lib/editor/spotlight"
-
-const ANNOTATION_BATCH_SIZE = 20
 
 const readOnlyKey = new PluginKey("readOnly")
 
@@ -38,33 +35,6 @@ interface MilkdownEditorCoreProps {
   debugMode: boolean
   readOnly: boolean
   spotlight: Spotlight | null
-}
-
-const dispatchAnnotationBatches = (
-  getEditor: () => Editor | undefined,
-  annotations: Annotation[],
-  onCancel: { cancelled: boolean }
-): void => {
-  if (annotations.length === 0) return
-
-  let cursor = 0
-  const step = () => {
-    if (onCancel.cancelled) return
-    const editor = getEditor()
-    if (!editor) return
-
-    cursor = Math.min(cursor + ANNOTATION_BATCH_SIZE, annotations.length)
-    const batch = annotations.slice(0, cursor)
-
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr.setMeta(annotationsMeta, batch))
-    })
-
-    if (cursor < annotations.length) requestAnimationFrame(step)
-  }
-
-  requestAnimationFrame(step)
 }
 
 const MilkdownEditorCore = ({
@@ -136,11 +106,12 @@ const MilkdownEditorCore = ({
 
   useEffect(() => {
     if (loading) return
-    const cancel = { cancelled: false }
-    dispatchAnnotationBatches(getEditor, annotations, cancel)
-    return () => {
-      cancel.cancelled = true
-    }
+    const editor = getEditor()
+    if (!editor) return
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.setMeta(annotationsMeta, annotations))
+    })
   }, [loading, getEditor, annotations])
 
   return (

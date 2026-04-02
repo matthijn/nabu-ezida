@@ -11,6 +11,7 @@ interface NavItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: ReactNode
   tooltip?: string
   selected?: boolean
+  badge?: number
   className?: string
 }
 
@@ -20,6 +21,7 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
     children,
     tooltip,
     selected = false,
+    badge,
     className,
     ...otherProps
   }: NavItemProps,
@@ -41,14 +43,21 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
             {...otherProps}
           >
             {icon ? (
-              <SubframeCore.IconWrapper
-                className={cn(
-                  "text-heading-2 font-heading-2 text-subtext-color group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
-                  { "text-default-font": selected }
-                )}
-              >
-                {icon}
-              </SubframeCore.IconWrapper>
+              <div className="relative">
+                <SubframeCore.IconWrapper
+                  className={cn(
+                    "text-heading-2 font-heading-2 text-subtext-color group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
+                    { "text-default-font": selected }
+                  )}
+                >
+                  {icon}
+                </SubframeCore.IconWrapper>
+                {badge != null && badge > 0 ? (
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-500 px-1 text-[10px] font-bold leading-none text-white">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
             {children ? (
               <span
