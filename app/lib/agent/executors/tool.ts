@@ -41,7 +41,6 @@ export const formatZodError = (error: z.ZodError): string =>
     .map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message))
     .join(", ")
 
-// JSON Schema generation for LLM tool definitions
 interface JsonSchemaProperty {
   type: string
   description?: string
@@ -150,7 +149,6 @@ export const toToolDefinition = (t: AnyTool): ToolDefinition => {
   }
 }
 
-// Registry for all tools
 const registry: Tool<z.ZodType, unknown>[] = []
 
 export const registerTool = <TSchema extends z.ZodType, TOutput>(
@@ -166,7 +164,6 @@ export const getToolHandlers = (): Record<string, Handler> =>
 export const toSchemaMap = (tools: AnyTool[]): Record<string, z.ZodType> =>
   Object.fromEntries(tools.map((t) => [t.name, t.schema]))
 
-// Result helpers
 export const ok = <T>(output: T, mutations: Operation[] = []): HandlerResult<T> => ({
   status: "ok",
   output,

@@ -62,6 +62,7 @@ import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
 import { pickGreeting } from "./greetings"
+import { exhaustive } from "~/lib/utils/exhaustive"
 
 const allowFileProtocol = (url: string): string => url
 
@@ -666,6 +667,8 @@ const PlanSegmentItemRenderer = ({
           navigate={navigate}
         />
       )
+    default:
+      return exhaustive(item)
   }
 }
 

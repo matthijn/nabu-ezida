@@ -18,11 +18,12 @@ export const stampActors = (original: string, updated: string, actor: Actor): st
 
     const oldParsed = findOldParsed(newBlock, newParsed, oldBlocks)
 
+    let stamped = newParsed
     for (const config of actorPaths) {
-      stampActorPath(oldParsed, newParsed, parsePath(config.path), actor)
+      stamped = stampActorPath(oldParsed, stamped, parsePath(config.path), actor)
     }
 
-    const newContent = JSON.stringify(newParsed, null, 2)
+    const newContent = JSON.stringify(stamped, null, 2)
     if (newContent !== newBlock.content) {
       updates.push({ block: newBlock, newContent })
     }
@@ -68,30 +69,35 @@ const stampRootActor = (
   newParsed: Record<string, unknown>,
   field: string,
   actor: Actor
-): void => {
-  if (!oldParsed) {
-    newParsed[field] = actor
-    return
-  }
+): Record<string, unknown> => {
+  if (!oldParsed) return { ...newParsed, [field]: actor }
 
   const oldWithout = withoutField(oldParsed, field)
   const newWithout = withoutField(newParsed, field)
+  const value = equal(oldWithout, newWithout) ? oldParsed[field] : actor
 
-  newParsed[field] = equal(oldWithout, newWithout) ? oldParsed[field] : actor
+  return { ...newParsed, [field]: value }
 }
 
-const stampArrayActors = (
-  oldParsed: Record<string, unknown> | null,
-  newParsed: Record<string, unknown>,
-  arrayField: string,
+const stampArrayItem = (
+  item: Record<string, unknown>,
+  oldById: Map<string, Record<string, unknown>>,
   itemField: string,
   actor: Actor
-): void => {
-  const newArr = newParsed[arrayField]
-  if (!Array.isArray(newArr)) return
+): Record<string, unknown> => {
+  const oldItem = item.id ? oldById.get(item.id as string) : undefined
 
-  const oldArr = oldParsed?.[arrayField]
-  const oldById = Array.isArray(oldArr)
+  if (!oldItem) return { ...item, [itemField]: actor }
+
+  const oldWithout = withoutField(oldItem, itemField)
+  const newWithout = withoutField(item, itemField)
+  const value = equal(oldWithout, newWithout) ? oldItem[itemField] : actor
+
+  return { ...item, [itemField]: value }
+}
+
+const buildOldById = (oldArr: unknown): Map<string, Record<string, unknown>> =>
+  Array.isArray(oldArr)
     ? new Map(
         oldArr
           .filter(isObject)
@@ -100,20 +106,22 @@ const stampArrayActors = (
       )
     : new Map<string, Record<string, unknown>>()
 
-  for (const item of newArr) {
-    if (!isObject(item)) continue
+const stampArrayActors = (
+  oldParsed: Record<string, unknown> | null,
+  newParsed: Record<string, unknown>,
+  arrayField: string,
+  itemField: string,
+  actor: Actor
+): Record<string, unknown> => {
+  const newArr = newParsed[arrayField]
+  if (!Array.isArray(newArr)) return newParsed
 
-    const oldItem = item.id ? oldById.get(item.id as string) : undefined
+  const oldById = buildOldById(oldParsed?.[arrayField])
+  const stamped = newArr.map((item) =>
+    isObject(item) ? stampArrayItem(item, oldById, itemField, actor) : item
+  )
 
-    if (!oldItem) {
-      item[itemField] = actor
-    } else {
-      const oldWithout = withoutField(oldItem, itemField)
-      const newWithout = withoutField(item, itemField)
-
-      item[itemField] = equal(oldWithout, newWithout) ? oldItem[itemField] : actor
-    }
-  }
+  return { ...newParsed, [arrayField]: stamped }
 }
 
 const stampRootArrayActors = (
@@ -121,30 +129,14 @@ const stampRootArrayActors = (
   newParsed: unknown,
   itemField: string,
   actor: Actor
-): void => {
-  if (!Array.isArray(newParsed)) return
+): unknown => {
+  if (!Array.isArray(newParsed)) return newParsed
 
-  const oldArr = Array.isArray(oldParsed) ? oldParsed : []
-  const oldById = new Map(
-    oldArr
-      .filter(isObject)
-      .filter((item) => item.id)
-      .map((item) => [item.id as string, item])
+  const oldById = buildOldById(Array.isArray(oldParsed) ? oldParsed : [])
+
+  return newParsed.map((item) =>
+    isObject(item) ? stampArrayItem(item, oldById, itemField, actor) : item
   )
-
-  for (const item of newParsed) {
-    if (!isObject(item)) continue
-
-    const oldItem = item.id ? oldById.get(item.id as string) : undefined
-
-    if (!oldItem) {
-      item[itemField] = actor
-    } else {
-      const oldWithout = withoutField(oldItem, itemField)
-      const newWithout = withoutField(item, itemField)
-      item[itemField] = equal(oldWithout, newWithout) ? oldItem[itemField] : actor
-    }
-  }
 }
 
 const stampActorPath = (
@@ -152,14 +144,17 @@ const stampActorPath = (
   newParsed: Record<string, unknown>,
   pathInfo: ParsedPath | null,
   actor: Actor
-): void => {
-  if (!pathInfo) return
+): Record<string, unknown> => {
+  if (!pathInfo) return newParsed
 
   if (pathInfo.type === "root") {
-    stampRootActor(oldParsed, newParsed, pathInfo.field, actor)
+    return stampRootActor(oldParsed, newParsed, pathInfo.field, actor)
   } else if (pathInfo.type === "root-array") {
-    stampRootArrayActors(oldParsed, newParsed, pathInfo.itemField, actor)
+    return stampRootArrayActors(oldParsed, newParsed, pathInfo.itemField, actor) as Record<
+      string,
+      unknown
+    >
   } else {
-    stampArrayActors(oldParsed, newParsed, pathInfo.arrayField, pathInfo.itemField, actor)
+    return stampArrayActors(oldParsed, newParsed, pathInfo.arrayField, pathInfo.itemField, actor)
   }
 }

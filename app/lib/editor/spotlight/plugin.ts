@@ -2,6 +2,7 @@ import { Plugin, PluginKey } from "prosemirror-state"
 import { Decoration, DecorationSet } from "prosemirror-view"
 import type { Node } from "prosemirror-model"
 import type { Spotlight } from "./types"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
 import { proseTextContent, textOffsetToPos } from "~/lib/editor/text"
 import type { TextRange } from "~/lib/editor/text"
@@ -39,6 +40,8 @@ const resolveSpotlight = (doc: Node, spotlight: Spotlight): TextRange | null => 
       return resolveSpotlightSingle(doc, spotlight.text)
     case "range":
       return resolveSpotlightRange(doc, spotlight.from, spotlight.to)
+    default:
+      return exhaustive(spotlight)
   }
 }
 

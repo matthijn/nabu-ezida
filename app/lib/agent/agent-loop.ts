@@ -109,8 +109,6 @@ export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
   }
 }
 
-// --- main agent internals ---
-
 const readDebugOption = <T>(key: string, fallback: T): T => {
   if (typeof window === "undefined") return fallback
   try {

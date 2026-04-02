@@ -30,6 +30,7 @@ import {
 } from "~/lib/agent/client"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent/client"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import { stepCompactedIndices } from "~/lib/agent/compact"
 
 const noop = () => undefined
@@ -110,6 +111,8 @@ const formatBlock = (block: Block): string => {
       return `[error]\n${block.content}`
     case "debug_pause":
       return `[debug_pause]`
+    default:
+      return exhaustive(block)
   }
 }
 
@@ -327,6 +330,8 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
           {...sel}
         />
       )
+    default:
+      return exhaustive(block)
   }
 }
 

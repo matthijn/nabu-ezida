@@ -1,3 +1,5 @@
+import { exhaustive } from "~/lib/utils/exhaustive"
+
 export type LineZone = "outside" | "prose" | "structure"
 export type ZoneMap = LineZone[]
 export interface JsonBlockSpan {
@@ -69,10 +71,8 @@ export const buildLineZones = (content: string): ZoneMap => {
         }
         break
 
-      default: {
-        const exhaustive: never = state
-        throw new Error(`unknown state: ${exhaustive}`)
-      }
+      default:
+        return exhaustive(state)
     }
   }
 

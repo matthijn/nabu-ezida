@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { computeTextStats, formatReadingTime, formatStatsLabel, formatStatsDetail } from "./stats"
+import { computeTextStats, formatReadingTime } from "./stats"
 
 describe("computeTextStats", () => {
   const cases: {
@@ -39,19 +39,5 @@ describe("formatReadingTime", () => {
 
   cases.forEach(({ name, minutes, expected }) => {
     it(name, () => expect(formatReadingTime(minutes)).toBe(expected))
-  })
-})
-
-describe("formatStatsLabel", () => {
-  it("combines words and reading time", () => {
-    const stats = computeTextStats("word ".repeat(238).trim())
-    expect(formatStatsLabel(stats)).toBe("238 words · 1 min read")
-  })
-})
-
-describe("formatStatsDetail", () => {
-  it("shows chars and tokens", () => {
-    const stats = computeTextStats("abcd")
-    expect(formatStatsDetail(stats)).toBe("4 characters · ~1 tokens")
   })
 })

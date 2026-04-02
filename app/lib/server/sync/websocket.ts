@@ -45,7 +45,7 @@ export const createWebSocket = (
         console.debug(`[ws] #${messageCount} ${label}: ${command.path}`)
         callbacks.onCommand(command)
       } catch {
-        // Ignore malformed messages
+        void 0
       }
     }
 

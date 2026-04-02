@@ -1,4 +1,5 @@
 import type { Spotlight } from "./types"
+import { exhaustive } from "~/lib/utils/exhaustive"
 
 const RANGE_DELIMITER = "..."
 const BOUNDARY_WORDS = 4
@@ -9,6 +10,8 @@ export const serializeSpotlight = (spotlight: Spotlight): string => {
       return spotlight.text
     case "range":
       return `${spotlight.from}${RANGE_DELIMITER}${spotlight.to}`
+    default:
+      return exhaustive(spotlight)
   }
 }
 

@@ -2,21 +2,18 @@ import { describe, it, expect } from "vitest"
 import { calloutToProse } from "./toProse"
 
 describe("calloutToProse", () => {
-  it("returns title and content", () => {
-    expect(calloutToProse({ title: "My Note", content: "Some details here" })).toBe(
-      "My Note\nSome details here"
-    )
-  })
+  const cases: { name: string; input: Record<string, unknown>; expected: string | null }[] = [
+    {
+      name: "returns title and content",
+      input: { title: "My Note", content: "Some details here" },
+      expected: "My Note\nSome details here",
+    },
+    { name: "returns null when title missing", input: { content: "no title" }, expected: null },
+    { name: "returns null when content missing", input: { title: "no content" }, expected: null },
+    { name: "returns null for empty object", input: {}, expected: null },
+  ]
 
-  it("returns null when title missing", () => {
-    expect(calloutToProse({ content: "no title" })).toBeNull()
-  })
-
-  it("returns null when content missing", () => {
-    expect(calloutToProse({ title: "no content" })).toBeNull()
-  })
-
-  it("returns null for empty object", () => {
-    expect(calloutToProse({})).toBeNull()
+  cases.forEach(({ name, input, expected }) => {
+    it(name, () => expect(calloutToProse(input)).toBe(expected))
   })
 })

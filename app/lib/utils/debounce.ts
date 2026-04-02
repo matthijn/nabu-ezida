@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFn = (...args: any[]) => void
+type AnyFn = (...args: unknown[]) => void
 type DebouncedFn<T extends AnyFn> = T & { cancel: () => void }
 
 interface DebounceOptions {

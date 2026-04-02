@@ -1,4 +1,5 @@
 import type { FileStore } from "~/lib/files"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import type { ComponentType } from "react"
 import type { RadixColor } from "~/ui/theme/radix"
 import type { EntityKind, EntityRef } from "./linkify/types"
@@ -189,9 +190,7 @@ export const resolveEntityLink = (
       return resolveTagRef(ref, files)
     case "text":
       return resolveTextRef(ref, projectId, icons)
-    default: {
-      const _exhaustive: never = ref
-      throw new Error(`Unknown entity kind: ${(_exhaustive as EntityRef).kind}`)
-    }
+    default:
+      return exhaustive(ref)
   }
 }

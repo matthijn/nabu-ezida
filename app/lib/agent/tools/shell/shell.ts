@@ -100,11 +100,9 @@ const expandAnsiCQuoting = (input: string): string =>
     return `'${expanded.replace(/'/g, "'\\''")}'`
   })
 
-// Error helpers
 const notBashError = (feature: string): string =>
   `This is not bash. '${feature}' is not supported.\nUse only: ${getCommandNames().join(", ")}`
 
-// Operator classifications
 const bashCommands = new Set([
   "if",
   "then",
@@ -127,7 +125,6 @@ const redirectOps = new Set([">", ">>", "<", ">&", "<("])
 const sequenceOps = new Set(["&&", "||", ";"])
 const unsupportedOps = new Set([";;", "|&", "&", "(", ")"])
 
-// Token type predicates
 interface VarMarker {
   __var: string
 }
@@ -145,7 +142,6 @@ const isOp = (entry: ParseEntry | VarMarker): entry is { op: ControlOperator } =
   !isVarMarker(entry) &&
   !isGlob(entry)
 
-// Token selectors
 const tokenToString = (token: ParseEntry | VarMarker): string | null =>
   typeof token === "string" ? token : isGlob(token) ? token.pattern : null
 
@@ -186,7 +182,6 @@ const parseInput = (input: string): { tokens: (ParseEntry | VarMarker)[]; error?
   return { tokens: mergeBareAnchors(tokens) }
 }
 
-// Pipeline state for reduce
 interface PipelineAcc {
   pipelines: string[][][]
   ops: string[]
@@ -226,7 +221,6 @@ const splitIntoPipelines = (
   return { pipelines: final.pipelines, ops: final.ops }
 }
 
-// Execution predicates
 const shouldRunAfterOp = (prevOp: string | null, lastSuccess: boolean): boolean =>
   prevOp === null ||
   prevOp === ";" ||

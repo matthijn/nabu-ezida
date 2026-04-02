@@ -10,6 +10,7 @@ import {
 import { migrateFile } from "~/lib/data-blocks/migrate"
 import { migrations } from "~/domain/data-blocks/migrations"
 import type { Command } from "./types"
+import { exhaustive } from "~/lib/utils/exhaustive"
 
 interface ResolvedContent {
   path: string
@@ -48,8 +49,14 @@ const resolveContent = (command: Command): ResolvedContent | undefined => {
       if (content !== undefined) return { path, content }
       return undefined
 
-    default:
+    case "DeleteFile":
+    case "RenameFile":
+    case "Commit":
+    case "SyncMeta":
       return undefined
+
+    default:
+      return exhaustive(action)
   }
 }
 
@@ -78,8 +85,13 @@ const applyCommandInner = (command: Command): string | undefined => {
     case "SyncMeta":
       return undefined
 
-    default:
+    case "CreateFile":
+    case "UpdateFile":
+    case "WriteFile":
       return undefined
+
+    default:
+      return exhaustive(action)
   }
 }
 
