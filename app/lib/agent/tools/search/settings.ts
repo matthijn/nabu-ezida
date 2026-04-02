@@ -44,7 +44,24 @@ export const updateSearchEntries = (entries: SearchEntry[]): string | null => {
   return null
 }
 
+const bySql =
+  (sql: string) =>
+  (e: SearchEntry): boolean =>
+    e.sql === sql
+
+const bumpExisting = (entries: SearchEntry[], sql: string): SearchEntry[] =>
+  entries.map((e) => (e.sql === sql ? { ...e, createdAt: Date.now() } : e))
+
 export const saveNewSearch = (data: NewSearchData): string | null => {
+  const settings = readSettings()
+  const existing = (settings.searches ?? []).find(bySql(data.sql))
+
+  if (existing) {
+    const bumped = bumpExisting(settings.searches ?? [], data.sql)
+    const writeError = updateSearchEntries(bumped)
+    return writeError ? null : existing.id
+  }
+
   const id = generateSearchId()
   const entry: SearchEntry = {
     id,
@@ -56,7 +73,6 @@ export const saveNewSearch = (data: NewSearchData): string | null => {
     sql: data.sql,
   }
 
-  const settings = readSettings()
   const withNew = [...(settings.searches ?? []), entry]
   const rotated = rotateUnsaved(withNew)
   const writeError = updateSearchEntries(rotated)

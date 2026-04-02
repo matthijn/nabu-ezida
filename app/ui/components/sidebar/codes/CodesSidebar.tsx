@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherChevronRight, FeatherFlag, FeatherSearch } from "@subframe/core"
-import { Badge } from "~/ui/components/Badge"
+import { FeatherFlag, FeatherSearch } from "@subframe/core"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground } from "~/ui/theme/radix"
@@ -32,15 +31,16 @@ const filterCategories = (categories: CodeCategory[], query: string): CodeCatego
 const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => void }) => (
   <>
     <div
-      className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-neutral-50"
+      className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-warning-50"
       onClick={onClick}
     >
       <FeatherFlag className="h-4 w-4 flex-none text-warning-600" />
       <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
         Needs review
       </span>
-      <Badge variant="warning">{count}</Badge>
-      <FeatherChevronRight className="h-3.5 w-3.5 flex-none text-subtext-color" />
+      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-500 px-1.5 text-[11px] font-bold leading-none text-white">
+        {count}
+      </span>
     </div>
     <div className="flex h-px w-full flex-none bg-neutral-border" />
   </>

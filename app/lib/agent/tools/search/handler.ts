@@ -8,13 +8,13 @@ import {
   executeHybridLocal,
   resolveSemanticSql,
   sanitizeSemanticError,
-  sqlQueriesFilesTable,
 } from "~/lib/search"
-import { filterBatch, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
 import { saveNewSearch } from "./settings"
 import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getFiles } from "~/lib/files/store"
 import type { SearchHit } from "~/domain/search"
+
+const MAX_SEARCH_ROWS = 50
 
 const formatHit = (hit: SearchHit): string => {
   if (hit.id && hit.text) return `${hit.file} → ${hit.id}: ${hit.text}`
@@ -30,9 +30,10 @@ const formatEmpty = (sql: string): ToolResult<unknown> => ({
   output: `0 results returned for query: ${sql}`,
 })
 
-const formatOutput = (id: string, hits: SearchHit[]): string => {
+const formatOutput = (id: string, hits: SearchHit[], capped: boolean): string => {
   const lines = hits.map(formatHit).join("\n")
-  return `file://${id}\nresult samples:\n${lines}`
+  const suffix = capped ? `\n(capped to ${MAX_SEARCH_ROWS} rows)` : ""
+  return `file://${id}\nresult samples:\n${lines}${suffix}`
 }
 
 const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
@@ -58,17 +59,14 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   if (!rawHits.ok) return { status: "error", output: sanitizeSemanticError(rawHits.error.message) }
 
-  const needsFiltering = sqlQueriesFilesTable(parsed.data.sql)
-  const firstChunk = rawHits.value.slice(0, FILTER_BATCH_SIZE)
-  const filtered = needsFiltering
-    ? await filterBatch(firstChunk, parsed.data.highlight)
-    : firstChunk
-  if (hasNoResults(filtered)) return formatEmpty(parsed.data.sql)
+  const capped = rawHits.value.length > MAX_SEARCH_ROWS
+  const hits = capped ? rawHits.value.slice(0, MAX_SEARCH_ROWS) : rawHits.value
+  if (hasNoResults(hits)) return formatEmpty(parsed.data.sql)
 
   const id = saveNewSearch(parsed.data)
   if (!id) return { status: "error", output: "Failed to save search" }
 
-  return { status: "ok", output: formatOutput(id, filtered) }
+  return { status: "ok", output: formatOutput(id, hits, capped) }
 }
 
 registerSpecialHandler("search", handleSearch)

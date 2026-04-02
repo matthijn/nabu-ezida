@@ -1,6 +1,5 @@
 export { executeSearch, executeHybridLocal } from "./execute"
 export { extractSearchSlice, growHits } from "./slices"
-export { filterAndGrow } from "./filter-hits"
 export { resolveSemanticSql } from "./resolve-semantic"
 export type { ResolvedQuery, ResolveError, SemanticContext } from "./resolve-semantic"
 export { sanitizeSemanticError, formatDebugSql, sqlQueriesFilesTable } from "./semantic"

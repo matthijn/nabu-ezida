@@ -169,7 +169,7 @@ export default function ProjectFile() {
               className="relative flex w-full grow flex-col items-start gap-8 pt-8"
             >
               <MilkdownEditor
-                key={String(debugOptions.renderAsJson)}
+                key={`${currentFile}-${debugOptions.renderAsJson}`}
                 content={formatContent(content, currentFile)}
                 debugMode={debugOptions.renderAsJson}
                 spotlight={spotlight}

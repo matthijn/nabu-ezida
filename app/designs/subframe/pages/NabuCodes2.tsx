@@ -9,12 +9,14 @@ import { TextField } from "~/ui/components/TextField";
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled";
 import { DefaultPageLayout } from "~/ui/layouts/DefaultPageLayout";
 import { FeatherAlertTriangle } from "@subframe/core";
+import { FeatherCheckCircle } from "@subframe/core";
 import { FeatherChevronsLeft } from "@subframe/core";
 import { FeatherCopy } from "@subframe/core";
 import { FeatherFileText } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import { FeatherPin } from "@subframe/core";
 import { FeatherPlus } from "@subframe/core";
+import { FeatherRefreshCw } from "@subframe/core";
 import { FeatherSearch } from "@subframe/core";
 import { FeatherShare2 } from "@subframe/core";
 import { FeatherTrash } from "@subframe/core";
@@ -260,10 +262,10 @@ function NabuCodes2() {
                     systematic approach
                   </span>
                   <div className="flex w-72 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
-                    <div className="flex h-1 w-full flex-none items-start bg-[#fcd34dff]" />
+                    <div className="flex h-1 w-full flex-none items-start bg-[#fcd34d]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34d] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Methodology Reference
@@ -295,10 +297,10 @@ function NabuCodes2() {
                     positive conservation outcomes
                   </span>
                   <div className="flex w-72 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
-                    <div className="flex h-1 w-full flex-none items-start bg-[#86efacff]" />
+                    <div className="flex h-1 w-full flex-none items-start bg-[#86efac]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efac] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Success Indicator
@@ -330,10 +332,10 @@ function NabuCodes2() {
                     requires verification
                   </span>
                   <div className="flex w-72 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
-                    <div className="flex h-1 w-full flex-none items-start bg-[#f9a8d4ff]" />
+                    <div className="flex h-1 w-full flex-none items-start bg-[#f9a8d4]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4ff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Needs Citation
@@ -367,7 +369,7 @@ function NabuCodes2() {
                     <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#93c5fd] to-[#fcd34d]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#93c5fdff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#93c5fd] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Framework Connection
@@ -387,7 +389,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34d] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Best Practice
@@ -418,7 +420,7 @@ function NabuCodes2() {
                   <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#fcd34d] via-[#86efac] to-[#f9a8d4]" />
                   <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                     <div className="flex w-full items-start gap-2">
-                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34d] mt-0.5" />
                       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                         <div className="flex w-full items-center gap-2">
                           <span className="text-body-bold font-body-bold text-default-font">
@@ -446,7 +448,7 @@ function NabuCodes2() {
                     </div>
                     <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
                     <div className="flex w-full items-start gap-2">
-                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efac] mt-0.5" />
                       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                         <div className="flex w-full items-center gap-2">
                           <span className="text-body-bold font-body-bold text-default-font">
@@ -474,7 +476,7 @@ function NabuCodes2() {
                     </div>
                     <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
                     <div className="flex w-full items-start gap-2">
-                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4ff] mt-0.5" />
+                      <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4] mt-0.5" />
                       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
                         <div className="flex w-full items-center gap-2">
                           <span className="text-body-bold font-body-bold text-default-font">
@@ -505,7 +507,27 @@ function NabuCodes2() {
                                 ) => {}}
                               />
                             </TextFieldUnstyled>
+                            <div className="flex w-full items-center gap-2 pt-1">
+                              <Button
+                                variant="brand-secondary"
+                                size="small"
+                                icon={<FeatherRefreshCw />}
+                                onClick={(
+                                  event: React.MouseEvent<HTMLButtonElement>
+                                ) => {}}
+                              >
+                                Refine Codebook
+                              </Button>
+                            </div>
                           </div>
+                          <IconButton
+                            variant="neutral-tertiary"
+                            size="small"
+                            icon={<FeatherCheckCircle />}
+                            onClick={(
+                              event: React.MouseEvent<HTMLButtonElement>
+                            ) => {}}
+                          />
                         </div>
                       </div>
                       <IconButton
@@ -532,7 +554,7 @@ function NabuCodes2() {
                     <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#86efac] to-[#f9a8d4]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efac] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Critical Data Point
@@ -551,7 +573,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4ff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Verify Source
@@ -586,7 +608,7 @@ function NabuCodes2() {
                     <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#fcd34d] via-[#86efac] to-[#f9a8d4]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34d] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Key Concept
@@ -605,7 +627,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efac] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Success Factor
@@ -624,7 +646,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4ff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#f9a8d4] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Define Further
@@ -658,7 +680,7 @@ function NabuCodes2() {
                     <div className="flex h-1 w-full flex-none items-start bg-gradient-to-r from-[#93c5fd] via-[#fcd34d] to-[#86efac]" />
                     <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#93c5fdff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#93c5fd] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Policy Recommendation
@@ -678,7 +700,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34dff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#fcd34d] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Historical Context
@@ -698,7 +720,7 @@ function NabuCodes2() {
                         />
                       </div>
                       <div className="flex w-full items-start gap-2">
-                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efacff] mt-0.5" />
+                        <div className="flex h-3 w-3 flex-none items-start rounded-full bg-[#86efac] mt-0.5" />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
                           <span className="text-body-bold font-body-bold text-default-font">
                             Proven Effectiveness

@@ -92,27 +92,14 @@ const MilkdownEditorCore = ({
     if (contentChanged) {
       editor.action(replaceAll(defaultValue))
     }
-  }, [loading, getEditor, defaultValue])
-
-  useEffect(() => {
-    if (loading) return
-    const editor = getEditor()
-    if (!editor) return
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr.setMeta(spotlightMeta, spotlight))
+      const tr = view.state.tr
+        .setMeta(annotationsMeta, annotations)
+        .setMeta(spotlightMeta, spotlight)
+      view.dispatch(tr)
     })
-  }, [loading, getEditor, spotlight])
-
-  useEffect(() => {
-    if (loading) return
-    const editor = getEditor()
-    if (!editor) return
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr.setMeta(annotationsMeta, annotations))
-    })
-  }, [loading, getEditor, annotations])
+  }, [loading, getEditor, defaultValue, annotations, spotlight])
 
   return (
     <AnnotationHover annotations={annotations}>

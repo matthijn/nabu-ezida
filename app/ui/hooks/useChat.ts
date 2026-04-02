@@ -9,11 +9,7 @@ import {
   getLoading,
 } from "~/lib/agent/client"
 import { run, cancel as cancelRunner, type RunnerDeps } from "~/lib/agent/runner"
-import {
-  getEditorContext,
-  contextToMessage,
-  findLastContextMessage,
-} from "~/lib/editor/chat-context"
+import { getPageContext, findLastContextMessage } from "~/lib/editor/chat-context"
 
 export const useChat = () => {
   const history = useSyncExternalStore(
@@ -28,12 +24,11 @@ export const useChat = () => {
     const userBlock: Block = { type: "user", content }
     const blocksToAdd: Block[] = []
 
-    const ctx = getEditorContext()
+    const ctx = getPageContext()
     if (ctx) {
-      const formatted = contextToMessage(ctx)
       const lastSent = findLastContextMessage(getAllBlocksWithDraft())
-      if (formatted !== lastSent) {
-        const contextBlock: SystemBlock = { type: "system", content: formatted }
+      if (ctx !== lastSent) {
+        const contextBlock: SystemBlock = { type: "system", content: ctx }
         blocksToAdd.push(contextBlock)
       }
     }

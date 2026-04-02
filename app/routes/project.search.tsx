@@ -11,6 +11,8 @@ import { formatDebugSql } from "~/lib/search"
 import type { HydeQuery } from "~/lib/search/semantic"
 import type { SearchPhase } from "~/ui/hooks/useSearchResults"
 import { buildIdentifierResolver } from "~/lib/files/selectors"
+import { setPageContextOverride } from "~/lib/editor/chat-context"
+import { buildSearchContextMessage } from "~/domain/search/context"
 
 const collectUniqueFiles = (hits: SearchHit[]): string[] => [...new Set(hits.map((h) => h.file))]
 
@@ -114,6 +116,21 @@ export default function ProjectSearch() {
   const fileCount = useMemo(() => countUniqueFiles(filteredResults), [filteredResults])
   const statusText = searchStatusText(phase, filteredResults.length, fileCount)
   const isDone = phase === "done"
+
+  const searchDataRef = useRef({ search, results, files })
+
+  useEffect(() => {
+    searchDataRef.current = { search, results, files }
+  }, [search, results, files])
+
+  useEffect(() => {
+    setPageContextOverride(() => {
+      const { search: s, results: r, files: f } = searchDataRef.current
+      if (!s) return null
+      return buildSearchContextMessage(s, r, f)
+    })
+    return () => setPageContextOverride(undefined)
+  }, [])
 
   const loadMoreRef = useRef(loadMore)
   const hasMoreRef = useRef(hasMore)

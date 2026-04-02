@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { FeatherFileText, FeatherChevronRight } from "@subframe/core"
+import { FeatherFileText, FeatherSearch } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { TagBadge } from "~/ui/components/TagBadge"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
@@ -65,7 +65,7 @@ const SearchSlicePreview = ({ text, onNavigate }: { text: string; onNavigate?: (
         <IconButton
           size="small"
           variant="brand-tertiary"
-          icon={<FeatherChevronRight />}
+          icon={<FeatherSearch />}
           onClick={onNavigate}
           className="bg-white border border-solid border-neutral-border hover:border-brand-200 opacity-0 transition-opacity group-hover/hit:opacity-100"
         />

@@ -1,41 +1,22 @@
 import type { Block, SystemBlock } from "~/lib/agent"
 
-export interface EditorContext {
-  documentId: string
-  documentTitle: string
-  above: string[]
-  below: string[]
-  selection?: string
+export type GetContextFn = () => string | null
+
+export const CONTEXT_PREFIX = "User is looking at:"
+
+let baseContextFn: GetContextFn | undefined
+let overrideContextFn: GetContextFn | undefined
+
+export const setPageContext = (fn: GetContextFn | undefined): void => {
+  baseContextFn = fn
 }
 
-type GetContextFn = () => EditorContext | null
-
-let getContextFn: GetContextFn | undefined
-
-export const setEditorContext = (fn: GetContextFn | undefined): void => {
-  getContextFn = fn
+export const setPageContextOverride = (fn: GetContextFn | undefined): void => {
+  overrideContextFn = fn
 }
 
-export const getEditorContext = (): EditorContext | null => getContextFn?.() ?? null
-
-const CONTEXT_PREFIX = "User is looking at:"
-
-export const contextToMessage = (ctx: EditorContext): string => {
-  const lines = [CONTEXT_PREFIX, `Document: ${ctx.documentTitle} (${ctx.documentId})`]
-  if (ctx.above.length > 0) {
-    lines.push("", "Above cursor:", ...ctx.above)
-  }
-  if (ctx.below.length > 0) {
-    lines.push("", "Below cursor:", ...ctx.below)
-  }
-  if (ctx.selection) {
-    lines.push("", "Selected:", ctx.selection)
-  }
-
-  lines.push("See <cursor-context> how to interpret")
-
-  return lines.join("\n")
-}
+export const getPageContext = (): string | null =>
+  overrideContextFn?.() ?? baseContextFn?.() ?? null
 
 const isContextBlock = (block: Block): block is SystemBlock =>
   block.type === "system" && block.content.startsWith(CONTEXT_PREFIX)

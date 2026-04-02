@@ -153,7 +153,7 @@ const reconstructBatchHits = (prepared: PreparedHit[], results: number[][][]): S
     return reconstructHits(p.sentences, groups, p.hit.file, p.hit.id)
   })
 
-export const filterBatch = async (
+const filterBatch = async (
   hits: SearchHit[],
   intent: string,
   skipCache = false

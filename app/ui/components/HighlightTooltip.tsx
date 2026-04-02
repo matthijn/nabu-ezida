@@ -75,7 +75,7 @@ export const HighlightTooltip = ({ entries }: HighlightTooltipProps) => {
   const headerBackground = createHeaderBackground(colors)
 
   return (
-    <div className="flex w-80 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
+    <div className="flex w-96 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
       <div
         className="flex h-1 w-full flex-none items-start"
         style={{ background: headerBackground }}

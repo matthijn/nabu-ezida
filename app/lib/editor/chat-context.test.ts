@@ -1,80 +1,116 @@
-import { describe, expect, it } from "vitest"
-import { contextToMessage, type EditorContext } from "./chat-context"
+import { describe, expect, it, beforeEach } from "vitest"
+import {
+  setPageContext,
+  setPageContextOverride,
+  getPageContext,
+  findLastContextMessage,
+  CONTEXT_PREFIX,
+} from "./chat-context"
+import type { Block } from "~/lib/agent"
 
-describe("contextToMessage", () => {
+const resetSlots = () => {
+  setPageContext(undefined)
+  setPageContextOverride(undefined)
+}
+
+describe("getPageContext", () => {
+  beforeEach(resetSlots)
+
   const cases = [
     {
-      name: "formats context with above and below",
-      ctx: {
-        documentId: "doc-123",
-        documentTitle: "My Document",
-        above: ["First paragraph", "Second paragraph"],
-        below: ["Fourth paragraph", "Fifth paragraph"],
-      } as EditorContext,
-      expected: `User is looking at:
-Document: My Document (doc-123)
-
-Above cursor:
-First paragraph
-Second paragraph
-
-Below cursor:
-Fourth paragraph
-Fifth paragraph
-See <cursor-context> how to interpret`,
+      name: "returns base when only base is set",
+      base: () => "base context",
+      override: undefined as (() => string | null) | undefined,
+      expected: "base context",
     },
     {
-      name: "formats context with selection",
-      ctx: {
-        documentId: "doc-123",
-        documentTitle: "My Document",
-        above: ["Some text"],
-        below: [],
-        selection: "selected words",
-      } as EditorContext,
-      expected: `User is looking at:
-Document: My Document (doc-123)
-
-Above cursor:
-Some text
-
-Selected:
-selected words
-See <cursor-context> how to interpret`,
+      name: "returns override when both are set",
+      base: () => "base context",
+      override: () => "override context",
+      expected: "override context",
     },
     {
-      name: "formats context with no cursor (preview only)",
-      ctx: {
-        documentId: "doc-123",
-        documentTitle: "My Document",
-        above: ["First block", "Second block"],
-        below: [],
-      } as EditorContext,
-      expected: `User is looking at:
-Document: My Document (doc-123)
-
-Above cursor:
-First block
-Second block
-See <cursor-context> how to interpret`,
+      name: "falls back to base when override returns null",
+      base: () => "base context",
+      override: () => null,
+      expected: "base context",
     },
     {
-      name: "formats empty document",
-      ctx: {
-        documentId: "doc-123",
-        documentTitle: "Empty Doc",
-        above: [],
-        below: [],
-      } as EditorContext,
-      expected: `User is looking at:
-Document: Empty Doc (doc-123)
-See <cursor-context> how to interpret`,
+      name: "returns null when neither is set",
+      base: undefined as (() => string | null) | undefined,
+      override: undefined as (() => string | null) | undefined,
+      expected: null,
+    },
+    {
+      name: "returns override when only override is set",
+      base: undefined as (() => string | null) | undefined,
+      override: () => "override only",
+      expected: "override only",
+    },
+    {
+      name: "returns null when base returns null and no override",
+      base: () => null,
+      override: undefined as (() => string | null) | undefined,
+      expected: null,
     },
   ]
 
-  cases.forEach(({ name, ctx, expected }) => {
+  cases.forEach(({ name, base, override, expected }) => {
     it(name, () => {
-      expect(contextToMessage(ctx)).toBe(expected)
+      setPageContext(base)
+      setPageContextOverride(override)
+      expect(getPageContext()).toBe(expected)
+    })
+  })
+
+  it("falls back to base after override is cleared", () => {
+    setPageContext(() => "base")
+    setPageContextOverride(() => "override")
+    expect(getPageContext()).toBe("override")
+
+    setPageContextOverride(undefined)
+    expect(getPageContext()).toBe("base")
+  })
+})
+
+describe("findLastContextMessage", () => {
+  const cases = [
+    {
+      name: "finds last context block",
+      history: [
+        { type: "system", content: `${CONTEXT_PREFIX}\nDoc A` },
+        { type: "user", content: "hello" },
+        { type: "system", content: `${CONTEXT_PREFIX}\nDoc B` },
+        { type: "user", content: "world" },
+      ] as Block[],
+      expected: `${CONTEXT_PREFIX}\nDoc B`,
+    },
+    {
+      name: "returns null when no context blocks exist",
+      history: [
+        { type: "user", content: "hello" },
+        { type: "assistant", content: "hi" },
+      ] as Block[],
+      expected: null,
+    },
+    {
+      name: "returns null for empty history",
+      history: [] as Block[],
+      expected: null,
+    },
+    {
+      name: "ignores system blocks without context prefix",
+      history: [
+        { type: "system", content: "some other system message" },
+        { type: "user", content: "hello" },
+      ] as Block[],
+      expected: null,
+    },
+  ]
+
+  cases.forEach(({ name, history, expected }) => {
+    it(name, () => {
+      expect(findLastContextMessage(history)).toBe(expected)
     })
   })
 })
