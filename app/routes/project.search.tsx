@@ -222,6 +222,7 @@ export default function ProjectSearch() {
               hits={filteredResults}
               files={files}
               projectId={params.projectId}
+              activeTags={activeTags}
               onNavigate={navigate}
             />
           )}
