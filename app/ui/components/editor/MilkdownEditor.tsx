@@ -35,6 +35,7 @@ interface MilkdownEditorCoreProps {
   debugMode: boolean
   readOnly: boolean
   spotlight: Spotlight | null
+  filePath?: string
 }
 
 const MilkdownEditorCore = ({
@@ -42,6 +43,7 @@ const MilkdownEditorCore = ({
   debugMode,
   readOnly,
   spotlight,
+  filePath,
 }: MilkdownEditorCoreProps) => {
   const { files } = useFiles()
   const nodeViewFactory = useNodeViewFactory()
@@ -102,7 +104,7 @@ const MilkdownEditorCore = ({
   }, [loading, getEditor, defaultValue, annotations, spotlight])
 
   return (
-    <AnnotationHover annotations={annotations}>
+    <AnnotationHover annotations={annotations} filePath={filePath}>
       <Milkdown />
     </AnnotationHover>
   )
@@ -113,6 +115,7 @@ interface MilkdownEditorProps {
   debugMode?: boolean
   readOnly?: boolean
   spotlight?: Spotlight | null
+  filePath?: string
 }
 
 export const MilkdownEditor = ({
@@ -120,6 +123,7 @@ export const MilkdownEditor = ({
   debugMode = false,
   readOnly = false,
   spotlight = null,
+  filePath,
 }: MilkdownEditorProps) => {
   const containerClass = readOnly
     ? "w-full text-default-font"
@@ -134,6 +138,7 @@ export const MilkdownEditor = ({
               debugMode={debugMode}
               readOnly={readOnly}
               spotlight={spotlight}
+              filePath={filePath}
             />
           </ProsemirrorAdapterProvider>
         </MilkdownProvider>

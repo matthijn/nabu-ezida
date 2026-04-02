@@ -41,14 +41,14 @@ const buildNavItems = (
       id: "documents",
       icon: <FeatherFiles />,
       label: "Documents",
-      tooltip: "Browse all your documents",
+
       selected: hoveredNav === "documents",
     },
     {
       id: "search",
       icon: <FeatherSearch />,
       label: "Search",
-      tooltip: "Search across documents",
+
       selected: hoveredNav === "search",
     },
   ]
@@ -59,7 +59,7 @@ const buildNavItems = (
           id: "codes",
           icon: <FeatherBook />,
           label: "Codes",
-          tooltip: "Your qualitative codebook",
+
           selected: hoveredNav === "codes",
           badge: reviewCount > 0 ? reviewCount : undefined,
         },

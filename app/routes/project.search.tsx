@@ -115,6 +115,7 @@ export default function ProjectSearch() {
 
   const fileCount = useMemo(() => countUniqueFiles(filteredResults), [filteredResults])
   const statusText = searchStatusText(phase, filteredResults.length, fileCount)
+  const isLoading = phase === "searching" || phase === "filtering"
   const isDone = phase === "done"
 
   const searchDataRef = useRef({ search, results, files })
@@ -227,7 +228,7 @@ export default function ProjectSearch() {
         </div>
       </div>
       <div className="rounded-xl border border-solid border-neutral-border bg-default-background">
-        <StatusBar text={statusText} />
+        <StatusBar text={statusText} loading={isLoading} />
       </div>
     </div>
   )

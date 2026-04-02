@@ -59,14 +59,14 @@ const NavRail = () => (
       </div>
     }
   >
-    <SidebarRailWithLabels.NavItem icon={<FeatherFiles />} selected tooltip="Browse all your documents">
+    <SidebarRailWithLabels.NavItem icon={<FeatherFiles />} selected>
       Documents
     </SidebarRailWithLabels.NavItem>
-    <SidebarRailWithLabels.NavItem icon={<FeatherSearch />} className="opacity-40 pointer-events-none" tooltip="Search across documents">
+    <SidebarRailWithLabels.NavItem icon={<FeatherSearch />} className="opacity-40 pointer-events-none">
       Search
     </SidebarRailWithLabels.NavItem>
     <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
-    <SidebarRailWithLabels.NavItem icon={<FeatherBook />} tooltip="Your qualitative codebook">
+    <SidebarRailWithLabels.NavItem icon={<FeatherBook />}>
       Codes
     </SidebarRailWithLabels.NavItem>
   </SidebarRailWithLabels>

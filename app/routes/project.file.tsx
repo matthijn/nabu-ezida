@@ -173,6 +173,7 @@ export default function ProjectFile() {
                 content={formatContent(content, currentFile)}
                 debugMode={debugOptions.renderAsJson}
                 spotlight={spotlight}
+                filePath={currentFile}
               />
             </div>
           </div>

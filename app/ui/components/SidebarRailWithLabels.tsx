@@ -4,12 +4,10 @@ import React, { type ReactNode } from "react"
 import { FeatherCircleDashed } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
-import { Tooltip } from "./Tooltip"
 
 interface NavItemProps extends React.HTMLAttributes<HTMLDivElement> {
   icon?: ReactNode
   children?: ReactNode
-  tooltip?: string
   selected?: boolean
   badge?: number
   className?: string
@@ -19,7 +17,6 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
   {
     icon = <FeatherCircleDashed />,
     children,
-    tooltip,
     selected = false,
     badge,
     className,
@@ -28,56 +25,45 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
   ref
 ) {
   return (
-    <SubframeCore.Tooltip.Provider>
-      <SubframeCore.Tooltip.Root>
-        <SubframeCore.Tooltip.Trigger asChild={true}>
-          <div
+    <div
+      className={cn(
+        "group/8815d632 flex min-h-[48px] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md px-2 pt-3 pb-2 hover:bg-brand-50 active:bg-brand-100",
+        {
+          "bg-brand-50": selected,
+        },
+        className
+      )}
+      ref={ref}
+      {...otherProps}
+    >
+      {icon ? (
+        <div className="relative">
+          <SubframeCore.IconWrapper
             className={cn(
-              "group/8815d632 flex min-h-[48px] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md px-2 pt-3 pb-2 hover:bg-brand-50 active:bg-brand-100",
-              {
-                "bg-brand-50": selected,
-              },
-              className
+              "text-heading-2 font-heading-2 text-subtext-color group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
+              { "text-default-font": selected }
             )}
-            ref={ref}
-            {...otherProps}
           >
-            {icon ? (
-              <div className="relative">
-                <SubframeCore.IconWrapper
-                  className={cn(
-                    "text-heading-2 font-heading-2 text-subtext-color group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
-                    { "text-default-font": selected }
-                  )}
-                >
-                  {icon}
-                </SubframeCore.IconWrapper>
-                {badge != null && badge > 0 ? (
-                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-500 px-1 text-[10px] font-bold leading-none text-white">
-                    {badge > 99 ? "99+" : badge}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {children ? (
-              <span
-                className={cn(
-                  "line-clamp-1 w-full text-caption-bold font-caption-bold text-subtext-color text-center group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
-                  { "text-default-font": selected }
-                )}
-              >
-                {children}
-              </span>
-            ) : null}
-          </div>
-        </SubframeCore.Tooltip.Trigger>
-        <SubframeCore.Tooltip.Portal>
-          <SubframeCore.Tooltip.Content side="right" align="center" sideOffset={4}>
-            <Tooltip>{tooltip ?? children}</Tooltip>
-          </SubframeCore.Tooltip.Content>
-        </SubframeCore.Tooltip.Portal>
-      </SubframeCore.Tooltip.Root>
-    </SubframeCore.Tooltip.Provider>
+            {icon}
+          </SubframeCore.IconWrapper>
+          {badge != null && badge > 0 ? (
+            <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-500 px-1 text-[10px] font-bold leading-none text-white">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {children ? (
+        <span
+          className={cn(
+            "line-clamp-1 w-full text-caption-bold font-caption-bold text-subtext-color text-center group-hover/8815d632:text-default-font group-active/8815d632:text-default-font",
+            { "text-default-font": selected }
+          )}
+        >
+          {children}
+        </span>
+      ) : null}
+    </div>
   )
 })
 

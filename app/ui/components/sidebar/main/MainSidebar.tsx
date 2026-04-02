@@ -12,7 +12,6 @@ export interface NavItem {
   id: string
   icon: ReactNode
   label: string
-  tooltip?: string
   selected?: boolean
   disabled?: boolean
   badge?: number
@@ -67,7 +66,6 @@ export function MainSidebar({
     >
       <SidebarRailWithLabels.NavItem
         icon={item.icon}
-        tooltip={item.tooltip}
         selected={item.selected}
         badge={item.badge}
         className={item.disabled ? "opacity-40 pointer-events-none" : undefined}

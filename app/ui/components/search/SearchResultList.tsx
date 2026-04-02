@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { FeatherFileText, FeatherSearch } from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
+import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { TagBadge } from "~/ui/components/TagBadge"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import type { SearchHit } from "~/domain/search"
@@ -54,21 +55,31 @@ const buildHitUrl = (projectId: string, hit: SearchHit): string => {
 
 const GUTTER = "w-10 shrink-0 flex items-center justify-center"
 
-const SearchSlicePreview = ({ text, onNavigate }: { text: string; onNavigate?: () => void }) => (
+const SearchSlicePreview = ({
+  text,
+  filePath,
+  onNavigate,
+}: {
+  text: string
+  filePath: string
+  onNavigate?: () => void
+}) => (
   <div className="group/hit flex w-full items-center">
     <div className={GUTTER} />
     <div className="min-w-0 grow rounded-md border border-solid border-neutral-200 px-4 py-3">
-      <MilkdownEditor content={text} readOnly />
+      <MilkdownEditor content={text} readOnly filePath={filePath} />
     </div>
     <div className={GUTTER}>
       {onNavigate && (
-        <IconButton
-          size="small"
-          variant="brand-tertiary"
-          icon={<FeatherSearch />}
-          onClick={onNavigate}
-          className="bg-white border border-solid border-neutral-border hover:border-brand-200 opacity-0 transition-opacity group-hover/hit:opacity-100"
-        />
+        <TooltipWrap text="Show in file">
+          <IconButton
+            size="small"
+            variant="brand-tertiary"
+            icon={<FeatherSearch />}
+            onClick={onNavigate}
+            className="bg-white border border-solid border-neutral-border hover:border-brand-200 opacity-0 transition-opacity group-hover/hit:opacity-100"
+          />
+        </TooltipWrap>
       )}
     </div>
   </div>
@@ -120,6 +131,7 @@ const RunGroupCard = ({
             <SearchSlicePreview
               key={hitKey(hit, i)}
               text={hit.text}
+              filePath={hit.file}
               onNavigate={() => onNavigate?.(buildHitUrl(projectId, hit))}
             />
           ) : null

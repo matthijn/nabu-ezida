@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { FeatherBookmark, FeatherTrash2 } from "@subframe/core"
 import type { SearchEntry } from "~/domain/search"
 import { IconButton } from "~/ui/components/IconButton"
@@ -28,27 +29,43 @@ const SearchItemBookmark = ({
 }) => {
   const [hovered, setHovered] = useState(false)
   const showTrash = saved && hovered
+  const unsavedColor = hovered ? "text-success-700" : "text-neutral-400"
 
-  return (
+  return saved ? (
     <IconButton
-      variant={saved ? "brand-tertiary" : "neutral-tertiary"}
+      variant="brand-tertiary"
       size="small"
       icon={
         showTrash ? (
-          <FeatherTrash2 />
+          <FeatherTrash2 className="text-error-600" />
         ) : (
-          <FeatherBookmark className={saved ? "[&_path]:fill-current" : undefined} />
+          <FeatherBookmark className="[&_path]:fill-current" />
         )
       }
-      className={saved ? "text-brand-600" : undefined}
+      className="text-brand-600"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => {
         e.stopPropagation()
-        if (saved) onRemove()
-        else onSave()
+        onRemove()
       }}
     />
+  ) : (
+    <button
+      type="button"
+      className={cn(
+        "flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent",
+        unsavedColor
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation()
+        onSave()
+      }}
+    >
+      <FeatherBookmark className="text-body" />
+    </button>
   )
 }
 
@@ -128,6 +145,10 @@ const hasEntries = (entries: SearchEntry[]): boolean => entries.length > 0
 const isHighlighted = (entryId: string, hoveredId: string | null, selectedId?: string): boolean =>
   hoveredId === null ? entryId === selectedId : entryId === hoveredId
 
+const itemExit = { opacity: 0, height: 0 }
+const itemAnimate = { opacity: 1, height: "auto" as const }
+const itemTransition = { type: "spring" as const, stiffness: 500, damping: 35 }
+
 export function SearchSidebar({
   recentSearches,
   savedSearches,
@@ -164,37 +185,58 @@ export function SearchSidebar({
         {hasEntries(filteredRecent) && (
           <>
             <SectionHeader label="RECENT SEARCHES" />
-            {filteredRecent.map((entry) => (
-              <div key={entry.id} className="w-full opacity-60">
-                <SearchItem
-                  entry={entry}
-                  selected={entry.id === selectedId}
-                  highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
-                  onSave={() => onSave(entry.id)}
-                  onRemove={() => onRemove(entry.id)}
-                  onSelect={() => onSelect(entry.id)}
-                  onMouseEnter={() => setHoveredId(entry.id)}
-                />
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {filteredRecent.map((entry) => (
+                <motion.div
+                  key={entry.id}
+                  layout
+                  initial={itemExit}
+                  animate={itemAnimate}
+                  exit={itemExit}
+                  transition={itemTransition}
+                  className="w-full opacity-60"
+                >
+                  <SearchItem
+                    entry={entry}
+                    selected={entry.id === selectedId}
+                    highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
+                    onSave={() => onSave(entry.id)}
+                    onRemove={() => onRemove(entry.id)}
+                    onSelect={() => onSelect(entry.id)}
+                    onMouseEnter={() => setHoveredId(entry.id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </>
         )}
         {(hasEntries(filteredRecent) || hasEntries(filteredSaved)) && (
           <>
             <SectionHeader label="SAVED SEARCHES" />
             {hasEntries(filteredSaved) ? (
-              filteredSaved.map((entry) => (
-                <SearchItem
-                  key={entry.id}
-                  entry={entry}
-                  selected={entry.id === selectedId}
-                  highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
-                  onSave={() => onSave(entry.id)}
-                  onRemove={() => onRemove(entry.id)}
-                  onSelect={() => onSelect(entry.id)}
-                  onMouseEnter={() => setHoveredId(entry.id)}
-                />
-              ))
+              <AnimatePresence initial={false}>
+                {filteredSaved.map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    layout
+                    initial={itemExit}
+                    animate={itemAnimate}
+                    exit={itemExit}
+                    transition={itemTransition}
+                    className="w-full"
+                  >
+                    <SearchItem
+                      entry={entry}
+                      selected={entry.id === selectedId}
+                      highlighted={isHighlighted(entry.id, hoveredId, selectedId)}
+                      onSave={() => onSave(entry.id)}
+                      onRemove={() => onRemove(entry.id)}
+                      onSelect={() => onSelect(entry.id)}
+                      onMouseEnter={() => setHoveredId(entry.id)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             ) : (
               <SavedSearchesEmpty />
             )}

@@ -6,6 +6,7 @@ import type { Annotation } from "~/domain/data-blocks/attributes/annotations/sel
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/ui/theme/radix"
 import { getCodeTitle, getFiles } from "~/lib/files"
+import { patchBlock } from "~/lib/data-blocks/patch"
 
 interface HoverState {
   text: string
@@ -14,12 +15,14 @@ interface HoverState {
 
 interface AnnotationHoverProps {
   annotations: Annotation[]
+  filePath?: string
   children: React.ReactNode
 }
 
 const TOOLTIP_GAP = 4
 const BRIDGE_UPWARD = 5
-const DISMISS_DELAY = 20
+const DISMISS_DELAY = 30
+const ANNOTATIONS_LANGUAGE = "json-annotations"
 
 const isDecoration = (el: HTMLElement): boolean =>
   el.style.background !== "" && el.style.background !== "none"
@@ -30,15 +33,37 @@ const isWithinRect = (x: number, y: number, rect: DOMRect): boolean =>
 const findMatchingAnnotations = (annotations: Annotation[], text: string): Annotation[] =>
   annotations.filter((a) => a.text.includes(text))
 
+const removeAnnotationOp = (id: string) => [
+  { op: "remove" as const, path: `/annotations[id=${id}]` },
+]
+
+const clearReviewOp = (id: string) => [
+  { op: "remove" as const, path: `/annotations[id=${id}]/review` },
+]
+
+const buildDeleteCallback = (filePath: string, id: string) => () => {
+  patchBlock(filePath, ANNOTATIONS_LANGUAGE, removeAnnotationOp(id))
+}
+
+const buildResolveCallback = (filePath: string, id: string) => () => {
+  patchBlock(filePath, ANNOTATIONS_LANGUAGE, clearReviewOp(id))
+}
+
 const annotationToEntry =
-  (files: Record<string, string>) =>
-  (annotation: Annotation, index: number): HighlightEntry => ({
-    id: String(index),
-    color: elementBorder(annotation.color),
-    title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
-    description: annotation.reason,
-    review: annotation.review,
-  })
+  (files: Record<string, string>, filePath?: string) =>
+  (annotation: Annotation, index: number): HighlightEntry => {
+    const id = annotation.id
+    const canMutate = !!filePath && !!id
+    return {
+      id: id ?? String(index),
+      color: elementBorder(annotation.color),
+      title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
+      description: annotation.reason,
+      review: annotation.review,
+      onDelete: canMutate ? buildDeleteCallback(filePath, id) : undefined,
+      onResolve: canMutate && annotation.review ? buildResolveCallback(filePath, id) : undefined,
+    }
+  }
 
 const getLastLineRect = (el: HTMLElement): DOMRect => {
   const rects = el.getClientRects()
@@ -50,7 +75,7 @@ const getFirstLineRect = (el: HTMLElement): DOMRect => {
   return rects.length > 0 ? rects[0] : el.getBoundingClientRect()
 }
 
-export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps) => {
+export const AnnotationHover = ({ annotations, filePath, children }: AnnotationHoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const bridgeRef = useRef<HTMLDivElement>(null)
   const dismissTimer = useRef<ReturnType<typeof setTimeout>>(null)
@@ -130,7 +155,7 @@ export const AnnotationHover = ({ annotations, children }: AnnotationHoverProps)
 
   const matchingAnnotations = hover ? findMatchingAnnotations(annotations, hover.text) : []
   const files = getFiles()
-  const entries = matchingAnnotations.map(annotationToEntry(files))
+  const entries = matchingAnnotations.map(annotationToEntry(files, filePath))
 
   useLayoutEffect(() => {
     const bridge = bridgeRef.current

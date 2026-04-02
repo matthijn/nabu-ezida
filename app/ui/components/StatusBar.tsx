@@ -1,15 +1,24 @@
-import * as SubframeCore from "@subframe/core"
-import { Tooltip } from "./Tooltip"
+import { FeatherLoader2 } from "@subframe/core"
+import { TooltipWrap } from "./TooltipWrap"
 
 const STATUS_TEXT = "text-caption font-caption text-subtext-color"
 const STATUS_CONTAINER = "flex w-full items-center justify-center gap-2 px-4 py-1.5"
 
-export const StatusBar = ({ text, tooltip }: { text: string | null; tooltip?: string }) => {
+interface StatusBarProps {
+  text: string | null
+  tooltip?: string
+  loading?: boolean
+}
+
+export const StatusBar = ({ text, tooltip, loading = false }: StatusBarProps) => {
   if (!text) return null
+
+  const spinner = loading ? <FeatherLoader2 className="text-subtext-color animate-spin" /> : null
 
   if (!tooltip) {
     return (
       <div className={STATUS_CONTAINER}>
+        {spinner}
         <span className={STATUS_TEXT}>{text}</span>
       </div>
     )
@@ -17,18 +26,10 @@ export const StatusBar = ({ text, tooltip }: { text: string | null; tooltip?: st
 
   return (
     <div className={STATUS_CONTAINER}>
-      <SubframeCore.Tooltip.Provider>
-        <SubframeCore.Tooltip.Root>
-          <SubframeCore.Tooltip.Trigger asChild>
-            <span className={`${STATUS_TEXT} cursor-default`}>{text}</span>
-          </SubframeCore.Tooltip.Trigger>
-          <SubframeCore.Tooltip.Portal>
-            <SubframeCore.Tooltip.Content side="top" align="center" sideOffset={4}>
-              <Tooltip>{tooltip}</Tooltip>
-            </SubframeCore.Tooltip.Content>
-          </SubframeCore.Tooltip.Portal>
-        </SubframeCore.Tooltip.Root>
-      </SubframeCore.Tooltip.Provider>
+      {spinner}
+      <TooltipWrap text={tooltip}>
+        <span className={`${STATUS_TEXT} cursor-default`}>{text}</span>
+      </TooltipWrap>
     </div>
   )
 }
