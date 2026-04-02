@@ -6,6 +6,8 @@ import { TagBadge } from "~/ui/components/TagBadge"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files"
+import { refreshHits } from "~/lib/search"
+import { useThrottledValue } from "~/ui/hooks/useThrottledValue"
 import { toDisplayName } from "~/lib/files/filename"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
@@ -15,6 +17,7 @@ export interface SearchResultListProps {
   hits: SearchHit[]
   files: FileStore
   projectId: string
+  activeTags?: Set<string>
   onNavigate?: (url: string) => void
 }
 
@@ -89,11 +92,13 @@ const RunGroupCard = ({
   group,
   files,
   projectId,
+  activeTags,
   onNavigate,
 }: {
   group: RunGroup
   files: FileStore
   projectId: string
+  activeTags?: Set<string>
   onNavigate?: (url: string) => void
 }) => {
   const fileUrl = buildFileUrl(projectId, group.file)
@@ -122,7 +127,7 @@ const RunGroupCard = ({
           {toDisplayName(group.file)}
         </button>
         {tags.map((tag) => (
-          <TagBadge key={tag.id} tag={tag} />
+          <TagBadge key={tag.id} tag={tag} active={!activeTags || activeTags.has(tag.id)} />
         ))}
       </div>
       <div className="flex w-full flex-col items-start gap-4 py-5">
@@ -141,8 +146,16 @@ const RunGroupCard = ({
   )
 }
 
-export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchResultListProps) => {
-  const groups = useMemo(() => groupByRun(hits), [hits])
+export const SearchResultList = ({
+  hits,
+  files,
+  projectId,
+  activeTags,
+  onNavigate,
+}: SearchResultListProps) => {
+  const throttledFiles = useThrottledValue(files, 500)
+  const liveHits = useMemo(() => refreshHits(hits, throttledFiles), [hits, throttledFiles])
+  const groups = useMemo(() => groupByRun(liveHits), [liveHits])
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -152,6 +165,7 @@ export const SearchResultList = ({ hits, files, projectId, onNavigate }: SearchR
           group={group}
           files={files}
           projectId={projectId}
+          activeTags={activeTags}
           onNavigate={onNavigate}
         />
       ))}

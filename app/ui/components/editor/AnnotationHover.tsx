@@ -21,7 +21,6 @@ interface AnnotationHoverProps {
 
 const TOOLTIP_GAP = 4
 const BRIDGE_UPWARD = 5
-const DISMISS_DELAY = 30
 const ANNOTATIONS_LANGUAGE = "json-annotations"
 
 const isDecoration = (el: HTMLElement): boolean =>
@@ -78,45 +77,35 @@ const getFirstLineRect = (el: HTMLElement): DOMRect => {
 export const AnnotationHover = ({ annotations, filePath, children }: AnnotationHoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const bridgeRef = useRef<HTMLDivElement>(null)
-  const dismissTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
 
-  const scheduleDismiss = useCallback(() => {
-    if (dismissTimer.current) clearTimeout(dismissTimer.current)
-    dismissTimer.current = setTimeout(() => setHover(null), DISMISS_DELAY)
+  const dismiss = useCallback(() => setHover(null), [])
+
+  const isOnBridge = useCallback((e: MouseEvent) => {
+    const bridge = bridgeRef.current
+    if (!bridge) return false
+    return (
+      bridge.contains(e.target as HTMLElement) ||
+      isWithinRect(e.clientX, e.clientY, bridge.getBoundingClientRect())
+    )
   }, [])
 
-  const cancelDismiss = useCallback(() => {
-    if (dismissTimer.current) {
-      clearTimeout(dismissTimer.current)
-      dismissTimer.current = null
-    }
+  const handleMouseEnter = useCallback((e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (!isDecoration(target)) return
+    const text = target.textContent ?? ""
+    if (!text) return
+    setHover({ text, element: target })
   }, [])
-
-  const handleMouseEnter = useCallback(
-    (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!isDecoration(target)) return
-      cancelDismiss()
-      const text = target.textContent ?? ""
-      if (!text) return
-      setHover({ text, element: target })
-    },
-    [cancelDismiss]
-  )
 
   const handleMouseLeave = useCallback(
     (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (!isDecoration(target)) return
-      const bridge = bridgeRef.current
-      if (bridge) {
-        const rect = bridge.getBoundingClientRect()
-        if (isWithinRect(e.clientX, e.clientY, rect)) return
-      }
-      scheduleDismiss()
+      if (isOnBridge(e)) return
+      dismiss()
     },
-    [scheduleDismiss]
+    [isOnBridge, dismiss]
   )
 
   useEffect(() => {
@@ -134,24 +123,15 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
     if (!hover) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      const bridge = bridgeRef.current
-      if (!bridge) return
       const target = e.target as HTMLElement
-      if (isDecoration(target)) {
-        cancelDismiss()
-        return
-      }
-      if (bridge.contains(target)) {
-        cancelDismiss()
-        return
-      }
-      const rect = bridge.getBoundingClientRect()
-      if (!isWithinRect(e.clientX, e.clientY, rect)) scheduleDismiss()
+      if (isDecoration(target)) return
+      if (isOnBridge(e)) return
+      dismiss()
     }
 
     document.addEventListener("mousemove", handleMouseMove)
     return () => document.removeEventListener("mousemove", handleMouseMove)
-  }, [hover, cancelDismiss, scheduleDismiss])
+  }, [hover, isOnBridge, dismiss])
 
   const matchingAnnotations = hover ? findMatchingAnnotations(annotations, hover.text) : []
   const files = getFiles()

@@ -1,7 +1,13 @@
 import type { ComponentType } from "react"
+import { FeatherX } from "@subframe/core"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { resolveFeatherIcon } from "~/ui/theme/feather-map"
-import { elementBackground, solidBackground, lowContrastText } from "~/ui/theme/radix"
+import {
+  elementBackground,
+  hoveredElementBackground,
+  solidBackground,
+  lowContrastText,
+} from "~/ui/theme/radix"
 import { cn } from "~/ui/utils"
 
 interface TagBadgeProps {
@@ -9,6 +15,7 @@ interface TagBadgeProps {
   active?: boolean
   disabled?: boolean
   onClick?: () => void
+  onRemove?: () => void
   className?: string
 }
 
@@ -24,36 +31,41 @@ const TagIcon = ({
   </span>
 )
 
-const isInteractive = (onClick: (() => void) | undefined): onClick is () => void =>
-  onClick !== undefined
+const hasHandler = (fn: (() => void) | undefined): fn is () => void => fn !== undefined
 
 export const TagBadge = ({
   tag,
   active = true,
   disabled = false,
   onClick,
+  onRemove,
   className,
 }: TagBadgeProps) => {
   const Icon = resolveFeatherIcon(tag.icon)
-  const colored = active || !isInteractive(onClick)
+  const colored = active
 
   const style = colored
-    ? {
-        backgroundColor: elementBackground(tag.color),
-        color: lowContrastText(tag.color),
-      }
+    ? ({
+        "--tag-bg": elementBackground(tag.color),
+        "--tag-hover-bg": hoveredElementBackground(tag.color),
+        "--tag-fg": lowContrastText(tag.color),
+        "--tag-icon": solidBackground(tag.color),
+        backgroundColor: "var(--tag-bg)",
+        color: "var(--tag-fg)",
+      } as React.CSSProperties)
     : undefined
 
-  const iconColor = colored ? solidBackground(tag.color) : "currentColor"
+  const iconColor = colored ? "var(--tag-icon)" : "currentColor"
 
-  const Tag = isInteractive(onClick) ? "button" : "span"
+  const Tag = hasHandler(onClick) ? "button" : "span"
 
   return (
     <Tag
-      type={isInteractive(onClick) ? "button" : undefined}
+      type={hasHandler(onClick) ? "button" : undefined}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption-bold font-caption-bold transition-colors",
-        isInteractive(onClick) && !disabled && "cursor-pointer border-none",
+        colored && "hover:!bg-[var(--tag-hover-bg)]",
+        hasHandler(onClick) && !disabled && "cursor-pointer border-none",
         disabled && "cursor-not-allowed border-none",
         !colored && "bg-neutral-100 text-subtext-color hover:bg-neutral-200",
         className
@@ -63,6 +75,19 @@ export const TagBadge = ({
     >
       <TagIcon icon={Icon} color={iconColor} />
       {tag.display}
+      {hasHandler(onRemove) && (
+        <button
+          type="button"
+          className="inline-flex cursor-pointer items-center border-none bg-transparent p-0"
+          style={{ color: "var(--tag-fg)" }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+        >
+          <FeatherX className="h-3 w-3" />
+        </button>
+      )}
     </Tag>
   )
 }

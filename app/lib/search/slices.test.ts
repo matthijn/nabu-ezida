@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { extractSearchSlice } from "./slices"
+import { extractSearchSlice, refreshHits } from "./slices"
 
 const makeAnnotations = (annotations: { text: string; reason: string; color: string }[]): string =>
   "```json-annotations\n" + JSON.stringify({ annotations }) + "\n```"
@@ -114,5 +114,74 @@ describe("extractSearchSlice", () => {
 
   it.each(cases)("$name", ({ hit, fileContent, expected }) => {
     expect(extractSearchSlice(hit, fileContent)).toBe(expected)
+  })
+})
+
+describe("refreshHits", () => {
+  const ann = (text: string) => ({ text, reason: "r", color: "blue" })
+
+  const refreshCases: {
+    name: string
+    hits: { file: string; id?: string; text?: string }[]
+    files: Record<string, string>
+    expected: { file: string; id?: string; text?: string }[]
+  }[] = [
+    {
+      name: "drops hit when file is gone",
+      hits: [{ file: "gone.md", text: "hello" }],
+      files: {},
+      expected: [],
+    },
+    {
+      name: "drops ID hit when ID no longer in file",
+      hits: [{ file: "doc.md", id: "deleted-id" }],
+      files: { "doc.md": "# Doc\n\nSome content" },
+      expected: [],
+    },
+    {
+      name: "keeps ID hit when ID still in file",
+      hits: [{ file: "doc.md", id: "alive-id" }],
+      files: { "doc.md": '# Doc\n\n```json-callout\n{"id":"alive-id"}\n```' },
+      expected: [{ file: "doc.md", id: "alive-id" }],
+    },
+    {
+      name: "keeps file-only hit when file exists",
+      hits: [{ file: "doc.md" }],
+      files: { "doc.md": "# Doc" },
+      expected: [{ file: "doc.md" }],
+    },
+    {
+      name: "keeps text hit and strips stale annotations",
+      hits: [
+        {
+          file: "doc.md",
+          text: `hello world\n\n${makeAnnotations([ann("hello")])}`,
+        },
+      ],
+      files: { "doc.md": "hello world\n\nother stuff" },
+      expected: [{ file: "doc.md", text: "hello world" }],
+    },
+    {
+      name: "keeps text hit and re-grows with surviving annotations",
+      hits: [
+        {
+          file: "doc.md",
+          text: `hello world\n\n${makeAnnotations([ann("hello"), ann("missing")])}`,
+        },
+      ],
+      files: {
+        "doc.md": makeDoc("hello world\n\nother stuff", [ann("hello")]),
+      },
+      expected: [
+        {
+          file: "doc.md",
+          text: `hello world\n\n${formatExpectedBlock([ann("hello")])}`,
+        },
+      ],
+    },
+  ]
+
+  it.each(refreshCases)("$name", ({ hits, files, expected }) => {
+    expect(refreshHits(hits, files)).toEqual(expected)
   })
 })

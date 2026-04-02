@@ -2,10 +2,10 @@ import { useCallback, useMemo, useRef } from "react"
 import { useSearchParams } from "react-router"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { parseSpotlight } from "~/lib/editor/spotlight"
+import { patchBlock } from "~/lib/data-blocks/patch"
 import { useProject } from "./project"
 import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
 import { toDisplayName } from "~/lib/files/filename"
-import { resolveFeatherIcon } from "~/ui/theme/feather-map"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
@@ -65,6 +65,12 @@ const getFileRaw = (files: Record<string, string>, filename: string): string | u
 
 const isJsonFile = (filename: string): boolean => filename.endsWith(".json")
 
+const ATTRIBUTES_LANGUAGE = "json-attributes"
+
+const removeTagOp = (allTagIds: string[], tagId: string) => [
+  { op: "replace" as const, path: "/tags", value: allTagIds.filter((id) => id !== tagId) },
+]
+
 const wrapAsCodeBlock = (content: string, lang: string): string =>
   `\`\`\`${lang}\n${content}\n\`\`\``
 
@@ -90,19 +96,21 @@ export default function ProjectFile() {
     if (rawContent) navigator.clipboard.writeText(rawContent)
   }, [rawContent])
   const tagDefMap = useMemo(() => new Map(tagDefinitions.map((d) => [d.id, d])), [tagDefinitions])
-  const tags = currentFile
-    ? getFileTags(currentFile).map((tagId) => {
-        const def = tagDefMap.get(tagId)
-        return def
-          ? {
-              label: def.display,
-              variant: "brand" as const,
-              color: def.color,
-              icon: resolveFeatherIcon(def.icon),
-            }
-          : { label: tagId, variant: "neutral" as const }
-      })
-    : []
+  const tags = useMemo(() => {
+    if (!currentFile) return []
+    return getFileTags(currentFile)
+      .map((tagId) => tagDefMap.get(tagId))
+      .filter((d): d is NonNullable<typeof d> => d !== undefined)
+  }, [currentFile, getFileTags, tagDefMap])
+
+  const handleRemoveTag = useCallback(
+    (tagId: string) => {
+      if (!currentFile) return
+      const allTagIds = getFileTags(currentFile)
+      patchBlock(currentFile, ATTRIBUTES_LANGUAGE, removeTagOp(allTagIds, tagId))
+    },
+    [currentFile, getFileTags]
+  )
 
   const handleScrollTo = useCallback((percent: number) => {
     const container = scrollContainerRef.current
@@ -126,6 +134,7 @@ export default function ProjectFile() {
         <FileHeader
           title={toDisplayName(currentFile)}
           tags={tags}
+          onRemoveTag={handleRemoveTag}
           pinned={false}
           onPin={() => undefined}
           onShare={() => undefined}

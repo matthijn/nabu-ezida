@@ -4,6 +4,7 @@ import type { Annotation } from "~/domain/data-blocks/attributes/schema"
 import { AnnotationsBlockSchema } from "~/domain/data-blocks/annotations/schema"
 import { getBlock } from "~/lib/data-blocks/query"
 import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
+import { stripBlocksByLanguage } from "~/lib/data-blocks/parse"
 
 interface Range {
   start: number
@@ -101,3 +102,21 @@ const growHit = (hit: SearchHit, files: FileStore): SearchHit => {
 
 export const growHits = (hits: SearchHit[], files: FileStore): SearchHit[] =>
   hits.map((hit) => growHit(hit, files))
+
+const stripAnnotationsBlock = (raw: string): string =>
+  stripBlocksByLanguage(raw, "json-annotations")
+
+const isHitAlive = (hit: SearchHit, files: FileStore): boolean => {
+  const content = files[hit.file]
+  if (content === undefined) return false
+  if (hit.id === undefined) return true
+  return content.includes(hit.id)
+}
+
+const regrowHit = (hit: SearchHit, files: FileStore): SearchHit => {
+  if (!hit.text) return hit
+  return growHit({ ...hit, text: stripAnnotationsBlock(hit.text) }, files)
+}
+
+export const refreshHits = (hits: SearchHit[], files: FileStore): SearchHit[] =>
+  hits.filter((h) => isHitAlive(h, files)).map((h) => regrowHit(h, files))

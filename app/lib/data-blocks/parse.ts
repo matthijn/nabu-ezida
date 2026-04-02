@@ -135,6 +135,18 @@ export const replaceBlockContents = (
   return result
 }
 
+const collapseBlankLines = (text: string): string => text.replace(/\n{3,}/g, "\n\n")
+
+export const stripBlocksByLanguage = (raw: string, language: string): string => {
+  const blocks = findBlocksByLanguage(raw, language)
+  if (blocks.length === 0) return raw.trim()
+  let result = raw
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    result = result.slice(0, blocks[i].start) + result.slice(blocks[i].end)
+  }
+  return collapseBlankLines(result).trim()
+}
+
 export const extractProse = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown)
   let prose = markdown

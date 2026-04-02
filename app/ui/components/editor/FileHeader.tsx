@@ -1,11 +1,11 @@
 "use client"
 
-import type { ReactNode, ComponentType } from "react"
+import type { ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Badge } from "~/ui/components/Badge"
 import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
+import { TagBadge } from "~/ui/components/TagBadge"
 import {
   FeatherClipboard,
   FeatherMoreHorizontal,
@@ -15,19 +15,7 @@ import {
 } from "@subframe/core"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
-import {
-  elementBackground,
-  solidBackground,
-  lowContrastText,
-  type RadixColor,
-} from "~/ui/theme/radix"
-
-interface Tag {
-  label: string
-  variant: "brand" | "neutral"
-  color?: RadixColor
-  icon?: ComponentType<{ className?: string }>
-}
+import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 
 interface MenuItem {
   icon: ReactNode
@@ -37,7 +25,8 @@ interface MenuItem {
 
 interface FileHeaderProps {
   title: string
-  tags?: Tag[]
+  tags?: TagDefinition[]
+  onRemoveTag?: (tagId: string) => void
   pinned?: boolean
   onPin?: () => void
   onShare?: () => void
@@ -47,45 +36,17 @@ interface FileHeaderProps {
   className?: string
 }
 
-const renderTag = (tag: Tag) => {
-  if (!tag.color) {
-    return (
-      <Badge variant={tag.variant} icon={null}>
-        {tag.label}
-      </Badge>
-    )
-  }
-  const Icon = tag.icon
-  return (
-    <span
-      style={
-        {
-          "--tag-bg": elementBackground(tag.color),
-          "--tag-icon": solidBackground(tag.color),
-          "--tag-fg": lowContrastText(tag.color),
-        } as React.CSSProperties
-      }
-    >
-      <Badge
-        variant={tag.variant}
-        icon={
-          Icon ? (
-            <span style={{ color: "var(--tag-icon)" }}>
-              <Icon className="h-3 w-3" />
-            </span>
-          ) : null
-        }
-        className="!border-[var(--tag-bg)] !bg-[var(--tag-bg)] [&_span]:!text-[var(--tag-fg)]"
-      >
-        {tag.label}
-      </Badge>
-    </span>
-  )
+const tagAnimation = {
+  initial: { opacity: 0, scale: 0.8 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.8 },
+  transition: { type: "spring" as const, stiffness: 500, damping: 35 },
 }
 
 export const FileHeader = ({
   title,
   tags = [],
+  onRemoveTag,
   pinned = false,
   onPin,
   onShare,
@@ -149,14 +110,11 @@ export const FileHeader = ({
         <div className="flex w-full flex-wrap items-center gap-2">
           <AnimatePresence initial={false}>
             {tags.map((tag) => (
-              <motion.span
-                key={tag.label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              >
-                {renderTag(tag)}
+              <motion.span key={tag.id} {...tagAnimation}>
+                <TagBadge
+                  tag={tag}
+                  onRemove={onRemoveTag ? () => onRemoveTag(tag.id) : undefined}
+                />
               </motion.span>
             ))}
           </AnimatePresence>
