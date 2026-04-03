@@ -1,6 +1,11 @@
-import { FeatherX, FeatherTrash2, FeatherCheckCircle, FeatherAlertTriangle } from "@subframe/core"
+import {
+  FeatherX,
+  FeatherTrash2,
+  FeatherCircle,
+  FeatherCheckCircle,
+  FeatherAlertTriangle,
+} from "@subframe/core"
 import { SwapButton } from "~/ui/components/SwapButton"
-import { TooltipWrap } from "~/ui/components/TooltipWrap"
 
 export interface HighlightEntry {
   id: string
@@ -25,18 +30,12 @@ const ReviewBox = ({ text, onResolve }: { text: string; onResolve?: () => void }
     </div>
     {onResolve && (
       <div className="absolute top-1 right-1">
-        <TooltipWrap text="Mark as resolved">
-          <button
-            type="button"
-            className="flex cursor-pointer items-center justify-center rounded-md border-none bg-transparent h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              onResolve()
-            }}
-          >
-            <FeatherCheckCircle className="text-body text-warning-700" />
-          </button>
-        </TooltipWrap>
+        <SwapButton
+          idle={<FeatherCircle className="text-body text-warning-700" />}
+          active={<FeatherCheckCircle className="text-body text-success-600" />}
+          activeTooltip="Mark as resolved"
+          onClick={onResolve}
+        />
       </div>
     )}
   </div>
