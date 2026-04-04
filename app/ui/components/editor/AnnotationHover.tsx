@@ -6,6 +6,13 @@ import type { Annotation } from "~/domain/data-blocks/attributes/annotations/sel
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/ui/theme/radix"
 import { getCodeTitle, getFiles } from "~/lib/files"
+import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
+import { getReviewAnnotationsForCode } from "~/domain/data-blocks/attributes/annotations/selectors"
+import {
+  buildCodeReviewContext,
+  buildExplainCodingContext,
+} from "~/domain/data-blocks/attributes/annotations/context"
+import { dispatchTask } from "~/lib/agent/dispatch"
 import { patchBlock } from "~/lib/data-blocks/patch"
 
 interface HoverState {
@@ -20,7 +27,7 @@ interface AnnotationHoverProps {
 }
 
 const TOOLTIP_GAP = 4
-const BRIDGE_UPWARD = 5
+const BRIDGE_UPWARD = 30
 const ANNOTATIONS_LANGUAGE = "json-annotations"
 
 const isDecoration = (el: HTMLElement): boolean =>
@@ -48,6 +55,44 @@ const buildResolveCallback = (filePath: string, id: string) => () => {
   patchBlock(filePath, ANNOTATIONS_LANGUAGE, clearReviewOp(id))
 }
 
+const buildRefineCallback = (
+  files: Record<string, string>,
+  annotation: Annotation
+): (() => void) | undefined => {
+  if (!annotation.code || !annotation.review) return undefined
+  const code = findCodeById(files, annotation.code)
+  if (!code) return undefined
+  return () => {
+    const flagged = getReviewAnnotationsForCode(files, code.id)
+    dispatchTask({
+      approaches: ["qual-coding/codebook/review"],
+      context: buildCodeReviewContext(code.title, code.content, flagged),
+      userMessage: `${annotation.id} is flagged on ${code.id} — is this a pattern worth refining, or a one-off?`,
+    })
+  }
+}
+
+const buildExplainCallback = (
+  files: Record<string, string>,
+  annotation: Annotation
+): (() => void) | undefined => {
+  if (!annotation.code) return undefined
+  const code = findCodeById(files, annotation.code)
+  if (!code) return undefined
+  return () => {
+    dispatchTask({
+      approaches: [],
+      context: buildExplainCodingContext(
+        code.title,
+        code.content,
+        annotation.text,
+        annotation.reason
+      ),
+      userMessage: `Why was ${annotation.id} coded as ${code.id}?`,
+    })
+  }
+}
+
 const annotationToEntry =
   (files: Record<string, string>, filePath?: string) =>
   (annotation: Annotation, index: number): HighlightEntry => {
@@ -61,6 +106,8 @@ const annotationToEntry =
       review: annotation.review,
       onDelete: canMutate ? buildDeleteCallback(filePath, id) : undefined,
       onResolve: canMutate && annotation.review ? buildResolveCallback(filePath, id) : undefined,
+      onRefineCodebook: buildRefineCallback(files, annotation),
+      onExplainCoding: buildExplainCallback(files, annotation),
     }
   }
 
@@ -184,9 +231,9 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
             ref={bridgeRef}
             style={{
               position: "fixed",
-              zIndex: 50,
+              zIndex: 9999,
               visibility: "hidden",
-              pointerEvents: "none",
+              pointerEvents: "auto",
               background: "transparent",
             }}
           >

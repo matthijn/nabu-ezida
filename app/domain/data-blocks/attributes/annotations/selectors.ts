@@ -45,3 +45,11 @@ export const findAnnotationById = (files: FileStore, id: string): StoredAnnotati
 
 export const findDocumentForAnnotation = (files: FileStore, id: string): string | undefined =>
   findFileFor(files, getStoredAnnotations, hasId(id))
+
+const hasCodeAndReview =
+  (codeId: string) =>
+  (a: StoredAnnotation): boolean =>
+    a.code === codeId && hasReview(a)
+
+export const getReviewAnnotationsForCode = (files: FileStore, codeId: string): StoredAnnotation[] =>
+  collectAll(files, getStoredAnnotations).filter(hasCodeAndReview(codeId))

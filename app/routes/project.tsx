@@ -378,7 +378,7 @@ export default function ProjectLayout() {
   const handleReviewClick = () => {
     const id = saveNewSearch({
       title: "Needs review",
-      description: "Annotations flagged for human review",
+      description: "Annotations flagged for review",
       sql: "SELECT file, id, text, review FROM annotations WHERE review IS NOT NULL",
     })
     if (!id) return
