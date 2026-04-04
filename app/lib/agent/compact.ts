@@ -6,7 +6,7 @@ import { formatStepProgress } from "./steering/nudges/step-state"
 const BOUNDARY_TOOLS = new Set(["submit_plan", "complete_step"])
 const PRESERVED_TOOLS = new Set(["submit_plan", "complete_step", "compacted"])
 
-const isCompactedResult = (block: Block): boolean =>
+export const isCompactedResult = (block: Block): boolean =>
   block.type === "tool_result" && block.toolName === "compacted"
 
 const isBoundaryResult = (block: Block): boolean =>
@@ -85,7 +85,7 @@ const findPendingBlock = (blocks: Block[], toolCallIndex: number): Block | null 
 
 const DIRECTIVE_PATTERN = /^<!--\s*(\w+):\s*(\w+)\s*-->$/
 
-const isDirectiveBlock = (block: Block): boolean =>
+export const isDirectiveBlock = (block: Block): boolean =>
   block.type === "system" && DIRECTIVE_PATTERN.test(block.content)
 
 const extractSummary = (blocks: Block[], toolCallIndex: number): string => {

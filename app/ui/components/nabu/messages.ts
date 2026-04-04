@@ -1,7 +1,6 @@
 import type { Block, ToolCall } from "~/lib/agent/client"
 import type { FileStore } from "~/lib/files"
-import { derive, findCall, isToolCallBlock, type DerivedPlan } from "~/lib/agent"
-import { isDraft } from "~/lib/agent/client"
+import { derive, findCall, type DerivedPlan } from "~/lib/agent"
 import { AskArgs, type AskScope } from "~/lib/agent/tools/ask/def"
 
 export interface TextMessage {
@@ -172,25 +171,4 @@ export const extractAskMessages = (history: Block[]): AskExtraction => {
   return { messages, consumedUserIndices: consumed }
 }
 
-const isAskToolCall = (block: Block): boolean =>
-  isToolCallBlock(block) && block.calls.some((c) => c.name === "ask")
-
-const findAskCall = (block: Block): ToolCall | undefined =>
-  isToolCallBlock(block) ? block.calls.find((c) => c.name === "ask") : undefined
-
-const hasMatchingResult = (history: Block[], callId: string): boolean =>
-  history.some((b) => b.type === "tool_result" && b.callId === callId)
-
-export const isWaitingForAsk = (history: Block[]): boolean => {
-  for (let i = history.length - 1; i >= 0; i--) {
-    const block = history[i]
-    if (isDraft(block)) continue
-    if (block.type === "text" || block.type === "user") return false
-    if (isAskToolCall(block)) {
-      const call = findAskCall(block)
-      if (!call) return false
-      return !hasMatchingResult(history, call.id)
-    }
-  }
-  return false
-}
+export { isWaitingForAsk } from "~/lib/agent/client"

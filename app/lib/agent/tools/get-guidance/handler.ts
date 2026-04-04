@@ -1,8 +1,8 @@
-import type { Block } from "../../client"
 import type { ToolResult } from "../../types"
 import { buildSchema } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
 import { pushBlocks } from "../../client"
+import { toMarkerBlock } from "../../client/markers"
 
 const PROJECT_PREFIX = "qual-coding/project/"
 
@@ -10,11 +10,6 @@ const isProjectPhaseKey = (key: string): boolean =>
   key.startsWith(PROJECT_PREFIX) && !key.endsWith("/index")
 
 const hasProjectPhase = (keys: readonly string[]): boolean => keys.some(isProjectPhaseKey)
-
-const toMarkerBlock = (key: string): Block => ({
-  type: "system",
-  content: `<!-- approach: ${key} -->`,
-})
 
 const handleGetGuidance = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
   const parsed = buildSchema().safeParse(call.args)
