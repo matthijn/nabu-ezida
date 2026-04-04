@@ -21,9 +21,6 @@ const MAX_GLUE = 8
 
 const isFileEntity = (id: string): boolean => id.endsWith(".md")
 
-const isQuoted = (text: string, start: number, end: number): boolean =>
-  start > 0 && QUOTES.has(text[start - 1]) && text[end] === text[start - 1]
-
 const expandQuotes = (
   text: string,
   start: number,
@@ -141,16 +138,13 @@ export const linkifyEntityIds = (
 
     const hasFileProtocol = isPartOfFileUrl(text, match.index)
 
-    if (!isFileEntity(bareId) && !hasFileProtocol && isQuoted(text, wrapStart, wrapEnd)) {
-      result += text.slice(lastIndex, match.index + match[0].length)
-      lastIndex = match.index + match[0].length
-      continue
-    }
-
     const protocolOffset = hasFileProtocol ? FILE_PROTOCOL.length : 0
-    const [consumeStart, consumeEnd] = isFileEntity(bareId)
-      ? expandQuotes(text, wrapStart - protocolOffset, wrapEnd, lastIndex)
-      : [wrapStart - protocolOffset, wrapEnd]
+    const [consumeStart, consumeEnd] = expandQuotes(
+      text,
+      wrapStart - protocolOffset,
+      wrapEnd,
+      lastIndex
+    )
 
     const link = `[${name}](file://${bareId})`
 

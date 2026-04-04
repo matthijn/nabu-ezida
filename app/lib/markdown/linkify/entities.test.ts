@@ -153,14 +153,19 @@ describe("linkifyEntityIds", () => {
       expected: "",
     },
     {
-      name: "skips double-quoted ID",
+      name: "links double-quoted ID consuming quotes",
       input: 'key is "callout-7xk2m9p1" here',
-      expected: 'key is "callout-7xk2m9p1" here',
+      expected: "key is [User Frustration](file://callout-7xk2m9p1) here",
     },
     {
-      name: "skips single-quoted ID",
+      name: "links single-quoted ID consuming quotes",
       input: "key is 'callout-7xk2m9p1' here",
-      expected: "key is 'callout-7xk2m9p1' here",
+      expected: "key is [User Frustration](file://callout-7xk2m9p1) here",
+    },
+    {
+      name: "links double-quoted annotation ID consuming quotes",
+      input: 'flagged "annotation-1a2b3c4d" for review',
+      expected: "flagged [user frustration](file://annotation-1a2b3c4d) for review",
     },
     {
       name: "links ID inside longer quoted prose",
@@ -178,9 +183,9 @@ describe("linkifyEntityIds", () => {
       expected: "see [interview-notes](file://interview-notes.md) for context",
     },
     {
-      name: "skips double-quoted ID with wrapper parens inside",
+      name: "links double-quoted ID with wrapper parens consuming all",
       input: '"(callout-7xk2m9p1)" used as key',
-      expected: '"(callout-7xk2m9p1)" used as key',
+      expected: "[User Frustration](file://callout-7xk2m9p1) used as key",
     },
     {
       name: "links double-quoted .md filename consuming quotes",
