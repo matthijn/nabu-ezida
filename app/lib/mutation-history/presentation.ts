@@ -1,13 +1,5 @@
 import type { ComponentType } from "react"
-import {
-  FeatherPlus,
-  FeatherEdit3,
-  FeatherTrash,
-  FeatherTag,
-  FeatherType,
-  FeatherFileText,
-  FeatherArrowRight,
-} from "@subframe/core"
+import { Plus, Edit3, Trash, Tag, Type, FileText, ArrowRight } from "lucide-react"
 import type { HistoryEntry, HistoryVerb } from "./types"
 import { toDisplayName } from "~/lib/files/filename"
 
@@ -25,12 +17,12 @@ export const truncateLabel = (text: string, max = 60): string =>
   text.length <= max ? text : text.slice(0, max) + "…"
 
 const verbIcon: Record<HistoryVerb, ComponentType<{ className?: string }>> = {
-  added: FeatherPlus,
-  created: FeatherPlus,
-  removed: FeatherTrash,
-  deleted: FeatherTrash,
-  updated: FeatherEdit3,
-  renamed: FeatherArrowRight,
+  added: Plus,
+  created: Plus,
+  removed: Trash,
+  deleted: Trash,
+  updated: Edit3,
+  renamed: ArrowRight,
 }
 
 const verbVariant: Record<HistoryVerb, IconVariant> = {
@@ -63,9 +55,9 @@ const formatEntityVerb = (entry: HistoryEntry): string =>
   entityKindVerb[entry.entityKind]?.[entry.verb] ?? `${entry.verb} ${entry.entityKind}`
 
 const entityKindIcon: Record<string, ComponentType<{ className?: string }>> = {
-  tag: FeatherTag,
-  text: FeatherType,
-  file: FeatherFileText,
+  tag: Tag,
+  text: Type,
+  file: FileText,
 }
 
 const getIcon = (entry: HistoryEntry): ComponentType<{ className?: string }> =>

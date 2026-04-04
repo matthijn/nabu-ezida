@@ -1,6 +1,6 @@
 "use client"
 
-import { FeatherSearch } from "@subframe/core"
+import { Search } from "lucide-react"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { TextField } from "~/ui/components/TextField"
 import { TagBadge } from "~/ui/components/TagBadge"
@@ -25,7 +25,7 @@ export const SearchHeader = ({
     <div className="flex w-full max-w-[768px] flex-col items-center gap-4">
       <div className="flex w-full flex-col items-start rounded-lg border border-solid border-neutral-300 px-3 py-2 shadow-sm">
         <div className="flex w-full items-center gap-2">
-          <FeatherSearch className="text-[16px] leading-[24px] text-neutral-400" />
+          <Search className="text-[16px] leading-[24px] text-neutral-400" />
           <TextField
             className="h-auto grow shrink-0 basis-0 [&_div]:border-none [&_div]:bg-transparent"
             variant="outline"

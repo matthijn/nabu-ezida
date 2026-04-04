@@ -3,7 +3,7 @@
 import type { ComponentType } from "react"
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherHash, FeatherFolder } from "@subframe/core"
+import { Hash, Folder } from "lucide-react"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { Badge } from "~/ui/components/Badge"
@@ -15,7 +15,7 @@ import {
   highContrastText,
   type RadixColor,
 } from "~/ui/theme/radix"
-import { resolveFeatherIcon } from "~/ui/theme/feather-map"
+import { resolveIcon } from "~/ui/theme/icon-map"
 import { humanize } from "./TagGroupHeader"
 import { DocumentItem } from "./DocumentItem"
 
@@ -103,20 +103,20 @@ const buildTagLookup = (definitions: TagDefinition[]): Map<string, ResolvedTag> 
   new Map(
     definitions.map((d) => [
       d.id,
-      { color: d.color, display: d.display, icon: resolveFeatherIcon(d.icon) },
+      { color: d.color, display: d.display, icon: resolveIcon(d.icon) },
     ])
   )
 
 const UNGROUPED_TAG: ResolvedTag = {
   color: DEFAULT_TAG_COLOR,
   display: "General",
-  icon: FeatherFolder,
+  icon: Folder,
 }
 
 const resolveTag = (lookup: Map<string, ResolvedTag>, tag: string): ResolvedTag =>
   tag === UNGROUPED
     ? UNGROUPED_TAG
-    : (lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: FeatherHash })
+    : (lookup.get(tag) ?? { color: DEFAULT_TAG_COLOR, display: humanize(tag), icon: Hash })
 
 export function DocumentsSidebar({
   documents,
@@ -146,7 +146,7 @@ export function DocumentsSidebar({
 
   const hoveredGroup = hoveredTag ? groups.find((g) => g.tag === hoveredTag) : null
   const hoveredResolved = hoveredTag ? resolveTag(tagLookup, hoveredTag) : null
-  const HoveredIcon = hoveredResolved?.icon ?? FeatherHash
+  const HoveredIcon = hoveredResolved?.icon ?? Hash
 
   return (
     <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">

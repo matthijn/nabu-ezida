@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { FeatherLogOut, FeatherSettings, FeatherUser } from "@subframe/core"
+import { LogOut, Settings, User } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { AnimatePresence, motion } from "framer-motion"
 import { Avatar } from "~/ui/components/Avatar"
@@ -36,9 +36,9 @@ interface MainSidebarProps {
 }
 
 const defaultUserMenuActions: UserMenuAction[] = [
-  { id: "account", icon: <FeatherUser />, label: "Account" },
-  { id: "settings", icon: <FeatherSettings />, label: "Settings" },
-  { id: "logout", icon: <FeatherLogOut />, label: "Log out" },
+  { id: "account", icon: <User />, label: "Account" },
+  { id: "settings", icon: <Settings />, label: "Settings" },
+  { id: "logout", icon: <LogOut />, label: "Log out" },
 ]
 
 export function MainSidebar({

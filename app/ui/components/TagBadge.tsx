@@ -1,7 +1,7 @@
 import type { ComponentType } from "react"
-import { FeatherX } from "@subframe/core"
+import { X } from "lucide-react"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
-import { resolveFeatherIcon } from "~/ui/theme/feather-map"
+import { resolveIcon } from "~/ui/theme/icon-map"
 import {
   elementBackground,
   hoveredElementBackground,
@@ -41,7 +41,7 @@ export const TagBadge = ({
   onRemove,
   className,
 }: TagBadgeProps) => {
-  const Icon = resolveFeatherIcon(tag.icon)
+  const Icon = resolveIcon(tag.icon)
   const colored = active
 
   const style = colored
@@ -85,7 +85,7 @@ export const TagBadge = ({
             onRemove()
           }}
         >
-          <FeatherX className="h-3 w-3" />
+          <X className="h-3 w-3" />
         </button>
       )}
     </Tag>

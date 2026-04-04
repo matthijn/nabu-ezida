@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { FeatherBug, FeatherCheck, FeatherMinimize } from "@subframe/core"
+import { Bug, Check, Minimize } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { IconButton } from "~/ui/components/IconButton"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
@@ -24,7 +24,7 @@ const renderToggleItem = (
 ) => (
   <DropdownMenu.DropdownItem
     key={key}
-    icon={active ? <FeatherCheck /> : icon}
+    icon={active ? <Check /> : icon}
     onClick={() => onToggle(key)}
   >
     {label}
@@ -40,7 +40,7 @@ export const DebugMenuButton = ({
     <SubframeCore.DropdownMenu.Trigger asChild>
       <IconButton
         variant={isActive(debugOptions, "expanded") ? "brand-secondary" : "neutral-secondary"}
-        icon={<FeatherBug />}
+        icon={<Bug />}
         className="!rounded-full"
       />
     </SubframeCore.DropdownMenu.Trigger>
@@ -50,7 +50,7 @@ export const DebugMenuButton = ({
           {DEBUG_TOGGLES.map((t) =>
             renderToggleItem(t.key, t.label, t.icon, isActive(debugOptions, t.key), onToggleOption)
           )}
-          <DropdownMenu.DropdownItem icon={<FeatherMinimize />} onClick={onRequestCompaction}>
+          <DropdownMenu.DropdownItem icon={<Minimize />} onClick={onRequestCompaction}>
             Force compaction
           </DropdownMenu.DropdownItem>
         </DropdownMenu>

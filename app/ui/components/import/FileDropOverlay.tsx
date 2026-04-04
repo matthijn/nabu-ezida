@@ -4,7 +4,7 @@ import React from "react"
 import { Button } from "~/ui/components/Button"
 import { DropZone } from "./DropZone"
 import { FileImportList } from "./FileImportList"
-import { FeatherX } from "@subframe/core"
+import { X } from "lucide-react"
 import type { ImportFile, ImportProgress } from "~/lib/import"
 
 interface FileDropOverlayProps {
@@ -50,7 +50,7 @@ export const FileDropOverlay = ({
         <div className="flex w-full items-center justify-between">
           <span className="text-heading-2 font-heading-2 text-default-font">Import Documents</span>
           {canDismiss && (
-            <Button variant="neutral-tertiary" size="small" icon={<FeatherX />} onClick={onDismiss}>
+            <Button variant="neutral-tertiary" size="small" icon={<X />} onClick={onDismiss}>
               Close
             </Button>
           )}

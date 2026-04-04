@@ -1,7 +1,7 @@
 "use client"
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode, type MouseEvent } from "react"
-import { FeatherPlus } from "@subframe/core"
+import { Plus } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -30,7 +30,7 @@ const IconButtonRoot = forwardRef<HTMLButtonElement, IconButtonRootProps>(functi
     disabled = false,
     variant = "neutral-tertiary",
     size = "medium",
-    icon = <FeatherPlus />,
+    icon = <Plus />,
     loading = false,
     className,
     type = "button",

@@ -6,13 +6,7 @@ import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
 import { TagBadge } from "~/ui/components/TagBadge"
-import {
-  FeatherClipboard,
-  FeatherMoreHorizontal,
-  FeatherPin,
-  FeatherPlus,
-  FeatherShare2,
-} from "@subframe/core"
+import { Clipboard, MoreHorizontal, Pin, Plus, Share2 } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
@@ -70,23 +64,23 @@ export const FileHeader = ({
           <IconButton
             variant={pinned ? "brand-tertiary" : "neutral-tertiary"}
             size="small"
-            icon={<FeatherPin />}
+            icon={<Pin />}
             onClick={onPin}
           />
         )}
-        {onShare && <IconButton size="small" icon={<FeatherShare2 />} onClick={onShare} />}
+        {onShare && <IconButton size="small" icon={<Share2 />} onClick={onShare} />}
         {onCopyRaw && (
           <IconButton
             variant="neutral-tertiary"
             size="small"
-            icon={<FeatherClipboard />}
+            icon={<Clipboard />}
             onClick={onCopyRaw}
           />
         )}
         {menuItems.length > 0 && (
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild>
-              <IconButton size="small" icon={<FeatherMoreHorizontal />} />
+              <IconButton size="small" icon={<MoreHorizontal />} />
             </SubframeCore.DropdownMenu.Trigger>
             <SubframeCore.DropdownMenu.Portal>
               <SubframeCore.DropdownMenu.Content side="bottom" align="end" sideOffset={4} asChild>
@@ -119,12 +113,7 @@ export const FileHeader = ({
             ))}
           </AnimatePresence>
           {onAddTag && (
-            <Button
-              variant="neutral-tertiary"
-              size="small"
-              icon={<FeatherPlus />}
-              onClick={onAddTag}
-            >
+            <Button variant="neutral-tertiary" size="small" icon={<Plus />} onClick={onAddTag}>
               Add tag
             </Button>
           )}

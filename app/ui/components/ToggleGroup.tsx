@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { FeatherStar } from "@subframe/core"
+import { Star } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -13,7 +13,7 @@ interface ItemProps extends React.ComponentProps<typeof SubframeCore.ToggleGroup
 }
 
 const Item = React.forwardRef<HTMLDivElement, ItemProps>(function Item(
-  { disabled = false, children, icon = <FeatherStar />, className, ...otherProps }: ItemProps,
+  { disabled = false, children, icon = <Star />, className, ...otherProps }: ItemProps,
   ref
 ) {
   return (

@@ -10,7 +10,7 @@ import {
   type MouseEvent,
 } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherBook, FeatherFiles, FeatherSearch } from "@subframe/core"
+import { Book, Files, Search } from "lucide-react"
 import { MainSidebar } from "~/ui/components/sidebar/main"
 import type { NavItem } from "~/ui/components/sidebar/main"
 import { useResizable } from "~/ui/hooks/useResizable"
@@ -39,14 +39,14 @@ const buildNavItems = (
   const primary: NavItem[] = [
     {
       id: "documents",
-      icon: <FeatherFiles />,
+      icon: <Files />,
       label: "Documents",
 
       selected: hoveredNav === "documents",
     },
     {
       id: "search",
-      icon: <FeatherSearch />,
+      icon: <Search />,
       label: "Search",
 
       selected: hoveredNav === "search",
@@ -57,7 +57,7 @@ const buildNavItems = (
     ? [
         {
           id: "codes",
-          icon: <FeatherBook />,
+          icon: <Book />,
           label: "Codes",
 
           selected: hoveredNav === "codes",

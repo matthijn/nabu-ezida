@@ -18,24 +18,24 @@ import {
   getDocumentSubject,
 } from "~/domain/data-blocks/attributes/topics/selectors"
 import {
-  FeatherBold,
-  FeatherCode2,
-  FeatherCopy,
-  FeatherFileText,
-  FeatherHeading1,
-  FeatherHeading2,
-  FeatherHeading3,
-  FeatherImage,
-  FeatherItalic,
-  FeatherLink,
-  FeatherList,
-  FeatherListChecks,
-  FeatherListOrdered,
-  FeatherQuote,
-  FeatherStrikethrough,
-  FeatherTrash,
-  FeatherUnderline,
-} from "@subframe/core"
+  Bold,
+  Code2,
+  Copy,
+  FileText,
+  Heading1,
+  Heading2,
+  Heading3,
+  Image,
+  Italic,
+  Link,
+  List,
+  ListChecks,
+  ListOrdered,
+  Quote,
+  Strikethrough,
+  Trash,
+  Underline,
+} from "lucide-react"
 
 const formatClassificationLine = (
   type: string | undefined,
@@ -140,9 +140,9 @@ export default function ProjectFile() {
           onShare={() => undefined}
           onCopyRaw={copyRawMarkdown}
           menuItems={[
-            { icon: <FeatherCopy />, label: "Duplicate", onClick: () => undefined },
-            { icon: <FeatherFileText />, label: "Export", onClick: () => undefined },
-            { icon: <FeatherTrash />, label: "Delete", onClick: () => undefined },
+            { icon: <Copy />, label: "Duplicate", onClick: () => undefined },
+            { icon: <FileText />, label: "Export", onClick: () => undefined },
+            { icon: <Trash />, label: "Delete", onClick: () => undefined },
           ]}
           onAddTag={() => undefined}
         />
@@ -153,24 +153,16 @@ export default function ProjectFile() {
           >
             <EditorToolbar
               groups={[
+                [{ icon: <Heading1 /> }, { icon: <Heading2 /> }, { icon: <Heading3 /> }],
                 [
-                  { icon: <FeatherHeading1 /> },
-                  { icon: <FeatherHeading2 /> },
-                  { icon: <FeatherHeading3 /> },
+                  { icon: <Bold /> },
+                  { icon: <Italic /> },
+                  { icon: <Underline /> },
+                  { icon: <Strikethrough /> },
                 ],
-                [
-                  { icon: <FeatherBold /> },
-                  { icon: <FeatherItalic /> },
-                  { icon: <FeatherUnderline /> },
-                  { icon: <FeatherStrikethrough /> },
-                ],
-                [{ icon: <FeatherLink /> }, { icon: <FeatherImage /> }],
-                [
-                  { icon: <FeatherList /> },
-                  { icon: <FeatherListOrdered /> },
-                  { icon: <FeatherListChecks /> },
-                ],
-                [{ icon: <FeatherCode2 /> }, { icon: <FeatherQuote /> }],
+                [{ icon: <Link /> }, { icon: <Image /> }],
+                [{ icon: <List /> }, { icon: <ListOrdered /> }, { icon: <ListChecks /> }],
+                [{ icon: <Code2 /> }, { icon: <Quote /> }],
               ]}
             />
             <div

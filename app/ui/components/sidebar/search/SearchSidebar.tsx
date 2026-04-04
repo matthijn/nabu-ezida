@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherBookmark, FeatherTrash2 } from "@subframe/core"
+import { Bookmark, Trash2 } from "lucide-react"
 import type { SearchEntry } from "~/domain/search"
 import { IconButton } from "~/ui/components/IconButton"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
@@ -37,9 +37,9 @@ const SearchItemBookmark = ({
       size="small"
       icon={
         showTrash ? (
-          <FeatherTrash2 className="text-error-600" />
+          <Trash2 className="text-error-600" />
         ) : (
-          <FeatherBookmark className="[&_path]:fill-current" />
+          <Bookmark className="[&_path]:fill-current" />
         )
       }
       className="text-brand-600"
@@ -64,7 +64,7 @@ const SearchItemBookmark = ({
         onSave()
       }}
     >
-      <FeatherBookmark className="text-body" />
+      <Bookmark className="text-body" />
     </button>
   )
 }
@@ -127,7 +127,7 @@ const SectionHeader = ({ label }: { label: string }) => (
 
 const SavedSearchesEmpty = () => (
   <div className="flex w-full items-center gap-2 px-6 py-4">
-    <FeatherBookmark className="flex-none text-caption text-neutral-400" />
+    <Bookmark className="flex-none text-caption text-neutral-400" />
     <span className="text-caption font-caption text-subtext-color">
       Click the bookmark icon on a search to save it
     </span>

@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { FeatherFileText, FeatherSearch } from "@subframe/core"
+import { FileText, Search } from "lucide-react"
 import { IconButton } from "~/ui/components/IconButton"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { TagBadge } from "~/ui/components/TagBadge"
@@ -78,7 +78,7 @@ const SearchSlicePreview = ({
           <IconButton
             size="small"
             variant="brand-tertiary"
-            icon={<FeatherSearch />}
+            icon={<Search />}
             onClick={onNavigate}
             className="bg-white border border-solid border-neutral-border hover:border-brand-200 opacity-0 transition-opacity group-hover/hit:opacity-100"
           />
@@ -118,7 +118,7 @@ const RunGroupCard = ({
   return (
     <div className="flex w-full flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-sm">
       <div className="flex w-full items-center gap-4 border-b border-solid border-neutral-border bg-neutral-50 px-4 py-3">
-        <FeatherFileText className="text-body font-body text-brand-600" />
+        <FileText className="text-body font-body text-brand-600" />
         <button
           type="button"
           className="grow shrink-0 basis-0 text-left text-body-bold font-body-bold text-default-font hover:text-brand-600 transition-colors cursor-pointer"

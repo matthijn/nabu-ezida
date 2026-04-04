@@ -1,4 +1,4 @@
-import { FeatherLoader2 } from "@subframe/core"
+import { Loader2 } from "lucide-react"
 import { TooltipWrap } from "./TooltipWrap"
 
 const STATUS_TEXT = "text-caption font-caption text-subtext-color"
@@ -13,7 +13,7 @@ interface StatusBarProps {
 export const StatusBar = ({ text, tooltip, loading = false }: StatusBarProps) => {
   if (!text) return null
 
-  const spinner = loading ? <FeatherLoader2 className="text-subtext-color animate-spin" /> : null
+  const spinner = loading ? <Loader2 className="text-subtext-color animate-spin" /> : null
 
   if (!tooltip) {
     return (

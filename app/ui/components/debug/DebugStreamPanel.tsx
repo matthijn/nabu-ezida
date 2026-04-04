@@ -2,16 +2,7 @@
 
 import { useState } from "react"
 import { useSyncExternalStore } from "react"
-import {
-  FeatherX,
-  FeatherChevronRight,
-  FeatherChevronDown,
-  FeatherAlertCircle,
-  FeatherCopy,
-  FeatherCheck,
-  FeatherListX,
-  FeatherPlay,
-} from "@subframe/core"
+import { X, ChevronRight, ChevronDown, AlertCircle, Copy, Check, ListX, Play } from "lucide-react"
 import { IconButton } from "~/ui/components/IconButton"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { useDraggable } from "~/ui/hooks/useDraggable"
@@ -31,7 +22,7 @@ import {
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent/client"
 import { exhaustive } from "~/lib/utils/exhaustive"
-import { stepCompactedIndices } from "~/lib/agent/compact"
+import { isCompactedResult, stepCompactedIndices } from "~/lib/agent/compact"
 
 const noop = () => undefined
 
@@ -185,21 +176,13 @@ const CollapsibleBlock = ({
             onClick={() => setExpanded(!expanded)}
             className={`flex items-center gap-1 text-xs ${labelColor} font-medium hover:opacity-80`}
           >
-            {expanded ? (
-              <FeatherChevronDown className="w-3 h-3" />
-            ) : (
-              <FeatherChevronRight className="w-3 h-3" />
-            )}
+            {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             {icon}
             {label}
           </button>
         </div>
         <button onClick={handleCopy} className="text-neutral-400 hover:text-neutral-600 p-1">
-          {copied ? (
-            <FeatherCheck className="w-3 h-3 text-green-500" />
-          ) : (
-            <FeatherCopy className="w-3 h-3" />
-          )}
+          {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
         </button>
       </div>
       <div
@@ -275,9 +258,7 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
           bgColor={isErrorResult(block.result) ? "bg-red-50" : "bg-purple-50"}
           defaultExpanded={isErrorResult(block.result)}
           mono
-          icon={
-            isErrorResult(block.result) ? <FeatherAlertCircle className="w-3 h-3" /> : undefined
-          }
+          icon={isErrorResult(block.result) ? <AlertCircle className="w-3 h-3" /> : undefined}
           {...sel}
         />
       )
@@ -326,7 +307,7 @@ const BlockRenderer = ({ block, source, selected, onToggleSelect }: BlockRendere
           borderColor="border-red-400"
           labelColor="text-red-600"
           bgColor="bg-red-50"
-          icon={<FeatherAlertCircle className="w-3 h-3" />}
+          icon={<AlertCircle className="w-3 h-3" />}
           {...sel}
         />
       )
@@ -352,6 +333,13 @@ const readStepCompaction = (): boolean => {
 }
 
 const isPaused = (blocks: Block[]): boolean => blocks.some(isDebugPauseBlock)
+
+const blocksSinceCompaction = (blocks: Block[]): number => {
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (isCompactedResult(blocks[i])) return blocks.length - i - 1
+  }
+  return blocks.length
+}
 
 export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 106, y: 16 }, { x: "left" })
@@ -402,7 +390,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         <span className="text-sm font-medium text-neutral-700">
           Debug Stream
           <span className="text-xs text-neutral-400 ml-2">
-            {mode} · {reasoning}
+            {mode} · {reasoning} · {blocksSinceCompaction(allBlocks)}b
           </span>
           {hasSelection && (
             <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>
@@ -415,7 +403,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
               className="p-1 text-neutral-400 hover:text-neutral-600"
               title="Deselect all"
             >
-              <FeatherListX className="w-4 h-4" />
+              <ListX className="w-4 h-4" />
             </button>
           )}
           <button
@@ -424,9 +412,9 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
             title={hasSelection ? `Copy ${selectedIndices.size} selected` : "Copy all messages"}
           >
             {copiedAll ? (
-              <FeatherCheck className="w-4 h-4 text-green-500" />
+              <Check className="w-4 h-4 text-green-500" />
             ) : (
-              <FeatherCopy className="w-4 h-4" />
+              <Copy className="w-4 h-4" />
             )}
           </button>
           {paused && (
@@ -434,16 +422,11 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
               onClick={clearPauseBlocks}
               className="flex items-center gap-1 rounded bg-red-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-red-600"
             >
-              <FeatherPlay className="w-3 h-3" />
+              <Play className="w-3 h-3" />
               Continue
             </button>
           )}
-          <IconButton
-            variant="neutral-tertiary"
-            size="small"
-            icon={<FeatherX />}
-            onClick={handleClose}
-          />
+          <IconButton variant="neutral-tertiary" size="small" icon={<X />} onClick={handleClose} />
         </div>
       </div>
 

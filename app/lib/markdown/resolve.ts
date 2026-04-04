@@ -13,7 +13,7 @@ import {
   elementBackground,
   hoveredElementBackground,
 } from "~/ui/theme/radix"
-import { resolveFeatherIcon } from "~/ui/theme/feather-map"
+import { resolveIcon } from "~/ui/theme/icon-map"
 import {
   findAnnotationById,
   findDocumentForAnnotation,
@@ -124,7 +124,7 @@ const resolveTagRef = (
   return {
     kind: "tag",
     colors: radixColors(tag.color),
-    icon: resolveFeatherIcon(tag.icon),
+    icon: resolveIcon(tag.icon),
     url: "",
     label: tag.display,
   }

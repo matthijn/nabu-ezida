@@ -3,7 +3,7 @@
 import React from "react"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
 import { Badge } from "~/ui/components/Badge"
-import { FeatherUploadCloud, FeatherFileText, FeatherImage } from "@subframe/core"
+import { UploadCloud, FileText, Image } from "lucide-react"
 
 interface DropZoneProps {
   variant: "full" | "compact"
@@ -23,7 +23,7 @@ const FullDropZone = ({ isDragging, dragHandlers }: Omit<DropZoneProps, "variant
     }`}
     {...dragHandlers}
   >
-    <IconWithBackground variant="brand" size="x-large" icon={<FeatherUploadCloud />} />
+    <IconWithBackground variant="brand" size="x-large" icon={<UploadCloud />} />
     <div className="flex flex-col items-center justify-center gap-3">
       <span className="text-heading-1 font-heading-1 text-default-font text-center">
         Drop files to analyze and import
@@ -33,16 +33,16 @@ const FullDropZone = ({ isDragging, dragHandlers }: Omit<DropZoneProps, "variant
       </span>
     </div>
     <div className="flex items-center gap-2">
-      <Badge variant="brand" icon={<FeatherFileText />}>
+      <Badge variant="brand" icon={<FileText />}>
         MD
       </Badge>
-      <Badge variant="neutral" icon={<FeatherFileText />}>
+      <Badge variant="neutral" icon={<FileText />}>
         PDF
       </Badge>
-      <Badge variant="neutral" icon={<FeatherFileText />}>
+      <Badge variant="neutral" icon={<FileText />}>
         DOCX
       </Badge>
-      <Badge variant="neutral" icon={<FeatherImage />}>
+      <Badge variant="neutral" icon={<Image />}>
         Images
       </Badge>
     </div>
@@ -59,7 +59,7 @@ const CompactDropZone = ({ isDragging, dragHandlers }: Omit<DropZoneProps, "vari
     }`}
     {...dragHandlers}
   >
-    <FeatherUploadCloud className="text-heading-3 font-heading-3 text-brand-600" />
+    <UploadCloud className="text-heading-3 font-heading-3 text-brand-600" />
     <span className="text-body font-body text-default-font">
       Drop more files to add them to the import queue
     </span>

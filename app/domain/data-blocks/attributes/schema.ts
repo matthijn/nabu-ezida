@@ -1,10 +1,10 @@
 import type { ComponentType } from "react"
 import { z } from "zod"
-import { FeatherHighlighter } from "@subframe/core"
+import { Highlighter } from "lucide-react"
 import { BLOCK_COLORS } from "~/ui/theme/colors"
 import { emptyToUndefined } from "~/lib/data-blocks/field-validate"
 
-export const annotationIcon: ComponentType<{ className?: string }> = FeatherHighlighter
+export const annotationIcon: ComponentType<{ className?: string }> = Highlighter
 
 export const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
 export const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])

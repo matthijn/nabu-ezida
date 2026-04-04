@@ -2,14 +2,7 @@
 
 import React from "react"
 import { IconWithBackground } from "~/ui/components/IconWithBackground"
-import {
-  FeatherCheck,
-  FeatherClock,
-  FeatherFileText,
-  FeatherLoader2,
-  FeatherAlertCircle,
-  FeatherFileX,
-} from "@subframe/core"
+import { Check, Clock, FileText, Loader2, AlertCircle, FileX } from "lucide-react"
 import type { ImportFile, ImportStatus } from "~/lib/import"
 
 interface StatusConfig {
@@ -72,16 +65,16 @@ interface StatusIconProps {
 const StatusIcon = ({ status, className }: StatusIconProps) => {
   switch (status) {
     case "pending":
-      return <FeatherClock className={className} />
+      return <Clock className={className} />
     case "reading":
     case "processing":
-      return <FeatherLoader2 className={`${className} animate-spin`} />
+      return <Loader2 className={`${className} animate-spin`} />
     case "completed":
-      return <FeatherCheck className={className} />
+      return <Check className={className} />
     case "unsupported":
-      return <FeatherFileX className={className} />
+      return <FileX className={className} />
     case "error":
-      return <FeatherAlertCircle className={className} />
+      return <AlertCircle className={className} />
     default:
       throw new Error(`Unknown status: ${status}`)
   }
@@ -102,7 +95,7 @@ export const FileImportItem = ({ file }: FileImportItemProps) => {
     <div
       className={`flex w-full items-center gap-4 rounded-md border border-solid px-4 py-3 shadow-sm ${borderClass} ${opacity}`}
     >
-      <IconWithBackground variant={config.iconVariant} size="medium" icon={<FeatherFileText />} />
+      <IconWithBackground variant={config.iconVariant} size="medium" icon={<FileText />} />
       <div className="flex grow shrink-0 basis-0 flex-col items-start">
         <span className="text-body-bold font-body-bold text-default-font">
           {file.finalPath ?? file.name}

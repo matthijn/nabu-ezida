@@ -1,11 +1,6 @@
-import {
-  FeatherX,
-  FeatherTrash2,
-  FeatherCircle,
-  FeatherCheckCircle,
-  FeatherAlertTriangle,
-} from "@subframe/core"
+import { X, Trash2, Circle, CheckCircle, AlertTriangle } from "lucide-react"
 import { SwapButton } from "~/ui/components/SwapButton"
+import { NabuAction } from "~/ui/components/nabu/NabuAction"
 
 export interface HighlightEntry {
   id: string
@@ -15,24 +10,33 @@ export interface HighlightEntry {
   review?: string
   onDelete?: () => void
   onResolve?: () => void
+  onRefineCodebook?: () => void
+  onExplainCoding?: () => void
 }
 
 interface HighlightTooltipProps {
   entries: HighlightEntry[]
 }
 
-const ReviewBox = ({ text, onResolve }: { text: string; onResolve?: () => void }) => (
+interface ReviewBoxProps {
+  text: string
+  onResolve?: () => void
+  onRefineCodebook?: () => void
+}
+
+const ReviewBox = ({ text, onResolve, onRefineCodebook }: ReviewBoxProps) => (
   <div className="relative flex w-full items-start gap-2 rounded-md bg-warning-50 px-2 py-2">
-    <FeatherAlertTriangle className="text-body text-warning-600 mt-0.5 flex-none" />
+    <AlertTriangle className="text-body text-warning-600 mt-0.5 flex-none" />
     <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
       <span className="text-body-bold font-body-bold text-warning-900">Needs review</span>
       <span className="text-caption font-caption text-warning-700">{text}</span>
+      {onRefineCodebook && <NabuAction label="Evaluate flag" onClick={onRefineCodebook} />}
     </div>
     {onResolve && (
       <div className="absolute top-1 right-1">
         <SwapButton
-          idle={<FeatherCircle className="text-body text-warning-700" />}
-          active={<FeatherCheckCircle className="text-body text-success-600" />}
+          idle={<Circle className="text-body text-warning-700" />}
+          active={<CheckCircle className="text-body text-success-600" />}
           activeTooltip="Mark as resolved"
           onClick={onResolve}
         />
@@ -67,12 +71,21 @@ const EntryContent = ({ entry }: { entry: HighlightEntry }) => (
       {entry.description && (
         <span className="text-caption font-caption text-subtext-color">{entry.description}</span>
       )}
-      {entry.review && <ReviewBox text={entry.review} onResolve={entry.onResolve} />}
+      {entry.onExplainCoding && (
+        <NabuAction label="Explain coding" onClick={entry.onExplainCoding} />
+      )}
+      {entry.review && (
+        <ReviewBox
+          text={entry.review}
+          onResolve={entry.onResolve}
+          onRefineCodebook={entry.onRefineCodebook}
+        />
+      )}
     </div>
     {entry.onDelete && (
       <SwapButton
-        idle={<FeatherX className="text-body text-neutral-700" />}
-        active={<FeatherTrash2 className="text-body text-error-600" />}
+        idle={<X className="text-body text-neutral-700" />}
+        active={<Trash2 className="text-body text-error-600" />}
         activeTooltip="Remove annotation"
         onClick={entry.onDelete}
       />

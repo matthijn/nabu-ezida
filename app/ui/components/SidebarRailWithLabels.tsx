@@ -1,7 +1,7 @@
 "use client"
 
 import React, { type ReactNode } from "react"
-import { FeatherCircleDashed } from "@subframe/core"
+import { CircleDashed } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -15,7 +15,7 @@ interface NavItemProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
   {
-    icon = <FeatherCircleDashed />,
+    icon = <CircleDashed />,
     children,
     selected = false,
     badge,

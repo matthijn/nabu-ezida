@@ -13,17 +13,17 @@ import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
-  FeatherBookOpen,
-  FeatherCheck,
-  FeatherChevronRight,
-  FeatherCircle,
-  FeatherLoader2,
-  FeatherMessageCircle,
-  FeatherMessageSquare,
-  FeatherSend,
-  FeatherSlidersHorizontal,
-  FeatherX,
-} from "@subframe/core"
+  BookOpen,
+  Check,
+  ChevronRight,
+  Circle,
+  Loader2,
+  MessageCircle,
+  MessageSquare,
+  Send,
+  SlidersHorizontal,
+  X,
+} from "lucide-react"
 import { Button } from "~/ui/components/Button"
 import { IconButton } from "~/ui/components/IconButton"
 import { TextFieldUnstyled } from "~/ui/components/TextFieldUnstyled"
@@ -149,10 +149,10 @@ const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
 )
 
 const stepIconComponent: Record<StepStatus, React.ComponentType<{ className?: string }>> = {
-  completed: FeatherCheck,
-  active: FeatherCircle,
-  pending: FeatherCircle,
-  cancelled: FeatherX,
+  completed: Check,
+  active: Circle,
+  pending: Circle,
+  cancelled: X,
 }
 
 const stepIconColor: Record<StepStatus, string> = {
@@ -186,7 +186,7 @@ const PlanStepRow = ({
   currentFileContent,
   navigate,
 }: PlanStepRowProps) => {
-  const Icon = step.checkpoint ? FeatherMessageSquare : stepIconComponent[step.status]
+  const Icon = step.checkpoint ? MessageSquare : stepIconComponent[step.status]
   return (
     <div className="flex w-full items-start gap-2">
       <Icon className={`text-body ${stepIconColor[step.status]} mt-0.5 flex-none`} />
@@ -288,11 +288,11 @@ const OptionCard = ({ children, selected, dimmed, onClick }: OptionCardProps) =>
   ].join(" ")
 
   const icon = selected ? (
-    <FeatherCheck className="text-brand-600 flex-none" />
+    <Check className="text-brand-600 flex-none" />
   ) : (
     <>
-      <FeatherChevronRight className="option-icon text-neutral-400 flex-none" />
-      <FeatherCheck className="option-check hidden text-brand-600 flex-none" />
+      <ChevronRight className="option-icon text-neutral-400 flex-none" />
+      <Check className="option-check hidden text-brand-600 flex-none" />
     </>
   )
 
@@ -332,9 +332,9 @@ const isTypedAnswer = (message: AskMessage): boolean =>
   message.selected !== null && !message.options.includes(message.selected)
 
 const scopeIcon: Record<AskScope, React.ComponentType<{ className?: string }>> = {
-  local: FeatherMessageCircle,
-  codebook: FeatherBookOpen,
-  preferences: FeatherSlidersHorizontal,
+  local: MessageCircle,
+  codebook: BookOpen,
+  preferences: SlidersHorizontal,
 }
 
 const scopeLabel: Record<AskScope, string> = {
@@ -786,7 +786,7 @@ const TickLabel = ({ labels }: TickLabelProps) => {
   return (
     <div className="flex w-full items-start">
       <div className="flex items-center gap-2 rounded-2xl bg-neutral-100 px-4 py-2">
-        <FeatherLoader2 className="text-body text-brand-600 flex-none animate-spin" />
+        <Loader2 className="text-body text-brand-600 flex-none animate-spin" />
         <span className="text-body font-body text-subtext-color">
           {labels[Math.min(index, labels.length - 1)]}
         </span>
@@ -990,14 +990,14 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
           />
         </TextFieldUnstyled>
         {loading && !waitingForInput ? (
-          <Button variant="neutral-secondary" size="small" icon={<FeatherX />} onClick={cancel}>
+          <Button variant="neutral-secondary" size="small" icon={<X />} onClick={cancel}>
             Cancel
           </Button>
         ) : (
           <IconButton
             variant="brand-primary"
             size="small"
-            icon={<FeatherSend />}
+            icon={<Send />}
             onClick={handleSend}
             disabled={!inputValue.trim()}
           />

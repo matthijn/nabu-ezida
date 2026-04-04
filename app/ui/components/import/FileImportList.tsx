@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Button } from "~/ui/components/Button"
-import { FeatherLoader2, FeatherX } from "@subframe/core"
+import { Loader2, X } from "lucide-react"
 import { FileImportItem } from "./FileImportItem"
 import type { ImportFile, ImportProgress } from "~/lib/import"
 
@@ -27,7 +27,7 @@ export const FileImportList = ({
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-3">
           {isProcessing && (
-            <FeatherLoader2 className="text-heading-2 font-heading-2 text-default-font animate-spin" />
+            <Loader2 className="text-heading-2 font-heading-2 text-default-font animate-spin" />
           )}
           <span className="text-heading-3 font-heading-3 text-default-font">
             {isProcessing ? "Processing files..." : "Import complete"}
@@ -58,7 +58,7 @@ export const FileImportList = ({
             {progress.unsupported > 0 && `, ${progress.unsupported} unsupported`}
           </span>
           {isProcessing && onCancel && (
-            <Button variant="neutral-tertiary" size="small" icon={<FeatherX />} onClick={onCancel}>
+            <Button variant="neutral-tertiary" size="small" icon={<X />} onClick={onCancel}>
               Cancel all
             </Button>
           )}

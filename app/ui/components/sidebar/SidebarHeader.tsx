@@ -1,6 +1,6 @@
 "use client"
 
-import { FeatherSearch, FeatherPlus } from "@subframe/core"
+import { Search, Plus } from "lucide-react"
 import { Button } from "~/ui/components/Button"
 import { TextField } from "~/ui/components/TextField"
 
@@ -22,16 +22,14 @@ export const SidebarHeader = ({
   <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
     <div className="flex w-full items-center justify-between">
       <span className="text-heading-2 font-heading-2 text-default-font">{title}</span>
-      {onNew && (
-        <Button variant="brand-primary" size="small" icon={<FeatherPlus />} onClick={onNew} />
-      )}
+      {onNew && <Button variant="brand-primary" size="small" icon={<Plus />} onClick={onNew} />}
     </div>
     <TextField
       className="h-auto w-full flex-none"
       variant="filled"
       label=""
       helpText=""
-      icon={<FeatherSearch />}
+      icon={<Search />}
     >
       <TextField.Input
         placeholder={filterPlaceholder}

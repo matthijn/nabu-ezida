@@ -1,12 +1,5 @@
 import type { ReactNode } from "react"
-import {
-  FeatherBug,
-  FeatherCloud,
-  FeatherCode,
-  FeatherActivity,
-  FeatherSparkles,
-  FeatherFilter,
-} from "@subframe/core"
+import { Bug, Cloud, Code, Activity, Bot, Filter } from "lucide-react"
 
 interface DebugToggle {
   key: string
@@ -16,26 +9,26 @@ interface DebugToggle {
 }
 
 export const DEBUG_TOGGLES: DebugToggle[] = [
-  { key: "expanded", label: "Hidden files", icon: <FeatherBug />, defaultValue: false },
+  { key: "expanded", label: "Hidden files", icon: <Bug />, defaultValue: false },
   {
     key: "persistToServer",
     label: "Server persistence",
-    icon: <FeatherCloud />,
+    icon: <Cloud />,
     defaultValue: true,
   },
-  { key: "renderAsJson", label: "JSON rendering", icon: <FeatherCode />, defaultValue: false },
-  { key: "showStreamPanel", label: "Stream panel", icon: <FeatherActivity />, defaultValue: false },
+  { key: "renderAsJson", label: "JSON rendering", icon: <Code />, defaultValue: false },
+  { key: "showStreamPanel", label: "Stream panel", icon: <Activity />, defaultValue: false },
   {
     key: "reasoningSummaryAuto",
     label: "Reasoning summary",
-    icon: <FeatherSparkles />,
+    icon: <Bot />,
     defaultValue: false,
   },
-  { key: "stepCompaction", label: "Step compaction", icon: <FeatherFilter />, defaultValue: false },
+  { key: "stepCompaction", label: "Step compaction", icon: <Filter />, defaultValue: false },
   {
     key: "skipSearchCache",
     label: "Skip search cache",
-    icon: <FeatherFilter />,
+    icon: <Filter />,
     defaultValue: false,
   },
 ]

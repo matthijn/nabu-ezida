@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { FeatherBook, FeatherFiles, FeatherInbox, FeatherSend } from "@subframe/core"
+import { Book, Files, Inbox, Send } from "lucide-react"
 import { MainSidebar } from "./MainSidebar"
 import type { NavItem } from "./MainSidebar"
 
 const primaryNavItems: NavItem[] = [
-  { id: "documents", icon: <FeatherFiles />, label: "Documents", selected: true },
-  { id: "inbox", icon: <FeatherInbox />, label: "Inbox" },
-  { id: "outbox", icon: <FeatherSend />, label: "Outbox" },
+  { id: "documents", icon: <Files />, label: "Documents", selected: true },
+  { id: "inbox", icon: <Inbox />, label: "Inbox" },
+  { id: "outbox", icon: <Send />, label: "Outbox" },
 ]
 
-const secondaryNavItems: NavItem[] = [{ id: "codes", icon: <FeatherBook />, label: "Codes" }]
+const secondaryNavItems: NavItem[] = [{ id: "codes", icon: <Book />, label: "Codes" }]
 
 const meta: Meta<typeof MainSidebar> = {
   title: "Custom/Sidebar/Main/MainSidebar",
@@ -39,9 +39,9 @@ export const InboxSelected: Story = {
   args: {
     navItemGroups: [
       [
-        { id: "documents", icon: <FeatherFiles />, label: "Documents" },
-        { id: "inbox", icon: <FeatherInbox />, label: "Inbox", selected: true },
-        { id: "outbox", icon: <FeatherSend />, label: "Outbox" },
+        { id: "documents", icon: <Files />, label: "Documents" },
+        { id: "inbox", icon: <Inbox />, label: "Inbox", selected: true },
+        { id: "outbox", icon: <Send />, label: "Outbox" },
       ],
       secondaryNavItems,
     ],

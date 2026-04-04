@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FeatherFlag, FeatherSearch } from "@subframe/core"
+import { Flag, Search } from "lucide-react"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
+import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground } from "~/ui/theme/radix"
 import type { Codebook, Code, CodeCategory } from "./types"
@@ -34,7 +35,7 @@ const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => voi
       className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-warning-50"
       onClick={onClick}
     >
-      <FeatherFlag className="h-4 w-4 flex-none text-warning-600" />
+      <Flag className="h-4 w-4 flex-none text-warning-600" />
       <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
         Needs review
       </span>
@@ -121,13 +122,15 @@ export const CodesSidebar = ({
               <span className="text-heading-3 font-heading-3 text-default-font">
                 {hoveredCode.name}
               </span>
-              <button
-                className="ml-auto flex-none cursor-pointer"
-                style={{ color: solidBackground(hoveredCode.color) }}
-                onClick={() => onSearchCode?.(hoveredCode)}
-              >
-                <FeatherSearch className="h-4 w-4" />
-              </button>
+              <TooltipWrap text="Show sections">
+                <button
+                  className="ml-auto flex-none cursor-pointer"
+                  style={{ color: solidBackground(hoveredCode.color) }}
+                  onClick={() => onSearchCode?.(hoveredCode)}
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </TooltipWrap>
             </div>
             <CodeDetail code={hoveredCode} />
           </motion.div>

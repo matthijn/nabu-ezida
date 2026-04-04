@@ -1,7 +1,7 @@
 "use client"
 
 import { forwardRef, type HTMLAttributes, type ReactNode, type ComponentProps } from "react"
-import { FeatherStar } from "@subframe/core"
+import { Star } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 
@@ -31,7 +31,7 @@ interface DropdownItemProps extends ComponentProps<typeof SubframeCore.DropdownM
 }
 
 const DropdownItem = forwardRef<HTMLDivElement, DropdownItemProps>(function DropdownItem(
-  { children, icon = <FeatherStar />, className, ...otherProps }: DropdownItemProps,
+  { children, icon = <Star />, className, ...otherProps }: DropdownItemProps,
   ref
 ) {
   return (

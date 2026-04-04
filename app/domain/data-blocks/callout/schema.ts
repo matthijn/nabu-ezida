@@ -1,6 +1,6 @@
 import type { ComponentType } from "react"
 import { z } from "zod"
-import { FeatherBook } from "@subframe/core"
+import { Book } from "lucide-react"
 import { BLOCK_COLORS } from "~/ui/theme/colors"
 
 const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
@@ -26,7 +26,7 @@ export type CalloutBlock = z.infer<typeof CalloutSchema>
 type CalloutType = z.infer<typeof calloutType>
 
 export const calloutTypeIcons: Record<CalloutType, ComponentType<{ className?: string }>> = {
-  "codebook-code": FeatherBook,
+  "codebook-code": Book,
 }
 
 export const parseCallout = (content: string): CalloutBlock | null => {

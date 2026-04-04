@@ -1,6 +1,6 @@
 "use client"
 
-import { FeatherTrash2 } from "@subframe/core"
+import { Trash2 } from "lucide-react"
 import type { CalloutBlock } from "~/domain/data-blocks/callout/schema"
 import type { RadixColor } from "~/ui/theme/radix"
 import { solidBackground } from "~/ui/theme/radix"
@@ -28,7 +28,7 @@ export const CalloutBlockView = ({ data, onDelete }: CalloutBlockViewProps) => {
             <IconButton
               variant="neutral-tertiary"
               size="small"
-              icon={<FeatherTrash2 />}
+              icon={<Trash2 />}
               onClick={onDelete}
             />
           )}

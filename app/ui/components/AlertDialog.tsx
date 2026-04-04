@@ -1,6 +1,6 @@
 "use client"
 
-import { FeatherAlertCircle } from "@subframe/core"
+import { AlertCircle } from "lucide-react"
 import { Button } from "./Button"
 
 interface AlertEntry {
@@ -34,7 +34,7 @@ export const AlertDialog = ({
       <div className="flex w-full flex-col items-start gap-3">
         {entries.map((entry) => (
           <div key={entry.title} className="flex w-full items-start gap-3">
-            <FeatherAlertCircle className="text-body font-body text-error-600" />
+            <AlertCircle className="text-body font-body text-error-600" />
             <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
               <span className="text-body font-body text-default-font">{entry.title}</span>
               <span className="text-caption font-caption text-subtext-color">
