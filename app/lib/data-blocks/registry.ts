@@ -4,6 +4,7 @@ import { jsonAttributes } from "~/domain/data-blocks/attributes/definition"
 import { jsonSettings } from "~/domain/data-blocks/settings/definition"
 import { jsonCallout } from "~/domain/data-blocks/callout/definition"
 import { jsonAnnotations } from "~/domain/data-blocks/annotations/definition"
+import { jsonChart } from "~/domain/data-blocks/chart/definition"
 
 type AnyBlockConfig = BlockTypeConfig
 
@@ -12,6 +13,7 @@ const blockTypes: Record<string, AnyBlockConfig> = {
   "json-settings": jsonSettings as AnyBlockConfig,
   "json-callout": jsonCallout as AnyBlockConfig,
   "json-annotations": jsonAnnotations as AnyBlockConfig,
+  "json-chart": jsonChart as AnyBlockConfig,
 }
 
 export const getBlockConfig = (language: string): AnyBlockConfig | undefined => blockTypes[language]
@@ -20,6 +22,9 @@ export const isKnownBlockType = (language: string): boolean => language in block
 
 export const isHiddenRenderer = (language: string): boolean =>
   blockTypes[language]?.renderer === "hidden"
+
+export const isChartRenderer = (language: string): boolean =>
+  blockTypes[language]?.renderer === "chart"
 
 export const isSingleton = (language: string): boolean => blockTypes[language]?.singleton ?? false
 

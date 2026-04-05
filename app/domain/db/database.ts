@@ -26,6 +26,15 @@ export const waitForDatabase = (): Promise<void> => dbReadyPromise
 let database: Database | null = null
 let previousFiles: FileStore = {}
 let initializing = false
+let syncRevision = 0
+const syncListeners = new Set<() => void>()
+
+export const subscribeSyncRevision = (listener: () => void): (() => void) => {
+  syncListeners.add(listener)
+  return () => syncListeners.delete(listener)
+}
+
+export const getSyncRevision = (): number => syncRevision
 let dbReadyResolve: (() => void) | null = null
 const dbReadyPromise = new Promise<void>((r) => {
   dbReadyResolve = r
@@ -60,6 +69,8 @@ const runSync = async (
   })
 
   previousFiles = currentFiles
+  syncRevision++
+  syncListeners.forEach((listener) => listener())
   console.debug(`[db] synced: ${plan.changed.length} changed, ${plan.deleted.length} deleted`)
 }
 

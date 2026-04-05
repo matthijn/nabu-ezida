@@ -5,8 +5,10 @@ import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapte
 import type { DecorationSet } from "prosemirror-view"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
 import { parseCallout } from "~/domain/data-blocks/callout/schema"
+import { parseChart } from "~/domain/data-blocks/chart/schema"
 import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
 import { CalloutBlockView } from "./view"
+import { ChartBlockView } from "~/lib/editor/chart-blocks/view"
 import { applyDOMHighlights, type HighlightEntry } from "./highlight"
 
 interface BlockSpacerProps {
@@ -51,8 +53,12 @@ export const CalloutNodeView = () => {
 
   const language = node.attrs.language as string | undefined
   const config = language ? getBlockConfig(language) : undefined
-  const isCallout = config?.renderer === "callout"
-  const data = isCallout ? parseCallout(node.textContent) : null
+  const renderer = config?.renderer
+  const isCallout = renderer === "callout"
+  const isChart = renderer === "chart"
+
+  const calloutData = isCallout ? parseCallout(node.textContent) : null
+  const chartData = isChart ? parseChart(node.textContent) : null
 
   const highlights = useMemo(
     () => (isCallout ? extractHighlights(innerDecorations, node.textContent) : []),
@@ -61,14 +67,16 @@ export const CalloutNodeView = () => {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || !data || highlights.length === 0) return
-    return applyDOMHighlights(container, data.id, highlights)
-  }, [data, highlights])
+    if (!container || !calloutData || highlights.length === 0) return
+    return applyDOMHighlights(container, calloutData.id, highlights)
+  }, [calloutData, highlights])
 
-  if (!isCallout || !data) {
-    return (
-      <CodeBlockFallback language={language} contentRef={contentRef} invalid={isCallout && !data} />
-    )
+  const isRendered = isCallout || isChart
+  const hasData = calloutData || chartData
+  const isInvalid = isRendered && !hasData
+
+  if (!isRendered || !hasData) {
+    return <CodeBlockFallback language={language} contentRef={contentRef} invalid={isInvalid} />
   }
 
   const handleDelete = () => {
@@ -86,6 +94,19 @@ export const CalloutNodeView = () => {
     view.dispatch(tr)
     view.focus()
   }
+
+  if (isChart && chartData) {
+    return (
+      <>
+        {!isReadOnly && <BlockSpacer onClick={handleInsertBefore} />}
+        <div contentEditable={false} data-id={chartData.id}>
+          <ChartBlockView data={chartData} onDelete={handleDelete} />
+        </div>
+      </>
+    )
+  }
+
+  const data = calloutData as NonNullable<typeof calloutData>
 
   return (
     <>

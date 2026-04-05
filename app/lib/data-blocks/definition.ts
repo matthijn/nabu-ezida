@@ -15,7 +15,7 @@ export interface BlockTypeConfig<T = unknown, C = unknown> {
   readonly: string[]
   immutable: Record<string, string>
   constraints: string[]
-  renderer: "hidden" | "callout"
+  renderer: "hidden" | "callout" | "chart"
   singleton: boolean
   projected?: boolean
   allowedFiles?: string[]

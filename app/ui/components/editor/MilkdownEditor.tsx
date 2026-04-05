@@ -18,6 +18,7 @@ import { createHiddenBlocksPlugin } from "~/lib/editor/hidden-blocks"
 import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 import { ReadOnlyProvider } from "./ReadOnlyContext"
+import { FilePathProvider } from "./FilePathContext"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
 import type { Spotlight } from "~/lib/editor/spotlight"
@@ -130,19 +131,21 @@ export const MilkdownEditor = ({
     : "w-full max-w-[768px] text-default-font"
   return (
     <ReadOnlyProvider value={readOnly}>
-      <div className={containerClass}>
-        <MilkdownProvider>
-          <ProsemirrorAdapterProvider>
-            <MilkdownEditorCore
-              defaultValue={content}
-              debugMode={debugMode}
-              readOnly={readOnly}
-              spotlight={spotlight}
-              filePath={filePath}
-            />
-          </ProsemirrorAdapterProvider>
-        </MilkdownProvider>
-      </div>
+      <FilePathProvider value={filePath}>
+        <div className={containerClass}>
+          <MilkdownProvider>
+            <ProsemirrorAdapterProvider>
+              <MilkdownEditorCore
+                defaultValue={content}
+                debugMode={debugMode}
+                readOnly={readOnly}
+                spotlight={spotlight}
+                filePath={filePath}
+              />
+            </ProsemirrorAdapterProvider>
+          </MilkdownProvider>
+        </div>
+      </FilePathProvider>
     </ReadOnlyProvider>
   )
 }

@@ -11,3 +11,25 @@ export const hoveredElementBorder = (color: string): string => toVar(color, 8)
 export const solidBackground = (color: string): string => toVar(color, 9)
 export const lowContrastText = (color: string): string => toVar(color, 11)
 export const highContrastText = (color: string): string => toVar(color, 12)
+
+const rgbToHex = (rgb: string): string => {
+  const match = rgb.match(/\d+/g)
+  if (!match || match.length < 3) return rgb
+  return (
+    "#" +
+    match
+      .slice(0, 3)
+      .map((n) => Number(n).toString(16).padStart(2, "0"))
+      .join("")
+  )
+}
+
+export const resolveRadixHex = (color: string, shade: number): string => {
+  const el = document.createElement("span")
+  el.style.display = "none"
+  el.style.color = toVar(color, shade)
+  document.body.appendChild(el)
+  const computed = getComputedStyle(el).color
+  document.body.removeChild(el)
+  return rgbToHex(computed)
+}
