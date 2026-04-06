@@ -7,6 +7,7 @@ const WRITING_LABELS = ["Writing", "Editing", "Applying changes"]
 const toolLabels: Record<string, string[]> = {
   run_local_shell: ["Reading", "Examining files", "Processing"],
   patch_json_block: WRITING_LABELS,
+  delete_json_block: ["Removing", "Cleaning up"],
   apply_local_patch: WRITING_LABELS,
   copy_file: WRITING_LABELS,
   rename_file: WRITING_LABELS,

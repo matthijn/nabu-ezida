@@ -129,6 +129,7 @@ const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => b
 
 const WRITE_TOOLS = new Set([
   "patch_json_block",
+  "delete_json_block",
   "apply_local_patch",
   "copy_file",
   "rename_file",

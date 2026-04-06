@@ -3,6 +3,7 @@ import type { Nudger } from "../steering/nudge-tools"
 import type { Block } from "../client"
 import {
   patchJsonBlock,
+  deleteJsonBlock,
   applyLocalPatch,
   copyFile,
   renameFile,
@@ -58,6 +59,7 @@ const raw: Record<ModeName, ModeConfig> = {
       queryTool,
       searchTool,
       patchJsonBlock,
+      deleteJsonBlock,
       applyLocalPatch,
       copyFile,
       renameFile,
@@ -98,6 +100,7 @@ const raw: Record<ModeName, ModeConfig> = {
       queryTool,
       searchTool,
       patchJsonBlock,
+      deleteJsonBlock,
       applyLocalPatch,
       copyFile,
       renameFile,
