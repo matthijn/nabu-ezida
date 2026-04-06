@@ -23,7 +23,7 @@ interface CommandCategory {
 }
 
 const categories: CommandCategory[] = [
-  { name: "Read", commands: ["cat", "ls", "grep", "find", "wc"] },
+  { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
   { name: "Utility", commands: ["echo"] },
 ]
 
