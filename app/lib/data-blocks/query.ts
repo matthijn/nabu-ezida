@@ -2,6 +2,44 @@ import type { z } from "zod"
 import { findSingletonBlock, findBlocksByLanguage } from "~/lib/data-blocks/parse"
 import { createCappedCache } from "~/lib/utils/cache"
 
+export const recoverArrayItems = <T>(
+  json: Record<string, unknown>,
+  schema: z.ZodType<T>
+): T | null => {
+  const arrayKeys = Object.keys(json).filter((k) => Array.isArray(json[k]))
+  if (arrayKeys.length === 0) return null
+
+  const base: Record<string, unknown> = { ...json }
+  for (const key of arrayKeys) base[key] = []
+
+  const baseResult = schema.safeParse(base)
+  if (!baseResult.success) return null
+
+  const recovered: Record<string, unknown> = { ...json }
+  for (const key of arrayKeys) {
+    const items = json[key] as unknown[]
+    recovered[key] = items.filter((item, i) => {
+      const result = schema.safeParse({ ...base, [key]: [item] })
+      if (!result.success) {
+        console.warn(
+          `[data-block] Dropped invalid item at ${key}[${i}]:`,
+          result.error.issues[0]?.message,
+          "— got:",
+          JSON.stringify(item)
+        )
+        return false
+      }
+      return true
+    })
+  }
+
+  const finalResult = schema.safeParse(recovered)
+  return finalResult.success ? finalResult.data : null
+}
+
+const isRecoverableObject = (json: unknown): json is Record<string, unknown> =>
+  typeof json === "object" && json !== null && !Array.isArray(json)
+
 const cache = createCappedCache<string, unknown>(1000)
 
 const cacheKey = (language: string, content: string): string => `${language}:${content}`
@@ -14,9 +52,19 @@ const parseWithCache = <T>(language: string, content: string, schema: z.ZodType<
   try {
     const json = JSON.parse(content)
     const result = schema.safeParse(json)
-    const parsed = result.success ? result.data : null
-    cache.set(key, parsed)
-    return parsed
+    if (result.success) {
+      cache.set(key, result.data)
+      return result.data
+    }
+
+    if (isRecoverableObject(json)) {
+      const recovered = recoverArrayItems(json, schema)
+      cache.set(key, recovered)
+      return recovered
+    }
+
+    cache.set(key, null)
+    return null
   } catch {
     cache.set(key, null)
     return null
