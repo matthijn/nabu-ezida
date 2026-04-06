@@ -17,8 +17,6 @@ import { FeatherCheck } from "@subframe/core";
 import { FeatherChevronDown } from "@subframe/core";
 import { FeatherChevronLeft } from "@subframe/core";
 import { FeatherChevronRight } from "@subframe/core";
-import { FeatherChevronsLeft } from "@subframe/core";
-import { FeatherChevronUp } from "@subframe/core";
 import { FeatherCircle } from "@subframe/core";
 import { FeatherCode } from "@subframe/core";
 import { FeatherCode2 } from "@subframe/core";
@@ -60,122 +58,105 @@ function NabuDocuments() {
   return (
     <DefaultPageLayout>
       <div className="flex h-full w-full items-start bg-default-background">
-        <div className="flex w-72 flex-none flex-col items-start gap-4 self-stretch border-r border-solid border-neutral-border bg-default-background px-4 py-6 relative">
-          <IconButton
-            className="absolute top-4 -right-4 z-10"
-            variant="brand-secondary"
-            size="small"
-            icon={<FeatherChevronsLeft />}
-            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-          />
-          <div className="flex w-full items-center justify-between">
-            <span className="text-heading-2 font-heading-2 text-default-font">
-              Documents
-            </span>
-            <Button
-              variant="brand-primary"
-              size="small"
-              icon={<FeatherPlus />}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+        <div className="relative z-10 flex w-56 flex-none flex-col items-start self-stretch bg-default-background shadow-lg">
+          <div className="flex w-full flex-col items-start gap-2 border-b border-solid border-neutral-border px-4 py-4">
+            <div className="flex w-full items-center justify-between">
+              <span className="text-heading-2 font-heading-2 text-default-font">
+                Documents
+              </span>
+              <Button
+                variant="brand-primary"
+                size="small"
+                icon={<FeatherPlus />}
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
+              />
+            </div>
+            <TextField
+              className="h-auto w-full flex-none"
+              variant="filled"
+              label=""
+              helpText=""
+              icon={<FeatherSearch />}
             >
-              New
-            </Button>
+              <TextField.Input
+                placeholder="Filter documents..."
+                value=""
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {}}
+              />
+            </TextField>
           </div>
-          <TextField
-            className="h-auto w-full flex-none"
-            variant="filled"
-            label=""
-            helpText=""
-            icon={<FeatherSearch />}
-          >
-            <TextField.Input
-              placeholder="Search tags & files..."
-              value=""
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {}}
-            />
-          </TextField>
-          <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-3 pt-2 pb-6 overflow-y-auto">
-            <div className="flex w-full flex-col items-start overflow-hidden rounded-md border border-solid border-brand-300 bg-default-background shadow-sm">
-              <div className="flex w-full items-center justify-between border-b border-solid border-neutral-border bg-brand-50 px-3 py-3 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <FeatherLeaf className="text-body font-body text-brand-600" />
-                  <span className="text-body-bold font-body-bold text-brand-900">
-                    Ecology
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="brand">3</Badge>
-                  <FeatherChevronUp className="text-body font-body text-brand-600" />
-                </div>
-              </div>
-              <div className="flex w-full flex-col items-start py-1">
-                <div className="flex w-full flex-col items-start gap-1 px-3 py-2 bg-brand-100/50 cursor-pointer relative">
-                  <div className="flex w-1 flex-col items-center gap-2 bg-brand-600 absolute left-0 top-0 bottom-0" />
-                  <span className="line-clamp-1 text-body-bold font-body-bold text-default-font">
-                    Habitat Destruction Framework
-                  </span>
-                  <span className="text-caption font-caption text-subtext-color">
-                    Edited 2 hrs ago
-                  </span>
-                </div>
-                <div className="flex w-full flex-col items-start gap-1 px-3 py-2 cursor-pointer hover:bg-neutral-50">
-                  <span className="line-clamp-1 text-body font-body text-default-font">
-                    Species Survey Data
-                  </span>
-                  <span className="text-caption font-caption text-subtext-color">
-                    Edited 2 weeks ago
-                  </span>
-                </div>
-                <div className="flex w-full flex-col items-start gap-1 px-3 py-2 cursor-pointer hover:bg-neutral-50">
-                  <span className="line-clamp-1 text-body font-body text-default-font">
-                    Amazon Rainforest Case Study
-                  </span>
-                  <span className="text-caption font-caption text-subtext-color">
-                    Edited yesterday
-                  </span>
-                </div>
-              </div>
+          <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
+            <div className="relative flex w-full cursor-default items-center gap-2 bg-[#ddf3e4] px-4 py-2.5">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#30a46c]" />
+              <FeatherLeaf className="flex-none text-body font-body text-[#218358]" />
+              <span className="grow shrink-0 basis-0 truncate text-body font-body text-[#193b2d]">
+                Ecology
+              </span>
+              <Badge variant="neutral" className="flex-none">
+                3
+              </Badge>
             </div>
-            <div className="flex w-full flex-col items-start overflow-hidden rounded-md border border-solid border-neutral-border bg-default-background transition-colors hover:border-neutral-300">
-              <div className="flex w-full items-center justify-between px-3 py-3 cursor-pointer hover:bg-neutral-50">
-                <div className="flex items-center gap-2">
-                  <FeatherShield className="text-body font-body text-[#3b82f6]" />
-                  <span className="text-body-bold font-body-bold text-default-font">
-                    Conservation
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="neutral">5</Badge>
-                  <FeatherChevronDown className="text-body font-body text-subtext-color" />
-                </div>
-              </div>
+            <div className="w-full border-b border-solid border-neutral-border" />
+            <div className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50">
+              <FeatherShield className="flex-none text-body font-body text-[#3b82f6]" />
+              <span className="grow shrink-0 basis-0 truncate text-body font-body text-default-font">
+                Conservation
+              </span>
+              <Badge variant="neutral" className="flex-none">
+                5
+              </Badge>
             </div>
-            <div className="flex w-full flex-col items-start overflow-hidden rounded-md border border-solid border-neutral-border bg-default-background transition-colors hover:border-neutral-300">
-              <div className="flex w-full items-center justify-between px-3 py-3 cursor-pointer hover:bg-neutral-50">
-                <div className="flex items-center gap-2">
-                  <FeatherFlaskConical className="text-body font-body text-[#a855f7]" />
-                  <span className="text-body-bold font-body-bold text-default-font">
-                    Methodology
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="neutral">2</Badge>
-                  <FeatherChevronDown className="text-body font-body text-subtext-color" />
-                </div>
-              </div>
+            <div className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50">
+              <FeatherFlaskConical className="flex-none text-body font-body text-[#a855f7]" />
+              <span className="grow shrink-0 basis-0 truncate text-body font-body text-default-font">
+                Methodology
+              </span>
+              <Badge variant="neutral" className="flex-none">
+                2
+              </Badge>
             </div>
-            <div className="flex w-full flex-col items-start overflow-hidden rounded-md border border-solid border-neutral-border bg-default-background transition-colors hover:border-neutral-300">
-              <div className="flex w-full items-center justify-between px-3 py-3 cursor-pointer hover:bg-neutral-50">
-                <div className="flex items-center gap-2">
-                  <FeatherLandmark className="text-body font-body text-[#f59e0b]" />
-                  <span className="text-body-bold font-body-bold text-default-font">
-                    Policy
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="neutral">4</Badge>
-                  <FeatherChevronDown className="text-body font-body text-subtext-color" />
-                </div>
+            <div className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50">
+              <FeatherLandmark className="flex-none text-body font-body text-[#f59e0b]" />
+              <span className="grow shrink-0 basis-0 truncate text-body font-body text-default-font">
+                Policy
+              </span>
+              <Badge variant="neutral" className="flex-none">
+                4
+              </Badge>
+            </div>
+          </div>
+          <div className="absolute left-full top-0 flex h-full w-72 flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]">
+            <div className="flex w-full items-center gap-2 border-b-2 border-solid border-[#30a46c] bg-[#ddf3e4] px-4 py-4">
+              <FeatherLeaf className="flex-none text-body font-body text-[#218358]" />
+              <span className="text-heading-3 font-heading-3 text-[#193b2d]">
+                Ecology
+              </span>
+            </div>
+            <div className="flex w-full grow shrink-0 basis-0 flex-col items-start overflow-y-auto">
+              <div className="relative flex w-full cursor-pointer flex-col items-start gap-1 bg-[#ddf3e4] px-3 py-2">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#30a46c]" />
+                <span className="line-clamp-1 text-body font-body text-default-font">
+                  Habitat Destruction Framework
+                </span>
+                <span className="text-caption font-caption text-subtext-color">
+                  Edited 2 hrs ago
+                </span>
+              </div>
+              <div className="flex w-full cursor-pointer flex-col items-start gap-1 px-3 py-2 hover:bg-[#ddf3e4]">
+                <span className="line-clamp-1 text-body font-body text-default-font">
+                  Species Survey Data
+                </span>
+                <span className="text-caption font-caption text-subtext-color">
+                  Edited 2 weeks ago
+                </span>
+              </div>
+              <div className="flex w-full cursor-pointer flex-col items-start gap-1 px-3 py-2 hover:bg-[#ddf3e4]">
+                <span className="line-clamp-1 text-body font-body text-default-font">
+                  Amazon Rainforest Case Study
+                </span>
+                <span className="text-caption font-caption text-subtext-color">
+                  Edited yesterday
+                </span>
               </div>
             </div>
           </div>

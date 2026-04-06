@@ -181,10 +181,7 @@ export function DocumentsSidebar({
                   style={{ backgroundColor: solidBackground(resolved.color) }}
                 />
               )}
-              <span
-                className="flex-none"
-                style={highlighted ? { color: lowContrastText(resolved.color) } : undefined}
-              >
+              <span className="flex-none" style={{ color: lowContrastText(resolved.color) }}>
                 <TagIcon className="text-body font-body" />
               </span>
               <span
