@@ -24,12 +24,15 @@ const rgbToHex = (rgb: string): string => {
   )
 }
 
-export const resolveRadixHex = (color: string, shade: number): string => {
+export const resolveCssColorHex = (cssColor: string): string => {
   const el = document.createElement("span")
   el.style.display = "none"
-  el.style.color = toVar(color, shade)
+  el.style.color = cssColor
   document.body.appendChild(el)
   const computed = getComputedStyle(el).color
   document.body.removeChild(el)
   return rgbToHex(computed)
 }
+
+export const resolveRadixHex = (color: string, shade: number): string =>
+  resolveCssColorHex(toVar(color, shade))

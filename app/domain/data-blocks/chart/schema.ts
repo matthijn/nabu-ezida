@@ -4,6 +4,11 @@ export const ChartSchema = z.object({
   id: z.string(),
   title: z.string().describe("Chart title displayed in header"),
   query: z.string().describe("SQL query against database tables. Use $file for current filename."),
+  tooltip: z
+    .string()
+    .describe(
+      "Tooltip template with {column} placeholders interpolated from row data. Entity IDs render as styled pills."
+    ),
   options: z
     .record(z.string(), z.unknown())
     .describe(

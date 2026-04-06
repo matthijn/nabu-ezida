@@ -15,7 +15,11 @@ describe("buildChartOption", () => {
       rows: [{ code: "A", count: 5 }],
       colorMap: {},
       check: (r) => {
-        expect(r.tooltip).toEqual({ trigger: "item" })
+        expect(r.tooltip).toEqual({
+          trigger: "item",
+          appendToBody: true,
+          extraCssText: "font-family:var(--font-body),sans-serif;",
+        })
         expect(r.animationDuration).toBe(300)
         expect(r.dataset).toEqual({ source: [{ code: "A", count: 5 }] })
         expect(r.series).toEqual([{ type: "bar", encode: { x: "code", y: "count" } }])
@@ -68,6 +72,54 @@ describe("buildChartOption", () => {
       colorMap: {},
       check: (r) => {
         expect(r.dataset).toEqual({ source: [] })
+      },
+    },
+    {
+      name: "injects category axis defaults",
+      specOptions: {
+        xAxis: { type: "category" },
+        yAxis: { type: "value" },
+        series: [{ type: "bar" }],
+      },
+      rows: [],
+      colorMap: {},
+      check: (r) => {
+        const xAxis = r.xAxis as Record<string, unknown>
+        const xLabel = xAxis.axisLabel as Record<string, unknown>
+        expect(xLabel.interval).toBe(0)
+        expect(xLabel.rotate).toBe(-45)
+        expect(r.yAxis).toEqual({ type: "value" })
+      },
+    },
+    {
+      name: "spec axisLabel overrides category defaults",
+      specOptions: {
+        xAxis: { type: "category", axisLabel: { rotate: 0 } },
+        series: [{ type: "bar" }],
+      },
+      rows: [],
+      colorMap: {},
+      check: (r) => {
+        const xAxis = r.xAxis as Record<string, unknown>
+        const xLabel = xAxis.axisLabel as Record<string, unknown>
+        expect(xLabel.interval).toBe(0)
+        expect(xLabel.rotate).toBe(0)
+      },
+    },
+    {
+      name: "handles array category axes",
+      specOptions: {
+        xAxis: [{ type: "category" }, { type: "value" }],
+        series: [{ type: "bar" }],
+      },
+      rows: [],
+      colorMap: {},
+      check: (r) => {
+        const axes = r.xAxis as Record<string, unknown>[]
+        const label0 = axes[0].axisLabel as Record<string, unknown>
+        expect(label0.interval).toBe(0)
+        expect(label0.rotate).toBe(-45)
+        expect(axes[1]).toEqual({ type: "value" })
       },
     },
     {
