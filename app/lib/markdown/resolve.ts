@@ -5,6 +5,7 @@ import type { RadixColor } from "~/ui/theme/radix"
 import type { EntityKind, EntityRef } from "./linkify/types"
 import { parseEntityLink } from "./linkify/parse"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
+import { BarChart, ChartLine, ChartPie, ChartScatter } from "lucide-react"
 import { calloutTypeIcons } from "~/domain/data-blocks/callout/schema"
 import { annotationIcon } from "~/domain/data-blocks/attributes/schema"
 import {
@@ -20,6 +21,7 @@ import {
   resolveAnnotationColor,
 } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findCalloutById, findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
+import { findChartById, findDocumentForChart } from "~/domain/data-blocks/chart/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 
@@ -58,6 +60,8 @@ const SPOTLIGHT_COLORS: ResolvedColors = {
   background: "var(--color-neutral-200)",
   backgroundHover: "var(--color-neutral-300)",
 }
+
+const CHART_COLORS = FILE_COLORS
 
 const SEARCH_COLORS: ResolvedColors = {
   text: "var(--color-brand-700)",
@@ -130,6 +134,45 @@ const resolveTagRef = (
   }
 }
 
+const CHART_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  bar: BarChart,
+  line: ChartLine,
+  pie: ChartPie,
+  scatter: ChartScatter,
+}
+
+const extractSeriesType = (options: Record<string, unknown>): string | null => {
+  const series = options.series
+  if (!Array.isArray(series) || series.length === 0) return null
+  const type = series[0]?.type
+  return typeof type === "string" ? type : null
+}
+
+const resolveChartIcon = (
+  options: Record<string, unknown>
+): ComponentType<{ className?: string }> => {
+  const type = extractSeriesType(options)
+  return (type && CHART_TYPE_ICONS[type]) ?? ChartLine
+}
+
+const resolveChartRef = (
+  ref: Extract<EntityRef, { kind: "chart" }>,
+  files: FileStore,
+  projectId: string
+): ResolvedLink | null => {
+  const chart = findChartById(files, ref.id)
+  if (!chart) return null
+  const documentId = findDocumentForChart(files, ref.id)
+  if (!documentId) return null
+  return {
+    kind: "chart",
+    colors: CHART_COLORS,
+    icon: resolveChartIcon(chart.options),
+    url: buildEntityUrl(projectId, documentId, ref.id),
+    label: chart.title,
+  }
+}
+
 const buildSearchUrl = (projectId: string, searchId: string): string =>
   `/project/${projectId}/search/${searchId}`
 
@@ -184,6 +227,8 @@ export const resolveEntityLink = (
       return resolveAnnotationRef(ref, files, projectId)
     case "callout":
       return resolveCalloutRef(ref, files, projectId)
+    case "chart":
+      return resolveChartRef(ref, files, projectId)
     case "search":
       return resolveSearchRef(ref, files, projectId, icons)
     case "tag":
