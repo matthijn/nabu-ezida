@@ -12,6 +12,7 @@ import {
   formatGeneratedIds,
 } from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
+import { validateBlocksAsync, formatValidationErrors } from "~/lib/data-blocks/validate"
 import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
 import { isCompanionFile } from "~/lib/embeddings/companion"
 import type { ToolExecutor } from "../turn"
@@ -56,26 +57,39 @@ type MutationResult = MutationOk | MutationErr
 
 const isMutationError = (r: MutationResult): r is MutationErr => "error" in r
 
-const applyPatchAndStore = (
+const runAsyncValidation = async (path: string, content: string): Promise<MutationErr | null> => {
+  const asyncResult = await validateBlocksAsync(content, { path })
+  if (!asyncResult.valid) return { error: formatValidationErrors(asyncResult.errors) }
+  return null
+}
+
+const applyPatchAndStore = async (
   path: string,
   content: string,
   diff: string,
   options: PatchOptions
-): MutationResult => {
+): Promise<MutationResult> => {
   const result = applyFilePatch(path, content, diff, { ...options, actor: "ai" })
   if (result.status === "error") return { error: result.error }
+
+  const asyncError = await runAsyncValidation(path, result.content)
+  if (asyncError) return asyncError
+
   updateFileRaw(result.path, result.content)
   const ids = result.generatedIds ? formatGeneratedIds(result.generatedIds) : null
   return { ids }
 }
 
-const applyMutation = (op: Operation, placeholderIds: Record<string, string>): MutationResult => {
+const applyMutation = async (
+  op: Operation,
+  placeholderIds: Record<string, string>
+): Promise<MutationResult> => {
   const ts = Date.now()
   switch (op.type) {
     case "create_file": {
       if (getFileRaw(op.path))
         return { error: `${op.path}: already exists. Use update_file to modify it` }
-      const result = applyPatchAndStore(op.path, "", op.diff, { placeholderIds })
+      const result = await applyPatchAndStore(op.path, "", op.diff, { placeholderIds })
       if (!isMutationError(result)) {
         const newContent = getFileRaw(op.path) ?? ""
         pushEntries([
@@ -88,7 +102,7 @@ const applyMutation = (op: Operation, placeholderIds: Record<string, string>): M
     case "update_file": {
       const oldContent = getFileRaw(op.path)
       if (!oldContent) return { error: `${op.path}: No such file` }
-      const result = applyPatchAndStore(op.path, oldContent, op.diff, {
+      const result = await applyPatchAndStore(op.path, oldContent, op.diff, {
         skipImmutableCheck: op.skipImmutableCheck,
         placeholderIds,
       })
@@ -102,6 +116,10 @@ const applyMutation = (op: Operation, placeholderIds: Record<string, string>): M
       const oldContent = getFileRaw(op.path)
       const result = finalizeContent(op.path, op.content, { original: oldContent, actor: "ai" })
       if (result.status === "error") return { error: result.error }
+
+      const asyncError = await runAsyncValidation(op.path, result.content)
+      if (asyncError) return asyncError
+
       updateFileRaw(result.path, result.content)
       pushEntries(diffFileContent(oldContent, result.content, op.path, ts))
       const ids = result.generatedIds ? formatGeneratedIds(result.generatedIds) : null
@@ -126,12 +144,12 @@ const applyMutation = (op: Operation, placeholderIds: Record<string, string>): M
   }
 }
 
-const applyMutations = (mutations: Operation[]): MutationErr | MutationOk | null => {
+const applyMutations = async (mutations: Operation[]): Promise<MutationErr | MutationOk | null> => {
   if (mutations.length === 0) return null
   const allIds: string[] = []
   for (const op of mutations) {
     const { op: resolved, placeholderIds } = resolveOpPlaceholders(op)
-    const result = applyMutation(resolved, placeholderIds)
+    const result = await applyMutation(resolved, placeholderIds)
     if (isMutationError(result)) return result
     if (result.ids) allIds.push(result.ids)
   }
@@ -150,7 +168,7 @@ export const createExecutor =
     const files = extractFiles()
     const { status, output, message, hint, mutations } = await handler(files, call.args)
 
-    const mutResult = applyMutations(mutations)
+    const mutResult = await applyMutations(mutations)
     if (mutResult && isMutationError(mutResult))
       return { status: "error", output: mutResult.error, hint }
 

@@ -5,6 +5,7 @@ import {
   getImmutableFields,
   getAllowedFiles,
 } from "~/lib/data-blocks/registry"
+import type { AsyncValidationContext } from "./definition"
 import { parseCodeBlocks, extractProse, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 
@@ -92,6 +93,35 @@ export const validateMarkdownBlocks = (
 
   if (options.original && !options.skipImmutableCheck) {
     errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+export const formatValidationErrors = (errors: ValidationError[]): string =>
+  errors
+    .map((e) => {
+      const location = e.field ? `${e.block}.${e.field}` : e.block
+      return `${location}: ${e.message}`
+    })
+    .join("\n")
+
+export const validateBlocksAsync = async (
+  markdown: string,
+  context: AsyncValidationContext
+): Promise<ValidationResult> => {
+  const blocks = parseCodeBlocks(markdown)
+  const errors: ValidationError[] = []
+
+  for (const block of blocks) {
+    const config = getBlockConfig(block.language)
+    if (!config?.asyncValidate) continue
+
+    const result = config.schema.safeParse(tryParseJson(block.content))
+    if (!result.success) continue
+
+    const asyncErrors = await config.asyncValidate(result.data, context)
+    errors.push(...asyncErrors)
   }
 
   return { valid: errors.length === 0, errors }

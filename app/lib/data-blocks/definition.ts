@@ -10,6 +10,10 @@ export interface ActorPathConfig {
   path: string
 }
 
+export interface AsyncValidationContext {
+  path?: string
+}
+
 export interface BlockTypeConfig<T = unknown, C = unknown> {
   schema: z.ZodType<T>
   readonly: string[]
@@ -26,4 +30,5 @@ export interface BlockTypeConfig<T = unknown, C = unknown> {
   patchSchema?: (schema: Record<string, unknown>) => Record<string, unknown>
   rowPath?: string
   validate?: (parsed: T, context: C) => ValidationError[]
+  asyncValidate?: (parsed: T, context: AsyncValidationContext) => Promise<ValidationError[]>
 }

@@ -12,6 +12,9 @@ interface DocumentItemProps {
   onClick?: () => void
 }
 
+const hasMetaRow = (editedAt: string, annotationCount: number): boolean =>
+  editedAt.length > 0 || annotationCount > 0
+
 export function DocumentItem({
   title,
   editedAt,
@@ -20,10 +23,13 @@ export function DocumentItem({
   selected = false,
   onClick,
 }: DocumentItemProps) {
+  const showMeta = hasMetaRow(editedAt, annotationCount)
   return (
     <div
       style={{ "--tag-element": elementBackground(color) } as React.CSSProperties}
-      className={`flex w-full flex-col items-start gap-1 px-3 py-2 cursor-pointer relative ${
+      className={`flex w-full min-h-[3rem] flex-col px-3 py-2 cursor-pointer relative ${
+        showMeta ? "items-start gap-1 justify-start" : "justify-center"
+      } ${
         selected
           ? "bg-[var(--tag-element)] group-hover:bg-transparent hover:!bg-[var(--tag-element)]"
           : "hover:bg-[var(--tag-element)]"
@@ -37,15 +43,17 @@ export function DocumentItem({
         />
       )}
       <span className="line-clamp-1 text-body font-body text-default-font">{title}</span>
-      <div className="flex w-full items-center gap-1">
-        <span className="text-caption font-caption text-subtext-color">{editedAt}</span>
-        {annotationCount > 0 && (
-          <span className="flex items-center gap-0.5 text-caption font-caption text-subtext-color ml-auto">
-            <AnnotationIcon className="w-3 h-3" />
-            {annotationCount}
-          </span>
-        )}
-      </div>
+      {showMeta && (
+        <div className="flex w-full items-center gap-1">
+          <span className="text-caption font-caption text-subtext-color">{editedAt}</span>
+          {annotationCount > 0 && (
+            <span className="flex items-center gap-0.5 text-caption font-caption text-subtext-color ml-auto">
+              <AnnotationIcon className="w-3 h-3" />
+              {annotationCount}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

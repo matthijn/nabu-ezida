@@ -3,7 +3,7 @@
 import type { ComponentType } from "react"
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Hash, Folder } from "lucide-react"
+import { ArrowDownAZ, Calendar, Hash, Folder } from "lucide-react"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { Badge } from "~/ui/components/Badge"
@@ -17,11 +17,15 @@ import {
 } from "~/ui/theme/radix"
 import { resolveIcon } from "~/ui/theme/icon-map"
 import { humanize } from "./TagGroupHeader"
+import { ToggleGroup } from "~/ui/components/ToggleGroup"
 import { DocumentItem } from "./DocumentItem"
+
+export type DocSortMode = "name" | "date"
 
 interface ListItem {
   id: string
   title: string
+  date: string
   editedAt: string
   tags: string[]
   annotationCount: number
@@ -31,8 +35,10 @@ interface DocumentsSidebarProps {
   documents: ListItem[]
   selectedId?: string
   searchValue?: string
+  sortMode?: DocSortMode
   tagDefinitions?: TagDefinition[]
   onSearchChange?: (value: string) => void
+  onSortChange?: (mode: DocSortMode) => void
   onDocumentSelect?: (id: string) => void
   onNewDocument?: () => void
 }
@@ -57,6 +63,26 @@ const groupByTag = (docs: ListItem[]): TagGroup[] => {
   }
   return Array.from(tagMap, ([tag, docs]) => ({ tag, docs }))
 }
+
+const compareByName = (a: ListItem, b: ListItem): number => a.title.localeCompare(b.title)
+
+const compareByDate = (a: ListItem, b: ListItem): number => {
+  if (a.date && b.date) {
+    const cmp = b.date.localeCompare(a.date)
+    return cmp !== 0 ? cmp : a.title.localeCompare(b.title)
+  }
+  if (a.date) return -1
+  if (b.date) return 1
+  return a.title.localeCompare(b.title)
+}
+
+const docComparators: Record<DocSortMode, (a: ListItem, b: ListItem) => number> = {
+  name: compareByName,
+  date: compareByDate,
+}
+
+const sortDocs = (groups: TagGroup[], mode: DocSortMode): TagGroup[] =>
+  groups.map((g) => ({ ...g, docs: [...g.docs].sort(docComparators[mode]) }))
 
 const filterGroups = (groups: TagGroup[], query: string): TagGroup[] => {
   if (query.length === 0) return groups
@@ -122,8 +148,10 @@ export function DocumentsSidebar({
   documents,
   selectedId,
   searchValue = "",
+  sortMode = "name",
   tagDefinitions,
   onSearchChange,
+  onSortChange,
   onDocumentSelect,
   onNewDocument,
 }: DocumentsSidebarProps) {
@@ -135,11 +163,18 @@ export function DocumentsSidebar({
     () => findTagsForDoc(unsortedGroups, selectedId),
     [unsortedGroups, selectedId]
   )
-  const allGroups = useMemo(
+  const sortedTagGroups = useMemo(
     () => sortGroups(unsortedGroups, activeTags, tagLookup),
     [unsortedGroups, activeTags, tagLookup]
   )
-  const groups = useMemo(() => filterGroups(allGroups, searchValue), [allGroups, searchValue])
+  const sortedDocGroups = useMemo(
+    () => sortDocs(sortedTagGroups, sortMode),
+    [sortedTagGroups, sortMode]
+  )
+  const groups = useMemo(
+    () => filterGroups(sortedDocGroups, searchValue),
+    [sortedDocGroups, searchValue]
+  )
 
   const activeGroupCount =
     activeTags.size > 0 ? groups.filter((g) => activeTags.has(g.tag)).length : 0
@@ -157,6 +192,24 @@ export function DocumentsSidebar({
         onFilterChange={(v) => onSearchChange?.(v)}
         onNew={onNewDocument}
       />
+      {onSortChange && (
+        <div className="flex w-full px-4 py-2 border-b border-solid border-neutral-border">
+          <ToggleGroup
+            className="w-full"
+            value={sortMode}
+            onValueChange={(v) => {
+              if (v) onSortChange(v as DocSortMode)
+            }}
+          >
+            <ToggleGroup.Item value="name" icon={<ArrowDownAZ />}>
+              Name
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="date" icon={<Calendar />}>
+              Date
+            </ToggleGroup.Item>
+          </ToggleGroup>
+        </div>
+      )}
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
         {groups.flatMap(({ tag, docs }, i) => {
           const resolved = resolveTag(tagLookup, tag)

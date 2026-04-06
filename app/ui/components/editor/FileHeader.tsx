@@ -6,10 +6,11 @@ import { Button } from "~/ui/components/Button"
 import { DropdownMenu } from "~/ui/components/DropdownMenu"
 import { IconButton } from "~/ui/components/IconButton"
 import { TagBadge } from "~/ui/components/TagBadge"
-import { Clipboard, MoreHorizontal, Pin, Plus, Share2 } from "lucide-react"
+import { MoreHorizontal, Plus } from "lucide-react"
 import * as SubframeCore from "@subframe/core"
 import { cn } from "~/ui/utils"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
+import { formatDisplayDate } from "~/lib/format/date"
 
 interface MenuItem {
   icon: ReactNode
@@ -19,12 +20,9 @@ interface MenuItem {
 
 interface FileHeaderProps {
   title: string
+  date?: string
   tags?: TagDefinition[]
   onRemoveTag?: (tagId: string) => void
-  pinned?: boolean
-  onPin?: () => void
-  onShare?: () => void
-  onCopyRaw?: () => void
   menuItems?: MenuItem[]
   onAddTag?: () => void
   className?: string
@@ -39,12 +37,9 @@ const tagAnimation = {
 
 export const FileHeader = ({
   title,
+  date,
   tags = [],
   onRemoveTag,
-  pinned = false,
-  onPin,
-  onShare,
-  onCopyRaw,
   menuItems = [],
   onAddTag,
   className,
@@ -60,23 +55,6 @@ export const FileHeader = ({
         <div className="flex grow shrink-0 basis-0 items-center gap-2">
           <span className="text-heading-2 font-heading-2 text-default-font">{title}</span>
         </div>
-        {onPin && (
-          <IconButton
-            variant={pinned ? "brand-tertiary" : "neutral-tertiary"}
-            size="small"
-            icon={<Pin />}
-            onClick={onPin}
-          />
-        )}
-        {onShare && <IconButton size="small" icon={<Share2 />} onClick={onShare} />}
-        {onCopyRaw && (
-          <IconButton
-            variant="neutral-tertiary"
-            size="small"
-            icon={<Clipboard />}
-            onClick={onCopyRaw}
-          />
-        )}
         {menuItems.length > 0 && (
           <SubframeCore.DropdownMenu.Root>
             <SubframeCore.DropdownMenu.Trigger asChild>
@@ -100,6 +78,11 @@ export const FileHeader = ({
           </SubframeCore.DropdownMenu.Root>
         )}
       </div>
+      {date && (
+        <span className="text-caption font-caption text-subtext-color">
+          {formatDisplayDate(date)}
+        </span>
+      )}
       {(tags.length > 0 || onAddTag) && (
         <div className="flex w-full flex-wrap items-center gap-2">
           <AnimatePresence initial={false}>
