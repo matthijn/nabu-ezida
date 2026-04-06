@@ -9,7 +9,7 @@
 import type { FileStore } from "../store"
 
 const PENDING_REF_PATTERN = /#\[([^\]]+)\]/g
-const ID_SOURCE = "[a-z]+-\\d[a-z0-9]{7}"
+const ID_SOURCE = "[a-z]+-[a-z0-9]{8}"
 const ID_PATTERN = new RegExp(ID_SOURCE, "g")
 
 export const stripPendingRefs = (content: string): string =>
