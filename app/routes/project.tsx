@@ -50,6 +50,7 @@ import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hidden"
 import { buildIdentifierResolver } from "~/lib/files/selectors"
+import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 import type { SearchEntry } from "~/domain/search"
 import { formatShortDate } from "~/lib/format/date"
 import { getSettings, setSetting } from "~/lib/storage"
@@ -309,15 +310,25 @@ export default function ProjectLayout() {
   } = useFiles()
   const fileImport = useFileImport()
 
-  const fileNames = useMemo(
-    () => Object.keys(files).filter((f) => debugOptions.expanded || !isHiddenFile(f)),
-    [files, debugOptions.expanded]
-  )
+  const availableFiles = useMemo(() => Object.keys(files).filter((f) => !isHiddenFile(f)), [files])
+
+  const navigateToFirstFile = useCallback(() => {
+    if (availableFiles.length === 0 || !params.projectId) return
+    const first = availableFiles[0]
+    setCurrentFile(first)
+    navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
+  }, [availableFiles, params.projectId, setCurrentFile, navigate])
 
   useEffect(() => {
     if (loading) return
+
     if (params.searchId) {
-      if (currentFile) setCurrentFile(null)
+      const searchExists = !!findSearchById(files, params.searchId)
+      if (searchExists) {
+        if (currentFile) setCurrentFile(null)
+        return
+      }
+      navigateToFirstFile()
       return
     }
 
@@ -329,21 +340,16 @@ export default function ProjectLayout() {
         return
       }
     }
-    if (fileNames.length > 0 && params.projectId) {
-      const first = fileNames[0]
-      setCurrentFile(first)
-      navigate(`/project/${params.projectId}/file/${encodeURIComponent(first)}`, { replace: true })
-    }
+
+    navigateToFirstFile()
   }, [
     loading,
     params.fileId,
     params.searchId,
-    params.projectId,
     files,
     currentFile,
-    fileNames,
     setCurrentFile,
-    navigate,
+    navigateToFirstFile,
   ])
 
   const documents = filesToSidebarDocuments(

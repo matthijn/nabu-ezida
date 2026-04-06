@@ -1,6 +1,7 @@
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { useNavigate, useParams } from "react-router"
 import { useProject } from "./project"
+import { isHiddenFile } from "~/lib/files/filename"
 import { FilePlus } from "lucide-react"
 
 export default function ProjectIndex() {
@@ -8,16 +9,20 @@ export default function ProjectIndex() {
   const navigate = useNavigate()
   const { files } = useProject()
 
-  const fileNames = Object.keys(files)
-  const firstFile = fileNames[0]
+  const firstAvailableFile = useMemo(
+    () => Object.keys(files).find((f) => !isHiddenFile(f)),
+    [files]
+  )
 
   useEffect(() => {
-    if (firstFile && projectId) {
-      navigate(`/project/${projectId}/file/${encodeURIComponent(firstFile)}`, { replace: true })
+    if (firstAvailableFile && projectId) {
+      navigate(`/project/${projectId}/file/${encodeURIComponent(firstAvailableFile)}`, {
+        replace: true,
+      })
     }
-  }, [firstFile, projectId, navigate])
+  }, [firstAvailableFile, projectId, navigate])
 
-  if (fileNames.length === 0) {
+  if (Object.keys(files).length === 0) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-4">
         <FilePlus className="h-12 w-12 text-subtext-color" />
