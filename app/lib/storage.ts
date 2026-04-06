@@ -1,6 +1,7 @@
 interface NabuSettings {
   theme: "light" | "dark"
   sidebarOpen: boolean
+  docSortMode: "name" | "date"
 }
 
 const STORAGE_KEY = "nabu-settings"
@@ -8,6 +9,7 @@ const STORAGE_KEY = "nabu-settings"
 const defaults: NabuSettings = {
   theme: "dark",
   sidebarOpen: true,
+  docSortMode: "name",
 }
 
 function getSettings(): NabuSettings {

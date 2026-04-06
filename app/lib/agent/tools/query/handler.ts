@@ -10,12 +10,9 @@ import { capRows } from "./truncate"
 
 const MAX_QUERY_ROWS = 50
 
-const bigIntReplacer = (_key: string, value: unknown): unknown =>
-  typeof value === "bigint" ? Number(value) : value
-
 const formatOutput = (rows: Record<string, unknown>[], capped: boolean): string => {
   const suffix = capped ? `\n(capped to ${MAX_QUERY_ROWS} rows)` : ""
-  return JSON.stringify(rows, bigIntReplacer, 2) + suffix
+  return JSON.stringify(rows, null, 2) + suffix
 }
 
 const hitToRow = (hit: { file: string; id?: string; text?: string }): Record<string, unknown> => {

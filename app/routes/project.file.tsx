@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router"
 import { useScrollToEntity } from "~/ui/hooks/useScrollToEntity"
 import { parseSpotlight } from "~/lib/editor/spotlight"
 import { patchBlock } from "~/lib/data-blocks/patch"
+import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { useProject } from "./project"
 import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
 import { toDisplayName } from "~/lib/files/filename"
@@ -19,6 +20,7 @@ import {
 } from "~/domain/data-blocks/attributes/topics/selectors"
 import {
   Bold,
+  Clipboard,
   Code2,
   Copy,
   FileText,
@@ -32,6 +34,7 @@ import {
   ListChecks,
   ListOrdered,
   Quote,
+  Share2,
   Strikethrough,
   Trash,
   Underline,
@@ -60,6 +63,9 @@ const documentStatusTooltip = (content: string): string => {
 const documentStatusText = (content: string): string =>
   formatStatsLabel(computeTextStats(stripAttributesBlock(content)))
 
+const sortTagsByDisplay = (tags: TagDefinition[]): TagDefinition[] =>
+  [...tags].sort((a, b) => a.display.localeCompare(b.display))
+
 const getFileRaw = (files: Record<string, string>, filename: string): string | undefined =>
   files[filename]
 
@@ -78,7 +84,14 @@ const formatContent = (content: string, filename: string): string =>
   isJsonFile(filename) ? wrapAsCodeBlock(content, "json") : content
 
 export default function ProjectFile() {
-  const { files, currentFile, debugOptions, getFileTags, tagDefinitions } = useProject()
+  const {
+    files,
+    currentFile,
+    debugOptions,
+    getFileTags,
+    getFileDate: getFileDateFn,
+    tagDefinitions,
+  } = useProject()
   const [searchParams] = useSearchParams()
   const spotlight = useMemo(() => parseSpotlight(searchParams.get("spotlight")), [searchParams])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -98,10 +111,15 @@ export default function ProjectFile() {
   const tagDefMap = useMemo(() => new Map(tagDefinitions.map((d) => [d.id, d])), [tagDefinitions])
   const tags = useMemo(() => {
     if (!currentFile) return []
-    return getFileTags(currentFile)
+    const resolved = getFileTags(currentFile)
       .map((tagId) => tagDefMap.get(tagId))
       .filter((d): d is NonNullable<typeof d> => d !== undefined)
+    return sortTagsByDisplay(resolved)
   }, [currentFile, getFileTags, tagDefMap])
+  const fileDate = useMemo(
+    () => (currentFile ? getFileDateFn(currentFile) : undefined),
+    [currentFile, getFileDateFn]
+  )
 
   const handleRemoveTag = useCallback(
     (tagId: string) => {
@@ -133,13 +151,12 @@ export default function ProjectFile() {
       <div className="flex flex-1 min-h-0 flex-col rounded-xl bg-default-background overflow-hidden">
         <FileHeader
           title={toDisplayName(currentFile)}
+          date={fileDate}
           tags={tags}
           onRemoveTag={handleRemoveTag}
-          pinned={false}
-          onPin={() => undefined}
-          onShare={() => undefined}
-          onCopyRaw={copyRawMarkdown}
           menuItems={[
+            { icon: <Clipboard />, label: "Copy raw", onClick: copyRawMarkdown },
+            { icon: <Share2 />, label: "Share", onClick: () => undefined },
             { icon: <Copy />, label: "Duplicate", onClick: () => undefined },
             { icon: <FileText />, label: "Export", onClick: () => undefined },
             { icon: <Trash />, label: "Delete", onClick: () => undefined },

@@ -23,6 +23,27 @@ const createDbError = (message: string, cause?: unknown): DbError => ({
   cause,
 })
 
+const ARROW_BIGNUM = Symbol.for("isArrowBigNum")
+
+const isArrowBigNum = (value: unknown): value is { toString(): string } =>
+  typeof value === "object" &&
+  value !== null &&
+  (value as Record<symbol, unknown>)[ARROW_BIGNUM] === true
+
+const coerceNumeric = (value: unknown): unknown => {
+  if (typeof value === "bigint") return Number(value)
+  if (isArrowBigNum(value)) return Number(value.toString())
+  return value
+}
+
+const coerceBigInts = (row: Record<string, unknown>): Record<string, unknown> => {
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(row)) {
+    out[key] = coerceNumeric(value)
+  }
+  return out
+}
+
 export const executeQuery = async <T = unknown>(
   db: AsyncDuckDB,
   sql: string
@@ -31,7 +52,7 @@ export const executeQuery = async <T = unknown>(
 
   try {
     const result = await conn.query(sql)
-    const rows = result.toArray().map((row) => row.toJSON() as T)
+    const rows = result.toArray().map((row) => coerceBigInts(row.toJSON()) as T)
     await conn.close()
 
     return ok({ rows, rowCount: rows.length })

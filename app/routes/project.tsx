@@ -4,7 +4,10 @@ import { DefaultPageLayout, type ActiveNav } from "~/ui/layouts/DefaultPageLayou
 import { useFiles } from "~/ui/hooks/useFiles"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { useFileImport } from "~/ui/hooks/useFileImport"
-import { DocumentsSidebar } from "~/ui/components/sidebar/documents/DocumentsSidebar"
+import {
+  DocumentsSidebar,
+  type DocSortMode,
+} from "~/ui/components/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/components/sidebar/codes"
 import { SearchSidebar } from "~/ui/components/sidebar/search"
 import {
@@ -48,12 +51,15 @@ import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
 import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hidden"
 import { buildIdentifierResolver } from "~/lib/files/selectors"
 import type { SearchEntry } from "~/domain/search"
+import { formatShortDate } from "~/lib/format/date"
+import { getSettings, setSetting } from "~/lib/storage"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
 interface SidebarDocument {
   id: string
   title: string
+  date: string
   editedAt: string
   tags: string[]
   annotationCount: number
@@ -62,20 +68,27 @@ interface SidebarDocument {
 const tagsWithHidden = (tags: string[], filename: string): string[] =>
   isHiddenFile(filename) ? [...tags, HIDDEN_TAG_ID] : tags
 
+const formatEditedAt = (date: string | undefined): string => (date ? formatShortDate(date) : "")
+
 const filesToSidebarDocuments = (
   files: Record<string, string>,
   getFileTags: (filename: string) => string[],
+  getFileDateFn: (filename: string) => string | undefined,
   debugMode: boolean
 ): SidebarDocument[] =>
   Object.keys(files)
     .filter((filename) => debugMode || !isHiddenFile(filename))
-    .map((filename) => ({
-      id: filename,
-      title: toDisplayName(filename),
-      editedAt: "just now",
-      tags: tagsWithHidden(getFileTags(filename), filename),
-      annotationCount: getAnnotationCount(files[filename] ?? ""),
-    }))
+    .map((filename) => {
+      const rawDate = getFileDateFn(filename) ?? ""
+      return {
+        id: filename,
+        title: toDisplayName(filename),
+        date: rawDate,
+        editedAt: formatEditedAt(rawDate || undefined),
+        tags: tagsWithHidden(getFileTags(filename), filename),
+        annotationCount: getAnnotationCount(files[filename] ?? ""),
+      }
+    })
 
 const DEBUG_STORAGE_KEY = "nabu-debug-options"
 
@@ -150,6 +163,7 @@ export interface ProjectContextValue {
   toggleDebugOption: (key: string) => void
   requestCompaction: () => void
   getFileTags: (filename: string) => string[]
+  getFileDate: (filename: string) => string | undefined
   getFileAnnotations: (
     filename: string
   ) => { text: string; color: string; reason?: string; code?: string }[] | undefined
@@ -164,6 +178,7 @@ export default function ProjectLayout() {
   const dismissSidebarRef = useRef<(() => void) | null>(null)
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
+  const [docSortMode, setDocSortMode] = useState<DocSortMode>(() => getSettings().docSortMode)
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
   const [loading, setLoading] = useState(true)
   const [statusLabel, setStatusLabel] = useState("Connecting...")
@@ -288,6 +303,7 @@ export default function ProjectLayout() {
     codebook,
     setCurrentFile,
     getFileTags,
+    getFileDate: getFileDateFn,
     getFileAnnotations,
     tagDefinitions,
   } = useFiles()
@@ -330,7 +346,17 @@ export default function ProjectLayout() {
     navigate,
   ])
 
-  const documents = filesToSidebarDocuments(files, getFileTags, !!debugOptions.expanded)
+  const documents = filesToSidebarDocuments(
+    files,
+    getFileTags,
+    getFileDateFn,
+    !!debugOptions.expanded
+  )
+
+  const handleDocSortChange = useCallback((mode: DocSortMode) => {
+    setDocSortMode(mode)
+    setSetting("docSortMode", mode)
+  }, [])
 
   const handleDocumentSelect = (filename: string) => {
     setCurrentFile(filename)
@@ -403,8 +429,10 @@ export default function ProjectLayout() {
         documents={documents}
         selectedId={currentFile ?? undefined}
         searchValue={searchValue}
+        sortMode={docSortMode}
         tagDefinitions={[...tagDefinitions, HIDDEN_TAG]}
         onSearchChange={setSearchValue}
+        onSortChange={handleDocSortChange}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => undefined}
       />
@@ -480,6 +508,7 @@ export default function ProjectLayout() {
                   toggleDebugOption,
                   requestCompaction,
                   getFileTags,
+                  getFileDate: getFileDateFn,
                   getFileAnnotations,
                   tagDefinitions,
                 }}

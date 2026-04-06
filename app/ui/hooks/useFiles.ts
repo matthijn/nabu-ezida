@@ -7,6 +7,7 @@ import {
   setCurrentFile,
   subscribe,
   getTags,
+  getFileDate,
   getAnnotations,
   getTagDefinitions,
 } from "~/lib/files"
@@ -19,6 +20,7 @@ export const useFiles = () => {
   const codebook = useSyncExternalStore(subscribe, getCodebook)
 
   const getFileTags = (filename: string): string[] => getTags(files[filename] ?? "")
+  const getFileDateFn = (filename: string): string | undefined => getFileDate(files[filename] ?? "")
   const getFileLineCountFn = (filename: string): number => getFileLineCount(filename)
   const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
   const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
@@ -30,6 +32,7 @@ export const useFiles = () => {
     codebook,
     setCurrentFile,
     getFileTags,
+    getFileDate: getFileDateFn,
     getFileLineCount: getFileLineCountFn,
     getFileAnnotations,
     tagDefinitions,

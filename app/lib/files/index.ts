@@ -22,6 +22,7 @@ export {
 } from "./store"
 
 export { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
+export { getFileDate } from "~/domain/data-blocks/attributes/date/selectors"
 export {
   getDocumentType,
   getDocumentSubject,
