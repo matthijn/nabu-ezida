@@ -22,6 +22,7 @@ export interface ExhibitsSidebarProps {
   searchValue?: string
   onSearchChange?: (value: string) => void
   onExhibitSelect?: (exhibit: ExhibitItem) => void
+  onNew?: () => void
 }
 
 const compareByName = (a: ExhibitItem, b: ExhibitItem): number => a.title.localeCompare(b.title)
