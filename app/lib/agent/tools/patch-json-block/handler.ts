@@ -46,7 +46,7 @@ type JsonSchemaObj = Record<string, unknown> & { properties?: Record<string, { t
 const schemaArrayFields = (language: string): Set<string> | null => {
   const config = getBlockConfig(language)
   if (!config) return null
-  const schema = z.toJSONSchema(config.schema, { io: "input" }) as JsonSchemaObj
+  const schema = z.toJSONSchema(config.schema(), { io: "input" }) as JsonSchemaObj
   if (!schema.properties) return new Set()
   return new Set(
     Object.entries(schema.properties)

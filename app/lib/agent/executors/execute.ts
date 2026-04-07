@@ -49,6 +49,7 @@ interface PatchOptions {
 
 interface MutationOk {
   ids: string | null
+  warnings?: string
 }
 interface MutationErr {
   error: string
@@ -77,7 +78,8 @@ const applyPatchAndStore = async (
 
   updateFileRaw(result.path, result.content)
   const ids = result.generatedIds ? formatGeneratedIds(result.generatedIds) : null
-  return { ids }
+  const warnings = result.status === "partial" ? result.warnings : undefined
+  return { ids, warnings }
 }
 
 const applyMutation = async (
@@ -123,7 +125,8 @@ const applyMutation = async (
       updateFileRaw(result.path, result.content)
       pushEntries(diffFileContent(oldContent, result.content, op.path, ts))
       const ids = result.generatedIds ? formatGeneratedIds(result.generatedIds) : null
-      return { ids }
+      const warnings = result.status === "partial" ? result.warnings : undefined
+      return { ids, warnings }
     }
     case "delete_file": {
       const oldContent = getFileRaw(op.path)
@@ -147,13 +150,18 @@ const applyMutation = async (
 const applyMutations = async (mutations: Operation[]): Promise<MutationErr | MutationOk | null> => {
   if (mutations.length === 0) return null
   const allIds: string[] = []
+  const allWarnings: string[] = []
   for (const op of mutations) {
     const { op: resolved, placeholderIds } = resolveOpPlaceholders(op)
     const result = await applyMutation(resolved, placeholderIds)
     if (isMutationError(result)) return result
     if (result.ids) allIds.push(result.ids)
+    if (result.warnings) allWarnings.push(result.warnings)
   }
-  return { ids: allIds.length > 0 ? allIds.join("\n") : null }
+  return {
+    ids: allIds.length > 0 ? allIds.join("\n") : null,
+    warnings: allWarnings.length > 0 ? allWarnings.join("\n") : undefined,
+  }
 }
 
 const appendIds = (output: unknown, ids: string | null): unknown =>
@@ -173,5 +181,14 @@ export const createExecutor =
       return { status: "error", output: mutResult.error, hint }
 
     const finalOutput = appendIds(output, mutResult?.ids ?? null)
-    return { status, output: finalOutput, message, hint } as ToolResult<unknown>
+    const finalStatus = mutResult?.warnings ? "partial" : status
+    const finalMessage = mutResult?.warnings
+      ? [message, mutResult.warnings].filter(Boolean).join("\n")
+      : message
+    return {
+      status: finalStatus,
+      output: finalOutput,
+      message: finalMessage,
+      hint,
+    } as ToolResult<unknown>
   }

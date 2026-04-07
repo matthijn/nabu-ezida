@@ -49,10 +49,9 @@ const buildBlockParser = (
 }
 
 const getRowSchema = (config: BlockTypeConfig): z.ZodType => {
-  if (!config.rowPath) return config.schema
-  const arraySchema = (config.schema as z.ZodObject<Record<string, z.ZodType>>).shape[
-    config.rowPath
-  ]
+  const schema = config.schema()
+  if (!config.rowPath) return schema
+  const arraySchema = (schema as z.ZodObject<Record<string, z.ZodType>>).shape[config.rowPath]
   return (arraySchema as z.ZodArray<z.ZodType>).element
 }
 
@@ -61,7 +60,7 @@ const toProjectionConfig = ([language, config]: [string, BlockTypeConfig]): Proj
   tableName: stripLanguagePrefix(language),
   schema: getRowSchema(config),
   singleton: config.singleton,
-  blockParser: buildBlockParser(language, config.schema, config.singleton, config.rowPath),
+  blockParser: buildBlockParser(language, config.schema(), config.singleton, config.rowPath),
   allowedFiles: config.allowedFiles,
 })
 

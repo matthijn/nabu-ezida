@@ -1,7 +1,9 @@
 import { z } from "zod"
-import { AnnotationSchema } from "~/domain/data-blocks/attributes/schema"
+import { annotationSchema } from "~/domain/data-blocks/attributes/schema"
+import type { ValidationContext } from "~/lib/data-blocks/definition"
 
-export const AnnotationsBlockSchema = z.object({
-  annotations: z.array(AnnotationSchema),
-})
+export const annotationsBlockSchema = (ctx?: ValidationContext) =>
+  z.object({ annotations: z.array(annotationSchema(ctx)) })
+
+export const AnnotationsBlockSchema = annotationsBlockSchema()
 export type AnnotationsBlock = z.infer<typeof AnnotationsBlockSchema>

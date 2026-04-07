@@ -65,7 +65,7 @@ const stripReadonlyFields = (schema: JsonSchema, fields: string[]): JsonSchema =
   fields.reduce((s, field) => removeFromProperties(s, [], field), schema)
 
 export const toBlockSchema = (config: BlockTypeConfig): unknown => {
-  let schema = z.toJSONSchema(config.schema, { io: "input" }) as JsonSchema
+  let schema = z.toJSONSchema(config.schema(), { io: "input" }) as JsonSchema
   if (config.patchSchema) schema = config.patchSchema(schema)
   if (config.actorPaths?.length) schema = stripActorFields(schema, config.actorPaths)
   if (config.readonly.length > 0) schema = stripReadonlyFields(schema, config.readonly)

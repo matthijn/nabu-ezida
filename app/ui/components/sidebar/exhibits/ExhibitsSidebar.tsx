@@ -53,6 +53,7 @@ export function ExhibitsSidebar({
   searchValue = "",
   onSearchChange,
   onExhibitSelect,
+  onNew,
 }: ExhibitsSidebarProps) {
   const [hoveredKind, setHoveredKind] = useState<ExhibitKind | null>(null)
 
@@ -71,6 +72,7 @@ export function ExhibitsSidebar({
         filterPlaceholder="Filter exhibits..."
         filterValue={searchValue}
         onFilterChange={(v) => onSearchChange?.(v)}
+        onNew={onNew}
       />
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
         {groups.map(({ kind, items }) => {

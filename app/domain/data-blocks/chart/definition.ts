@@ -39,7 +39,7 @@ const validateChartQuery = async (
 }
 
 export const jsonChart: BlockTypeConfig<ChartBlock> = {
-  schema: ChartSchema,
+  schema: () => ChartSchema,
   readonly: [],
   immutable: {
     id: 'Field "id" is immutable',

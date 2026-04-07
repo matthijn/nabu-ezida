@@ -463,6 +463,7 @@ export default function ProjectLayout() {
         searchValue={exhibitSearchValue}
         onSearchChange={setExhibitSearchValue}
         onExhibitSelect={handleExhibitSelect}
+        onNew={() => undefined}
       />
     ),
     search: (

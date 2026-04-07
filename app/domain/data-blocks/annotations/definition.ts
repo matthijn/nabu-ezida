@@ -1,13 +1,9 @@
-import { AnnotationsBlockSchema, type AnnotationsBlock } from "./schema"
+import { annotationsBlockSchema, type AnnotationsBlock } from "./schema"
 import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
-import type { ValidationContext } from "~/lib/data-blocks/validate"
-import {
-  validateAnnotations,
-  patchAnnotationRequired,
-} from "~/domain/data-blocks/attributes/annotations/validation"
+import { patchAnnotationRequired } from "~/domain/data-blocks/attributes/schema"
 
-export const jsonAnnotations: BlockTypeConfig<AnnotationsBlock, ValidationContext> = {
-  schema: AnnotationsBlockSchema,
+export const jsonAnnotations: BlockTypeConfig<AnnotationsBlock> = {
+  schema: annotationsBlockSchema,
   readonly: [],
   immutable: {},
   constraints: [
@@ -22,5 +18,4 @@ export const jsonAnnotations: BlockTypeConfig<AnnotationsBlock, ValidationContex
   actorPaths: [{ path: "annotations.*.actor" }],
   fuzzyFields: ["annotations.*.text"],
   patchSchema: patchAnnotationRequired,
-  validate: (parsed, context) => validateAnnotations(parsed.annotations, context),
 }

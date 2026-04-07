@@ -5,15 +5,12 @@ import {
   getImmutableFields,
   getAllowedFiles,
 } from "~/lib/data-blocks/registry"
-import type { AsyncValidationContext } from "./definition"
+import type { AsyncValidationContext, ValidationContext } from "./definition"
 import { parseCodeBlocks, extractProse, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
+import { recoverArrayItems } from "./query"
 
-export interface ValidationContext {
-  documentProse: string
-  availableCodes: { id: string; name: string }[]
-  availableTags: { id: string; label: string }[]
-}
+export type { ValidationContext } from "./definition"
 
 export interface ValidationError {
   block: string
@@ -23,9 +20,11 @@ export interface ValidationError {
   hint?: Record<string, string>
 }
 
-interface ValidationResult {
+export interface ValidationResult {
   valid: boolean
   errors: ValidationError[]
+  warnings: string[]
+  recoveredMarkdown?: string
 }
 
 export interface ValidateOptions {
@@ -41,6 +40,8 @@ export const validateMarkdownBlocks = (
 ): ValidationResult => {
   const blocks = parseCodeBlocks(markdown)
   const errors: ValidationError[] = []
+  const warnings: string[] = []
+  let currentMarkdown = markdown
 
   errors.push(...validateSingletons(markdown))
 
@@ -63,9 +64,14 @@ export const validateMarkdownBlocks = (
       continue
     }
 
-    const schemaErrors = validateBlockSchema(block.language, block.content)
-    const semanticErrors = validateBlockSemantic(block.language, block.content, context)
-    const blockErrors = [...schemaErrors, ...semanticErrors]
+    const blockResult = validateBlockSchema(block.language, block.content, context)
+    let blockErrors = blockResult.errors
+
+    if (blockResult.recovered) {
+      warnings.push(...blockResult.droppedWarnings)
+      currentMarkdown = replaceBlockContent(currentMarkdown, block, blockResult.recovered)
+      blockErrors = []
+    }
 
     if (options.original) {
       const findResult = findOriginalBlock(block, originalBlocksByLanguage)
@@ -95,7 +101,13 @@ export const validateMarkdownBlocks = (
     errors.push(...detectOrphanedIds(blocks, originalBlocksByLanguage))
   }
 
-  return { valid: errors.length === 0, errors }
+  const hasRecovery = currentMarkdown !== markdown
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    ...(hasRecovery && { recoveredMarkdown: currentMarkdown }),
+  }
 }
 
 export const formatValidationErrors = (errors: ValidationError[]): string =>
@@ -117,14 +129,14 @@ export const validateBlocksAsync = async (
     const config = getBlockConfig(block.language)
     if (!config?.asyncValidate) continue
 
-    const result = config.schema.safeParse(tryParseJson(block.content))
+    const result = config.schema().safeParse(tryParseJson(block.content))
     if (!result.success) continue
 
     const asyncErrors = await config.asyncValidate(result.data, context)
     errors.push(...asyncErrors)
   }
 
-  return { valid: errors.length === 0, errors }
+  return { valid: errors.length === 0, errors, warnings: [] }
 }
 
 const formatBlock = (language: string, content: string): string =>
@@ -143,46 +155,78 @@ const validateFileConstraint = (
   }
 }
 
-const validateBlockSchema = (language: string, content: string): ValidationError[] => {
+interface BlockSchemaResult {
+  errors: ValidationError[]
+  recovered?: string
+  droppedWarnings: string[]
+}
+
+const extractHint = (issue: { params?: unknown }): Record<string, string> | undefined => {
+  const params = issue.params as Record<string, unknown> | undefined
+  return params?.hint as Record<string, string> | undefined
+}
+
+const issueToError = (
+  language: string,
+  issue: { path: PropertyKey[]; message: string; params?: unknown }
+): ValidationError => {
+  const hint = extractHint(issue)
+  return {
+    block: language,
+    field: issue.path.map(String).join("."),
+    message: issue.message,
+    ...(hint && { hint }),
+  }
+}
+
+const isRecoverableObject = (json: unknown): json is Record<string, unknown> =>
+  typeof json === "object" && json !== null && !Array.isArray(json)
+
+const validateBlockSchema = (
+  language: string,
+  content: string,
+  context?: ValidationContext
+): BlockSchemaResult => {
   const config = getBlockConfig(language)
-  if (!config) return []
+  if (!config) return { errors: [], droppedWarnings: [] }
 
   let parsed: unknown
   try {
     parsed = JSON.parse(content)
   } catch (e) {
     const reason = e instanceof SyntaxError ? e.message : "Unknown error"
-    return [{ block: language, message: `Invalid JSON: ${reason}` }]
+    return {
+      errors: [{ block: language, message: `Invalid JSON: ${reason}` }],
+      droppedWarnings: [],
+    }
   }
 
-  const result = config.schema.safeParse(parsed)
-  if (!result.success) {
-    return result.error.issues.map((issue) => ({
-      block: language,
-      field: issue.path.join("."),
-      message: issue.message,
-    }))
+  const schema = config.schema(context)
+  const result = schema.safeParse(parsed)
+
+  if (result.success) return { errors: [], droppedWarnings: [] }
+
+  const errors = result.error.issues.map((issue) => issueToError(language, issue))
+
+  if (isRecoverableObject(parsed)) {
+    const recovered = recoverArrayItems(parsed, schema)
+    if (recovered) {
+      const droppedWarnings = result.error.issues.map((i) => i.message)
+      return {
+        errors: [],
+        recovered: JSON.stringify(recovered, null, "\t"),
+        droppedWarnings,
+      }
+    }
   }
 
-  return []
+  return { errors, droppedWarnings: [] }
 }
 
-const validateBlockSemantic = (
-  language: string,
-  content: string,
-  context: ValidationContext
-): ValidationError[] => {
-  const config = getBlockConfig(language)
-  if (!config?.validate) return []
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(content)
-  } catch {
-    return []
-  }
-
-  return config.validate(parsed, context)
+const replaceBlockContent = (markdown: string, block: CodeBlock, newContent: string): string => {
+  const header = `\`\`\`${block.language}\n`
+  const footer = `\n\`\`\``
+  return markdown.slice(0, block.start) + header + newContent + footer + markdown.slice(block.end)
 }
 
 const validateSingletons = (markdown: string): ValidationError[] => {

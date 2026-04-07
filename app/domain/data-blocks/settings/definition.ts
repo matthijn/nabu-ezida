@@ -1,11 +1,9 @@
-import { Settings } from "./schema"
+import { settingsSchema, type Settings } from "./schema"
 import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
-import type { ValidationContext } from "~/lib/data-blocks/validate"
-import { validateTagLabels } from "./tags/validation"
 import { validateSearchSql } from "./searches/validation"
 
-export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
-  schema: Settings,
+export const jsonSettings: BlockTypeConfig<Settings> = {
+  schema: settingsSchema,
   readonly: [],
   immutable: {},
   constraints: ["tags: each tag label must be unique"],
@@ -17,5 +15,5 @@ export const jsonSettings: BlockTypeConfig<Settings, ValidationContext> = {
     { path: "tags.*.id", prefix: "tag" },
     { path: "searches.*.id", prefix: "search" },
   ],
-  validate: (parsed) => [...validateTagLabels(parsed), ...validateSearchSql(parsed)],
+  asyncValidate: async (parsed) => validateSearchSql(parsed),
 }

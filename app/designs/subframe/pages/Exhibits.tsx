@@ -15,7 +15,6 @@ import { FeatherCheck } from "@subframe/core";
 import { FeatherChevronDown } from "@subframe/core";
 import { FeatherChevronLeft } from "@subframe/core";
 import { FeatherChevronRight } from "@subframe/core";
-import { FeatherCircle } from "@subframe/core";
 import { FeatherCode } from "@subframe/core";
 import { FeatherCode2 } from "@subframe/core";
 import { FeatherCopy } from "@subframe/core";
@@ -31,7 +30,6 @@ import { FeatherLink } from "@subframe/core";
 import { FeatherList } from "@subframe/core";
 import { FeatherListChecks } from "@subframe/core";
 import { FeatherListOrdered } from "@subframe/core";
-import { FeatherLoader2 } from "@subframe/core";
 import { FeatherLock } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import { FeatherPalette } from "@subframe/core";
@@ -427,6 +425,22 @@ function Exhibits() {
                       multiple paragraphs and detailed explanations without
                       consuming excessive ink when printed.
                     </span>
+                    <BarChart
+                      categories={["Loss Rate"]}
+                      data={[
+                        { Region: "Amazon Basin", "Loss Rate": 17.3 },
+                        { Region: "Congo Rainforest", "Loss Rate": 12.1 },
+                        { Region: "Southeast Asia", "Loss Rate": 23.7 },
+                        { Region: "Madagascar", "Loss Rate": 8.4 },
+                      ]}
+                      index={"Region"}
+                    />
+                    <span className="text-caption font-caption text-subtext-color italic">
+                      Figure 1: Deforestation Rates by Region
+                    </span>
+                    <span className="text-caption font-caption text-subtext-color italic">
+                      Box 1: Methodological Framework
+                    </span>
                   </div>
                   <SubframeCore.DropdownMenu.Root>
                     <SubframeCore.DropdownMenu.Trigger asChild={true}>
@@ -470,6 +484,50 @@ function Exhibits() {
                 </div>
               </div>
             </div>
+            <div className="flex w-full items-center gap-4 py-2">
+              <div className="flex h-px grow shrink-0 basis-0 items-start bg-neutral-border" />
+              <span className="text-caption font-caption text-subtext-color">
+                Unhovered state
+              </span>
+              <div className="flex h-px grow shrink-0 basis-0 items-start bg-neutral-border" />
+            </div>
+            <div className="flex w-full items-start relative">
+              <div className="flex w-1 flex-none flex-col items-center gap-2 rounded-l-lg bg-[#3b82f6] absolute left-0 top-0 bottom-0" />
+              <div className="flex grow shrink-0 basis-0 flex-col items-start gap-4 pl-5 pr-4 py-4">
+                <div className="flex w-full items-start gap-3">
+                  <FeatherBook className="text-heading-3 font-heading-3 text-[#3b82f6]" />
+                  <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2">
+                    <span className="text-heading-2 font-heading-2 text-default-font">
+                      Codebook Reference
+                    </span>
+                    <span className="text-body font-body text-default-font">
+                      This code refers to instances where participants discuss
+                      systematic approaches to data collection. It includes
+                      references to methodology and structured frameworks used
+                      in qualitative research. The content can extend to
+                      multiple paragraphs and detailed explanations without
+                      consuming excessive ink when printed.
+                    </span>
+                    <BarChart
+                      categories={["Loss Rate"]}
+                      data={[
+                        { Region: "Amazon Basin", "Loss Rate": 17.3 },
+                        { Region: "Congo Rainforest", "Loss Rate": 12.1 },
+                        { Region: "Southeast Asia", "Loss Rate": 23.7 },
+                        { Region: "Madagascar", "Loss Rate": 8.4 },
+                      ]}
+                      index={"Region"}
+                    />
+                    <span className="text-caption font-caption text-subtext-color italic">
+                      Figure 1: Deforestation Rates by Region
+                    </span>
+                    <span className="text-caption font-caption text-subtext-color italic">
+                      Box 1: Methodological Framework
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="flex w-full flex-col items-start gap-4 relative">
               <IconButton
                 className="absolute -left-12 top-0"
@@ -488,78 +546,6 @@ function Exhibits() {
                 we identify key drivers of degradation and propose
                 evidence-based interventions for biodiversity preservation.
               </span>
-            </div>
-            <div className="flex w-full flex-col items-start gap-3 rounded-lg border-2 border-solid border-brand-50 bg-brand-50 px-4 py-4">
-              <div className="flex w-full items-center gap-3">
-                <Avatar variant="brand" size="small" image="">
-                  N
-                </Avatar>
-                <FeatherSparkles className="text-body font-body text-brand-600" />
-              </div>
-              <TextField
-                className="h-auto w-full flex-none"
-                variant="filled"
-                label=""
-                helpText=""
-              >
-                <TextField.Input
-                  placeholder="Can you fetch some info from research papers online which supports my claim?"
-                  value=""
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {}}
-                />
-              </TextField>
-              <div className="flex w-full flex-col items-start gap-2 rounded-lg bg-default-background px-3 py-3">
-                <div className="flex w-full items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FeatherLoader2 className="text-body font-body text-brand-600" />
-                    <span className="text-caption-bold font-caption-bold text-default-font">
-                      Working on it...
-                    </span>
-                  </div>
-                  <IconButton
-                    size="small"
-                    icon={<FeatherChevronDown />}
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                  />
-                </div>
-                <div className="flex w-full flex-col items-start gap-2 pl-6">
-                  <div className="flex w-full items-center gap-2">
-                    <FeatherCheck className="text-caption font-caption text-success-600" />
-                    <span className="text-caption font-caption text-subtext-color">
-                      Searched 47 research papers
-                    </span>
-                  </div>
-                  <div className="flex w-full items-center gap-2">
-                    <FeatherLoader2 className="text-caption font-caption text-brand-600" />
-                    <span className="text-caption font-caption text-subtext-color">
-                      Analyzing relevant citations
-                    </span>
-                  </div>
-                  <div className="flex w-full items-center gap-2">
-                    <FeatherCircle className="text-caption font-caption text-neutral-400" />
-                    <span className="text-caption font-caption text-neutral-400">
-                      Formatting results
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex w-full items-center justify-end gap-2">
-                <Button
-                  variant="neutral-tertiary"
-                  size="small"
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                >
-                  Follow up
-                </Button>
-                <Button
-                  variant="neutral-secondary"
-                  size="small"
-                  icon={<FeatherX />}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-                >
-                  Cancel
-                </Button>
-              </div>
             </div>
             <div className="flex w-full flex-col items-start gap-4 relative">
               <IconButton
@@ -689,28 +675,6 @@ function Exhibits() {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex w-full flex-col items-start gap-4 relative">
-              <IconButton
-                className="absolute -left-12 top-0"
-                variant="brand-secondary"
-                size="small"
-                icon={<FeatherSparkles />}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {}}
-              />
-              <span className="text-heading-2 font-heading-2 text-default-font">
-                Deforestation Rates by Region
-              </span>
-              <BarChart
-                categories={["Loss Rate"]}
-                data={[
-                  { Region: "Amazon Basin", "Loss Rate": 17.3 },
-                  { Region: "Congo Rainforest", "Loss Rate": 12.1 },
-                  { Region: "Southeast Asia", "Loss Rate": 23.7 },
-                  { Region: "Madagascar", "Loss Rate": 8.4 },
-                ]}
-                index={"Region"}
-              />
             </div>
             <div className="flex w-full flex-col items-start gap-4 relative">
               <IconButton

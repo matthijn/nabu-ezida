@@ -2,7 +2,7 @@ import { CalloutSchema } from "./schema"
 import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
 
 export const jsonCallout: BlockTypeConfig = {
-  schema: CalloutSchema,
+  schema: () => CalloutSchema,
   readonly: [],
   immutable: {
     id: 'Field "id" is immutable and cannot be changed',
