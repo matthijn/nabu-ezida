@@ -24,7 +24,7 @@ export const inferChartSubtype = (options: Record<string, unknown>): ChartSubtyp
 
 const chartToExhibit = (chart: ChartBlock, filename: string): ExhibitItem => ({
   id: chart.id,
-  title: chart.title,
+  title: chart.caption.label,
   kind: "chart",
   subtype: inferChartSubtype(chart.options),
   documentId: filename,

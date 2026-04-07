@@ -18,14 +18,16 @@ const deduplicateByLabel = (tags: TagDefinition[]): TagDefinition[] => {
   return tags.filter((t) => (!seen.has(t.label) ? (seen.add(t.label), true) : false))
 }
 
+const BaseSettings = z.object({
+  tags: z.array(TagDefinition).optional(),
+  searches: z.array(SearchEntrySchema).optional(),
+})
+
 export const settingsSchema = () =>
-  z.object({
-    tags: z
-      .array(TagDefinition)
-      .optional()
-      .transform((tags) => (tags ? deduplicateByLabel(tags) : tags)),
-    searches: z.array(SearchEntrySchema).optional(),
-  })
+  BaseSettings.transform((s) => ({
+    ...s,
+    ...(s.tags !== undefined && { tags: deduplicateByLabel(s.tags) }),
+  }))
 
 export const Settings = settingsSchema()
-export type Settings = z.infer<typeof Settings>
+export type Settings = z.infer<typeof BaseSettings>

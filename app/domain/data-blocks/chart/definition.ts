@@ -48,7 +48,8 @@ export const jsonChart: BlockTypeConfig<ChartBlock> = {
   renderer: "chart",
   singleton: false,
   projected: false,
-  labelKey: "title",
+  labelKey: "caption.label",
+  captionType: "Figure",
   idPaths: [{ path: "id", prefix: "chart" }],
   asyncValidate: validateChartQuery,
 }

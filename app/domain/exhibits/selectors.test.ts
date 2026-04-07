@@ -34,7 +34,7 @@ describe("collectExhibits", () => {
   const chartBlock = (id: string, title: string, seriesType: string) =>
     JSON.stringify({
       id,
-      title,
+      caption: { label: title },
       query: "SELECT 1",
       tooltip: "",
       options: { series: [{ type: seriesType }] },

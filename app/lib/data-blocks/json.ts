@@ -31,3 +31,9 @@ export const tryParseJson = (content: string): Record<string, unknown> | null =>
 
 export const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v)
+
+export const getByPath = (obj: Record<string, unknown>, path: string): unknown =>
+  path.split(".").reduce<unknown>((acc, key) => {
+    if (acc !== null && typeof acc === "object") return (acc as Record<string, unknown>)[key]
+    return undefined
+  }, obj)

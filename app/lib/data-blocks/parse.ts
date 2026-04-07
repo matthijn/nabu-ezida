@@ -1,3 +1,5 @@
+import { getByPath } from "./json"
+
 export interface CodeBlock {
   language: string
   content: string
@@ -90,10 +92,10 @@ export const summarizeBlocks = (
   findBlocksByLanguage(markdown, language).reduce<BlockSummary[]>((acc, block) => {
     const parsed = parseBlockJson(block)
     if (!parsed.ok || !hasId(parsed.data)) return acc
-    const label =
-      labelKey && typeof (parsed.data as Record<string, unknown>)[labelKey] === "string"
-        ? ((parsed.data as Record<string, unknown>)[labelKey] as string)
-        : undefined
+    const rawLabel = labelKey
+      ? getByPath(parsed.data as Record<string, unknown>, labelKey)
+      : undefined
+    const label = typeof rawLabel === "string" ? rawLabel : undefined
     return [...acc, { id: parsed.data.id, label }]
   }, [])
 

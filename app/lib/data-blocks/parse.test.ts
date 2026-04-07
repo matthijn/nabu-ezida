@@ -206,6 +206,16 @@ describe("summarizeBlocks", () => {
       ],
     },
     {
+      name: "resolves dotted labelKey path",
+      doc: `${block("json-chart", '{"id":"ch_1","caption":{"label":"Revenue"}}')}\n${block("json-chart", '{"id":"ch_2","caption":{"label":"Growth"}}')}`,
+      language: "json-chart",
+      labelKey: "caption.label",
+      expected: [
+        { id: "ch_1", label: "Revenue" },
+        { id: "ch_2", label: "Growth" },
+      ],
+    },
+    {
       name: "empty for missing language",
       doc: multiDoc,
       language: "json-attributes",

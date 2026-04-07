@@ -183,7 +183,7 @@ describe("collectAllEntityIds", () => {
   const makeChart = (id: string) =>
     JSON.stringify({
       id,
-      title: "Test Chart",
+      caption: { label: "Test Chart" },
       query: "SELECT 1",
       tooltip: "{x}",
       options: {},

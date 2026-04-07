@@ -169,7 +169,7 @@ const resolveChartRef = (
     colors: CHART_COLORS,
     icon: resolveChartIcon(chart.options),
     url: buildEntityUrl(projectId, documentId, ref.id),
-    label: chart.title,
+    label: chart.caption.label,
   }
 }
 

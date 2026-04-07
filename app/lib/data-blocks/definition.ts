@@ -30,6 +30,7 @@ export interface BlockTypeConfig<T = unknown> {
   projected?: boolean
   allowedFiles?: string[]
   labelKey?: string
+  captionType?: string
   idPaths?: IdPathConfig[]
   actorPaths?: ActorPathConfig[]
   fuzzyFields?: string[]

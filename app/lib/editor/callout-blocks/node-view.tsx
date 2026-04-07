@@ -3,7 +3,9 @@
 import { useRef, useMemo, useEffect } from "react"
 import { useNodeViewContext, type NodeViewContentRef } from "@prosemirror-adapter/react"
 import type { DecorationSet } from "prosemirror-view"
-import { getBlockConfig } from "~/lib/data-blocks/registry"
+import type { Node as ProseMirrorNode } from "prosemirror-model"
+import { getBlockConfig, getCaptionType } from "~/lib/data-blocks/registry"
+import { findCaptionIndex, type CaptionEntry } from "~/lib/data-blocks/caption"
 import { parseCallout } from "~/domain/data-blocks/callout/schema"
 import { parseChart } from "~/domain/data-blocks/chart/schema"
 import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
@@ -44,6 +46,17 @@ const extractHighlights = (innerDecorations: unknown, textContent: string): High
       isSpotlight: d.spec?.spotlight === true,
     }))
     .filter((e) => e.text.length > 0)
+}
+
+const collectCaptionEntries = (doc: ProseMirrorNode): CaptionEntry[] => {
+  const entries: CaptionEntry[] = []
+  doc.forEach((node, offset) => {
+    const language = node.attrs?.language as string | undefined
+    if (!language) return
+    const ct = getCaptionType(language)
+    if (ct) entries.push({ captionType: ct, pos: offset })
+  })
+  return entries
 }
 
 export const CalloutNodeView = () => {
@@ -96,11 +109,23 @@ export const CalloutNodeView = () => {
   }
 
   if (isChart && chartData) {
+    const captionType = config?.captionType
+    const pos = getPos()
+    const captionIndex =
+      captionType && pos !== undefined
+        ? findCaptionIndex(collectCaptionEntries(view.state.doc), pos, captionType)
+        : 0
+
     return (
       <>
         {!isReadOnly && <BlockSpacer onClick={handleInsertBefore} />}
         <div contentEditable={false} data-id={chartData.id}>
-          <ChartBlockView data={chartData} onDelete={handleDelete} />
+          <ChartBlockView
+            data={chartData}
+            onDelete={handleDelete}
+            captionType={captionType}
+            captionIndex={captionIndex}
+          />
         </div>
       </>
     )

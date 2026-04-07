@@ -1,5 +1,6 @@
 import type { BlockTypeConfig, ActorPathConfig, IdPathConfig } from "./definition"
 import { toBlockSchema, type BlockSchemaDefinition } from "./json-schema"
+import { getByPath } from "./json"
 import { jsonAttributes } from "~/domain/data-blocks/attributes/definition"
 import { jsonSettings } from "~/domain/data-blocks/settings/definition"
 import { jsonCallout } from "~/domain/data-blocks/callout/definition"
@@ -29,6 +30,19 @@ export const isChartRenderer = (language: string): boolean =>
 export const isSingleton = (language: string): boolean => blockTypes[language]?.singleton ?? false
 
 export const getLabelKey = (language: string): string | undefined => blockTypes[language]?.labelKey
+
+export const getCaptionType = (language: string): string | undefined =>
+  blockTypes[language]?.captionType
+
+export const resolveBlockLabel = (
+  language: string,
+  parsed: Record<string, unknown>
+): string | null => {
+  const labelKey = blockTypes[language]?.labelKey
+  if (!labelKey) return null
+  const value = getByPath(parsed, labelKey)
+  return typeof value === "string" ? value : null
+}
 
 export const getImmutableFields = (language: string): Record<string, string> =>
   blockTypes[language]?.immutable ?? {}

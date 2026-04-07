@@ -2,9 +2,13 @@ import { z } from "zod"
 
 const containsSemanticCall = (sql: string): boolean => /\bSEMANTIC\s*\(/i.test(sql)
 
+const CaptionSchema = z.object({
+  label: z.string().describe("Caption label displayed below the chart, e.g. 'Revenue by Region'"),
+})
+
 export const ChartSchema = z.object({
   id: z.string(),
-  title: z.string().describe("Chart title displayed in header"),
+  caption: CaptionSchema,
   query: z
     .string()
     .describe("SQL query against database tables. Use $file for current filename.")
