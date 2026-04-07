@@ -16,6 +16,7 @@ export const recoverArrayItems = <T>(
   if (!baseResult.success) return null
 
   const recovered: Record<string, unknown> = { ...json }
+  let dropped = false
   for (const key of arrayKeys) {
     const items = json[key] as unknown[]
     recovered[key] = items.filter((item, i) => {
@@ -27,11 +28,14 @@ export const recoverArrayItems = <T>(
           "— got:",
           JSON.stringify(item)
         )
+        dropped = true
         return false
       }
       return true
     })
   }
+
+  if (!dropped) return null
 
   const finalResult = schema.safeParse(recovered)
   return finalResult.success ? finalResult.data : null

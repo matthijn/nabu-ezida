@@ -75,7 +75,7 @@ describe("recoverArrayItems", () => {
       },
     },
     {
-      name: "returns all items when all are valid",
+      name: "returns null when all items are valid (nothing to recover)",
       json: {
         items: [
           { id: "1", value: "a" },
@@ -84,8 +84,7 @@ describe("recoverArrayItems", () => {
       },
       schema: BlockSchema,
       check: (result) => {
-        const block = result as Block
-        expect(block.items).toHaveLength(2)
+        expect(result).toBeNull()
       },
     },
     {

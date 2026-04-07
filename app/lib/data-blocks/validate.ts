@@ -209,7 +209,8 @@ const validateBlockSchema = (
   const errors = result.error.issues.map((issue) => issueToError(language, issue))
 
   if (isRecoverableObject(parsed)) {
-    const recovered = recoverArrayItems(parsed, schema)
+    const baseSchema = config.schema()
+    const recovered = recoverArrayItems(parsed, baseSchema)
     if (recovered) {
       const droppedWarnings = result.error.issues.map((i) => i.message)
       return {
