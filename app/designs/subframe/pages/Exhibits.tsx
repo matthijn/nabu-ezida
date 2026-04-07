@@ -425,19 +425,6 @@ function Exhibits() {
                       multiple paragraphs and detailed explanations without
                       consuming excessive ink when printed.
                     </span>
-                    <BarChart
-                      categories={["Loss Rate"]}
-                      data={[
-                        { Region: "Amazon Basin", "Loss Rate": 17.3 },
-                        { Region: "Congo Rainforest", "Loss Rate": 12.1 },
-                        { Region: "Southeast Asia", "Loss Rate": 23.7 },
-                        { Region: "Madagascar", "Loss Rate": 8.4 },
-                      ]}
-                      index={"Region"}
-                    />
-                    <span className="text-caption font-caption text-subtext-color italic">
-                      Figure 1: Deforestation Rates by Region
-                    </span>
                     <span className="text-caption font-caption text-subtext-color italic">
                       Box 1: Methodological Framework
                     </span>
@@ -508,19 +495,6 @@ function Exhibits() {
                       multiple paragraphs and detailed explanations without
                       consuming excessive ink when printed.
                     </span>
-                    <BarChart
-                      categories={["Loss Rate"]}
-                      data={[
-                        { Region: "Amazon Basin", "Loss Rate": 17.3 },
-                        { Region: "Congo Rainforest", "Loss Rate": 12.1 },
-                        { Region: "Southeast Asia", "Loss Rate": 23.7 },
-                        { Region: "Madagascar", "Loss Rate": 8.4 },
-                      ]}
-                      index={"Region"}
-                    />
-                    <span className="text-caption font-caption text-subtext-color italic">
-                      Figure 1: Deforestation Rates by Region
-                    </span>
                     <span className="text-caption font-caption text-subtext-color italic">
                       Box 1: Methodological Framework
                     </span>
@@ -528,6 +502,23 @@ function Exhibits() {
                 </div>
               </div>
             </div>
+            <div className="flex h-px w-full flex-none items-start bg-neutral-border" />
+            <span className="text-heading-2 font-heading-2 text-default-font">
+              Deforestation Rates by Region
+            </span>
+            <BarChart
+              categories={["Loss Rate"]}
+              data={[
+                { Region: "Amazon Basin", "Loss Rate": 17.3 },
+                { Region: "Congo Rainforest", "Loss Rate": 12.1 },
+                { Region: "Southeast Asia", "Loss Rate": 23.7 },
+                { Region: "Madagascar", "Loss Rate": 8.4 },
+              ]}
+              index={"Region"}
+            />
+            <span className="text-caption font-caption text-subtext-color italic">
+              Figure 1: Deforestation Rates by Region
+            </span>
             <div className="flex w-full flex-col items-start gap-4 relative">
               <IconButton
                 className="absolute -left-12 top-0"
