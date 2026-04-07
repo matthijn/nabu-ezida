@@ -3,8 +3,8 @@ import { enhanceCategoryAxis } from "./enhancements/category-axis"
 
 export type { ChartColorMap }
 
-const TOOLTIP_FONT = "font-family:var(--font-body),sans-serif;"
-const DEFAULT_TOOLTIP = { trigger: "item", appendToBody: true, extraCssText: TOOLTIP_FONT }
+const TOOLTIP_CSS = "font-family:var(--font-body),sans-serif;max-width:320px;white-space:normal;"
+const DEFAULT_TOOLTIP = { trigger: "item", appendToBody: true, extraCssText: TOOLTIP_CSS }
 const DEFAULT_ANIMATION_DURATION = 300
 
 export const buildChartOption = (

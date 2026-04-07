@@ -18,7 +18,8 @@ describe("buildChartOption", () => {
         expect(r.tooltip).toEqual({
           trigger: "item",
           appendToBody: true,
-          extraCssText: "font-family:var(--font-body),sans-serif;",
+          extraCssText:
+            "font-family:var(--font-body),sans-serif;max-width:320px;white-space:normal;",
         })
         expect(r.animationDuration).toBe(300)
         expect(r.dataset).toEqual({ source: [{ code: "A", count: 5 }] })

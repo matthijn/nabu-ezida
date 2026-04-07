@@ -1,30 +1,27 @@
 "use client"
 
-import {
-  type ComponentType,
-  createElement,
-  useRef,
-  useEffect,
-  useSyncExternalStore,
-  useState,
-} from "react"
+import { createElement, useRef, useEffect, useSyncExternalStore, useState } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { useNavigate, useParams } from "react-router"
+import Markdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Trash2, BarChart3, FileText, MapPin } from "lucide-react"
 import { echarts } from "~/lib/chart/register"
 import { resolveSqlPlaceholders } from "~/lib/db/resolve"
 import { buildChartOption, type ChartColorMap } from "~/lib/chart/options"
 import {
   extractEntityIdsFromRows,
-  injectEntityLabels,
+  extractEntityIdsFromText,
   findEntityInRow,
   type ChartEntityMap,
 } from "~/lib/chart/entities"
+import { enhanceEntityLabels } from "~/lib/chart/enhancements/entity-labels"
 import { executeQuery } from "~/lib/db/query"
 import { getDatabase, subscribeSyncRevision, getSyncRevision } from "~/domain/db/database"
 import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 import { resolveRadixHex, resolveCssColorHex } from "~/ui/theme/radix"
 import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
+import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { useFilePath } from "~/ui/components/editor/FilePathContext"
 import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
 import { useFiles } from "~/ui/hooks/useFiles"
@@ -57,31 +54,55 @@ const buildColorMap = (rows: Record<string, unknown>[]): ChartColorMap => {
   return map
 }
 
+const extractSeriesNames = (options: Record<string, unknown>): string[] => {
+  const series = options.series
+  if (!Array.isArray(series)) return []
+  return series
+    .map((s: Record<string, unknown>) => s.name)
+    .filter((n): n is string => typeof n === "string")
+}
+
 const resolveChartEntityMap = (
   rows: Record<string, unknown>[],
+  tooltipTemplate: string,
+  options: Record<string, unknown>,
   files: Record<string, string>,
   projectId: string | undefined
 ): ChartEntityMap => {
   if (!projectId) return {}
   const prefixes = getEntityPrefixes()
-  const entityIds = extractEntityIdsFromRows(rows, prefixes)
+  const textSources = [tooltipTemplate, ...extractSeriesNames(options)].join("\n")
+  const entityIds = [
+    ...new Set([
+      ...extractEntityIdsFromRows(rows, prefixes),
+      ...extractEntityIdsFromText(textSources, prefixes),
+    ]),
+  ]
   if (entityIds.length === 0) return {}
 
   const map: ChartEntityMap = {}
   for (const id of entityIds) {
     const resolved = resolveEntityLink(`file://${id}`, files, projectId, ENTITY_ICONS)
     if (!resolved) continue
-    const LucideIcon = resolved.icon as ComponentType<{ size?: number }>
-    const iconSvg = renderToStaticMarkup(createElement(LucideIcon, { size: 12 }))
     map[id] = {
       label: resolved.label,
       url: resolved.url,
       textColor: resolveCssColorHex(resolved.colors.text),
       backgroundColor: resolveCssColorHex(resolved.colors.background),
-      iconSvg,
     }
   }
   return map
+}
+
+const remarkPlugins = [remarkGfm]
+
+const buildTooltipRenderer = (
+  files: Record<string, string>,
+  projectId: string | null
+): ((md: string) => string) => {
+  const components = createEntityLinkComponents({ files, projectId })
+  return (md: string): string =>
+    renderToStaticMarkup(createElement(Markdown, { remarkPlugins, components }, md))
 }
 
 const isAxisLabel = (params: Record<string, unknown>): boolean =>
@@ -150,8 +171,19 @@ export const ChartBlockView = ({ data, onDelete }: ChartBlockViewProps) => {
     const instance = instanceRef.current
     const colorMap = buildColorMap(chartState.rows)
     const option = buildChartOption(data.options, chartState.rows, colorMap)
-    const entityMap = resolveChartEntityMap(chartState.rows, files, projectId)
-    const enrichedOption = injectEntityLabels(option, entityMap, data.tooltip)
+    const entityMap = resolveChartEntityMap(
+      chartState.rows,
+      data.tooltip,
+      data.options,
+      files,
+      projectId
+    )
+    const renderHtml = buildTooltipRenderer(files, projectId ?? null)
+    const enrichedOption = enhanceEntityLabels(option, {
+      entityMap,
+      tooltipTemplate: data.tooltip,
+      renderHtml,
+    })
     instance.setOption(enrichedOption, true)
 
     const hasEntities = Object.keys(entityMap).length > 0
