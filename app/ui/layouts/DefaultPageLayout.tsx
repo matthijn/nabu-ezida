@@ -10,13 +10,13 @@ import {
   type MouseEvent,
 } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Book, Files, Search } from "lucide-react"
+import { BarChart3, Book, Files, Search } from "lucide-react"
 import { MainSidebar } from "~/ui/components/sidebar/main"
 import type { NavItem } from "~/ui/components/sidebar/main"
 import { useResizable } from "~/ui/hooks/useResizable"
 import { cn } from "~/ui/utils"
 
-type ActiveNav = "documents" | "search" | "codes"
+type ActiveNav = "documents" | "search" | "exhibits" | "codes"
 
 interface DefaultPageLayoutProps {
   children?: ReactNode
@@ -43,6 +43,13 @@ const buildNavItems = (
       label: "Documents",
 
       selected: hoveredNav === "documents",
+    },
+    {
+      id: "exhibits",
+      icon: <BarChart3 />,
+      label: "Exhibits",
+
+      selected: hoveredNav === "exhibits",
     },
     {
       id: "search",

@@ -9,6 +9,7 @@ import {
   type DocSortMode,
 } from "~/ui/components/sidebar/documents/DocumentsSidebar"
 import { CodesSidebar, type Code } from "~/ui/components/sidebar/codes"
+import { ExhibitsSidebar } from "~/ui/components/sidebar/exhibits"
 import { SearchSidebar } from "~/ui/components/sidebar/search"
 import {
   getSearchEntries,
@@ -52,6 +53,8 @@ import { HIDDEN_TAG_ID, HIDDEN_TAG } from "~/domain/data-blocks/settings/tags/hi
 import { buildIdentifierResolver } from "~/lib/files/selectors"
 import { findSearchById } from "~/domain/data-blocks/settings/searches/selectors"
 import type { SearchEntry } from "~/domain/search"
+import { collectExhibits } from "~/domain/exhibits/selectors"
+import type { ExhibitItem } from "~/domain/exhibits/types"
 import { formatShortDate } from "~/lib/format/date"
 import { getSettings, setSetting } from "~/lib/storage"
 
@@ -179,6 +182,7 @@ export default function ProjectLayout() {
   const dismissSidebarRef = useRef<(() => void) | null>(null)
   const [activeNav, setActiveNav] = useState<ActiveNav>("documents")
   const [searchValue, setSearchValue] = useState("")
+  const [exhibitSearchValue, setExhibitSearchValue] = useState("")
   const [docSortMode, setDocSortMode] = useState<DocSortMode>(() => getSettings().docSortMode)
   const [debugOptions, setDebugOptions] = useState<DebugOptions>(loadDebugOptions)
   const [loading, setLoading] = useState(true)
@@ -359,6 +363,8 @@ export default function ProjectLayout() {
     !!debugOptions.expanded
   )
 
+  const exhibits = useMemo(() => collectExhibits(files), [files])
+
   const handleDocSortChange = useCallback((mode: DocSortMode) => {
     setDocSortMode(mode)
     setSetting("docSortMode", mode)
@@ -405,6 +411,14 @@ export default function ProjectLayout() {
     )
   }
 
+  const handleExhibitSelect = (exhibit: ExhibitItem) => {
+    if (!params.projectId) return
+    dismissSidebarRef.current?.()
+    navigate(
+      `/project/${params.projectId}/file/${encodeURIComponent(exhibit.documentId)}?entity=${exhibit.id}`
+    )
+  }
+
   const reviewCount = useMemo(() => getReviewAnnotationCount(files), [files])
 
   const handleReviewClick = () => {
@@ -441,6 +455,14 @@ export default function ProjectLayout() {
         onSortChange={handleDocSortChange}
         onDocumentSelect={handleDocumentSelect}
         onNewDocument={() => undefined}
+      />
+    ),
+    exhibits: (
+      <ExhibitsSidebar
+        exhibits={exhibits}
+        searchValue={exhibitSearchValue}
+        onSearchChange={setExhibitSearchValue}
+        onExhibitSelect={handleExhibitSelect}
       />
     ),
     search: (

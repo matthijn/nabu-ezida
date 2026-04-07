@@ -1,0 +1,160 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import type { ExhibitItem, ExhibitKind } from "~/domain/exhibits/types"
+import { groupByKind, type ExhibitGroup } from "~/domain/exhibits/selectors"
+import { EXHIBIT_KINDS, resolveExhibitConfig } from "./registry"
+import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
+import { Badge } from "~/ui/components/Badge"
+import { ExhibitItem as ExhibitItemRow } from "./ExhibitItem"
+import { matchesAny } from "~/lib/utils/filter"
+import {
+  elementBackground,
+  solidBackground,
+  lowContrastText,
+  highContrastText,
+} from "~/ui/theme/radix"
+
+export interface ExhibitsSidebarProps {
+  exhibits: ExhibitItem[]
+  selectedId?: string
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  onExhibitSelect?: (exhibit: ExhibitItem) => void
+}
+
+const compareByName = (a: ExhibitItem, b: ExhibitItem): number => a.title.localeCompare(b.title)
+
+const sortByName = (groups: ExhibitGroup[]): ExhibitGroup[] =>
+  groups.map((g) => ({ ...g, items: [...g.items].sort(compareByName) }))
+
+const filterGroups = (groups: ExhibitGroup[], query: string): ExhibitGroup[] => {
+  if (query.length === 0) return groups
+  return groups.reduce<ExhibitGroup[]>((acc, { kind, items }) => {
+    const kindConfig = EXHIBIT_KINDS[kind]
+    const kindMatches = matchesAny(query, [kindConfig.display])
+    if (kindMatches) {
+      acc.push({ kind, items })
+      return acc
+    }
+    const matchingItems = items.filter((item) =>
+      matchesAny(query, [item.title, item.documentTitle])
+    )
+    if (matchingItems.length > 0) acc.push({ kind, items: matchingItems })
+    return acc
+  }, [])
+}
+
+export function ExhibitsSidebar({
+  exhibits,
+  selectedId,
+  searchValue = "",
+  onSearchChange,
+  onExhibitSelect,
+}: ExhibitsSidebarProps) {
+  const [hoveredKind, setHoveredKind] = useState<ExhibitKind | null>(null)
+
+  const rawGroups = useMemo(() => groupByKind(exhibits), [exhibits])
+  const sortedGroups = useMemo(() => sortByName(rawGroups), [rawGroups])
+  const groups = useMemo(() => filterGroups(sortedGroups, searchValue), [sortedGroups, searchValue])
+
+  const hoveredGroup = hoveredKind ? groups.find((g) => g.kind === hoveredKind) : null
+  const hoveredConfig = hoveredKind ? EXHIBIT_KINDS[hoveredKind] : null
+  const HoveredIcon = hoveredConfig?.icon
+
+  return (
+    <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
+      <SidebarHeader
+        title="Exhibits"
+        filterPlaceholder="Filter exhibits..."
+        filterValue={searchValue}
+        onFilterChange={(v) => onSearchChange?.(v)}
+      />
+      <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
+        {groups.map(({ kind, items }) => {
+          const config = EXHIBIT_KINDS[kind]
+          const KindIcon = config.icon
+          const isHovered = hoveredKind === kind
+          return (
+            <div
+              key={kind}
+              className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
+              style={isHovered ? { backgroundColor: elementBackground(config.color) } : undefined}
+              onMouseEnter={() => setHoveredKind(kind)}
+            >
+              {isHovered && (
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1"
+                  style={{ backgroundColor: solidBackground(config.color) }}
+                />
+              )}
+              <span className="flex-none" style={{ color: lowContrastText(config.color) }}>
+                <KindIcon className="text-body font-body" />
+              </span>
+              <span
+                className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
+                style={isHovered ? { color: highContrastText(config.color) } : undefined}
+              >
+                {config.display}
+              </span>
+              <Badge variant="neutral" className="flex-none">
+                {items.length}
+              </Badge>
+            </div>
+          )
+        })}
+      </div>
+
+      <AnimatePresence>
+        {hoveredGroup && hoveredConfig && HoveredIcon && (
+          <motion.div
+            key="exhibits-panel"
+            initial={{ x: -12, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -12, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+            className="absolute left-full top-0 h-full w-72 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
+          >
+            <div
+              className="flex w-full items-center gap-2 border-b-2 border-solid px-4 py-4"
+              style={{
+                backgroundColor: elementBackground(hoveredConfig.color),
+                borderColor: solidBackground(hoveredConfig.color),
+              }}
+            >
+              <span className="flex-none" style={{ color: lowContrastText(hoveredConfig.color) }}>
+                <HoveredIcon className="text-body font-body" />
+              </span>
+              <span
+                className="text-heading-3 font-heading-3"
+                style={{ color: highContrastText(hoveredConfig.color) }}
+              >
+                {hoveredConfig.display}
+              </span>
+            </div>
+            <div className="flex w-full grow shrink-0 basis-0 flex-col items-start overflow-y-auto">
+              {hoveredGroup.items.map((item) => {
+                const itemConfig = resolveExhibitConfig(item.kind, item.subtype)
+                return (
+                  <ExhibitItemRow
+                    key={item.id}
+                    title={item.title}
+                    documentTitle={item.documentTitle}
+                    icon={itemConfig.icon}
+                    color={itemConfig.color}
+                    selected={item.id === selectedId}
+                    onClick={() => {
+                      onExhibitSelect?.(item)
+                      setHoveredKind(null)
+                    }}
+                  />
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
