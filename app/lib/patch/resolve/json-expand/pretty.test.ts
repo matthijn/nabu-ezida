@@ -56,6 +56,31 @@ describe("roundtrip", () => {
   })
 })
 
+describe("doubled triple quotes", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    {
+      name: "collapses doubled opening and closing markers",
+      input:
+        '```json-chart\n{\n\t"tooltip": """\n"""\n**{year}**\nCount: {count}\n"""\n"""\n}\n```',
+      expected: '```json-chart\n{\n\t"tooltip": "**{year}**\\nCount: {count}"\n}\n```',
+    },
+    {
+      name: "handles tripled markers",
+      input: '```json-chart\n{\n\t"tooltip": """\n"""\n"""\nhello\n"""\n"""\n"""\n}\n```',
+      expected: '```json-chart\n{\n\t"tooltip": "hello"\n}\n```',
+    },
+    {
+      name: "preserves valid single markers",
+      input: '```json-chart\n{\n\t"tooltip": """\nhello\n"""\n}\n```',
+      expected: '```json-chart\n{\n\t"tooltip": "hello"\n}\n```',
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(fromExtraPretty(input)).toBe(expected)
+  })
+})
+
 describe("fromExtraPretty error handling", () => {
   const errorCases = [
     {
