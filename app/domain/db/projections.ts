@@ -75,10 +75,14 @@ const embeddingsProjection: ProjectionConfig = {
   hiddenColumns: ["hash", "embedding"],
 }
 
-export const projections: ProjectionConfig[] = [
-  ...getProjectedConfigs().map(toProjectionConfig),
-  embeddingsProjection,
-]
+let _projections: ProjectionConfig[] | null = null
+
+export const getProjections = (): ProjectionConfig[] => {
+  if (!_projections) {
+    _projections = [...getProjectedConfigs().map(toProjectionConfig), embeddingsProjection]
+  }
+  return _projections
+}
 
 export const toJsonSchema = (config: ProjectionConfig): JsonSchema =>
   z.toJSONSchema(config.schema, { io: "input" }) as JsonSchema

@@ -4,11 +4,11 @@ import { initializeDatabase } from "~/lib/db/init"
 import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
 import { executeWithConnection } from "~/lib/db/query"
 import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
-import { projections, toJsonSchema } from "./projections"
+import { getProjections, toJsonSchema } from "./projections"
 import type { Database } from "~/lib/db/types"
 
 const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
-  projections.map((config) => {
+  getProjections().map((config) => {
     const jsonSchema = toJsonSchema(config)
     const { schemas } = jsonSchemaToTableProjection(config.tableName, jsonSchema)
     return { config, jsonSchema, schemas }

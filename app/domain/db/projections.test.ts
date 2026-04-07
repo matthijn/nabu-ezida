@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { projections, toJsonSchema } from "./projections"
+import { getProjections, toJsonSchema } from "./projections"
 import type { ProjectionConfig } from "~/lib/db/projection"
 
 const findProjection = (language: string): ProjectionConfig => {
-  const p = projections.find((p) => p.language === language)
+  const p = getProjections().find((p) => p.language === language)
   if (!p) throw new Error(`No projection for ${language}`)
   return p
 }
