@@ -27,7 +27,7 @@ const resolveContent = (command: Command): ResolvedContent | undefined => {
     case "CreateFile":
       if (diff) {
         const result = applyFilePatch(path, "", diff, patchOptions)
-        if (result.status === "ok") return { path: result.path, content: result.content }
+        if (result.status !== "error") return { path: result.path, content: result.content }
         console.error(`[apply] createFile failed: "${path}"`, result.error)
         return undefined
       }
@@ -38,7 +38,7 @@ const resolveContent = (command: Command): ResolvedContent | undefined => {
       if (diff) {
         const current = getFileRaw(path)
         const result = applyFilePatch(path, current, diff, patchOptions)
-        if (result.status === "ok") return { path: result.path, content: result.content }
+        if (result.status !== "error") return { path: result.path, content: result.content }
         console.error(`[apply] updateFile failed: "${path}"`, result.error)
         return undefined
       }

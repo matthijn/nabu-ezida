@@ -135,3 +135,16 @@ describe("invalid", () => {
     }
   })
 })
+
+describe("partial", () => {
+  const scenarios = loadScenarios("partial")
+
+  it.each(scenarios)("$name", ({ path, content, patch, expected }) => {
+    const result = applyFilePatch(path, content, patch)
+    expect(result.status).toBe("partial")
+    if (result.status === "partial") {
+      expect(result.content).toBe(expected)
+      expect(result.warnings.length).toBeGreaterThan(0)
+    }
+  })
+})

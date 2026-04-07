@@ -39,9 +39,10 @@ This is some text about cats and dogs.
 {"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
         expectValid: true,
+        expectWarnings: false,
       },
       {
-        name: "rejects annotation when text not in prose",
+        name: "recovers when annotation text not in prose (drops bad item)",
         markdown: `# Document
 
 This document has no animals.
@@ -49,8 +50,9 @@ This document has no animals.
 \`\`\`json-annotations
 {"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
-        expectValid: false,
-        expectErrorContains: "not found in document",
+        expectValid: true,
+        expectWarnings: true,
+        expectWarningContains: "not found in document",
       },
       {
         name: "text match is case insensitive",
@@ -62,14 +64,18 @@ CATS are great.
 {"annotations": [{"text": "cats", "reason": "animal", "color": "red"}]}
 \`\`\``,
         expectValid: true,
+        expectWarnings: false,
       },
     ]
 
-    it.each(cases)("$name", ({ markdown, expectValid, expectErrorContains }) => {
+    it.each(cases)("$name", ({ markdown, expectValid, expectWarnings, expectWarningContains }) => {
       const result = validateMarkdownBlocks(markdown)
       expect(result.valid).toBe(expectValid)
-      if (!expectValid && expectErrorContains) {
-        expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+      if (expectWarnings) {
+        expect(result.warnings.length).toBeGreaterThan(0)
+      }
+      if (expectWarningContains) {
+        expect(result.warnings.some((w) => w.includes(expectWarningContains))).toBe(true)
       }
     })
   })
@@ -89,9 +95,10 @@ CATS are great.
           availableTags: [],
         },
         expectValid: true,
+        expectWarnings: false,
       },
       {
-        name: "rejects annotation when code not found",
+        name: "recovers when annotation code not found (drops bad item)",
         markdown: `# Test
 
 \`\`\`json-annotations
@@ -102,23 +109,81 @@ CATS are great.
           availableCodes: [{ id: "abc123", name: "Theme" }],
           availableTags: [],
         },
-        expectValid: false,
-        expectErrorContains: "not found",
-        expectHint: { Theme: "abc123" },
+        expectValid: true,
+        expectWarnings: true,
+        expectWarningContains: "not found",
       },
     ]
 
     it.each(cases)(
       "$name",
-      ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
+      ({ markdown, context, expectValid, expectWarnings, expectWarningContains }) => {
         const result = validateMarkdownBlocks(markdown, { context })
         expect(result.valid).toBe(expectValid)
-        if (!expectValid && expectErrorContains) {
-          expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
+        if (expectWarnings) {
+          expect(result.warnings.length).toBeGreaterThan(0)
         }
-        if (expectHint) {
-          const errorWithHint = result.errors.find((e) => e.hint)
-          expect(errorWithHint?.hint).toEqual(expectHint)
+        if (expectWarningContains) {
+          expect(result.warnings.some((w) => w.includes(expectWarningContains))).toBe(true)
+        }
+      }
+    )
+  })
+
+  describe("partial recovery", () => {
+    const cases = [
+      {
+        name: "keeps good annotations and drops bad ones",
+        markdown: `# Doc
+
+Here is some existing text to annotate.
+
+\`\`\`json-annotations
+{"annotations": [{"text": "existing text", "reason": "good", "color": "red"}, {"text": "nonexistent", "reason": "bad", "color": "blue"}]}
+\`\`\``,
+        expectValid: true,
+        expectRecoveredMarkdown: true,
+        expectWarnings: true,
+      },
+      {
+        name: "recoveredMarkdown contains only valid annotations",
+        markdown: `# Doc
+
+Hello world here.
+
+\`\`\`json-annotations
+{"annotations": [{"text": "Hello world", "reason": "greeting", "color": "red"}, {"text": "NOPE", "reason": "missing", "color": "blue"}]}
+\`\`\``,
+        expectValid: true,
+        expectRecoveredMarkdown: true,
+        expectRecoveredContains: "Hello world",
+        expectRecoveredNotContains: "NOPE",
+      },
+    ]
+
+    it.each(cases)(
+      "$name",
+      ({
+        markdown,
+        expectValid,
+        expectRecoveredMarkdown,
+        expectWarnings,
+        expectRecoveredContains,
+        expectRecoveredNotContains,
+      }) => {
+        const result = validateMarkdownBlocks(markdown)
+        expect(result.valid).toBe(expectValid)
+        if (expectRecoveredMarkdown) {
+          expect(result.recoveredMarkdown).toBeDefined()
+        }
+        if (expectWarnings) {
+          expect(result.warnings.length).toBeGreaterThan(0)
+        }
+        if (expectRecoveredContains) {
+          expect(result.recoveredMarkdown).toContain(expectRecoveredContains)
+        }
+        if (expectRecoveredNotContains) {
+          expect(result.recoveredMarkdown).not.toContain(expectRecoveredNotContains)
         }
       }
     )
@@ -135,18 +200,18 @@ CATS are great.
           availableTags: [{ id: "tag-abc", label: "interview" }],
         },
         expectValid: true,
+        expectWarnings: false,
       },
       {
-        name: "rejects tag when ID not in settings",
+        name: "recovers when tag ID not in settings (drops bad tag)",
         markdown: `# Doc\n\n\`\`\`json-attributes\n{"tags": ["tag-unknown"]}\n\`\`\``,
         context: {
           documentProse: "Doc",
           availableCodes: [],
           availableTags: [{ id: "tag-abc", label: "interview" }],
         },
-        expectValid: false,
-        expectErrorContains: "not defined in settings",
-        expectHint: { interview: "tag-abc" },
+        expectValid: true,
+        expectWarnings: true,
       },
       {
         name: "skips validation when no tags defined",
@@ -157,46 +222,26 @@ CATS are great.
           availableTags: [],
         },
         expectValid: true,
+        expectWarnings: false,
       },
     ]
 
     it.each(cases)(
       "$name",
-      ({ markdown, context, expectValid, expectErrorContains, expectHint }) => {
+      ({ markdown, context, expectValid, expectErrorContains, expectWarnings }) => {
         const result = validateMarkdownBlocks(markdown, { context })
         expect(result.valid).toBe(expectValid)
         if (!expectValid && expectErrorContains) {
           expect(result.errors.some((e) => e.message.includes(expectErrorContains))).toBe(true)
         }
-        if (expectHint) {
-          const errorWithHint = result.errors.find((e) => e.hint)
-          expect(errorWithHint?.hint).toEqual(expectHint)
+        if (expectWarnings) {
+          expect(result.warnings.length).toBeGreaterThan(0)
         }
       }
     )
   })
 
   describe("currentBlock in errors", () => {
-    it("includes original block content in error when validation fails", () => {
-      const original = `# Test
-
-\`\`\`json-annotations
-{"annotations": [{"text": "old one", "reason": "original", "color": "blue"}]}
-\`\`\``
-
-      const patched = `# Test
-
-\`\`\`json-annotations
-{"annotations": [{"text": "nonexistent", "reason": "test", "color": "red"}]}
-\`\`\``
-
-      const result = validateMarkdownBlocks(patched, { original })
-
-      expect(result.valid).toBe(false)
-      expect(result.errors[0].currentBlock).toContain("old one")
-      expect(result.errors[0].currentBlock).not.toContain("nonexistent")
-    })
-
     it("matches blocks by id for non-singleton blocks", () => {
       const validCallout1 =
         '{"id": "first", "type": "codebook-code", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
@@ -231,7 +276,6 @@ CATS are great.
       const result = validateMarkdownBlocks(patched, { original })
 
       expect(result.valid).toBe(false)
-      // Invalid block has id "second" - should match original with same id
       const secondBlockErrors = result.errors.filter((e) => e.currentBlock?.includes("Second"))
       expect(secondBlockErrors.length).toBeGreaterThan(0)
     })
@@ -261,7 +305,6 @@ CATS are great.
         '{"id": "bbb", "type": "codebook-code", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
       const invalidB = '{"id": "bbb", "type": "INVALID"}'
 
-      // Original order: A, B
       const original = [
         "```json-callout",
         calloutA,
@@ -272,7 +315,6 @@ CATS are great.
         "```",
       ].join("\n")
 
-      // Patched order: B (invalid), A - order swapped!
       const patched = [
         "```json-callout",
         invalidB,
@@ -286,7 +328,6 @@ CATS are great.
       const result = validateMarkdownBlocks(patched, { original })
 
       expect(result.valid).toBe(false)
-      // Should match by id "bbb" -> original BBB, not by index
       const errorWithCurrentBlock = result.errors.find((e) => e.currentBlock)
       expect(errorWithCurrentBlock?.currentBlock).toContain("BBB")
       expect(errorWithCurrentBlock?.currentBlock).not.toContain("AAA")
