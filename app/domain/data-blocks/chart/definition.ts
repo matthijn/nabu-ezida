@@ -4,6 +4,18 @@ import type { ValidationError } from "~/lib/data-blocks/validate"
 import { getDatabase } from "~/domain/db/database"
 import { executeQuery } from "~/lib/db/query"
 import { resolveSqlPlaceholders } from "~/lib/db/resolve"
+import { validateSqlEntityReferences } from "~/lib/data-blocks/ids"
+import { getEntityPrefixes } from "~/lib/data-blocks/registry"
+import { getFiles } from "~/lib/files/store"
+import { getKnownEntityIds } from "~/domain/data-blocks/entity-ids"
+
+const BLOCK = "json-chart"
+
+const toQueryError = (message: string): ValidationError => ({
+  block: BLOCK,
+  field: "query",
+  message,
+})
 
 const validateChartQuery = async (
   parsed: ChartBlock,
@@ -13,8 +25,16 @@ const validateChartQuery = async (
   if (!db) return []
 
   const sql = resolveSqlPlaceholders(parsed.query, { file: context.path })
+
+  const refErrors = validateSqlEntityReferences(
+    sql,
+    getEntityPrefixes(),
+    getKnownEntityIds(getFiles())
+  )
+  if (refErrors.length > 0) return refErrors.map(toQueryError)
+
   const result = await executeQuery(db.instance, sql)
-  if (!result.ok) return [{ block: "json-chart", field: "query", message: result.error.message }]
+  if (!result.ok) return [toQueryError(result.error.message)]
   return []
 }
 
