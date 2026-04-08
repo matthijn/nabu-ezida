@@ -16,22 +16,24 @@ interface CalloutBlockViewProps {
 export const CalloutBlockView = ({ data, onDelete }: CalloutBlockViewProps) => {
   const isReadOnly = useIsReadOnly()
   return (
-    <div className="flex w-full items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background relative my-2">
+    <div className="group/callout flex w-full items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background relative my-2">
       <div
         className="flex w-1 flex-none absolute left-0 top-0 bottom-0"
         style={{ backgroundColor: solidBackground(data.color as RadixColor) }}
       />
+      {!isReadOnly && (
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/callout:opacity-100 transition-opacity">
+          <IconButton
+            variant="neutral-tertiary"
+            size="small"
+            icon={<Trash2 />}
+            onClick={onDelete}
+          />
+        </div>
+      )}
       <div className="flex grow shrink-0 basis-0 flex-col items-start gap-4 pl-5 pr-4 py-4">
         <div className="flex w-full items-start gap-3">
           <CalloutContent data={data} />
-          {!isReadOnly && (
-            <IconButton
-              variant="neutral-tertiary"
-              size="small"
-              icon={<Trash2 />}
-              onClick={onDelete}
-            />
-          )}
         </div>
       </div>
     </div>

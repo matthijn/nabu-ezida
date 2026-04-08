@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Trash2, BarChart3, FileText, MapPin } from "lucide-react"
+import { Trash2, FileText, MapPin } from "lucide-react"
 import { echarts } from "~/lib/chart/register"
 import { resolveSqlPlaceholders } from "~/lib/db/resolve"
 import { buildChartOption, type ChartColorMap } from "~/lib/chart/options"
@@ -31,6 +31,8 @@ import type { ChartBlock } from "~/domain/data-blocks/chart/schema"
 interface ChartBlockViewProps {
   data: ChartBlock
   onDelete: () => void
+  captionType?: string
+  captionIndex: number
 }
 
 type ChartState =
@@ -110,7 +112,21 @@ const isAxisLabel = (params: Record<string, unknown>): boolean =>
 
 const isSeriesItem = (params: Record<string, unknown>): boolean => params.componentType === "series"
 
-export const ChartBlockView = ({ data, onDelete }: ChartBlockViewProps) => {
+const formatCaption = (
+  captionType: string | undefined,
+  captionIndex: number,
+  label: string
+): string => {
+  if (!captionType || captionIndex === 0) return label
+  return `${captionType} ${captionIndex}: ${label}`
+}
+
+export const ChartBlockView = ({
+  data,
+  onDelete,
+  captionType,
+  captionIndex,
+}: ChartBlockViewProps) => {
   const filePath = useFilePath()
   const isReadOnly = useIsReadOnly()
   const { files } = useFiles()
@@ -243,21 +259,17 @@ export const ChartBlockView = ({ data, onDelete }: ChartBlockViewProps) => {
   }, [])
 
   return (
-    <div className="flex w-full flex-col overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background my-2">
-      <div className="flex w-full items-center justify-between px-4 py-2 border-b border-neutral-border">
-        <div className="flex items-center gap-2 text-sm text-subtext-color">
-          <BarChart3 className="w-4 h-4" />
-          <span>{data.title}</span>
-        </div>
-        {!isReadOnly && (
+    <div className="group/chart flex w-full flex-col overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background my-2 relative">
+      {!isReadOnly && (
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/chart:opacity-100 transition-opacity">
           <IconButton
             variant="neutral-tertiary"
             size="small"
             icon={<Trash2 />}
             onClick={onDelete}
           />
-        )}
-      </div>
+        </div>
+      )}
       <div className="px-4 py-3">
         {chartState.status === "loading" && (
           <div
@@ -291,6 +303,13 @@ export const ChartBlockView = ({ data, onDelete }: ChartBlockViewProps) => {
           }}
         />
       </div>
+      {data.caption.label && (
+        <div className="px-4 pb-3">
+          <span className="text-caption font-caption text-subtext-color italic">
+            {formatCaption(captionType, captionIndex, data.caption.label)}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

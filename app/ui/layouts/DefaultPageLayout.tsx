@@ -36,44 +36,39 @@ const buildNavItems = (
   showCodes: boolean,
   reviewCount: number
 ): NavItem[][] => {
-  const primary: NavItem[] = [
+  const items: NavItem[] = [
     {
       id: "documents",
       icon: <Files />,
       label: "Documents",
-
       selected: hoveredNav === "documents",
     },
     {
       id: "exhibits",
       icon: <BarChart3 />,
       label: "Exhibits",
-
       selected: hoveredNav === "exhibits",
     },
+    ...(showCodes
+      ? [
+          {
+            id: "codes",
+            icon: <Book />,
+            label: "Codes",
+            selected: hoveredNav === "codes",
+            badge: reviewCount > 0 ? reviewCount : undefined,
+          },
+        ]
+      : []),
     {
       id: "search",
       icon: <Search />,
       label: "Search",
-
       selected: hoveredNav === "search",
     },
   ]
 
-  const secondary: NavItem[] = showCodes
-    ? [
-        {
-          id: "codes",
-          icon: <Book />,
-          label: "Codes",
-
-          selected: hoveredNav === "codes",
-          badge: reviewCount > 0 ? reviewCount : undefined,
-        },
-      ]
-    : []
-
-  return secondary.length > 0 ? [primary, secondary] : [primary]
+  return [items]
 }
 
 const HANDLE_WIDTH = 12
