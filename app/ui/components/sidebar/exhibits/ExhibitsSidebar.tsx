@@ -8,7 +8,7 @@ import { EXHIBIT_KINDS, resolveExhibitConfig } from "./registry"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { Badge } from "~/ui/components/Badge"
 import { ExhibitItem as ExhibitItemRow } from "./ExhibitItem"
-import { matchesAny } from "~/lib/utils/filter"
+import { matchesAllWords } from "~/lib/utils/filter"
 import {
   elementBackground,
   solidBackground,
@@ -30,22 +30,10 @@ const compareByName = (a: ExhibitItem, b: ExhibitItem): number => a.title.locale
 const sortByName = (groups: ExhibitGroup[]): ExhibitGroup[] =>
   groups.map((g) => ({ ...g, items: [...g.items].sort(compareByName) }))
 
-const filterGroups = (groups: ExhibitGroup[], query: string): ExhibitGroup[] => {
-  if (query.length === 0) return groups
-  return groups.reduce<ExhibitGroup[]>((acc, { kind, items }) => {
-    const kindConfig = EXHIBIT_KINDS[kind]
-    const kindMatches = matchesAny(query, [kindConfig.display])
-    if (kindMatches) {
-      acc.push({ kind, items })
-      return acc
-    }
-    const matchingItems = items.filter((item) =>
-      matchesAny(query, [item.title, item.documentTitle])
-    )
-    if (matchingItems.length > 0) acc.push({ kind, items: matchingItems })
-    return acc
-  }, [])
-}
+const filterExhibits = (exhibits: ExhibitItem[], query: string): ExhibitItem[] =>
+  [...exhibits]
+    .filter((item) => matchesAllWords(query, [item.title, item.documentTitle]))
+    .sort(compareByName)
 
 export function ExhibitsSidebar({
   exhibits,
@@ -56,17 +44,27 @@ export function ExhibitsSidebar({
   onNew,
 }: ExhibitsSidebarProps) {
   const [hoveredKind, setHoveredKind] = useState<ExhibitKind | null>(null)
+  const isFiltering = searchValue.trim().length > 0
 
   const rawGroups = useMemo(() => groupByKind(exhibits), [exhibits])
   const sortedGroups = useMemo(() => sortByName(rawGroups), [rawGroups])
-  const groups = useMemo(() => filterGroups(sortedGroups, searchValue), [sortedGroups, searchValue])
 
-  const hoveredGroup = hoveredKind ? groups.find((g) => g.kind === hoveredKind) : null
+  const filteredExhibits = useMemo(
+    () => (isFiltering ? filterExhibits(exhibits, searchValue) : []),
+    [exhibits, searchValue, isFiltering]
+  )
+
+  const hoveredGroup =
+    !isFiltering && hoveredKind ? sortedGroups.find((g) => g.kind === hoveredKind) : null
   const hoveredConfig = hoveredKind ? EXHIBIT_KINDS[hoveredKind] : null
   const HoveredIcon = hoveredConfig?.icon
 
   return (
-    <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
+    <motion.div
+      className="relative z-10 flex h-full flex-none flex-col items-start bg-default-background shadow-lg"
+      animate={{ width: isFiltering ? 288 : 256 }}
+      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+    >
       <SidebarHeader
         title="Exhibits"
         filterPlaceholder="Filter exhibits..."
@@ -75,38 +73,55 @@ export function ExhibitsSidebar({
         onNew={onNew}
       />
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
-        {groups.map(({ kind, items }) => {
-          const config = EXHIBIT_KINDS[kind]
-          const KindIcon = config.icon
-          const isHovered = hoveredKind === kind
-          return (
-            <div
-              key={kind}
-              className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
-              style={isHovered ? { backgroundColor: elementBackground(config.color) } : undefined}
-              onMouseEnter={() => setHoveredKind(kind)}
-            >
-              {isHovered && (
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-1"
-                  style={{ backgroundColor: solidBackground(config.color) }}
+        {isFiltering
+          ? filteredExhibits.map((item) => {
+              const itemConfig = resolveExhibitConfig(item.kind, item.subtype)
+              return (
+                <ExhibitItemRow
+                  key={item.id}
+                  title={item.title}
+                  documentTitle={item.documentTitle}
+                  icon={itemConfig.icon}
+                  color={itemConfig.color}
+                  selected={item.id === selectedId}
+                  onClick={() => onExhibitSelect?.(item)}
                 />
-              )}
-              <span className="flex-none" style={{ color: lowContrastText(config.color) }}>
-                <KindIcon className="text-body font-body" />
-              </span>
-              <span
-                className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
-                style={isHovered ? { color: highContrastText(config.color) } : undefined}
-              >
-                {config.display}
-              </span>
-              <Badge variant="neutral" className="flex-none">
-                {items.length}
-              </Badge>
-            </div>
-          )
-        })}
+              )
+            })
+          : sortedGroups.map(({ kind, items }) => {
+              const config = EXHIBIT_KINDS[kind]
+              const KindIcon = config.icon
+              const isHovered = hoveredKind === kind
+              return (
+                <div
+                  key={kind}
+                  className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
+                  style={
+                    isHovered ? { backgroundColor: elementBackground(config.color) } : undefined
+                  }
+                  onMouseEnter={() => setHoveredKind(kind)}
+                >
+                  {isHovered && (
+                    <div
+                      className="absolute left-0 top-0 bottom-0 w-1"
+                      style={{ backgroundColor: solidBackground(config.color) }}
+                    />
+                  )}
+                  <span className="flex-none" style={{ color: lowContrastText(config.color) }}>
+                    <KindIcon className="text-body font-body" />
+                  </span>
+                  <span
+                    className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
+                    style={isHovered ? { color: highContrastText(config.color) } : undefined}
+                  >
+                    {config.display}
+                  </span>
+                  <Badge variant="neutral" className="flex-none">
+                    {items.length}
+                  </Badge>
+                </div>
+              )
+            })}
       </div>
 
       <AnimatePresence>
@@ -158,6 +173,6 @@ export function ExhibitsSidebar({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }

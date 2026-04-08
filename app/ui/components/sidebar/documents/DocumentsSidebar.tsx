@@ -7,7 +7,7 @@ import { ArrowDownAZ, Calendar, Hash, Folder } from "lucide-react"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { Badge } from "~/ui/components/Badge"
-import { matchesAny } from "~/lib/utils/filter"
+import { matchesAny, matchesAllWords } from "~/lib/utils/filter"
 import {
   elementBackground,
   solidBackground,
@@ -98,6 +98,9 @@ const filterGroups = (groups: TagGroup[], query: string): TagGroup[] => {
   }, [])
 }
 
+const filterDocs = (docs: ListItem[], query: string, mode: DocSortMode): ListItem[] =>
+  [...docs].filter((doc) => matchesAllWords(query, [doc.title])).sort(docComparators[mode])
+
 const sortGroups = (
   groups: TagGroup[],
   activeTags: Set<string>,
@@ -156,6 +159,7 @@ export function DocumentsSidebar({
   onNewDocument,
 }: DocumentsSidebarProps) {
   const [hoveredTag, setHoveredTag] = useState<string | null>(null)
+  const isFiltering = searchValue.trim().length > 0
   const tagLookup = useMemo(() => buildTagLookup(tagDefinitions ?? []), [tagDefinitions])
 
   const unsortedGroups = useMemo(() => groupByTag(documents), [documents])
@@ -176,15 +180,24 @@ export function DocumentsSidebar({
     [sortedDocGroups, searchValue]
   )
 
+  const filteredDocs = useMemo(
+    () => (isFiltering ? filterDocs(documents, searchValue, sortMode) : []),
+    [documents, searchValue, sortMode, isFiltering]
+  )
+
   const activeGroupCount =
     activeTags.size > 0 ? groups.filter((g) => activeTags.has(g.tag)).length : 0
 
-  const hoveredGroup = hoveredTag ? groups.find((g) => g.tag === hoveredTag) : null
+  const hoveredGroup = !isFiltering && hoveredTag ? groups.find((g) => g.tag === hoveredTag) : null
   const hoveredResolved = hoveredTag ? resolveTag(tagLookup, hoveredTag) : null
   const HoveredIcon = hoveredResolved?.icon ?? Hash
 
   return (
-    <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
+    <motion.div
+      className="relative z-10 flex h-full flex-none flex-col items-start bg-default-background shadow-lg"
+      animate={{ width: isFiltering ? 288 : 256 }}
+      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+    >
       <SidebarHeader
         title="Documents"
         filterPlaceholder="Filter documents..."
@@ -211,53 +224,67 @@ export function DocumentsSidebar({
         </div>
       )}
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start py-2 overflow-y-auto">
-        {groups.flatMap(({ tag, docs }, i) => {
-          const resolved = resolveTag(tagLookup, tag)
-          const TagIcon = resolved.icon
-          const isHovered = hoveredTag === tag
-          const isActive = activeTags.has(tag)
-          const highlighted = isHovered || isActive
-          const needsDivider =
-            isActive && activeGroupCount > 0 && i === activeGroupCount - 1 && i < groups.length - 1
-          const row = (
-            <div
-              key={tag}
-              className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
-              style={
-                highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined
-              }
-              onMouseEnter={() => setHoveredTag(tag)}
-            >
-              {isActive && (
+        {isFiltering
+          ? filteredDocs.map((doc) => (
+              <DocumentItem
+                key={doc.id}
+                title={doc.title}
+                editedAt={doc.editedAt}
+                annotationCount={doc.annotationCount}
+                selected={doc.id === selectedId}
+                onClick={() => onDocumentSelect?.(doc.id)}
+              />
+            ))
+          : groups.flatMap(({ tag, docs }, i) => {
+              const resolved = resolveTag(tagLookup, tag)
+              const TagIcon = resolved.icon
+              const isHovered = hoveredTag === tag
+              const isActive = activeTags.has(tag)
+              const highlighted = isHovered || isActive
+              const needsDivider =
+                isActive &&
+                activeGroupCount > 0 &&
+                i === activeGroupCount - 1 &&
+                i < groups.length - 1
+              const row = (
                 <div
-                  className="absolute left-0 top-0 bottom-0 w-1"
-                  style={{ backgroundColor: solidBackground(resolved.color) }}
-                />
-              )}
-              <span className="flex-none" style={{ color: lowContrastText(resolved.color) }}>
-                <TagIcon className="text-body font-body" />
-              </span>
-              <span
-                className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
-                style={highlighted ? { color: highContrastText(resolved.color) } : undefined}
-              >
-                {resolved.display}
-              </span>
-              <Badge variant="neutral" className="flex-none">
-                {docs.length}
-              </Badge>
-            </div>
-          )
-          if (needsDivider)
-            return [
-              row,
-              <div
-                key="active-divider"
-                className="border-b border-solid border-neutral-border w-full"
-              />,
-            ]
-          return [row]
-        })}
+                  key={tag}
+                  className="relative flex w-full cursor-default items-center gap-2 px-4 py-2.5 hover:bg-neutral-50"
+                  style={
+                    highlighted ? { backgroundColor: elementBackground(resolved.color) } : undefined
+                  }
+                  onMouseEnter={() => setHoveredTag(tag)}
+                >
+                  {isActive && (
+                    <div
+                      className="absolute left-0 top-0 bottom-0 w-1"
+                      style={{ backgroundColor: solidBackground(resolved.color) }}
+                    />
+                  )}
+                  <span className="flex-none" style={{ color: lowContrastText(resolved.color) }}>
+                    <TagIcon className="text-body font-body" />
+                  </span>
+                  <span
+                    className="grow shrink-0 basis-0 truncate text-body font-body text-default-font"
+                    style={highlighted ? { color: highContrastText(resolved.color) } : undefined}
+                  >
+                    {resolved.display}
+                  </span>
+                  <Badge variant="neutral" className="flex-none">
+                    {docs.length}
+                  </Badge>
+                </div>
+              )
+              if (needsDivider)
+                return [
+                  row,
+                  <div
+                    key="active-divider"
+                    className="border-b border-solid border-neutral-border w-full"
+                  />,
+                ]
+              return [row]
+            })}
       </div>
 
       <AnimatePresence>
@@ -309,6 +336,6 @@ export function DocumentsSidebar({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }

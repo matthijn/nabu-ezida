@@ -64,7 +64,7 @@ export const CodesSidebar = ({
   )
 
   return (
-    <div className="relative z-10 flex h-full w-56 flex-none flex-col items-start bg-default-background shadow-lg">
+    <div className="relative z-10 flex h-full w-64 flex-none flex-col items-start bg-default-background shadow-lg">
       <div className="flex w-full flex-none flex-col" onMouseEnter={() => setHoveredCode(null)}>
         <SidebarHeader
           title="Codes"

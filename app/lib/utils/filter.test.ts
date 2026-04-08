@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { matchesFilter, matchesAny } from "./filter"
+import { matchesFilter, matchesAny, matchesAllWords } from "./filter"
 
 describe("matchesFilter", () => {
   const cases = [
@@ -33,6 +33,52 @@ describe("matchesAny", () => {
   cases.forEach(({ query, texts, expected, name }) => {
     it(name, () => {
       expect(matchesAny(query, texts)).toBe(expected)
+    })
+  })
+})
+
+describe("matchesAllWords", () => {
+  const cases = [
+    { query: "", texts: ["foo"], expected: true, name: "empty query matches all" },
+    { query: "  ", texts: ["foo"], expected: true, name: "whitespace query matches all" },
+    { query: "foo", texts: ["foobar"], expected: true, name: "single word partial match" },
+    {
+      query: "foo bar",
+      texts: ["foobar", "baz bar"],
+      expected: true,
+      name: "both words found across texts",
+    },
+    {
+      query: "report bar",
+      texts: ["Annual Report", "Bar Chart"],
+      expected: true,
+      name: "words matched across title and document",
+    },
+    {
+      query: "report baz",
+      texts: ["Annual Report", "Bar Chart"],
+      expected: false,
+      name: "one word missing",
+    },
+    {
+      query: "REPORT bar",
+      texts: ["annual report", "bar chart"],
+      expected: true,
+      name: "case insensitive",
+    },
+    { query: "foo", texts: [], expected: false, name: "empty texts no match" },
+    { query: "a b c", texts: ["abc"], expected: true, name: "all words found in single text" },
+    {
+      query: "x y",
+      texts: ["x marks", "the y"],
+      expected: true,
+      name: "words spread across texts",
+    },
+  ]
+
+  cases.forEach(({ query, texts, expected, name }) => {
+    it(name, () => {
+      expect(matchesAllWords(query, texts)).toBe(expected)
     })
   })
 })
