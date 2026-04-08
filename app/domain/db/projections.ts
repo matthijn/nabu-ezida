@@ -57,7 +57,7 @@ const getRowSchema = (config: BlockTypeConfig): z.ZodType => {
 
 const toProjectionConfig = ([language, config]: [string, BlockTypeConfig]): ProjectionConfig => ({
   language,
-  tableName: stripLanguagePrefix(language),
+  tableName: config.tableName ?? stripLanguagePrefix(language),
   schema: getRowSchema(config),
   singleton: config.singleton,
   blockParser: buildBlockParser(language, config.schema(), config.singleton, config.rowPath),

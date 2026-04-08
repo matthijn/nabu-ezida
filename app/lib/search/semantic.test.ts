@@ -412,7 +412,7 @@ describe("sqlQueriesFilesTable", () => {
       sql: "SELECT file FROM annotations WHERE code = 'x'",
       expected: false,
     },
-    { name: "FROM callout", sql: "SELECT file, id FROM callout", expected: false },
+    { name: "FROM callouts", sql: "SELECT file, id FROM callouts", expected: false },
     { name: "FROM attributes", sql: "SELECT file FROM attributes", expected: false },
     { name: "case insensitive", sql: "SELECT file FROM FILES", expected: true },
     {

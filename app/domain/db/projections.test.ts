@@ -33,7 +33,7 @@ describe("projections", () => {
       {
         name: "non-singleton — schema is the block itself",
         language: "json-callout",
-        expectedTable: "callout",
+        expectedTable: "callouts",
         expectTopLevelProperty: "title",
       },
     ]

@@ -39,7 +39,7 @@ const cases: TestCase[] = [
       { file: "doc1.md", id: "annotation-abc" },
       { file: "doc2.md", id: "callout-def" },
     ]),
-    sql: "SELECT file, id FROM callout",
+    sql: "SELECT file, id FROM callouts",
     expected: ok([
       { file: "doc1.md", id: "annotation-abc" },
       { file: "doc2.md", id: "callout-def" },

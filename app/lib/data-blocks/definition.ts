@@ -28,6 +28,7 @@ export interface BlockTypeConfig<T = unknown> {
   renderer: "hidden" | "callout" | "chart"
   singleton: boolean
   projected?: boolean
+  tableName?: string
   allowedFiles?: string[]
   labelKey?: string
   captionType?: string

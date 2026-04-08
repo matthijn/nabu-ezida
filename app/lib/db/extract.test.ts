@@ -13,7 +13,7 @@ describe("extractRows", () => {
   }[] = [
     {
       name: "flat object extracts single row",
-      tableName: "callout",
+      tableName: "callouts",
       schema: {
         type: "object",
         properties: {
@@ -27,14 +27,14 @@ describe("extractRows", () => {
       filename: "doc.md",
       expected: [
         {
-          table: "callout",
+          table: "callouts",
           rows: [{ file: "doc.md", id: "abc", title: "Hello", collapsed: true }],
         },
       ],
     },
     {
       name: "missing optional fields become null",
-      tableName: "callout",
+      tableName: "callouts",
       schema: {
         type: "object",
         properties: {
@@ -47,7 +47,7 @@ describe("extractRows", () => {
       filename: "doc.md",
       expected: [
         {
-          table: "callout",
+          table: "callouts",
           rows: [{ file: "doc.md", id: "abc", actor: null }],
         },
       ],

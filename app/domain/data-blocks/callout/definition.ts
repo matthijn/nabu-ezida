@@ -11,6 +11,7 @@ export const jsonCallout: BlockTypeConfig = {
   renderer: "callout",
   singleton: false,
   projected: true,
+  tableName: "callouts",
   labelKey: "title",
   idPaths: [{ path: "id", prefix: "callout" }],
   actorPaths: [{ path: "actor" }],
