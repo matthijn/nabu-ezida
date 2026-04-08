@@ -26,6 +26,7 @@ interface DefaultPageLayoutProps {
   className?: string
   activeNav?: ActiveNav
   showCodes?: boolean
+  showExhibits?: boolean
   reviewCount?: number
   onNavChange?: (nav: ActiveNav) => void
   dismissSidebarRef?: MutableRefObject<(() => void) | null>
@@ -34,6 +35,7 @@ interface DefaultPageLayoutProps {
 const buildNavItems = (
   hoveredNav: ActiveNav | null,
   showCodes: boolean,
+  showExhibits: boolean,
   reviewCount: number
 ): NavItem[][] => {
   const items: NavItem[] = [
@@ -43,12 +45,16 @@ const buildNavItems = (
       label: "Documents",
       selected: hoveredNav === "documents",
     },
-    {
-      id: "exhibits",
-      icon: <BarChart3 />,
-      label: "Exhibits",
-      selected: hoveredNav === "exhibits",
-    },
+    ...(showExhibits
+      ? [
+          {
+            id: "exhibits",
+            icon: <BarChart3 />,
+            label: "Exhibits",
+            selected: hoveredNav === "exhibits",
+          },
+        ]
+      : []),
     ...(showCodes
       ? [
           {
@@ -89,6 +95,7 @@ export const DefaultPageLayout = ({
   className,
   activeNav: _activeNav = "documents",
   showCodes = false,
+  showExhibits = false,
   reviewCount = 0,
   onNavChange,
   dismissSidebarRef,
@@ -150,7 +157,7 @@ export const DefaultPageLayout = ({
       <div className="relative z-50 flex h-full flex-none" onMouseLeave={() => setHoveredNav(null)}>
         <div className="relative z-30">
           <MainSidebar
-            navItemGroups={buildNavItems(hoveredNav, showCodes, reviewCount)}
+            navItemGroups={buildNavItems(hoveredNav, showCodes, showExhibits, reviewCount)}
             footerExtra={sidebarFooterExtra}
             onNavItemClick={onNavChange ? (id) => onNavChange(id as ActiveNav) : undefined}
             onNavItemHover={(id) => setHoveredNav(id as ActiveNav)}

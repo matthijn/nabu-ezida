@@ -513,6 +513,7 @@ export default function ProjectLayout() {
         <DefaultPageLayout
           activeNav={activeNav}
           showCodes={!!codebook}
+          showExhibits={exhibits.length > 0}
           reviewCount={reviewCount}
           onNavChange={setActiveNav}
           dismissSidebarRef={dismissSidebarRef}
