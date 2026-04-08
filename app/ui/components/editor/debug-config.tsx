@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Bug, Cloud, Code, Activity, Bot, Filter } from "lucide-react"
+import { Bug, Cloud, Code, Activity, Bot, Filter, Table } from "lucide-react"
 
 interface DebugToggle {
   key: string
@@ -29,6 +29,12 @@ export const DEBUG_TOGGLES: DebugToggle[] = [
     key: "skipSearchCache",
     label: "Skip search cache",
     icon: <Filter />,
+    defaultValue: false,
+  },
+  {
+    key: "showQueryResults",
+    label: "Query results",
+    icon: <Table />,
     defaultValue: false,
   },
 ]

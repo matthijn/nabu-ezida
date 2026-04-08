@@ -190,6 +190,7 @@ export default function ProjectFile() {
                 key={`${currentFile}-${debugOptions.renderAsJson}`}
                 content={formatContent(content, currentFile)}
                 debugMode={debugOptions.renderAsJson}
+                debugOptions={debugOptions}
                 spotlight={spotlight}
                 filePath={currentFile}
               />

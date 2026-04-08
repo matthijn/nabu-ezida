@@ -19,6 +19,8 @@ import { createCalloutBlocksPlugin } from "~/lib/editor/callout-blocks"
 import { AnnotationHover } from "./AnnotationHover"
 import { ReadOnlyProvider } from "./ReadOnlyContext"
 import { FilePathProvider } from "./FilePathContext"
+import { DebugOptionsProvider } from "./DebugOptionsContext"
+import type { DebugOptions } from "./debug-config"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { getAnnotations } from "~/lib/files"
 import type { Spotlight } from "~/lib/editor/spotlight"
@@ -114,6 +116,7 @@ const MilkdownEditorCore = ({
 interface MilkdownEditorProps {
   content: string
   debugMode?: boolean
+  debugOptions?: DebugOptions
   readOnly?: boolean
   spotlight?: Spotlight | null
   filePath?: string
@@ -122,6 +125,7 @@ interface MilkdownEditorProps {
 export const MilkdownEditor = ({
   content,
   debugMode = false,
+  debugOptions,
   readOnly = false,
   spotlight = null,
   filePath,
@@ -129,22 +133,30 @@ export const MilkdownEditor = ({
   const containerClass = readOnly
     ? "w-full text-default-font"
     : "w-full max-w-[768px] text-default-font"
+  const editor = (
+    <div className={containerClass}>
+      <MilkdownProvider>
+        <ProsemirrorAdapterProvider>
+          <MilkdownEditorCore
+            defaultValue={content}
+            debugMode={debugMode}
+            readOnly={readOnly}
+            spotlight={spotlight}
+            filePath={filePath}
+          />
+        </ProsemirrorAdapterProvider>
+      </MilkdownProvider>
+    </div>
+  )
+
   return (
     <ReadOnlyProvider value={readOnly}>
       <FilePathProvider value={filePath}>
-        <div className={containerClass}>
-          <MilkdownProvider>
-            <ProsemirrorAdapterProvider>
-              <MilkdownEditorCore
-                defaultValue={content}
-                debugMode={debugMode}
-                readOnly={readOnly}
-                spotlight={spotlight}
-                filePath={filePath}
-              />
-            </ProsemirrorAdapterProvider>
-          </MilkdownProvider>
-        </div>
+        {debugOptions ? (
+          <DebugOptionsProvider value={debugOptions}>{editor}</DebugOptionsProvider>
+        ) : (
+          editor
+        )}
       </FilePathProvider>
     </ReadOnlyProvider>
   )

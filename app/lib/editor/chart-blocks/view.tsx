@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { useNavigate, useParams } from "react-router"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Trash2, FileText, MapPin } from "lucide-react"
+import { Trash2, FileText, MapPin, Copy } from "lucide-react"
 import { echarts } from "~/lib/chart/register"
 import { resolveSqlPlaceholders } from "~/lib/db/resolve"
 import { buildChartOption, type ChartColorMap } from "~/lib/chart/options"
@@ -24,6 +24,7 @@ import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { useFilePath } from "~/ui/components/editor/FilePathContext"
 import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
+import { useDebugOptions } from "~/ui/components/editor/DebugOptionsContext"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { IconButton } from "~/ui/components/IconButton"
 import type { ChartBlock } from "~/domain/data-blocks/chart/schema"
@@ -39,7 +40,7 @@ type ChartState =
   | { status: "loading" }
   | { status: "empty" }
   | { status: "error"; message: string }
-  | { status: "ready"; rows: Record<string, unknown>[] }
+  | { status: "ready"; rows: Record<string, unknown>[]; sql: string }
 
 const CHART_HEIGHT = 300
 
@@ -121,6 +122,71 @@ const formatCaption = (
   return `${captionType} ${captionIndex}: ${label}`
 }
 
+const extractColumns = (rows: Record<string, unknown>[]): string[] =>
+  rows.length === 0 ? [] : Object.keys(rows[0])
+
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined) return ""
+  if (typeof value === "object") return JSON.stringify(value)
+  return String(value)
+}
+
+const copyToClipboard = (text: string) => navigator.clipboard.writeText(text)
+
+const QueryResultsTable = ({ rows, query }: { rows: Record<string, unknown>[]; query: string }) => {
+  const columns = extractColumns(rows)
+
+  return (
+    <details className="border-t border-solid border-neutral-border overflow-hidden">
+      <summary className="px-4 py-2 text-xs text-subtext-color cursor-pointer select-none hover:bg-neutral-50">
+        Query results ({rows.length} rows)
+      </summary>
+      <div className="flex items-start gap-1 px-4 py-2 bg-neutral-50 border-b border-solid border-neutral-border">
+        <pre className="flex-1 min-w-0 text-xs text-subtext-color whitespace-pre-wrap break-words font-mono">
+          {query}
+        </pre>
+        <button
+          type="button"
+          className="shrink-0 p-1 rounded hover:bg-neutral-200 text-subtext-color transition-colors"
+          onClick={() => copyToClipboard(query)}
+        >
+          <Copy size={12} />
+        </button>
+      </div>
+      <div className="overflow-auto max-h-64">
+        <table className="w-max text-xs border-collapse">
+          <thead>
+            <tr className="bg-neutral-50">
+              {columns.map((col) => (
+                <th
+                  key={col}
+                  className="px-3 py-1.5 text-left font-medium text-subtext-color border-b border-solid border-neutral-border whitespace-nowrap"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b border-solid border-neutral-border last:border-b-0">
+                {columns.map((col) => (
+                  <td
+                    key={col}
+                    className="px-3 py-1 text-default-font whitespace-nowrap max-w-48 truncate"
+                  >
+                    {formatCellValue(row[col])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  )
+}
+
 export const ChartBlockView = ({
   data,
   onDelete,
@@ -134,6 +200,8 @@ export const ChartBlockView = ({
   const { projectId } = useParams<{ projectId: string }>()
   const chartRef = useRef<HTMLDivElement>(null)
   const instanceRef = useRef<ReturnType<typeof echarts.init> | null>(null)
+  const debugOptions = useDebugOptions()
+  const showQueryResults = !!debugOptions.showQueryResults
   const [chartState, setChartState] = useState<ChartState>({ status: "loading" })
 
   const syncRevision = useSyncExternalStore(subscribeSyncRevision, getSyncRevision)
@@ -159,7 +227,7 @@ export const ChartBlockView = ({
         return
       }
 
-      setChartState({ status: "ready", rows: result.value.rows })
+      setChartState({ status: "ready", rows: result.value.rows, sql })
     }
 
     fetchData()
@@ -303,6 +371,9 @@ export const ChartBlockView = ({
           }}
         />
       </div>
+      {showQueryResults && chartState.status === "ready" && (
+        <QueryResultsTable rows={chartState.rows} query={chartState.sql} />
+      )}
       {data.caption.label && (
         <div className="px-4 pb-3">
           <span className="text-caption font-caption text-subtext-color italic">
