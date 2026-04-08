@@ -67,9 +67,10 @@ const formatBlockErrors = (errors: ValidationError[]): string =>
   errors
     .map((e) => {
       const location = e.field ? `${e.block}.${e.field}` : e.block
+      const received = e.received ? ` (received: ${e.received})` : ""
       const hint = e.hint ? ` Available: ${JSON.stringify(e.hint)}` : ""
       const current = e.currentBlock ? `\nCurrent block:\n${e.currentBlock}` : ""
-      return `${location}: ${e.message}${hint}${current}`
+      return `${location}: ${e.message}${received}${hint}${current}`
     })
     .join("\n")
 

@@ -16,6 +16,7 @@ export interface ValidationError {
   block: string
   field?: string
   message: string
+  received?: string
   currentBlock?: string
   hint?: Record<string, string>
 }
@@ -166,15 +167,32 @@ const extractHint = (issue: { params?: unknown }): Record<string, string> | unde
   return params?.hint as Record<string, string> | undefined
 }
 
+const isPrimitive = (v: unknown): v is string | number | boolean =>
+  typeof v === "string" || typeof v === "number" || typeof v === "boolean"
+
+const resolvePathValue = (data: unknown, path: PropertyKey[]): string | undefined => {
+  if (path.length === 0) return undefined
+  let current: unknown = data
+  for (const key of path) {
+    if (current === null || current === undefined || typeof current !== "object") return undefined
+    current = (current as Record<PropertyKey, unknown>)[key]
+  }
+  if (!isPrimitive(current)) return undefined
+  return typeof current === "string" ? `"${current}"` : String(current)
+}
+
 const issueToError = (
   language: string,
-  issue: { path: PropertyKey[]; message: string; params?: unknown }
+  issue: { path: PropertyKey[]; message: string; params?: unknown },
+  parsed: unknown
 ): ValidationError => {
   const hint = extractHint(issue)
+  const received = resolvePathValue(parsed, issue.path)
   return {
     block: language,
     field: issue.path.map(String).join("."),
     message: issue.message,
+    ...(received !== undefined && { received }),
     ...(hint && { hint }),
   }
 }
@@ -206,7 +224,7 @@ const validateBlockSchema = (
 
   if (result.success) return { errors: [], droppedWarnings: [] }
 
-  const errors = result.error.issues.map((issue) => issueToError(language, issue))
+  const errors = result.error.issues.map((issue) => issueToError(language, issue, parsed))
 
   if (isRecoverableObject(parsed)) {
     const baseSchema = config.schema()
