@@ -13,6 +13,7 @@ import { CodeDetail } from "./CodeDetail"
 
 interface CodesSidebarProps {
   codebook: Codebook
+  annotationCounts?: Record<string, number>
   reviewCount?: number
   onEditCode?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
@@ -49,6 +50,7 @@ const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => voi
 
 export const CodesSidebar = ({
   codebook,
+  annotationCounts = {},
   reviewCount = 0,
   onEditCode,
   onFileSelect,
@@ -89,6 +91,7 @@ export const CodesSidebar = ({
               <CodeItem
                 key={code.id}
                 code={code}
+                count={annotationCounts[code.id]}
                 highlighted={code.id === hoveredCode?.id}
                 onMouseEnter={() => setHoveredCode(code)}
                 onClick={() => onEditCode?.(code)}
@@ -106,7 +109,7 @@ export const CodesSidebar = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -12, opacity: 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
-            className="absolute left-full top-0 h-full w-80 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
+            className="absolute left-full top-0 h-full w-96 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
           >
             <div
               className="flex w-full items-center gap-2 border-b-2 border-solid px-4 py-4"

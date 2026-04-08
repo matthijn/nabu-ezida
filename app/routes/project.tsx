@@ -45,6 +45,7 @@ import { startTopicAssignment } from "~/domain/topic-assignment/init"
 import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
 import {
   getAnnotationCount,
+  getAnnotationCountsByCode,
   getReviewAnnotationCount,
 } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
@@ -420,6 +421,10 @@ export default function ProjectLayout() {
   }
 
   const reviewCount = useMemo(() => getReviewAnnotationCount(files), [files])
+  const annotationCounts = useMemo(
+    () => (currentFile ? getAnnotationCountsByCode(getFileAnnotations(currentFile)) : {}),
+    [currentFile, files]
+  )
 
   const handleReviewClick = () => {
     const id = saveNewSearch({
@@ -481,6 +486,7 @@ export default function ProjectLayout() {
           codes: (
             <CodesSidebar
               codebook={codebook}
+              annotationCounts={annotationCounts}
               reviewCount={reviewCount}
               onEditCode={handleEditCode}
               onFileSelect={handleDocumentSelect}

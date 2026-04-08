@@ -53,3 +53,9 @@ const hasCodeAndReview =
 
 export const getReviewAnnotationsForCode = (files: FileStore, codeId: string): StoredAnnotation[] =>
   collectAll(files, getStoredAnnotations).filter(hasCodeAndReview(codeId))
+
+export const getAnnotationCountsByCode = (annotations: Annotation[]): Record<string, number> =>
+  annotations.reduce<Record<string, number>>((acc, a) => {
+    if (a.code) acc[a.code] = (acc[a.code] ?? 0) + 1
+    return acc
+  }, {})
