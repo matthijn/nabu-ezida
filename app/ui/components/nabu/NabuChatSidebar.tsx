@@ -106,27 +106,33 @@ const MessageContent = ({
   currentFile,
   currentFileContent,
   navigate,
-}: MessageContentProps) => (
-  <Markdown
-    remarkPlugins={remarkPlugins}
-    components={{
+}: MessageContentProps) => {
+  const components = useMemo(
+    () => ({
       ...createEntityLinkComponents({ files, projectId, navigate }),
       table: ScrollableTable,
-    }}
-    urlTransform={allowFileProtocol}
-  >
-    {fixMarkdownUrls(
-      linkifyTags(
-        linkifyEntityIds(
-          linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent),
-          (id) => resolveAndTruncateName(files, id),
-          boldMissingFile
-        ),
-        (label) => resolveTagForLinkify(files, label)
-      )
-    )}
-  </Markdown>
-)
+    }),
+    [files, projectId, navigate]
+  )
+  return (
+    <Markdown
+      remarkPlugins={remarkPlugins}
+      components={components}
+      urlTransform={allowFileProtocol}
+    >
+      {fixMarkdownUrls(
+        linkifyTags(
+          linkifyEntityIds(
+            linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent),
+            (id) => resolveAndTruncateName(files, id),
+            boldMissingFile
+          ),
+          (label) => resolveTagForLinkify(files, label)
+        )
+      )}
+    </Markdown>
+  )
+}
 
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">
@@ -596,12 +602,17 @@ const isCollapsedSteps = (s: FinalSegment): s is CollapsedSteps => s.type === "c
 
 const toRenderSegments = (messages: GroupedMessage[]): RenderSegment[] =>
   messages.reduce<RenderSegment[]>((acc, m) => {
-    if (!isPlanRelated(m)) return [...acc, m]
+    if (!isPlanRelated(m)) {
+      acc.push(m)
+      return acc
+    }
     const prev = acc[acc.length - 1]
     if (prev && isPlanSegment(prev)) {
-      return [...acc.slice(0, -1), { type: "plan-segment", items: [...prev.items, m] }]
+      prev.items.push(m)
+      return acc
     }
-    return [...acc, { type: "plan-segment", items: [m] }]
+    acc.push({ type: "plan-segment", items: [m] })
+    return acc
   }, [])
 
 const countPlanSteps = (items: PlanMessage[]): number =>
@@ -716,12 +727,17 @@ const isNestedPlanItem = (item: PlanMessage): boolean =>
 
 const groupIntoRuns = (items: PlanMessage[]): SegmentRun[] =>
   items.reduce<SegmentRun[]>((acc, item) => {
-    if (!isNestedPlanItem(item)) return [...acc, { type: "single", item }]
+    if (!isNestedPlanItem(item)) {
+      acc.push({ type: "single", item })
+      return acc
+    }
     const prev = acc[acc.length - 1]
     if (prev && prev.type === "nested") {
-      return [...acc.slice(0, -1), { type: "nested", items: [...prev.items, item] }]
+      prev.items.push(item)
+      return acc
     }
-    return [...acc, { type: "nested", items: [item] }]
+    acc.push({ type: "nested", items: [item] })
+    return acc
   }, [])
 
 const PlanSegmentRenderer = ({

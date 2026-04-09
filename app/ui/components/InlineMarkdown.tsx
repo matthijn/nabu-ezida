@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import Markdown from "react-markdown"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds } from "~/lib/markdown/linkify/entities"
@@ -9,6 +10,8 @@ import { resolveEntityName } from "~/lib/files/selectors"
 import { boldMissingFile } from "~/lib/files/filename"
 
 const allowFileProtocol = (url: string) => url
+
+const InlineP = ({ children }: { children?: React.ReactNode }) => <span>{children}</span>
 
 interface InlineMarkdownProps {
   children: string
@@ -26,18 +29,21 @@ export const InlineMarkdown = ({
   currentFile,
   currentFileContent,
   navigate,
-}: InlineMarkdownProps) => (
-  <Markdown
-    components={{
+}: InlineMarkdownProps) => {
+  const components = useMemo(
+    () => ({
       ...createEntityLinkComponents({ files, projectId, navigate }),
-      p: ({ children }) => <span>{children}</span>,
-    }}
-    urlTransform={allowFileProtocol}
-  >
-    {linkifyEntityIds(
-      linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
-      (id) => resolveEntityName(files, id),
-      boldMissingFile
-    )}
-  </Markdown>
-)
+      p: InlineP,
+    }),
+    [files, projectId, navigate]
+  )
+  return (
+    <Markdown components={components} urlTransform={allowFileProtocol}>
+      {linkifyEntityIds(
+        linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
+        (id) => resolveEntityName(files, id),
+        boldMissingFile
+      )}
+    </Markdown>
+  )
+}
