@@ -3,9 +3,13 @@ import type { Nudger } from "../nudge-tools"
 import { shellNudge } from "./shell"
 import { guidanceNudge } from "./guidance"
 import { recordDecisionNudge } from "./record-decision"
+import { planAfterScoutNudge } from "./plan-after-scout"
+import { scoutBeforePlanNudge } from "./scout-before-plan"
+import { askBeforeSubmitNudge } from "./ask-before-submit"
 
 export const buildToolNudges = (_getFiles: () => FileStore): Record<string, Nudger[]> => ({
   run_local_shell: [shellNudge],
-  scout: [guidanceNudge],
+  scout: [guidanceNudge, planAfterScoutNudge],
+  start_planning: [scoutBeforePlanNudge, askBeforeSubmitNudge],
   ask: [recordDecisionNudge],
 })
