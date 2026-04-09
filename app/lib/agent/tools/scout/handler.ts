@@ -1,63 +1,53 @@
 import type { Block } from "../../client"
 import type { ToolResult } from "../../types"
-import type { PreflightFileEntry } from "./def"
-import { PreflightArgs } from "./def"
+import type { ScoutFileEntry } from "./def"
+import { ScoutArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
-import { segmentContent, type SegmentResult } from "../segment-file"
-import { readFileContent } from "../file-content"
+import { scoutFile, type ScoutMap } from "../scout-map"
+import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks } from "../../client"
 import { modeSystemBlocks } from "../../executors/modes"
 
 const FILE_LINE_THRESHOLD = 50
 
-type FileEntry = PreflightFileEntry & { prose: string; lines: number }
-
 const countLines = (text: string): number => text.split("\n").length
-
-const readEntry = (entry: PreflightFileEntry): FileEntry => {
-  const prose = readFileContent(entry.path)
-  return { ...entry, prose: prose ?? "", lines: prose ? countLines(prose) : 0 }
-}
-
-const isLarge = (entry: FileEntry): boolean => entry.lines > FILE_LINE_THRESHOLD
-
-const segmentEntry = async (entry: FileEntry): Promise<SegmentResult> =>
-  segmentContent(entry.prose, `Segment this document for: ${entry.reason}`)
-
-const formatManifest = (entry: FileEntry, result: SegmentResult): string =>
-  `File: ${entry.path}\n${JSON.stringify(result, null, 2)}`
 
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
-const buildFileBlocks = async (entries: FileEntry[]): Promise<Block[]> => {
-  const large = entries.filter(isLarge)
-  const small = entries.filter((e) => !isLarge(e))
+const formatScoutMap = (path: string, map: ScoutMap): string =>
+  `File: ${path}\n${JSON.stringify(map, null, 2)}`
 
-  const segmented = await Promise.all(
-    large.map(async (entry) => toSystemBlock(formatManifest(entry, await segmentEntry(entry))))
-  )
-  const inlined = small.map((entry) => toSystemBlock(`File: ${entry.path}\n${entry.prose}`))
+const scoutEntry = async (path: string, task: string, reason: string): Promise<Block> => {
+  const content = getFileView(path)
+  if (content === undefined) throw new Error(`File not viewable: ${path}`)
 
-  return [...segmented, ...inlined]
+  const isLarge = countLines(content) > FILE_LINE_THRESHOLD
+
+  if (!isLarge) return toSystemBlock(`File: ${path}\n${content}`)
+
+  const map = await scoutFile(content, task, reason)
+  return toSystemBlock(formatScoutMap(path, map))
 }
 
-const handlePreflight = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
-  const parsed = PreflightArgs.safeParse(call.args)
+const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
+  const parsed = ScoutArgs.safeParse(call.args)
   if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
 
-  const { files } = parsed.data
+  const { task, files } = parsed.data
 
-  const missing = files.filter((f) => getFile(f.path) === undefined).map((f) => f.path)
+  const missing = files
+    .filter((f: ScoutFileEntry) => getFile(f.path) === undefined)
+    .map((f: ScoutFileEntry) => f.path)
   if (missing.length > 0)
     return { status: "error", output: `Files not found: ${missing.join(", ")}` }
 
-  const entries = files.map(readEntry)
-
-  const fileBlocks = await buildFileBlocks(entries)
+  const fileBlocks = await Promise.all(
+    files.map((f: ScoutFileEntry) => scoutEntry(f.path, task, f.reason))
+  )
 
   pushBlocks([...fileBlocks, ...modeSystemBlocks("plan")])
   return { status: "ok", output: "ok" }
 }
 
-registerSpecialHandler("preflight", handlePreflight)
+registerSpecialHandler("scout", handleScout)

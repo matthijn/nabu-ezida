@@ -6,6 +6,6 @@ import { recordDecisionNudge } from "./record-decision"
 
 export const buildToolNudges = (_getFiles: () => FileStore): Record<string, Nudger[]> => ({
   run_local_shell: [shellNudge],
-  preflight: [guidanceNudge],
+  scout: [guidanceNudge],
   ask: [recordDecisionNudge],
 })

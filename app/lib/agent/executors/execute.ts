@@ -2,7 +2,6 @@ import type { ToolCall } from "../client"
 import { exhaustive } from "~/lib/utils/exhaustive"
 import type { ToolResult, Operation, Handler } from "../types"
 import {
-  getFilesStripped,
   getFileRaw,
   updateFileRaw,
   deleteFile,
@@ -13,8 +12,6 @@ import {
 } from "~/lib/files"
 import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
 import { validateBlocksAsync, formatValidationErrors } from "~/lib/data-blocks/validate"
-import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
-import { isCompanionFile } from "~/lib/embeddings/companion"
 import type { ToolExecutor } from "../turn"
 import {
   pushEntries,
@@ -23,13 +20,7 @@ import {
   fileDeletedEntry,
   fileRenamedEntry,
 } from "~/lib/mutation-history"
-
-const extractFiles = (): Map<string, string> =>
-  new Map(
-    Object.entries(getFilesStripped())
-      .filter(([k]) => !isCompanionFile(k))
-      .map(([k, v]) => [k, toExtraPretty(v)])
-  )
+import { getViewableFiles } from "../tools/file-view"
 
 interface ResolvedOp {
   op: Operation
@@ -173,7 +164,7 @@ export const createExecutor =
     const handler = handlers[call.name]
     if (!handler) return { status: "error", output: `Unknown tool: ${call.name}` }
 
-    const files = extractFiles()
+    const files = getViewableFiles()
     const { status, output, message, hint, mutations } = await handler(files, call.args)
 
     const mutResult = await applyMutations(mutations)

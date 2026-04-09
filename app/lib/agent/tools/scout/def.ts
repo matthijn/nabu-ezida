@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { AnyTool } from "../../executors/tool"
 
-const PreflightFileEntry = z.object({
+const ScoutFileEntry = z.object({
   path: z.string().describe("File path"),
   reason: z
     .string()
@@ -10,16 +10,16 @@ const PreflightFileEntry = z.object({
     ),
 })
 
-export const PreflightArgs = z.object({
+export const ScoutArgs = z.object({
   task: z.string().describe("What you intend to do — the user's request in your own words."),
-  files: z.array(PreflightFileEntry).describe("Files involved in the task."),
+  files: z.array(ScoutFileEntry).describe("Files involved in the task."),
 })
 
-export type PreflightFileEntry = z.infer<typeof PreflightFileEntry>
+export type ScoutFileEntry = z.infer<typeof ScoutFileEntry>
 
-export const preflightTool: AnyTool = {
-  name: "preflight",
+export const scoutTool: AnyTool = {
+  name: "scout",
   description:
-    "Prepare for planning. Pass the relevant files — large files are segmented into a table of contents automatically. Small files are inlined.",
-  schema: PreflightArgs,
+    "Scout files for planning. Large files are mapped into sections with line ranges; small files are inlined. Sections are filtered by task relevance.",
+  schema: ScoutArgs,
 }

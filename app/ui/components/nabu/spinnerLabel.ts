@@ -12,7 +12,7 @@ const toolLabels: Record<string, string[]> = {
   copy_file: WRITING_LABELS,
   rename_file: WRITING_LABELS,
   remove_file: ["Removing", "Cleaning up"],
-  preflight: ["Preparing", "Setting up"],
+  scout: ["Scouting", "Mapping terrain"],
   get_guidance: ["Reading instructions manual", "Studying guidance"],
   submit_plan: ["Starting execution", "Planning"],
   complete_step: ["Working", "Making progress", "Finishing up"],

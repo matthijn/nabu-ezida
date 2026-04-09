@@ -1,46 +1,55 @@
 import { z } from "zod"
 import { callLlm, toResponseFormat, extractText } from "../client"
 
-export const SegmentFileResponse = z.object({
-  sections: z.array(
-    z.object({
-      first_line: z
-        .string()
-        .describe("Exact first line of this section, copied verbatim from the document"),
-      last_line: z
-        .string()
-        .describe("Exact last line of this section, copied verbatim from the document"),
-      group: z.string().describe("Group this section belongs to (empty string if none)"),
-      desc: z.string().describe("Brief description of what the section contains"),
-    })
-  ),
+export const ScoutSection = z.object({
+  label: z.string().describe("Short name for this section"),
+  start_line: z.number().int().min(1).describe("1-based first line of this section"),
+  end_line: z.number().int().min(1).describe("1-based last line of this section"),
+  include: z.boolean().describe("Whether this section is relevant for the task"),
+  desc: z.string().describe("Brief description of section contents"),
+})
+
+export const ScoutMapResponse = z.object({
   file_context: z
     .string()
     .describe("One-sentence summary of what the file contains and its format"),
+  sections: z.array(ScoutSection),
 })
 
-export type SegmentResult = z.infer<typeof SegmentFileResponse>
+export type ScoutSection = z.infer<typeof ScoutSection>
+export type ScoutMap = z.infer<typeof ScoutMapResponse>
 
-const SEGMENTER_ENDPOINT = "/segmenter"
+const SCOUT_ENDPOINT = "/scout-mapper"
 
-const buildUserMessage = (prose: string, instruction: string): string =>
-  `<document>\n${prose}\n</document>\n\n${instruction}`
+const numberLines = (text: string): string =>
+  text
+    .split("\n")
+    .map((line, i) => `${i + 1}: ${line}`)
+    .join("\n")
 
-export const segmentContent = async (
-  prose: string,
-  instruction: string
-): Promise<SegmentResult> => {
+const buildUserMessage = (numbered: string, task: string, reason: string): string =>
+  `<document>\n${numbered}\n</document>\n\nTask: ${task}\nFile purpose: ${reason}`
+
+export const scoutFile = async (
+  content: string,
+  task: string,
+  reason: string
+): Promise<ScoutMap> => {
+  const numbered = numberLines(content)
+
   const blocks = await callLlm({
-    endpoint: SEGMENTER_ENDPOINT,
-    messages: [{ type: "message", role: "user", content: buildUserMessage(prose, instruction) }],
-    responseFormat: toResponseFormat(SegmentFileResponse),
+    endpoint: SCOUT_ENDPOINT,
+    messages: [
+      { type: "message", role: "user", content: buildUserMessage(numbered, task, reason) },
+    ],
+    responseFormat: toResponseFormat(ScoutMapResponse),
   })
 
   const text = extractText(blocks)
-  if (!text) throw new Error("Segmenter returned empty response")
+  if (!text) throw new Error("Scout returned empty response")
 
-  const result = SegmentFileResponse.safeParse(JSON.parse(text))
-  if (!result.success) throw new Error(`Invalid segmenter response: ${result.error.message}`)
+  const result = ScoutMapResponse.safeParse(JSON.parse(text))
+  if (!result.success) throw new Error(`Invalid scout response: ${result.error.message}`)
 
   return result.data
 }
