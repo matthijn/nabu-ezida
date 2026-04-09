@@ -1,26 +1,28 @@
 import type { Block } from "~/lib/agent/client"
 
-export const LABEL_ADVANCE_MS = 3000
+export const LABEL_ADVANCE_MS = 4000
 
 const WRITING_LABELS = ["Writing", "Editing", "Applying changes"]
+const REMOVING_LABELS = ["Removing", "Cleaning up", "Tidying"]
 
 const toolLabels: Record<string, string[]> = {
   run_local_shell: ["Reading", "Examining files", "Processing"],
   patch_json_block: WRITING_LABELS,
-  delete_json_block: ["Removing", "Cleaning up"],
+  delete_json_block: REMOVING_LABELS,
   apply_local_patch: WRITING_LABELS,
   copy_file: WRITING_LABELS,
   rename_file: WRITING_LABELS,
-  remove_file: ["Removing", "Cleaning up"],
-  scout: ["Scouting", "Mapping terrain"],
-  get_guidance: ["Reading instructions manual", "Studying guidance"],
-  submit_plan: ["Starting execution", "Planning"],
+  remove_file: REMOVING_LABELS,
+  scout: ["Scouting", "Mapping terrain", "Surveying files"],
+  start_planning: ["Planning", "Preparing approach", "Laying groundwork"],
+  get_guidance: ["Reading guidance", "Studying instructions", "Loading playbook"],
+  submit_plan: ["Starting execution", "Locking in plan", "Transitioning"],
   complete_step: ["Working", "Making progress", "Finishing up"],
-  cancel: ["Cancelling"],
+  cancel: ["Cancelling", "Winding down", "Stepping back"],
   search: ["Looking around", "Searching documents", "Analyzing results"],
   query: ["Examining data", "Querying", "Processing results"],
-  ask: ["Asking"],
-  compacted: ["Summarizing conversation", "Compressing context"],
+  ask: ["Asking", "Waiting for answer", "Checking in"],
+  compacted: ["Summarizing conversation", "Compressing context", "Condensing"],
 }
 
 const DEFAULT_LABELS: string[] = ["Thinking"]

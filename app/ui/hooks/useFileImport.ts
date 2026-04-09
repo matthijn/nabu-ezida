@@ -96,14 +96,18 @@ export const useFileImport = () => {
     }
   }, [])
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current--
-    if (dragCounterRef.current === 0) {
-      setIsDragging(false)
-    }
-  }, [])
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      dragCounterRef.current--
+      if (dragCounterRef.current === 0) {
+        setIsDragging(false)
+        if (!hasFiles) setIsVisible(false)
+      }
+    },
+    [hasFiles]
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
