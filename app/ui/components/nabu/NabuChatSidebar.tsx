@@ -43,7 +43,7 @@ import {
   type PlanStep,
   type StepStatus,
 } from "./group"
-import type { AskMessage, AskScope } from "./messages"
+import type { AskMessage, AskScope, ScoutMessage } from "./messages"
 import { isWaitingForAsk } from "./messages"
 import { getSpinnerLabels, LABEL_ADVANCE_MS } from "./spinnerLabel"
 import { useFiles } from "~/ui/hooks/useFiles"
@@ -421,6 +421,45 @@ const AskRenderer = ({
   </div>
 )
 
+interface ScoutRendererProps {
+  message: ScoutMessage
+  files: Record<string, string>
+  projectId: string | null
+  currentFile: string | null
+  currentFileContent: string | null
+}
+
+const ScoutRenderer = ({
+  message,
+  files,
+  projectId,
+  currentFile,
+  currentFileContent,
+}: ScoutRendererProps) => (
+  <div className="flex w-full flex-col items-start gap-1.5 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
+    <span className="text-caption font-caption text-subtext-color">Analyzing files</span>
+    {message.files.map((f) => (
+      <div key={f.path} className="flex items-center gap-2">
+        {f.done ? (
+          <Check className="text-body text-success-600 flex-none" />
+        ) : (
+          <Loader2 className="text-body text-brand-600 flex-none animate-spin" />
+        )}
+        <span className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
+          <InlineMarkdown
+            files={files}
+            projectId={projectId}
+            currentFile={currentFile}
+            currentFileContent={currentFileContent}
+          >
+            {f.path}
+          </InlineMarkdown>
+        </span>
+      </div>
+    ))}
+  </div>
+)
+
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isLeafMessage = (child: PlanChild): child is LeafMessage => child.type === "text"
 
@@ -588,7 +627,7 @@ interface CollapsedSteps {
   type: "collapsed-steps"
   count: number
 }
-type RenderSegment = LeafMessage | AskMessage | PlanSegment
+type RenderSegment = LeafMessage | AskMessage | ScoutMessage | PlanSegment
 type FinalSegment = RenderSegment | CollapsedSteps
 
 const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
@@ -597,6 +636,8 @@ const isPlanRelated = (m: GroupedMessage): m is PlanMessage =>
 const isPlanSegment = (s: FinalSegment): s is PlanSegment => s.type === "plan-segment"
 
 const isAskSegment = (s: FinalSegment): s is AskMessage => s.type === "ask"
+
+const isScoutSegment = (s: FinalSegment): s is ScoutMessage => s.type === "scout"
 
 const isCollapsedSteps = (s: FinalSegment): s is CollapsedSteps => s.type === "collapsed-steps"
 
@@ -965,6 +1006,14 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
                   currentFileContent={currentFileContent}
                   navigate={navigate}
                   onSelect={respond}
+                />
+              ) : isScoutSegment(segment) ? (
+                <ScoutRenderer
+                  message={segment}
+                  files={files}
+                  projectId={params.projectId ?? null}
+                  currentFile={currentFile}
+                  currentFileContent={currentFileContent}
                 />
               ) : isCollapsedSteps(segment) ? (
                 <CollapsedStepsIndicator count={segment.count} />

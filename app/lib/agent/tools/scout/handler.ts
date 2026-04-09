@@ -7,6 +7,7 @@ import { scoutFile, type ScoutMap } from "../scout-map"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks } from "../../client"
+import { processPool } from "~/lib/utils/pool"
 
 const FILE_LINE_THRESHOLD = 50
 
@@ -41,11 +42,13 @@ const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>
   if (missing.length > 0)
     return { status: "error", output: `Files not found: ${missing.join(", ")}` }
 
-  const fileBlocks = await Promise.all(
-    files.map((f: ScoutFileEntry) => scoutEntry(f.path, task, f.reason))
+  await processPool(
+    files,
+    async (f: ScoutFileEntry) => [await scoutEntry(f.path, task, f.reason)],
+    (blocks) => pushBlocks(blocks),
+    { concurrency: 3 }
   )
 
-  pushBlocks(fileBlocks)
   return { status: "ok", output: "ok" }
 }
 

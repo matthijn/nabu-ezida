@@ -2,6 +2,7 @@ import type { Block, ToolCall } from "~/lib/agent/client"
 import type { FileStore } from "~/lib/files"
 import { derive, findCall, type DerivedPlan } from "~/lib/agent"
 import { AskArgs, type AskScope } from "~/lib/agent/tools/ask/def"
+import { ScoutArgs } from "~/lib/agent/tools/scout/def"
 
 export interface TextMessage {
   type: "text"
@@ -170,5 +171,66 @@ export const extractAskMessages = (history: Block[]): AskExtraction => {
   )
   return { messages, consumedUserIndices: consumed }
 }
+
+export interface ScoutFileStatus {
+  path: string
+  reason: string
+  done: boolean
+}
+
+export interface ScoutMessage {
+  type: "scout"
+  task: string
+  files: ScoutFileStatus[]
+}
+
+const findScoutCalls = (history: Block[]): { index: number; call: ToolCall }[] =>
+  history.flatMap((block, index) => {
+    const call = findCall(block, "scout")
+    return call ? [{ index, call }] : []
+  })
+
+const findScoutResultIndex = (history: Block[], callId: string): number | null => {
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].type === "tool_result" && (history[i] as { callId: string }).callId === callId)
+      return i
+  }
+  return null
+}
+
+const collectDoneFiles = (history: Block[], from: number, to: number): Set<string> => {
+  const done = new Set<string>()
+  for (let i = from; i < to; i++) {
+    const block = history[i]
+    if (block.type !== "system") continue
+    const match = block.content.match(/^File: (.+?)(?:\n|$)/)
+    if (match) done.add(match[1])
+  }
+  return done
+}
+
+const extractSingleScout = (
+  index: number,
+  call: ToolCall,
+  history: Block[]
+): Indexed<ScoutMessage>[] => {
+  const parsed = ScoutArgs.safeParse(call.args)
+  if (!parsed.success) return []
+
+  const resultIndex = findScoutResultIndex(history, call.id)
+  const scanEnd = resultIndex ?? history.length
+  const done = collectDoneFiles(history, index + 1, scanEnd)
+
+  const files: ScoutFileStatus[] = parsed.data.files.map((f) => ({
+    path: f.path,
+    reason: f.reason,
+    done: done.has(f.path),
+  }))
+
+  return [{ index, message: { type: "scout" as const, task: parsed.data.task, files } }]
+}
+
+export const extractScoutMessages = (history: Block[]): Indexed<ScoutMessage>[] =>
+  findScoutCalls(history).flatMap(({ index, call }) => extractSingleScout(index, call, history))
 
 export { isWaitingForAsk } from "~/lib/agent/client"

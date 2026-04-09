@@ -19,6 +19,7 @@ const extractScoutContext = (history: Block[]): string => {
 }
 
 const prompt = `Scout loaded {context}.
+Review the section map — you decide which sections are in scope.
 Does this task apply a shared framework, codebook, or analytical criteria — or require sequential attention across sections?
 Yes: use start_planning.
 No: proceed directly.`

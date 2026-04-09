@@ -5,7 +5,6 @@ export const ScoutSection = z.object({
   label: z.string().describe("Short name for this section"),
   start_line: z.number().int().min(1).describe("1-based first line of this section"),
   end_line: z.number().int().min(1).describe("1-based last line of this section"),
-  include: z.boolean().describe("Whether this section is relevant for the task"),
   desc: z.string().describe("Brief description of section contents"),
 })
 
@@ -27,7 +26,7 @@ const numberLines = (text: string): string =>
     .map((line, i) => `${i + 1}: ${line}`)
     .join("\n")
 
-const buildUserMessage = (numbered: string, task: string, reason: string): string =>
+const buildContextMessage = (numbered: string, task: string, reason: string): string =>
   `<document>\n${numbered}\n</document>\n\nTask: ${task}\nFile purpose: ${reason}`
 
 export const scoutFile = async (
@@ -40,7 +39,13 @@ export const scoutFile = async (
   const blocks = await callLlm({
     endpoint: SCOUT_ENDPOINT,
     messages: [
-      { type: "message", role: "user", content: buildUserMessage(numbered, task, reason) },
+      { type: "message", role: "system", content: buildContextMessage(numbered, task, reason) },
+      {
+        type: "message",
+        role: "user",
+        content:
+          "Return the section map as JSON. Every line in the document must belong to exactly one section.",
+      },
     ],
     responseFormat: toResponseFormat(ScoutMapResponse),
   })
