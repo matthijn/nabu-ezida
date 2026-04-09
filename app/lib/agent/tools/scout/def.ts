@@ -8,6 +8,7 @@ const ScoutFileEntry = z.object({
     .describe(
       "Why this file is relevant — what it will be used for (e.g. 'codebook to restructure', 'transcript to code')"
     ),
+  group: z.string().describe('UI grouping label (e.g. "Transcript", "Codebook")'),
 })
 
 export const ScoutArgs = z.object({

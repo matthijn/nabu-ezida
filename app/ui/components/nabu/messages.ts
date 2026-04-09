@@ -175,6 +175,7 @@ export const extractAskMessages = (history: Block[]): AskExtraction => {
 export interface ScoutFileStatus {
   path: string
   reason: string
+  group: string
   done: boolean
 }
 
@@ -224,6 +225,7 @@ const extractSingleScout = (
   const files: ScoutFileStatus[] = parsed.data.files.map((f) => ({
     path: f.path,
     reason: f.reason,
+    group: f.group,
     done: done.has(f.path),
   }))
 
