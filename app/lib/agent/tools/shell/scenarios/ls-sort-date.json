@@ -1,0 +1,26 @@
+{
+  "files": {
+    "c.md": "# C\n\n```json-attributes\n{\"date\": \"2024-03-01\"}\n```\n",
+    "a.md": "# A\n\n```json-attributes\n{\"date\": \"2024-01-15\"}\n```\n",
+    "b.md": "# B\n\n```json-attributes\n{\"date\": \"2024-02-10\"}\n```\n",
+    "d.md": "# D no date"
+  },
+  "args": {
+    "commands": ["ls -t"]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "a.md\nb.md\nc.md\nd.md",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

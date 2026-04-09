@@ -1,15 +1,16 @@
 {
   "files": {
-    "a.md": "hello"
+    "a.md": "# A\n\n```json-attributes\n{\"tags\": [\"interview\", \"health\"]}\n```\n",
+    "b.md": "# B no tags"
   },
   "args": {
-    "commands": ["ls -l"]
+    "commands": ["ls --show-tags"]
   },
   "expected": {
     "status": "ok",
     "output": [
       {
-        "stdout": "       5              a.md",
+        "stdout": "a.md  [interview, health]\nb.md",
         "stderr": "",
         "outcome": {
           "type": "exit",
