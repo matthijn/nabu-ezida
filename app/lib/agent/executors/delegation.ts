@@ -1,4 +1,4 @@
-import type { ToolCall } from "../client"
+import type { Block, ToolCall } from "../client"
 import type { ToolResult } from "../types"
 import type { ToolExecutor } from "../turn"
 import { pushBlocks, getAllBlocks, subscribeBlocks } from "../client"
@@ -14,6 +14,9 @@ export const registerSpecialHandler = (name: string, handler: SpecialHandler): v
   specialHandlers.set(name, handler)
 }
 
+export const hasNewUserBlock = (blocks: Block[], before: number): boolean =>
+  blocks.length > before && blocks.slice(before).some((b) => b.type === "user")
+
 export const waitForUser = (signal?: AbortSignal): Promise<void> => {
   const before = getAllBlocks().length
   return new Promise<void>((resolve, reject) => {
@@ -28,7 +31,7 @@ export const waitForUser = (signal?: AbortSignal): Promise<void> => {
     }
 
     const unsub = subscribeBlocks(() => {
-      if (getAllBlocks().length > before) {
+      if (hasNewUserBlock(getAllBlocks(), before)) {
         cleanup()
         resolve()
       }

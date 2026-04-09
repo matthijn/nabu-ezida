@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest"
 import type { Block } from "./client"
-import { shouldContinue, hasToolCalls, excludeReasoning } from "./agent-loop"
+import {
+  shouldContinue,
+  hasToolCalls,
+  excludeReasoning,
+  isRejectionBlock,
+  hasRejection,
+} from "./agent-loop"
+import { hasNewUserBlock } from "./executors/delegation"
 import { deriveMode } from "./executors/modes"
 import { textBlock, userBlock, toolCallBlock, terminalResult, toolResult } from "./test-helpers"
 
@@ -12,9 +19,9 @@ describe("shouldContinue", () => {
       expected: false,
     },
     {
-      name: "no text no tools → true (continue)",
+      name: "no text no tools → false (stop)",
       blocks: [{ type: "system", content: "nudge" } as Block],
-      expected: true,
+      expected: false,
     },
     {
       name: "tool calls → true (continue)",
@@ -27,18 +34,123 @@ describe("shouldContinue", () => {
       expected: true,
     },
     {
-      name: "non-terminal tool result → true (continue)",
-      blocks: [
-        toolCallBlock("search", "c1"),
-        toolResult("c1", { status: "ok", output: "found it" }),
-      ],
-      expected: true,
+      name: "empty → false (stop)",
+      blocks: [],
+      expected: false,
+    },
+    {
+      name: "reasoning only → false (stop)",
+      blocks: [{ type: "reasoning", content: "thinking" } as Block],
+      expected: false,
     },
   ]
 
   cases.forEach(({ name, blocks, expected }) => {
     it(name, () => {
       expect(shouldContinue(blocks)).toBe(expected)
+    })
+  })
+})
+
+describe("isRejectionBlock", () => {
+  const cases: { name: string; block: Block; expected: boolean }[] = [
+    {
+      name: "rejection system block → true",
+      block: {
+        type: "system",
+        content: "Your response was rejected. These entity IDs do not exist: abc",
+      } as Block,
+      expected: true,
+    },
+    {
+      name: "other system block → false",
+      block: { type: "system", content: "some nudge" } as Block,
+      expected: false,
+    },
+    {
+      name: "text block → false",
+      block: textBlock("Your response was rejected."),
+      expected: false,
+    },
+  ]
+
+  cases.forEach(({ name, block, expected }) => {
+    it(name, () => {
+      expect(isRejectionBlock(block)).toBe(expected)
+    })
+  })
+})
+
+describe("hasRejection", () => {
+  const cases: { name: string; blocks: Block[]; expected: boolean }[] = [
+    {
+      name: "contains rejection → true",
+      blocks: [
+        { type: "system", content: "Your response was rejected. IDs: abc" } as Block,
+        textBlock("retry"),
+      ],
+      expected: true,
+    },
+    {
+      name: "no rejection → false",
+      blocks: [textBlock("hello"), { type: "system", content: "nudge" } as Block],
+      expected: false,
+    },
+    {
+      name: "empty → false",
+      blocks: [],
+      expected: false,
+    },
+  ]
+
+  cases.forEach(({ name, blocks, expected }) => {
+    it(name, () => {
+      expect(hasRejection(blocks)).toBe(expected)
+    })
+  })
+})
+
+describe("hasNewUserBlock", () => {
+  const cases: { name: string; blocks: Block[]; before: number; expected: boolean }[] = [
+    {
+      name: "user block after marker → true",
+      blocks: [textBlock("old"), userBlock("new message")],
+      before: 1,
+      expected: true,
+    },
+    {
+      name: "system block after marker → false",
+      blocks: [textBlock("old"), { type: "system", content: "nudge" } as Block],
+      before: 1,
+      expected: false,
+    },
+    {
+      name: "no new blocks → false",
+      blocks: [textBlock("old")],
+      before: 1,
+      expected: false,
+    },
+    {
+      name: "multiple new blocks with user → true",
+      blocks: [textBlock("old"), { type: "system", content: "ctx" } as Block, userBlock("hello")],
+      before: 1,
+      expected: true,
+    },
+    {
+      name: "multiple new blocks without user → false",
+      blocks: [
+        textBlock("old"),
+        { type: "system", content: "a" } as Block,
+        { type: "system", content: "b" } as Block,
+      ],
+      before: 1,
+      expected: false,
+    },
+  ]
+
+  cases.forEach(({ name, blocks, before, expected }) => {
+    it(name, () => {
+      expect(hasNewUserBlock(blocks, before)).toBe(expected)
     })
   })
 })
@@ -96,20 +208,17 @@ describe("deriveMode", () => {
       expected: "chat",
     },
     {
-      name: "planning prompt marker → plan",
+      name: "start_planning pushes prompt marker → plan",
       blocks: [
-        toolCallBlock("scout", "c1"),
-        toolResult("c1", { status: "ok", output: "scout result" }),
+        toolCallBlock("start_planning", "c1"),
+        toolResult("c1", { status: "ok", output: "Planning mode." }),
         { type: "system", content: "<!-- prompt: planning -->" } as Block,
       ],
       expected: "plan",
     },
     {
-      name: "scout without prompt marker → chat",
-      blocks: [
-        toolCallBlock("scout", "c1"),
-        toolResult("c1", { status: "ok", output: "no plan needed" }),
-      ],
+      name: "scout without start_planning → stays chat",
+      blocks: [toolCallBlock("scout", "c1"), toolResult("c1", { status: "ok", output: "ok" })],
       expected: "chat",
     },
     {

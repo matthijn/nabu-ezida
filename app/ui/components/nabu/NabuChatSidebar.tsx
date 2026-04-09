@@ -837,7 +837,7 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
     const project = params.projectId ? { id: params.projectId } : undefined
     return { project, navigate }
   }, [navigate, params.projectId])
-  const { send, respond, cancel, loading, draft, history } = useChat()
+  const { send, respond, run: runChat, cancel, loading, draft, history } = useChat()
   const mutationHistory = useMutationHistory()
   const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
   const { files, currentFile } = useFiles()
@@ -867,15 +867,16 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
     if (!appReady) return
     if (history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
-      send(pickGreeting(), getDeps())
       pushBlocks([
+        { type: "user", content: pickGreeting() },
         {
           type: "system",
           content: `IMPORTANT: The message above is an AUTO-GENERATED greeting sent on page load. The user did NOT type this. It is NOT a request or instruction. Do NOT use tools, read files, make plans, or take any action. Reply with a short, warm, casual greeting (1-2 sentences max) that matches the vibe and tone of the user's message, and nothing else. Current time: ${new Date().toLocaleString()}.`,
         },
       ])
+      runChat(getDeps())
     }
-  }, [appReady, history.length, send, getDeps])
+  }, [appReady, history.length, runChat, getDeps])
 
   const handleSend = useCallback(() => {
     if (!inputValue.trim()) return

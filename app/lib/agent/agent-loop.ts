@@ -61,14 +61,7 @@ export const excludeReasoning = (blocks: Block[]): Block[] =>
 
 export const hasToolCalls = (blocks: Block[]): boolean => blocks.some((b) => b.type === "tool_call")
 
-const extractLastText = (blocks: Block[]): string =>
-  blocks
-    .filter((b) => b.type === "text")
-    .map((b) => b.content)
-    .join("\n") || ""
-
-export const shouldContinue = (newBlocks: Block[]): boolean =>
-  hasToolCalls(newBlocks) || !extractLastText(newBlocks)
+export const shouldContinue = (newBlocks: Block[]): boolean => hasToolCalls(newBlocks)
 
 export const runAgentLoop = async (config: AgentRunConfig): Promise<void> => {
   const { source, executor, callbacks, signal, maxTurns = 50 } = config
@@ -178,15 +171,22 @@ const findDanglingIds = (text: string): string[] => {
   return candidates.filter((id) => resolveEntityName(files, id) === null)
 }
 
+const REJECTION_PREFIX = "Your response was rejected."
+
 const rejectDanglingBlock = (block: Block): Block => {
   if (block.type !== "text" || isDraft(block)) return block
   const dangling = findDanglingIds(block.content)
   if (dangling.length === 0) return block
   return {
     type: "system",
-    content: `Your response was rejected. These entity IDs do not exist: ${dangling.join(", ")}\nYour message was:\n${block.content}\nOnly reference entity IDs that exist in the current documents.`,
+    content: `${REJECTION_PREFIX} These entity IDs do not exist: ${dangling.join(", ")}\nYour message was:\n${block.content}\nOnly reference entity IDs that exist in the current documents.`,
   }
 }
+
+export const isRejectionBlock = (block: Block): boolean =>
+  block.type === "system" && block.content.startsWith(REJECTION_PREFIX)
+
+export const hasRejection = (blocks: Block[]): boolean => blocks.some(isRejectionBlock)
 
 const rejectDanglingEntityIds = (blocks: Block[]): Block[] =>
   hasToolCalls(blocks) ? blocks : blocks.map(rejectDanglingBlock)
@@ -196,12 +196,31 @@ const compactBlocks = (blocks: Block[]): Block[] => {
   return readStepCompaction() ? stepCompactHistory(compacted) : compacted
 }
 
+const MAX_REJECTIONS = 3
+
+const buildRejectionGuard = (): ((newBlocks: Block[]) => boolean) => {
+  let consecutive = 0
+  return (newBlocks) => {
+    if (shouldContinue(newBlocks)) {
+      consecutive = 0
+      return true
+    }
+    if (hasRejection(newBlocks) && consecutive < MAX_REJECTIONS) {
+      consecutive++
+      return true
+    }
+    consecutive = 0
+    return false
+  }
+}
+
 export const agentLoop = async (config: AgentLoopConfig): Promise<void> =>
   runAgentLoop({
     source: "base",
     executor: config.executor,
     callbacks: config.callbacks,
     signal: config.signal,
+    shouldContinue: buildRejectionGuard(),
     resolve: (blocks) => {
       const mode = deriveMode(blocks)
       const modeConfig = modes[mode]
