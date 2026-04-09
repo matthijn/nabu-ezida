@@ -7,7 +7,6 @@ import { scoutFile, type ScoutMap } from "../scout-map"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks } from "../../client"
-import { modeSystemBlocks } from "../../executors/modes"
 
 const FILE_LINE_THRESHOLD = 50
 
@@ -46,7 +45,7 @@ const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>
     files.map((f: ScoutFileEntry) => scoutEntry(f.path, task, f.reason))
   )
 
-  pushBlocks([...fileBlocks, ...modeSystemBlocks("plan")])
+  pushBlocks(fileBlocks)
   return { status: "ok", output: "ok" }
 }
 

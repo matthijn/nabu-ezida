@@ -2,7 +2,7 @@ import { z } from "zod"
 import type { AnyTool } from "../../executors/tool"
 
 const StepObject = z.object({
-  title: z.string(),
+  title: z.string().max(200),
   expected: z.string(),
   checkpoint: z.boolean().describe("Mark as a check-in moment with the user."),
 })

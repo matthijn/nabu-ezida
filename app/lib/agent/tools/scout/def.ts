@@ -12,7 +12,7 @@ const ScoutFileEntry = z.object({
 
 export const ScoutArgs = z.object({
   task: z.string().describe("What you intend to do — the user's request in your own words."),
-  files: z.array(ScoutFileEntry).describe("Files involved in the task."),
+  files: z.array(ScoutFileEntry).max(15).describe("Files involved in the task."),
 })
 
 export type ScoutFileEntry = z.infer<typeof ScoutFileEntry>
@@ -20,6 +20,6 @@ export type ScoutFileEntry = z.infer<typeof ScoutFileEntry>
 export const scoutTool: AnyTool = {
   name: "scout",
   description:
-    "Scout files for planning. Large files are mapped into sections with line ranges; small files are inlined. Sections are filtered by task relevance.",
+    "Scout files to understand their structure. Large files are mapped into sections with line ranges; small files are inlined. Sections are filtered by task relevance.",
   schema: ScoutArgs,
 }
