@@ -65,6 +65,12 @@ const blocksSinceMarker = (history: Block[], marker: string): number => {
   return -1
 }
 
+export const isToolResult = (block: Block, name: string): boolean =>
+  block.type === "tool_result" && (block as { toolName?: string }).toolName === name
+
+export const isLastToolResult = (history: Block[], name: string): boolean =>
+  history.length > 0 && isToolResult(history[history.length - 1], name)
+
 export const afterToolResult = (history: Block[]): boolean =>
   history.length > 0 && history[history.length - 1].type === "tool_result"
 

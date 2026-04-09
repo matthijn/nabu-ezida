@@ -1,5 +1,11 @@
 import type { Block } from "../../client"
-import { systemNudge, withCooldown, findToolCallArgs, type Nudger } from "../nudge-tools"
+import {
+  isToolResult,
+  systemNudge,
+  withCooldown,
+  findToolCallArgs,
+  type Nudger,
+} from "../nudge-tools"
 
 const isNonLocalScope = (args: Record<string, unknown>): boolean =>
   args.scope === "codebook" || args.scope === "preferences"
@@ -7,12 +13,8 @@ const isNonLocalScope = (args: Record<string, unknown>): boolean =>
 const hasUnrecordedAsk = (history: Block[]): boolean => {
   for (let i = history.length - 1; i >= 0; i--) {
     const block = history[i]
-    if (
-      block.type === "tool_result" &&
-      (block as { toolName?: string }).toolName === "record_decision"
-    )
-      return false
-    if (block.type === "tool_result" && (block as { toolName?: string }).toolName === "ask") {
+    if (isToolResult(block, "record_decision")) return false
+    if (isToolResult(block, "ask")) {
       const args = findToolCallArgs(history, (block as { callId?: string }).callId ?? "")
       if (args && isNonLocalScope(args)) return true
     }
