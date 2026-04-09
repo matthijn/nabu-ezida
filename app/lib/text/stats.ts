@@ -9,6 +9,8 @@ interface TextStats {
 
 const WORDS_PER_MINUTE = 238
 
+export const countLines = (text: string): number => text.split("\n").length
+
 const countWords = (text: string): number => text.split(/\s+/).filter(Boolean).length
 
 export const computeTextStats = (text: string): TextStats => {

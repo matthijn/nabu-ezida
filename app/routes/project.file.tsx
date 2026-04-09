@@ -11,7 +11,7 @@ import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
 import { StatusBar } from "~/ui/components/StatusBar"
-import { computeTextStats, formatStatsLabel, formatStatsDetail } from "~/lib/text/stats"
+import { computeTextStats, countLines, formatStatsLabel, formatStatsDetail } from "~/lib/text/stats"
 import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
 import {
   getDocumentType,
@@ -50,8 +50,9 @@ const formatClassificationLine = (
 }
 
 const documentStatusTooltip = (content: string): string => {
+  const lines = countLines(content)
   const stats = computeTextStats(stripAttributesBlock(content))
-  const detail = formatStatsDetail(stats)
+  const detail = `${lines.toLocaleString()} lines · ${formatStatsDetail(stats)}`
   const classification = formatClassificationLine(
     getDocumentType(content),
     getDocumentSource(content),

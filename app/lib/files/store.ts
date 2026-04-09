@@ -7,6 +7,7 @@ import {
   findPendingRefs,
   findDefinitionIds,
 } from "./pending-refs"
+import { countLines } from "~/lib/text/stats"
 import { debounce, createScopedDebounce } from "~/lib/utils/debounce"
 import { sendCommand } from "~/lib/server/sync/commands"
 import { normalizeContent } from "~/lib/patch/diff/normalize"
@@ -90,8 +91,7 @@ export const getFileRaw = (filename: string): string => files[filename] ?? ""
 
 export const getCurrentFile = (): string | null => currentFile
 
-export const getFileLineCount = (filename: string): number =>
-  getFileRaw(filename).split("\n").length
+export const getFileLineCount = (filename: string): number => countLines(getFileRaw(filename))
 
 export const setFiles = (newFiles: FileStore): void => {
   console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))

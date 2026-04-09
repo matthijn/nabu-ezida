@@ -42,7 +42,9 @@ export function DocumentItem({
           style={{ backgroundColor: solidBackground(color) }}
         />
       )}
-      <span className="line-clamp-1 text-body font-body text-default-font">{title}</span>
+      <span className="w-full flex-none line-clamp-1 text-body font-body text-default-font">
+        {title}
+      </span>
       {showMeta && (
         <div className="flex w-full items-center gap-1">
           <span className="text-caption font-caption text-subtext-color">{editedAt}</span>
