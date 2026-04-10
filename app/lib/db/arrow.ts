@@ -1,4 +1,14 @@
-import { vectorFromArray, Table, Field, Float32, Utf8, Bool, Int32, List } from "apache-arrow"
+import {
+  vectorFromArray,
+  Table,
+  Field,
+  Float32,
+  Utf8,
+  Bool,
+  Int32,
+  List,
+  DateDay,
+} from "apache-arrow"
 import type { DataType, Vector } from "apache-arrow"
 import type { DbColumn, DuckDbType } from "./types"
 
@@ -7,6 +17,7 @@ const STRING_LIST = new List(Field.new({ name: "item", type: new Utf8(), nullabl
 
 const ARROW_TYPES: Record<DuckDbType, DataType> = {
   VARCHAR: new Utf8(),
+  DATE: new DateDay(),
   BOOLEAN: new Bool(),
   INTEGER: new Int32(),
   "FLOAT[]": FLOAT_LIST,
@@ -19,13 +30,31 @@ const arrowType = (type: DuckDbType): DataType => {
   return t
 }
 
-const columnValues = (name: string, rows: Record<string, unknown>[]): unknown[] =>
-  rows.map((r) => r[name] ?? null)
+const isNullish = (raw: unknown): boolean => raw === null || raw === undefined || raw === ""
+
+const toDate = (raw: unknown): Date | null => {
+  if (isNullish(raw)) return null
+  if (raw instanceof Date) return raw
+  if (typeof raw === "string") {
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
+export const coerceValue = (type: DuckDbType, raw: unknown): unknown => {
+  if (raw === null || raw === undefined) return null
+  if (type === "DATE") return toDate(raw)
+  return raw
+}
+
+const columnValues = (col: DbColumn, rows: Record<string, unknown>[]): unknown[] =>
+  rows.map((r) => coerceValue(col.type, r[col.name] ?? null))
 
 export const rowsToArrowTable = (columns: DbColumn[], rows: Record<string, unknown>[]): Table => {
   const vectors: Record<string, Vector> = {}
   for (const col of columns) {
-    vectors[col.name] = vectorFromArray(columnValues(col.name, rows), arrowType(col.type))
+    vectors[col.name] = vectorFromArray(columnValues(col, rows), arrowType(col.type))
   }
   return new Table(vectors)
 }

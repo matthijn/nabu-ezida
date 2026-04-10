@@ -140,6 +140,63 @@ describe("jsonSchemaToTableProjection", () => {
         ],
       },
       {
+        name: "string with format date becomes DATE",
+        tableName: "attributes",
+        schema: {
+          type: "object",
+          properties: {
+            date: { type: "string", format: "date" },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "attributes",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "date", type: "DATE", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
+        name: "plain string without format stays VARCHAR",
+        tableName: "attributes",
+        schema: {
+          type: "object",
+          properties: {
+            subject: { type: "string" },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "attributes",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "subject", type: "VARCHAR", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
+        name: "string with unknown format falls back to VARCHAR",
+        tableName: "items",
+        schema: {
+          type: "object",
+          properties: {
+            email: { type: "string", format: "email" },
+          },
+        },
+        expectedSchemas: [
+          {
+            name: "items",
+            columns: [
+              { name: "file", type: "VARCHAR", nullable: false },
+              { name: "email", type: "VARCHAR", nullable: true },
+            ],
+          },
+        ],
+      },
+      {
         name: "no properties produces file-only table",
         tableName: "empty",
         schema: { type: "object" },

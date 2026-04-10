@@ -3,13 +3,14 @@ import type { Result } from "~/lib/fp/result"
 
 export interface JsonSchema {
   type?: string
+  format?: string
   properties?: Record<string, JsonSchema>
   required?: string[]
   items?: JsonSchema
   enum?: string[]
 }
 
-export type DuckDbType = "VARCHAR" | "BOOLEAN" | "INTEGER" | "VARCHAR[]" | "FLOAT[]"
+export type DuckDbType = "VARCHAR" | "DATE" | "BOOLEAN" | "INTEGER" | "VARCHAR[]" | "FLOAT[]"
 
 export interface DbColumn {
   name: string

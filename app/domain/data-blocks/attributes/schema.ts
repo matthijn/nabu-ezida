@@ -70,7 +70,7 @@ const formatAvailableTags = (tags: { id: string; label: string }[]): Record<stri
 
 const BaseDocumentMeta = z.object({
   tags: z.array(slug).optional().describe("Tag IDs from settings"),
-  date: z.string().optional().describe("Document date, ISO 8601 (YYYY-MM-DD or full datetime)"),
+  date: z.iso.date().optional().describe("Document date, YYYY-MM-DD (ISO 8601)"),
   type: z.string().optional().describe("Auto-classified document format"),
   source: z.string().optional().describe("Auto-classified document source"),
   subject: z.string().optional().describe("Auto-classified topic, 3-5 words"),
