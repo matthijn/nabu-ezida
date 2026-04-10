@@ -3,23 +3,63 @@ import { QueryArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
 import { getDatabase } from "~/domain/db/database"
 import { getLlmHost } from "~/lib/agent/env"
-import { executeHybridLocal, resolveSemanticSql, sanitizeSemanticError } from "~/lib/search"
+import {
+  executeHybridLocal,
+  resolveSemanticSql,
+  sanitizeSemanticError,
+  capLimit,
+  hasOffset,
+  dropOffset,
+  type LimitRewrite,
+  type HybridSearchPlan,
+} from "~/lib/search"
 import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getFiles } from "~/lib/files/store"
-import { capRows } from "./truncate"
 
 const MAX_QUERY_ROWS = 50
 
-const formatOutput = (rows: Record<string, unknown>[], capped: boolean): string => {
-  const suffix = capped ? `\n(capped to ${MAX_QUERY_ROWS} rows)` : ""
-  return JSON.stringify(rows, null, 2) + suffix
+interface HybridRewrite {
+  plan: HybridSearchPlan
+  offsetDropped: boolean
+  requestedLimit: number | undefined
+  effectiveLimit: number
 }
 
-const hitToRow = (hit: { file: string; id?: string; text?: string }): Record<string, unknown> => {
-  const row: Record<string, unknown> = { file: hit.file }
-  if (hit.id !== undefined) row.id = hit.id
-  if (hit.text !== undefined) row.text = hit.text
-  return row
+const formatRows = <T>(rows: T[]): string => JSON.stringify(rows, null, 2)
+
+const plainSuffix = (rewrite: LimitRewrite, resultCount: number): string => {
+  if (rewrite.kind === "unchanged") return ""
+  if (resultCount < rewrite.effective) return ""
+  if (rewrite.kind === "injected") {
+    return `\n(no LIMIT specified — returning first ${rewrite.effective} rows. Add LIMIT/OFFSET to paginate or GROUP BY/COUNT to aggregate.)`
+  }
+  return `\n(LIMIT ${rewrite.requested} capped to ${rewrite.effective} — first ${rewrite.effective} rows shown. Use OFFSET ${rewrite.effective} to continue.)`
+}
+
+const planHybridWithCap = (sql: string, plan: HybridSearchPlan, max: number): HybridRewrite => {
+  const offsetDropped = hasOffset(sql)
+  const requestedLimit = plan.limit
+  const effectiveLimit = Math.min(requestedLimit ?? max, max)
+  const cleanBaseSql = offsetDropped ? dropOffset(plan.baseSql) : plan.baseSql
+  return {
+    plan: { ...plan, baseSql: cleanBaseSql, limit: effectiveLimit },
+    offsetDropped,
+    requestedLimit,
+    effectiveLimit,
+  }
+}
+
+const hybridSuffix = (rewrite: HybridRewrite, resultCount: number): string => {
+  if (rewrite.offsetDropped) {
+    return `\n(OFFSET dropped — semantic ranking is not paginatable. Showing top ${rewrite.effectiveLimit} matches. Refine SEMANTIC('...') or add WHERE filters to find different results.)`
+  }
+  const wantedMore =
+    rewrite.requestedLimit === undefined || rewrite.requestedLimit > rewrite.effectiveLimit
+  const filled = resultCount >= rewrite.effectiveLimit
+  if (wantedMore && filled) {
+    return `\n(showing top ${rewrite.effectiveLimit} semantic matches — ranking is automatic. Refine SEMANTIC('...') or add WHERE filters for different results.)`
+  }
+  return ""
 }
 
 const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
@@ -39,17 +79,20 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
   if (resolved.value.type === "hybrid") {
-    const result = await executeHybridLocal(db, resolved.value.plan)
+    const rewrite = planHybridWithCap(parsed.data.sql, resolved.value.plan, MAX_QUERY_ROWS)
+    const result = await executeHybridLocal(db, rewrite.plan)
     if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
-    const { rows, capped } = capRows(result.value.map(hitToRow), MAX_QUERY_ROWS)
-    return { status: "ok", output: formatOutput(rows, capped) }
+    const hits = result.value
+    return { status: "ok", output: formatRows(hits) + hybridSuffix(rewrite, hits.length) }
   }
 
-  const result = await db.query<Record<string, unknown>>(resolved.value.sql)
+  const rewrite = capLimit(resolved.value.sql, MAX_QUERY_ROWS)
+  const result = await db.query<Record<string, unknown>>(rewrite.sql)
   if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
-
-  const { rows, capped } = capRows(result.value.rows, MAX_QUERY_ROWS)
-  return { status: "ok", output: formatOutput(rows, capped) }
+  return {
+    status: "ok",
+    output: formatRows(result.value.rows) + plainSuffix(rewrite, result.value.rows.length),
+  }
 }
 
 registerSpecialHandler("query", executeQuery)

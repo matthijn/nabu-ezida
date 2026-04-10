@@ -9,7 +9,6 @@ import {
   countIlikeClauses,
   validateSql,
   stripSemanticToken,
-  extractLimit,
   buildCosineQuery,
   buildHybridPlan,
   sqlQueriesFilesTable,
@@ -332,22 +331,6 @@ describe("stripSemanticToken", () => {
 
   it.each(cases)("$name", ({ sql, token, expected }) => {
     expect(stripSemanticToken(sql, token)).toBe(expected)
-  })
-})
-
-describe("extractLimit", () => {
-  const cases: { name: string; sql: string; expected: number | undefined }[] = [
-    { name: "explicit LIMIT", sql: "SELECT file FROM f LIMIT 25", expected: 25 },
-    { name: "no LIMIT returns undefined", sql: "SELECT file FROM f", expected: undefined },
-    {
-      name: "LIMIT at end of complex query",
-      sql: "SELECT file FROM f WHERE x = 1 ORDER BY file LIMIT 100",
-      expected: 100,
-    },
-  ]
-
-  it.each(cases)("$name", ({ sql, expected }) => {
-    expect(extractLimit(sql)).toBe(expected)
   })
 })
 

@@ -1,5 +1,6 @@
 import type { Result } from "~/lib/fp/result"
 import { ok, err } from "~/lib/fp/result"
+import { LIMIT_RE, extractLimit, stripPaging } from "./paging"
 
 export interface SemanticToken {
   text: string
@@ -33,7 +34,7 @@ const AS_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*AS\b/i
 const SEMANTIC_IN_ORDER_BY = /ORDER\s+BY\s[\s\S]*?SEMANTIC\s*\(/i
 
 const ORDER_BY_RE = /\bORDER\s+BY\s+/i
-const LIMIT_RE = /\bLIMIT\s+(\d+)/i
+const ORDER_BY_TAIL_RE = /\s*ORDER\s+BY\s+[\s\S]*$/i
 
 const formatVector = (vector: number[]): string => `[${vector.join(",")}]`
 
@@ -119,13 +120,7 @@ export const stripSemanticToken = (sql: string, token: SemanticToken): string =>
   return before + after
 }
 
-export const extractLimit = (sql: string): number | undefined => {
-  const match = sql.match(LIMIT_RE)
-  return match ? parseInt(match[1], 10) : undefined
-}
-
-const stripOrderByAndLimit = (sql: string): string =>
-  sql.replace(/\s*ORDER\s+BY\s+[\s\S]*$/i, "").replace(/\s*LIMIT\s+\d+/i, "")
+const stripOrderByTail = (sql: string): string => sql.replace(ORDER_BY_TAIL_RE, "")
 
 const FROM_RE = /\bFROM\b/i
 
@@ -155,7 +150,7 @@ const injectLanguageFilter = (sql: string, language: string): string => {
 
 export const buildCosineQuery = (baseSql: string, hyde: HydeQuery): string => {
   const vec = formatVector(hyde.cosineVector)
-  const core = stripOrderByAndLimit(baseSql)
+  const core = stripOrderByTail(stripPaging(baseSql))
   const withLanguage = injectLanguageFilter(core, hyde.language)
   const withColumn = injectSelectColumn(
     withLanguage,

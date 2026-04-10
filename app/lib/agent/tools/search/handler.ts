@@ -8,6 +8,7 @@ import {
   executeHybridLocal,
   resolveSemanticSql,
   sanitizeSemanticError,
+  stripPaging,
 } from "~/lib/search"
 import { saveNewSearch } from "./settings"
 import { buildClassificationTree } from "~/lib/topic-assignment/tree"
@@ -45,7 +46,9 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   const tree = buildClassificationTree(getFiles()) ?? ""
 
-  const resolved = await resolveSemanticSql(parsed.data.sql, {
+  const sql = stripPaging(parsed.data.sql)
+
+  const resolved = await resolveSemanticSql(sql, {
     db,
     baseUrl: getLlmHost(),
     tree,
@@ -61,9 +64,9 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
 
   const capped = rawHits.value.length > MAX_SEARCH_ROWS
   const hits = capped ? rawHits.value.slice(0, MAX_SEARCH_ROWS) : rawHits.value
-  if (hasNoResults(hits)) return formatEmpty(parsed.data.sql)
+  if (hasNoResults(hits)) return formatEmpty(sql)
 
-  const id = saveNewSearch(parsed.data)
+  const id = saveNewSearch({ ...parsed.data, sql })
   if (!id) return { status: "error", output: "Failed to save search" }
 
   return { status: "ok", output: formatOutput(id, hits, capped) }
