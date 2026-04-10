@@ -198,9 +198,7 @@ describe("extractRows", () => {
     },
   ]
 
-  cases.forEach(({ name, tableName, schema, data, filename, expected }) => {
-    it(name, () => {
-      expect(extractRows(tableName, schema, data, filename)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ tableName, schema, data, filename, expected }) => {
+    expect(extractRows(tableName, schema, data, filename)).toEqual(expected)
   })
 })

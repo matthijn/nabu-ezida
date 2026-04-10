@@ -121,10 +121,8 @@ describe("recoverArrayItems", () => {
     },
   ]
 
-  cases.forEach(({ name, json, schema, check }) => {
-    it(name, () => {
-      check(recoverArrayItems(json, schema))
-    })
+  it.each(cases)("$name", ({ json, schema, check }) => {
+    check(recoverArrayItems(json, schema))
   })
 })
 
@@ -196,9 +194,7 @@ describe("getBlock with recovery", () => {
     },
   ]
 
-  cases.forEach(({ name, markdown, check }) => {
-    it(name, () => {
-      check(getBlock(markdown, "json-test", TestSchema))
-    })
+  it.each(cases)("$name", ({ markdown, check }) => {
+    check(getBlock(markdown, "json-test", TestSchema))
   })
 })

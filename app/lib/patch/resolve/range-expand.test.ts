@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { expandRangeRefs, type FileReader } from "./range-expand"
 import type { FileStore } from "~/lib/files"
+import { j } from "../test-helpers"
 
 const NOTES = [
   "# Interview Notes",
@@ -49,8 +50,6 @@ const AMBIGUOUS_END = [
   "The results were significant.",
   "Further analysis is needed.",
 ].join("\n")
-
-const j = (...lines: string[]) => lines.join("\n")
 
 interface Case {
   name: string

@@ -40,9 +40,7 @@ describe("repairJsonNewlines", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(repairJsonNewlines(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(repairJsonNewlines(input)).toBe(expected)
   })
 })

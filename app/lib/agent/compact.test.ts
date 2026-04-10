@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { compactHistory, stepCompactHistory, stepCompactedIndices } from "./compact"
 import type { Block } from "./client"
-
-const userBlock = (content: string): Block => ({ type: "user", content })
-const textBlock = (content: string): Block => ({ type: "text", content })
-const systemBlock = (content: string): Block => ({ type: "system", content })
+import { userBlock, textBlock, systemBlock, reasoningBlock } from "./test-helpers"
 
 const compactedToolCall = (summary: string): Block => ({
   type: "tool_call",
@@ -36,8 +33,6 @@ const planResult = (): Block => ({
   toolName: "submit_plan",
   result: { status: "ok", output: "ok" },
 })
-
-const reasoningBlock = (content: string): Block => ({ type: "reasoning", content })
 
 const completeStepCall = (summary: string, internal: string, id = "cs_0"): Block => ({
   type: "tool_call",

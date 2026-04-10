@@ -13,14 +13,13 @@ import {
   askCall,
   askCallPending,
   resetCallIdCounter,
+  userBlock,
+  textBlock,
+  systemBlock,
+  toolResult,
 } from "~/lib/agent/test-helpers"
 
 beforeEach(() => resetCallIdCounter())
-
-const userBlock = (content: string): Block => ({ type: "user", content })
-const textBlock = (content: string): Block => ({ type: "text", content })
-const systemBlock = (content: string): Block => ({ type: "system", content })
-const toolResultBlock = (): Block => ({ type: "tool_result", callId: "1", result: {} })
 
 describe("toRenderMessages", () => {
   describe("text messages", () => {
@@ -47,16 +46,13 @@ describe("toRenderMessages", () => {
       },
       {
         name: "tool_result blocks do not render",
-        history: [userBlock("Hello"), toolResultBlock()],
+        history: [userBlock("Hello"), toolResult("1")],
         expected: [{ type: "text", role: "user", content: "Hello" }],
       },
     ]
 
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        const messages = toRenderMessages(history)
-        expect(messages).toEqual(expected)
-      })
+    it.each(cases)("$name", ({ history, expected }) => {
+      expect(toRenderMessages(history)).toEqual(expected)
     })
   })
 
@@ -161,9 +157,7 @@ describe("toRenderMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(toRenderMessages(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(toRenderMessages(history)))
   })
 
   describe("mixed history", () => {
@@ -184,9 +178,7 @@ describe("toRenderMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(toRenderMessages(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(toRenderMessages(history)))
   })
 })
 
@@ -259,9 +251,7 @@ describe("extractAskMessages", () => {
     },
   ]
 
-  cases.forEach(({ name, history, check }) => {
-    it(name, () => check(extractAskMessages(history as Block[])))
-  })
+  it.each(cases)("$name", ({ history, check }) => check(extractAskMessages(history as Block[])))
 })
 
 describe("isWaitingForAsk", () => {
@@ -309,9 +299,7 @@ describe("isWaitingForAsk", () => {
     },
   ]
 
-  cases.forEach(({ name, history, expected }) => {
-    it(name, () => {
-      expect(isWaitingForAsk(history)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ history, expected }) => {
+    expect(isWaitingForAsk(history)).toBe(expected)
   })
 })

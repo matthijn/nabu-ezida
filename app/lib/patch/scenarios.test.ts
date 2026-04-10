@@ -4,6 +4,7 @@ import { join } from "path"
 import { applyFilePatch } from "./apply"
 import { setFiles } from "~/lib/files/store"
 import type { FileStore } from "~/lib/files"
+import { j } from "./test-helpers"
 
 const scenariosDir = join(__dirname, "scenarios")
 
@@ -53,8 +54,6 @@ describe("valid", () => {
 
 describe("range ref resolves against pretty content", () => {
   afterEach(() => setFiles({}))
-
-  const j = (...lines: string[]) => lines.join("\n")
 
   const SOURCE_RAW = j(
     "# Source Notes",

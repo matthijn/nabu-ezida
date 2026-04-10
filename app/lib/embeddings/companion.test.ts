@@ -15,10 +15,8 @@ describe("companionFilename", () => {
     { name: "nested name", input: "my_notes.md", expected: "my_notes.embeddings.hidden.md" },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(companionFilename(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(companionFilename(input)).toBe(expected)
   })
 })
 
@@ -28,10 +26,8 @@ describe("sourceFilename", () => {
     { name: "nested companion", input: "my_notes.embeddings.hidden.md", expected: "my_notes.md" },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(sourceFilename(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(sourceFilename(input)).toBe(expected)
   })
 })
 
@@ -43,52 +39,60 @@ describe("isCompanionFile", () => {
     { name: "settings file", input: "settings.hidden.md", expected: false },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(isCompanionFile(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(isCompanionFile(input)).toBe(expected)
   })
 })
 
 describe("roundtrip", () => {
-  it("build then parse recovers entries", () => {
-    const entries: EmbeddingEntry[] = [
-      { hash: "aaa", text: "hello world", embedding: [0.1, 0.2, 0.3] },
-      { hash: "bbb", text: "goodbye", embedding: [0.4, 0.5, 0.6] },
-    ]
+  const cases: { name: string; check: () => void }[] = [
+    {
+      name: "build then parse recovers entries",
+      check: () => {
+        const entries: EmbeddingEntry[] = [
+          { hash: "aaa", text: "hello world", embedding: [0.1, 0.2, 0.3] },
+          { hash: "bbb", text: "goodbye", embedding: [0.4, 0.5, 0.6] },
+        ]
+        expect(parseCompanionEntries(buildCompanionMarkdown(entries))).toEqual(entries)
+      },
+    },
+    {
+      name: "single entry roundtrip",
+      check: () => {
+        const entries: EmbeddingEntry[] = [{ hash: "abc", text: "solo", embedding: [1.0] }]
+        const markdown = buildCompanionMarkdown(entries)
+        expect(markdown).toContain("```json-embeddings")
+        expect(parseCompanionEntries(markdown)).toEqual(entries)
+      },
+    },
+    {
+      name: "parse returns empty for no block",
+      check: () => {
+        expect(parseCompanionEntries("just text")).toEqual([])
+      },
+    },
+    {
+      name: "parse returns empty for invalid json",
+      check: () => {
+        expect(parseCompanionEntries("```json-embeddings\nnot json\n```")).toEqual([])
+      },
+    },
+    {
+      name: "parse skips blocks with missing fields",
+      check: () => {
+        expect(parseCompanionEntries('```json-embeddings\n{"hash":"a"}\n```')).toEqual([])
+      },
+    },
+    {
+      name: "filename roundtrip",
+      check: () => {
+        const original = "my_document.md"
+        expect(sourceFilename(companionFilename(original))).toBe(original)
+      },
+    },
+  ]
 
-    const markdown = buildCompanionMarkdown(entries)
-    const recovered = parseCompanionEntries(markdown)
-    expect(recovered).toEqual(entries)
-  })
-
-  it("single entry roundtrip", () => {
-    const entries: EmbeddingEntry[] = [{ hash: "abc", text: "solo", embedding: [1.0] }]
-
-    const markdown = buildCompanionMarkdown(entries)
-    expect(markdown).toContain("```json-embeddings")
-    expect(parseCompanionEntries(markdown)).toEqual(entries)
-  })
-
-  it("parse returns empty for no block", () => {
-    expect(parseCompanionEntries("just text")).toEqual([])
-  })
-
-  it("parse returns empty for invalid json", () => {
-    expect(parseCompanionEntries("```json-embeddings\nnot json\n```")).toEqual([])
-  })
-
-  it("parse skips blocks with missing fields", () => {
-    const markdown = '```json-embeddings\n{"hash":"a"}\n```'
-    expect(parseCompanionEntries(markdown)).toEqual([])
-  })
-
-  it("filename roundtrip", () => {
-    const original = "my_document.md"
-    const companion = companionFilename(original)
-    const recovered = sourceFilename(companion)
-    expect(recovered).toBe(original)
-  })
+  it.each(cases)("$name", ({ check }) => check())
 })
 
 describe("fastParseBlockContents", () => {
@@ -126,9 +130,7 @@ describe("fastParseBlockContents", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(fastParseBlockContents(input)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(fastParseBlockContents(input)).toEqual(expected)
   })
 })

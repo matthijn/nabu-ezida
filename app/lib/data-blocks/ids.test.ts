@@ -5,6 +5,7 @@ import { getStoredAnnotations } from "~/domain/data-blocks/attributes/annotation
 import { getCharts } from "~/domain/data-blocks/chart/selectors"
 import { getSettings } from "~/domain/data-blocks/settings/selectors"
 import type { FileStore } from "~/lib/files/store"
+import { block } from "./test-helpers"
 
 describe("extractEntityIdsFromSql", () => {
   const prefixes = ["callout", "tag", "search", "ann", "chart"]
@@ -107,10 +108,8 @@ describe("extractEntityIdsFromSql", () => {
     },
   ]
 
-  cases.forEach(({ name, sql, prefixes, expected }) => {
-    it(name, () => {
-      expect(extractEntityIdsFromSql(sql, prefixes)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ sql, prefixes, expected }) => {
+    expect(extractEntityIdsFromSql(sql, prefixes)).toEqual(expected)
   })
 })
 
@@ -158,14 +157,12 @@ describe("validateSqlEntityReferences", () => {
     },
   ]
 
-  cases.forEach(({ name, sql, knownIds, expectedCount, containsId }) => {
-    it(name, () => {
-      const result = validateSqlEntityReferences(sql, prefixes, new Set(knownIds))
-      expect(result).toHaveLength(expectedCount)
-      if (containsId) {
-        expect(result.some((msg) => msg.includes(containsId))).toBe(true)
-      }
-    })
+  it.each(cases)("$name", ({ sql, knownIds, expectedCount, containsId }) => {
+    const result = validateSqlEntityReferences(sql, prefixes, new Set(knownIds))
+    expect(result).toHaveLength(expectedCount)
+    if (containsId) {
+      expect(result.some((msg) => msg.includes(containsId))).toBe(true)
+    }
   })
 })
 
@@ -204,8 +201,6 @@ describe("collectAllEntityIds", () => {
     }[]
   ) => JSON.stringify({ tags, searches })
 
-  const wrap = (language: string, content: string) => `\`\`\`${language}\n${content}\n\`\`\``
-
   const extractors = [
     (raw: string) => getCallouts(raw).map((c) => c.id),
     (raw: string) => getStoredAnnotations(raw).flatMap((a) => (a.id ? [a.id] : [])),
@@ -224,35 +219,35 @@ describe("collectAllEntityIds", () => {
     {
       name: "collects callout IDs",
       files: {
-        "doc.md": `# Doc\n\n${wrap("json-callout", makeCallout("callout-abc1def2"))}`,
+        "doc.md": `# Doc\n\n${block("json-callout", makeCallout("callout-abc1def2"))}`,
       },
       expected: ["callout-abc1def2"],
     },
     {
       name: "collects chart IDs",
       files: {
-        "doc.md": `# Doc\n\n${wrap("json-chart", makeChart("chart-x1y2z3w4"))}`,
+        "doc.md": `# Doc\n\n${block("json-chart", makeChart("chart-x1y2z3w4"))}`,
       },
       expected: ["chart-x1y2z3w4"],
     },
     {
       name: "collects annotation IDs",
       files: {
-        "doc.md": `# Doc\n\n${wrap("json-annotations", makeAnnotations([{ text: "hello", color: "red", reason: "test", id: "ann-a1b2c3d4" }]))}`,
+        "doc.md": `# Doc\n\n${block("json-annotations", makeAnnotations([{ text: "hello", color: "red", reason: "test", id: "ann-a1b2c3d4" }]))}`,
       },
       expected: ["ann-a1b2c3d4"],
     },
     {
       name: "skips annotations without IDs",
       files: {
-        "doc.md": `# Doc\n\n${wrap("json-annotations", makeAnnotations([{ text: "hello", color: "red", reason: "test" }]))}`,
+        "doc.md": `# Doc\n\n${block("json-annotations", makeAnnotations([{ text: "hello", color: "red", reason: "test" }]))}`,
       },
       expected: [],
     },
     {
       name: "collects tag and search IDs from settings",
       files: {
-        "settings.md": `# Settings\n\n${wrap(
+        "settings.md": `# Settings\n\n${block(
           "json-settings",
           makeSettings(
             [
@@ -282,8 +277,8 @@ describe("collectAllEntityIds", () => {
     {
       name: "collects across multiple files",
       files: {
-        "a.md": `# A\n\n${wrap("json-callout", makeCallout("callout-abc1def2"))}`,
-        "b.md": `# B\n\n${wrap("json-chart", makeChart("chart-x1y2z3w4"))}`,
+        "a.md": `# A\n\n${block("json-callout", makeCallout("callout-abc1def2"))}`,
+        "b.md": `# B\n\n${block("json-chart", makeChart("chart-x1y2z3w4"))}`,
       },
       expected: ["callout-abc1def2", "chart-x1y2z3w4"],
     },
@@ -296,10 +291,8 @@ describe("collectAllEntityIds", () => {
     },
   ]
 
-  cases.forEach(({ name, files, expected }) => {
-    it(name, () => {
-      const result = collectAllEntityIds(files, extractors)
-      expect(result).toEqual(new Set(expected))
-    })
+  it.each(cases)("$name", ({ files, expected }) => {
+    const result = collectAllEntityIds(files, extractors)
+    expect(result).toEqual(new Set(expected))
   })
 })

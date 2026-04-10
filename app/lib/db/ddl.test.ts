@@ -209,11 +209,9 @@ describe("jsonSchemaToTableProjection", () => {
       },
     ]
 
-  cases.forEach(({ name, tableName, schema, expectedSchemas }) => {
-    it(name, () => {
-      const result = jsonSchemaToTableProjection(tableName, schema)
-      expect(result.schemas).toEqual(expectedSchemas)
-    })
+  it.each(cases)("$name", ({ tableName, schema, expectedSchemas }) => {
+    const result = jsonSchemaToTableProjection(tableName, schema)
+    expect(result.schemas).toEqual(expectedSchemas)
   })
 })
 
@@ -255,9 +253,7 @@ describe("tableSchemaToDdl", () => {
     },
   ]
 
-  cases.forEach(({ name, schema, expected }) => {
-    it(name, () => {
-      expect(tableSchemaToDdl(schema)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ schema, expected }) => {
+    expect(tableSchemaToDdl(schema)).toBe(expected)
   })
 })

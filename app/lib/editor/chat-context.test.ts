@@ -55,12 +55,10 @@ describe("getPageContext", () => {
     },
   ]
 
-  cases.forEach(({ name, base, override, expected }) => {
-    it(name, () => {
-      setPageContext(base)
-      setPageContextOverride(override)
-      expect(getPageContext()).toBe(expected)
-    })
+  it.each(cases)("$name", ({ base, override, expected }) => {
+    setPageContext(base)
+    setPageContextOverride(override)
+    expect(getPageContext()).toBe(expected)
   })
 
   it("falls back to base after override is cleared", () => {
@@ -108,9 +106,7 @@ describe("findLastContextMessage", () => {
     },
   ]
 
-  cases.forEach(({ name, history, expected }) => {
-    it(name, () => {
-      expect(findLastContextMessage(history)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ history, expected }) => {
+    expect(findLastContextMessage(history)).toBe(expected)
   })
 })

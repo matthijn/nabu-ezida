@@ -126,22 +126,29 @@ describe("textOffsetToPos", () => {
       expect(result).toBe(expected)
     })
 
-    it("handles hard_break nodes within paragraph", () => {
-      const doc = createDocWithBreaks(["Label:", "br", "Content"])
-      const contentOffset = doc.textContent.indexOf("Content")
-      const pos = textOffsetToPos(doc, contentOffset)
-      expect(pos).toBeGreaterThan(1)
-    })
+    const behaviorCases: { name: string; check: () => void }[] = [
+      {
+        name: "handles hard_break nodes within paragraph",
+        check: () => {
+          const doc = createDocWithBreaks(["Label:", "br", "Content"])
+          const contentOffset = doc.textContent.indexOf("Content")
+          expect(textOffsetToPos(doc, contentOffset)).toBeGreaterThan(1)
+        },
+      },
+      {
+        name: "documents prosemirror position structure",
+        check: () => {
+          const doc = createDoc(["AB", "CD"])
+          expect(doc.textContent).toBe("ABCD")
+          expect(textOffsetToPos(doc, 0)).toBe(1)
+          expect(textOffsetToPos(doc, 1)).toBe(2)
+          expect(textOffsetToPos(doc, 2)).toBe(5)
+          expect(textOffsetToPos(doc, 3)).toBe(6)
+        },
+      },
+    ]
 
-    it("documents prosemirror position structure", () => {
-      const doc = createDoc(["AB", "CD"])
-      expect(doc.textContent).toBe("ABCD")
-
-      expect(textOffsetToPos(doc, 0)).toBe(1) // 'A'
-      expect(textOffsetToPos(doc, 1)).toBe(2) // 'B'
-      expect(textOffsetToPos(doc, 2)).toBe(5) // 'C' - crosses paragraph boundary
-      expect(textOffsetToPos(doc, 3)).toBe(6) // 'D'
-    })
+    it.each(behaviorCases)("$name", ({ check }) => check())
   })
 
   describe("hidden block exclusion", () => {
@@ -186,28 +193,34 @@ describe("textOffsetToPos", () => {
       expect(proseTextContent(doc)).toBe(expectedProseText)
     })
 
-    it("textOffsetToPos skips hidden block and maps to correct paragraph", () => {
-      const doc = createDoc([
-        { code: '{"annotations": []}', language: "json-attributes" },
-        "Target text",
-      ])
-      expect(proseTextContent(doc)).toBe("Target text")
-      const pos = textOffsetToPos(doc, 0)
-      const resolvedText = doc.textBetween(pos, pos + "Target".length)
-      expect(resolvedText).toBe("Target")
-    })
+    const offsetCases: {
+      name: string
+      blocks: BlockDef[]
+      expectedProseText: string
+      offset: number
+      expectedResolved: string
+    }[] = [
+      {
+        name: "textOffsetToPos skips hidden block and maps to correct paragraph",
+        blocks: [{ code: '{"annotations": []}', language: "json-attributes" }, "Target text"],
+        expectedProseText: "Target text",
+        offset: 0,
+        expectedResolved: "Target",
+      },
+      {
+        name: "offset after hidden block maps to second paragraph",
+        blocks: ["Before", { code: "code content", language: "json-attributes" }, "After"],
+        expectedProseText: "BeforeAfter",
+        offset: "Before".length,
+        expectedResolved: "After",
+      },
+    ]
 
-    it("offset after hidden block maps to second paragraph", () => {
-      const doc = createDoc([
-        "Before",
-        { code: "code content", language: "json-attributes" },
-        "After",
-      ])
-      expect(proseTextContent(doc)).toBe("BeforeAfter")
-      const afterOffset = "Before".length
-      const pos = textOffsetToPos(doc, afterOffset)
-      const resolvedText = doc.textBetween(pos, pos + "After".length)
-      expect(resolvedText).toBe("After")
+    it.each(offsetCases)("$name", ({ blocks, expectedProseText, offset, expectedResolved }) => {
+      const doc = createDoc(blocks)
+      expect(proseTextContent(doc)).toBe(expectedProseText)
+      const pos = textOffsetToPos(doc, offset)
+      expect(doc.textBetween(pos, pos + expectedResolved.length)).toBe(expectedResolved)
     })
   })
 })

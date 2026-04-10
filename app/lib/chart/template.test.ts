@@ -6,13 +6,7 @@ import {
   collectReferencedFields,
 } from "./template"
 import type { ChartEntityMap, ChartSpec, TemplateNode } from "./types"
-
-const entity = (id: string, label: string, color: string): ChartEntityMap[string] => ({
-  id,
-  label,
-  url: `/${id}`,
-  color,
-})
+import { entity } from "./test-helpers"
 
 describe("parseTemplate", () => {
   const cases: {
@@ -71,10 +65,8 @@ describe("parseTemplate", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(parseTemplate(input)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(parseTemplate(input)).toEqual(expected)
   })
 })
 
@@ -155,11 +147,9 @@ describe("resolveTemplateToMarkdown", () => {
     },
   ]
 
-  cases.forEach(({ name, input, row, map, expected }) => {
-    it(name, () => {
-      const nodes = parseTemplate(input)
-      expect(resolveTemplateToMarkdown(nodes, { row, entityMap: map })).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, row, map, expected }) => {
+    const nodes = parseTemplate(input)
+    expect(resolveTemplateToMarkdown(nodes, { row, entityMap: map })).toBe(expected)
   })
 })
 
@@ -173,10 +163,8 @@ describe("isTemplate", () => {
     { input: "open { only", expected: false },
   ]
 
-  cases.forEach(({ input, expected }) => {
-    it(`"${input}" → ${expected}`, () => {
-      expect(isTemplate(input)).toBe(expected)
-    })
+  it.each(cases)('"$input" → $expected', ({ input, expected }) => {
+    expect(isTemplate(input)).toBe(expected)
   })
 })
 
@@ -252,9 +240,7 @@ describe("collectReferencedFields", () => {
     },
   ]
 
-  cases.forEach(({ name, spec, expected }) => {
-    it(name, () => {
-      expect(collectReferencedFields(spec).sort()).toEqual(expected.sort())
-    })
+  it.each(cases)("$name", ({ spec, expected }) => {
+    expect(collectReferencedFields(spec).sort()).toEqual(expected.sort())
   })
 })

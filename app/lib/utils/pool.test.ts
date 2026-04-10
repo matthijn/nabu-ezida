@@ -94,64 +94,79 @@ describe("processPool", () => {
     expect(results.length).toBeLessThanOrEqual(expectedMax)
   })
 
-  it("respects concurrency limit", async () => {
-    let peak = 0
-    let active = 0
-    const fn = async (n: number): Promise<number[]> => {
-      active++
-      peak = Math.max(peak, active)
-      await delay(10)
-      active--
-      return [n]
-    }
-    await processPool([1, 2, 3, 4, 5, 6], fn, noop as (results: number[]) => void, {
-      concurrency: 2,
-    })
-    expect(peak).toBeLessThanOrEqual(2)
-  })
+  const behaviorCases: { name: string; check: () => Promise<void> }[] = [
+    {
+      name: "respects concurrency limit",
+      check: async () => {
+        let peak = 0
+        let active = 0
+        const fn = async (n: number): Promise<number[]> => {
+          active++
+          peak = Math.max(peak, active)
+          await delay(10)
+          active--
+          return [n]
+        }
+        await processPool([1, 2, 3, 4, 5, 6], fn, noop as (results: number[]) => void, {
+          concurrency: 2,
+        })
+        expect(peak).toBeLessThanOrEqual(2)
+      },
+    },
+    {
+      name: "fires onResults per completed item",
+      check: async () => {
+        const batches: number[][] = []
+        await processPool(
+          [1, 2, 3],
+          (n) => immediate([n]),
+          (r) => batches.push(r),
+          { concurrency: 1 }
+        )
+        expect(batches).toEqual([[1], [2], [3]])
+      },
+    },
+    {
+      name: "consumed reflects items processed with target",
+      check: async () => {
+        const { results, consumed } = await processPool(
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          (n) => immediate([n]),
+          noop as (results: number[]) => void,
+          { concurrency: 1, target: 3 }
+        )
+        expect(results).toHaveLength(3)
+        expect(consumed).toBe(3)
+      },
+    },
+    {
+      name: "consumed equals items length without target",
+      check: async () => {
+        const { consumed } = await processPool(
+          [1, 2, 3],
+          (n) => immediate([n]),
+          noop as (results: number[]) => void,
+          { concurrency: 2 }
+        )
+        expect(consumed).toBe(3)
+      },
+    },
+    {
+      name: "continues past failed items",
+      check: async () => {
+        let call = 0
+        const fn = async (n: number): Promise<number[]> => {
+          call++
+          if (call === 2) throw new Error("boom")
+          return [n]
+        }
+        const { results } = await processPool([1, 2, 3], fn, noop as (results: number[]) => void, {
+          concurrency: 1,
+        })
+        expect(results).toEqual([1, 3])
+      },
+    },
+  ]
 
-  it("fires onResults per completed item", async () => {
-    const batches: number[][] = []
-    await processPool(
-      [1, 2, 3],
-      (n) => immediate([n]),
-      (r) => batches.push(r),
-      { concurrency: 1 }
-    )
-    expect(batches).toEqual([[1], [2], [3]])
-  })
-
-  it("consumed reflects items processed with target", async () => {
-    const { results, consumed } = await processPool(
-      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      (n) => immediate([n]),
-      noop as (results: number[]) => void,
-      { concurrency: 1, target: 3 }
-    )
-    expect(results).toHaveLength(3)
-    expect(consumed).toBe(3)
-  })
-
-  it("consumed equals items length without target", async () => {
-    const { consumed } = await processPool(
-      [1, 2, 3],
-      (n) => immediate([n]),
-      noop as (results: number[]) => void,
-      { concurrency: 2 }
-    )
-    expect(consumed).toBe(3)
-  })
-
-  it("continues past failed items", async () => {
-    let call = 0
-    const fn = async (n: number): Promise<number[]> => {
-      call++
-      if (call === 2) throw new Error("boom")
-      return [n]
-    }
-    const { results } = await processPool([1, 2, 3], fn, noop as (results: number[]) => void, {
-      concurrency: 1,
-    })
-    expect(results).toEqual([1, 3])
-  })
+  it.each(behaviorCases)("$name", ({ check }) => check())
 })

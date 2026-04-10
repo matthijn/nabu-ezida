@@ -17,9 +17,9 @@ describe("normalizeFilename", () => {
     { input: "Mixed Case With Spaces.md", expected: "mixed_case_with_spaces.md" },
     { input: "  extra  spaces  .md", expected: "__extra__spaces__.md" },
   ]
-  cases.forEach(({ input, expected }) =>
-    it(`"${input}" → "${expected}"`, () => expect(normalizeFilename(input)).toBe(expected))
-  )
+  it.each(cases)('"$input" → "$expected"', ({ input, expected }) => {
+    expect(normalizeFilename(input)).toBe(expected)
+  })
 })
 
 describe("toDisplayName", () => {
@@ -32,9 +32,9 @@ describe("toDisplayName", () => {
     { input: "settings.hidden.md", expected: "Settings" },
     { input: "debug.hidden.md", expected: "Debug" },
   ]
-  cases.forEach(({ input, expected }) =>
-    it(`"${input}" → "${expected}"`, () => expect(toDisplayName(input)).toBe(expected))
-  )
+  it.each(cases)('"$input" → "$expected"', ({ input, expected }) => {
+    expect(toDisplayName(input)).toBe(expected)
+  })
 })
 
 describe("boldMissingFile", () => {
@@ -45,9 +45,9 @@ describe("boldMissingFile", () => {
     { input: "callout-7xk2m9p1", expected: null },
     { input: "not_a_file", expected: null },
   ]
-  cases.forEach(({ input, expected }) =>
-    it(`"${input}" → ${expected ?? "null"}`, () => expect(boldMissingFile(input)).toBe(expected))
-  )
+  it.each(cases)('"$input" → $expected', ({ input, expected }) => {
+    expect(boldMissingFile(input)).toBe(expected)
+  })
 })
 
 describe("isProtectedFile", () => {
@@ -57,9 +57,9 @@ describe("isProtectedFile", () => {
     { input: "some_doc.md", expected: false },
     { input: "debug.hidden.md", expected: false },
   ]
-  cases.forEach(({ input, expected }) =>
-    it(`"${input}" → ${expected}`, () => expect(isProtectedFile(input)).toBe(expected))
-  )
+  it.each(cases)('"$input" → $expected', ({ input, expected }) => {
+    expect(isProtectedFile(input)).toBe(expected)
+  })
 })
 
 describe("isHiddenFile", () => {
@@ -69,7 +69,7 @@ describe("isHiddenFile", () => {
     { input: "preferences.md", expected: false },
     { input: "my_doc.md", expected: false },
   ]
-  cases.forEach(({ input, expected }) =>
-    it(`"${input}" → ${expected}`, () => expect(isHiddenFile(input)).toBe(expected))
-  )
+  it.each(cases)('"$input" → $expected', ({ input, expected }) => {
+    expect(isHiddenFile(input)).toBe(expected)
+  })
 })

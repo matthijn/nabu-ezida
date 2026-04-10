@@ -63,10 +63,8 @@ describe("extractEntityIdsFromRows", () => {
     },
   ]
 
-  cases.forEach(({ name, rows, prefixes: pref, expected }) => {
-    it(name, () => {
-      expect(extractEntityIdsFromRows(rows, pref).sort()).toEqual(expected.sort())
-    })
+  it.each(cases)("$name", ({ rows, prefixes: pref, expected }) => {
+    expect(extractEntityIdsFromRows(rows, pref).sort()).toEqual(expected.sort())
   })
 })
 
@@ -123,9 +121,7 @@ describe("extractEntityIdsFromText", () => {
     },
   ]
 
-  cases.forEach(({ name, text, prefixes: pref, expected }) => {
-    it(name, () => {
-      expect(extractEntityIdsFromText(text, pref).sort()).toEqual(expected.sort())
-    })
+  it.each(cases)("$name", ({ text, prefixes: pref, expected }) => {
+    expect(extractEntityIdsFromText(text, pref).sort()).toEqual(expected.sort())
   })
 })

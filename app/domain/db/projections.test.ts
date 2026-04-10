@@ -15,6 +15,7 @@ describe("projections", () => {
       language: string
       expectedTable: string
       expectTopLevelProperty: string
+      expectNoProperty?: string
     }
 
     const cases: Case[] = [
@@ -29,6 +30,7 @@ describe("projections", () => {
         language: "json-annotations",
         expectedTable: "annotations",
         expectTopLevelProperty: "text",
+        expectNoProperty: "annotations",
       },
       {
         name: "non-singleton — schema is the block itself",
@@ -38,19 +40,19 @@ describe("projections", () => {
       },
     ]
 
-    it.each(cases)("$name", ({ language, expectedTable, expectTopLevelProperty }) => {
-      const p = findProjection(language)
-      expect(p.tableName).toBe(expectedTable)
+    it.each(cases)(
+      "$name",
+      ({ language, expectedTable, expectTopLevelProperty, expectNoProperty }) => {
+        const p = findProjection(language)
+        expect(p.tableName).toBe(expectedTable)
 
-      const jsonSchema = toJsonSchema(p)
-      expect(jsonSchema.properties).toHaveProperty(expectTopLevelProperty)
-    })
-
-    it("annotations schema does not have wrapper 'annotations' key", () => {
-      const p = findProjection("json-annotations")
-      const jsonSchema = toJsonSchema(p)
-      expect(jsonSchema.properties).not.toHaveProperty("annotations")
-    })
+        const jsonSchema = toJsonSchema(p)
+        expect(jsonSchema.properties).toHaveProperty(expectTopLevelProperty)
+        if (expectNoProperty) {
+          expect(jsonSchema.properties).not.toHaveProperty(expectNoProperty)
+        }
+      }
+    )
   })
 
   describe("blockParser", () => {

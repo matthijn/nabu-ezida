@@ -294,14 +294,12 @@ describe("diffFileContent", () => {
     },
   ]
 
-  cases.forEach(({ name, oldRaw, newRaw, expected }) => {
-    it(name, () => {
-      const entries = diffFileContent(oldRaw, newRaw, "test.md", TS)
-      expect(entries.map(pick)).toEqual(expected)
-      entries.forEach((e) => {
-        expect(e.path).toBe("test.md")
-        expect(e.timestamp).toBe(TS)
-      })
+  it.each(cases)("$name", ({ oldRaw, newRaw, expected }) => {
+    const entries = diffFileContent(oldRaw, newRaw, "test.md", TS)
+    expect(entries.map(pick)).toEqual(expected)
+    entries.forEach((e) => {
+      expect(e.path).toBe("test.md")
+      expect(e.timestamp).toBe(TS)
     })
   })
 })

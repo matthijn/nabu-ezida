@@ -14,10 +14,8 @@ describe("matchesFilter", () => {
     { query: "foo bar", text: "foobar", expected: false, name: "space in query no match" },
   ]
 
-  cases.forEach(({ query, text, expected, name }) => {
-    it(name, () => {
-      expect(matchesFilter(query, text)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ query, text, expected }) => {
+    expect(matchesFilter(query, text)).toBe(expected)
   })
 })
 
@@ -30,10 +28,8 @@ describe("matchesAny", () => {
     { query: "foo", texts: [], expected: false, name: "empty texts array" },
   ]
 
-  cases.forEach(({ query, texts, expected, name }) => {
-    it(name, () => {
-      expect(matchesAny(query, texts)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ query, texts, expected }) => {
+    expect(matchesAny(query, texts)).toBe(expected)
   })
 })
 
@@ -76,9 +72,7 @@ describe("matchesAllWords", () => {
     },
   ]
 
-  cases.forEach(({ query, texts, expected, name }) => {
-    it(name, () => {
-      expect(matchesAllWords(query, texts)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ query, texts, expected }) => {
+    expect(matchesAllWords(query, texts)).toBe(expected)
   })
 })

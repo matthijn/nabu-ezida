@@ -81,11 +81,9 @@ describe("ChartSchema — valid specs", () => {
     },
   ]
 
-  cases.forEach(({ name, spec }) => {
-    it(name, () => {
-      const result = ChartSchema.safeParse(baseChart(spec))
-      expect(result.success).toBe(true)
-    })
+  it.each(cases)("$name", ({ spec }) => {
+    const result = ChartSchema.safeParse(baseChart(spec))
+    expect(result.success).toBe(true)
   })
 })
 
@@ -105,11 +103,9 @@ describe("ChartSchema — color forms", () => {
     { name: "arbitrary string", color: "rainbow", valid: false },
   ]
 
-  cases.forEach(({ name, color, valid }) => {
-    it(name, () => {
-      const result = ChartSchema.safeParse(baseChart({ type: "bar", x: "a", y: "b", color }))
-      expect(result.success).toBe(valid)
-    })
+  it.each(cases)("$name", ({ color, valid }) => {
+    const result = ChartSchema.safeParse(baseChart({ type: "bar", x: "a", y: "b", color }))
+    expect(result.success).toBe(valid)
   })
 })
 
@@ -181,11 +177,9 @@ describe("ChartSchema — invalid", () => {
     },
   ]
 
-  cases.forEach(({ name, payload }) => {
-    it(name, () => {
-      const result = ChartSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
+  it.each(cases)("$name", ({ payload }) => {
+    const result = ChartSchema.safeParse(payload)
+    expect(result.success).toBe(false)
   })
 })
 

@@ -59,10 +59,8 @@ const getScenarioNames = (): string[] => {
 describe("nudge scenarios", () => {
   const scenarios = getScenarioNames()
 
-  scenarios.forEach((name) => {
-    it(name, async () => {
-      const { actual, expected } = await runScenario(name)
-      expect(actual).toEqual(expected)
-    })
+  it.each(scenarios.map((name) => ({ name })))("$name", async ({ name }) => {
+    const { actual, expected } = await runScenario(name)
+    expect(actual).toEqual(expected)
   })
 })

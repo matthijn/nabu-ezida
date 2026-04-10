@@ -117,9 +117,7 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(history))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(history))
   })
 
   describe("getMode", () => {
@@ -144,10 +142,8 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        expect(getMode(derive(history))).toBe(expected)
-      })
+    it.each(cases)("$name", ({ history, expected }) => {
+      expect(getMode(derive(history))).toBe(expected)
     })
   })
 
@@ -207,10 +203,8 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        expect(isPlanPaused(history)).toBe(expected)
-      })
+    it.each(cases)("$name", ({ history, expected }) => {
+      expect(isPlanPaused(history)).toBe(expected)
     })
   })
 
@@ -286,9 +280,7 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(history()))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(history()))
   })
 
   describe("hasDeliverable", () => {
@@ -360,10 +352,8 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        expect(hasDeliverable(history)).toBe(expected)
-      })
+    it.each(cases)("$name", ({ history, expected }) => {
+      expect(hasDeliverable(history)).toBe(expected)
     })
   })
 
@@ -401,10 +391,8 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, plan, guard, expected }) => {
-      it(name, () => {
-        expect(guard(plan()).allowed).toBe(expected)
-      })
+    it.each(cases)("$name", ({ plan, guard, expected }) => {
+      expect(guard(plan()).allowed).toBe(expected)
     })
   })
 
@@ -469,11 +457,9 @@ describe("derived", () => {
       },
     ]
 
-    cases.forEach(({ name, history, expected }) => {
-      it(name, () => {
-        const plan = mustGet(lastPlan(derive(history()).plans))
-        expect(isLastStep(plan)).toBe(expected)
-      })
+    it.each(cases)("$name", ({ history, expected }) => {
+      const plan = mustGet(lastPlan(derive(history()).plans))
+      expect(isLastStep(plan)).toBe(expected)
     })
   })
 })

@@ -177,119 +177,107 @@ CATS are great.
   })
 
   describe("currentBlock in errors", () => {
-    it("includes original block content in error when validation fails", () => {
-      const original = `# Test
+    const calloutJson = (id: string, title: string, color: string) =>
+      `{"id": "${id}", "type": "codebook-code", "title": "${title}", "color": "${color}", "content": "desc", "collapsed": false}`
+
+    type Result = ReturnType<typeof validateMarkdownBlocks>
+    interface Case {
+      name: string
+      original: string
+      patched: string
+      check: (r: Result) => void
+    }
+
+    const cases: Case[] = [
+      {
+        name: "includes original block content in error when validation fails",
+        original: `# Test
 
 \`\`\`json-annotations
 {"annotations": [{"text": "old one", "reason": "original", "color": "blue"}]}
-\`\`\``
-
-      const patched = `# Test
+\`\`\``,
+        patched: `# Test
 
 \`\`\`json-annotations
 {"annotations": [{"text": "nonexistent", "reason": "test", "color": "red"}]}
-\`\`\``
+\`\`\``,
+        check: (r) => {
+          expect(r.errors[0].currentBlock).toContain("old one")
+          expect(r.errors[0].currentBlock).not.toContain("nonexistent")
+        },
+      },
+      {
+        name: "matches blocks by id for non-singleton blocks",
+        original: [
+          "# Test",
+          "",
+          "```json-callout",
+          calloutJson("first", "First", "red"),
+          "```",
+          "",
+          "```json-callout",
+          calloutJson("second", "Second", "blue"),
+          "```",
+        ].join("\n"),
+        patched: [
+          "# Test",
+          "",
+          "```json-callout",
+          calloutJson("first", "First", "red"),
+          "```",
+          "",
+          "```json-callout",
+          '{"id": "second", "type": "INVALID"}',
+          "```",
+        ].join("\n"),
+        check: (r) => {
+          const secondBlockErrors = r.errors.filter((e) => e.currentBlock?.includes("Second"))
+          expect(secondBlockErrors.length).toBeGreaterThan(0)
+        },
+      },
+      {
+        name: "errors when non-singleton block missing id",
+        original: ["# Test", "", "```json-callout", calloutJson("abc", "Test", "red"), "```"].join(
+          "\n"
+        ),
+        patched: ["# Test", "", "```json-callout", '{"type": "INVALID"}', "```"].join("\n"),
+        check: (r) => {
+          const missingIdError = r.errors.find((e) => e.message.includes("missing identifier"))
+          expect(missingIdError).toBeDefined()
+        },
+      },
+      {
+        name: "matches by id even when block order changes",
+        original: [
+          "```json-callout",
+          calloutJson("aaa", "AAA", "red"),
+          "```",
+          "",
+          "```json-callout",
+          calloutJson("bbb", "BBB", "blue"),
+          "```",
+        ].join("\n"),
+        patched: [
+          "```json-callout",
+          '{"id": "bbb", "type": "INVALID"}',
+          "```",
+          "",
+          "```json-callout",
+          calloutJson("aaa", "AAA", "red"),
+          "```",
+        ].join("\n"),
+        check: (r) => {
+          const errorWithCurrentBlock = r.errors.find((e) => e.currentBlock)
+          expect(errorWithCurrentBlock?.currentBlock).toContain("BBB")
+          expect(errorWithCurrentBlock?.currentBlock).not.toContain("AAA")
+        },
+      },
+    ]
 
+    it.each(cases)("$name", ({ original, patched, check }) => {
       const result = validateMarkdownBlocks(patched, { original })
-
       expect(result.valid).toBe(false)
-      expect(result.errors[0].currentBlock).toContain("old one")
-      expect(result.errors[0].currentBlock).not.toContain("nonexistent")
-    })
-
-    it("matches blocks by id for non-singleton blocks", () => {
-      const validCallout1 =
-        '{"id": "first", "type": "codebook-code", "title": "First", "color": "red", "content": "desc", "collapsed": false}'
-      const validCallout2 =
-        '{"id": "second", "type": "codebook-code", "title": "Second", "color": "blue", "content": "desc", "collapsed": false}'
-      const invalidCallout = '{"id": "second", "type": "INVALID"}'
-
-      const original = [
-        "# Test",
-        "",
-        "```json-callout",
-        validCallout1,
-        "```",
-        "",
-        "```json-callout",
-        validCallout2,
-        "```",
-      ].join("\n")
-
-      const patched = [
-        "# Test",
-        "",
-        "```json-callout",
-        validCallout1,
-        "```",
-        "",
-        "```json-callout",
-        invalidCallout,
-        "```",
-      ].join("\n")
-
-      const result = validateMarkdownBlocks(patched, { original })
-
-      expect(result.valid).toBe(false)
-      // Invalid block has id "second" - should match original with same id
-      const secondBlockErrors = result.errors.filter((e) => e.currentBlock?.includes("Second"))
-      expect(secondBlockErrors.length).toBeGreaterThan(0)
-    })
-
-    it("errors when non-singleton block missing id", () => {
-      const original = [
-        "# Test",
-        "",
-        "```json-callout",
-        '{"id": "abc", "type": "codebook-code", "title": "Test", "color": "red", "content": "desc", "collapsed": false}',
-        "```",
-      ].join("\n")
-
-      const patched = ["# Test", "", "```json-callout", '{"type": "INVALID"}', "```"].join("\n")
-
-      const result = validateMarkdownBlocks(patched, { original })
-
-      expect(result.valid).toBe(false)
-      const missingIdError = result.errors.find((e) => e.message.includes("missing identifier"))
-      expect(missingIdError).toBeDefined()
-    })
-
-    it("matches by id even when block order changes", () => {
-      const calloutA =
-        '{"id": "aaa", "type": "codebook-code", "title": "AAA", "color": "red", "content": "desc", "collapsed": false}'
-      const calloutB =
-        '{"id": "bbb", "type": "codebook-code", "title": "BBB", "color": "blue", "content": "desc", "collapsed": false}'
-      const invalidB = '{"id": "bbb", "type": "INVALID"}'
-
-      // Original order: A, B
-      const original = [
-        "```json-callout",
-        calloutA,
-        "```",
-        "",
-        "```json-callout",
-        calloutB,
-        "```",
-      ].join("\n")
-
-      // Patched order: B (invalid), A - order swapped!
-      const patched = [
-        "```json-callout",
-        invalidB,
-        "```",
-        "",
-        "```json-callout",
-        calloutA,
-        "```",
-      ].join("\n")
-
-      const result = validateMarkdownBlocks(patched, { original })
-
-      expect(result.valid).toBe(false)
-      // Should match by id "bbb" -> original BBB, not by index
-      const errorWithCurrentBlock = result.errors.find((e) => e.currentBlock)
-      expect(errorWithCurrentBlock?.currentBlock).toContain("BBB")
-      expect(errorWithCurrentBlock?.currentBlock).not.toContain("AAA")
+      check(result)
     })
   })
 

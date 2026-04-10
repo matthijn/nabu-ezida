@@ -39,9 +39,7 @@ describe("formatValue", () => {
     { name: "NaN number", value: NaN, format: ",", expected: "" },
   ]
 
-  cases.forEach(({ name, value, format, expected }) => {
-    it(name, () => {
-      expect(formatValue(value, format)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ value, format, expected }) => {
+    expect(formatValue(value, format)).toBe(expected)
   })
 })

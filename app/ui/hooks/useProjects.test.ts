@@ -39,16 +39,14 @@ describe("findProjectById", () => {
     },
   ]
 
-  cases.forEach(({ name, projects, id, expected }) => {
-    it(name, () => {
-      const result = findProjectById(projects, id)
-      if (expected === undefined) {
-        expect(result).toBeUndefined()
-      } else {
-        expect(result?.id).toBe(expected.id)
-        expect(result?.name).toBe(expected.name)
-      }
-    })
+  it.each(cases)("$name", ({ projects, id, expected }) => {
+    const result = findProjectById(projects, id)
+    if (expected === undefined) {
+      expect(result).toBeUndefined()
+    } else {
+      expect(result?.id).toBe(expected.id)
+      expect(result?.name).toBe(expected.name)
+    }
   })
 })
 
@@ -80,10 +78,8 @@ describe("shouldAutoSelect", () => {
     },
   ]
 
-  cases.forEach(({ name, projects, currentValue, expected }) => {
-    it(name, () => {
-      expect(shouldAutoSelect(projects, currentValue)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ projects, currentValue, expected }) => {
+    expect(shouldAutoSelect(projects, currentValue)).toBe(expected)
   })
 })
 
@@ -101,10 +97,8 @@ describe("getFirstProjectId", () => {
     },
   ]
 
-  cases.forEach(({ name, projects, expected }) => {
-    it(name, () => {
-      expect(getFirstProjectId(projects)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ projects, expected }) => {
+    expect(getFirstProjectId(projects)).toBe(expected)
   })
 })
 
@@ -154,9 +148,7 @@ describe("resolveState", () => {
     },
   ]
 
-  cases.forEach(({ name, loading, error, projects, expected }) => {
-    it(name, () => {
-      expect(resolveState(loading, error, projects)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ loading, error, projects, expected }) => {
+    expect(resolveState(loading, error, projects)).toBe(expected)
   })
 })

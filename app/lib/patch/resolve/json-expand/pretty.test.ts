@@ -82,41 +82,48 @@ describe("doubled triple quotes", () => {
 })
 
 describe("fromExtraPretty error handling", () => {
-  const errorCases = [
+  const cases: { name: string; input: string; throws: true | false | RegExp }[] = [
     {
       name: "unclosed triple quote",
       input: '```json-callout\n{\n  "content": """\nunclosed\n}\n```',
+      throws: true,
     },
     {
       name: "triple quote without newline after",
       input: '```json-callout\n{\n  "content": """no newline"""\n}\n```',
+      throws: true,
     },
     {
       name: "unclosed code block with triple quote",
       input: '# Doc\n\n```json-callout\n{\n  "content": """\nhello',
+      throws: true,
     },
     {
       name: "unbalanced code fences",
       input: '# Doc\n\n```json-callout\n{"id": "foo"}\n```\n\n```json-callout\n{"id": "bar"}',
+      throws: true,
+    },
+    {
+      name: "error message is descriptive",
+      input: '```json-callout\n{\n  "content": """\nunclosed\n}\n```',
+      throws: /Malformed """|multiline string/,
+    },
+    {
+      name: "no error when no triple quotes present",
+      input: '```json-callout\n{\n  "id": "test",\n  "content": "simple"\n}\n```',
+      throws: false,
+    },
+    {
+      name: "handles whitespace around closing triple quote",
+      input: '```json-callout\n{\n  "content": """\nhello\n  """\n}\n```',
+      throws: false,
     },
   ]
 
-  it.each(errorCases)("$name: throws PrettyJsonError", ({ input }) => {
-    expect(() => fromExtraPretty(input)).toThrow(PrettyJsonError)
-  })
-
-  it("error message is descriptive", () => {
-    const input = '```json-callout\n{\n  "content": """\nunclosed\n}\n```'
-    expect(() => fromExtraPretty(input)).toThrow(/Malformed """|multiline string/)
-  })
-
-  it("no error when no triple quotes present", () => {
-    const input = '```json-callout\n{\n  "id": "test",\n  "content": "simple"\n}\n```'
-    expect(() => fromExtraPretty(input)).not.toThrow()
-  })
-
-  it("handles whitespace around closing triple quote", () => {
-    const input = '```json-callout\n{\n  "content": """\nhello\n  """\n}\n```'
-    expect(() => fromExtraPretty(input)).not.toThrow()
+  it.each(cases)("$name", ({ input, throws }) => {
+    const run = () => fromExtraPretty(input)
+    if (throws === true) expect(run).toThrow(PrettyJsonError)
+    else if (throws === false) expect(run).not.toThrow()
+    else expect(run).toThrow(throws)
   })
 })

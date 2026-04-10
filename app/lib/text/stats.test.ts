@@ -18,14 +18,12 @@ describe("computeTextStats", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      const stats = computeTextStats(input)
-      expect(stats.chars).toBe(expected.chars)
-      expect(stats.words).toBe(expected.words)
-      expect(stats.estimatedTokens).toBe(Math.ceil(expected.chars / 4))
-      expect(stats.readingTimeMinutes).toBeCloseTo(expected.words / 238, 5)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    const stats = computeTextStats(input)
+    expect(stats.chars).toBe(expected.chars)
+    expect(stats.words).toBe(expected.words)
+    expect(stats.estimatedTokens).toBe(Math.ceil(expected.chars / 4))
+    expect(stats.readingTimeMinutes).toBeCloseTo(expected.words / 238, 5)
   })
 })
 
@@ -37,7 +35,7 @@ describe("formatReadingTime", () => {
     { name: "rounds up", minutes: 7.6, expected: "8 min read" },
   ]
 
-  cases.forEach(({ name, minutes, expected }) => {
-    it(name, () => expect(formatReadingTime(minutes)).toBe(expected))
+  it.each(cases)("$name", ({ minutes, expected }) => {
+    expect(formatReadingTime(minutes)).toBe(expected)
   })
 })

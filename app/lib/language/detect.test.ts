@@ -27,9 +27,7 @@ describe("detectLanguage", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(detectLanguage(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(detectLanguage(input)).toBe(expected)
   })
 })

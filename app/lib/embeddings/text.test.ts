@@ -57,9 +57,7 @@ describe("toEmbeddableText", () => {
     },
   ]
 
-  cases.forEach(({ name, markdown, toProseFns, expected }) => {
-    it(name, () => {
-      expect(toEmbeddableText(markdown, toProseFns)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ markdown, toProseFns, expected }) => {
+    expect(toEmbeddableText(markdown, toProseFns)).toBe(expected)
   })
 })

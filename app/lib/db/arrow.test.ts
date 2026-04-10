@@ -39,10 +39,8 @@ describe("coerceValue", () => {
     },
   ]
 
-  cases.forEach(({ name, type, input, expected }) => {
-    it(name, () => {
-      expect(coerceValue(type, input)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ type, input, expected }) => {
+    expect(coerceValue(type, input)).toEqual(expected)
   })
 })
 
@@ -52,57 +50,78 @@ describe("rowsToArrowTable", () => {
     { name: "date", type: "DATE", nullable: true },
   ]
 
-  it("builds a DATE column from ISO strings", () => {
-    const rows = [
-      { file: "a.md", date: "2024-01-15" },
-      { file: "b.md", date: "2024-06-20" },
-    ]
-    const table = rowsToArrowTable(dateColumns, rows)
-    const dateCol = getColumn(table, "date")
-    expect(dateCol.type.toString()).toContain("Date")
-    expect(dateCol.get(0)).toBe(new Date("2024-01-15").getTime())
-    expect(dateCol.get(1)).toBe(new Date("2024-06-20").getTime())
-  })
+  interface Case {
+    name: string
+    columns: DbColumn[]
+    rows: Record<string, unknown>[]
+    check: (table: Table) => void
+  }
 
-  it("packs null dates as null in a DATE column", () => {
-    const rows = [
-      { file: "a.md", date: null },
-      { file: "b.md", date: "2024-06-20" },
-      { file: "c.md", date: "" },
-    ]
-    const table = rowsToArrowTable(dateColumns, rows)
-    const dateCol = getColumn(table, "date")
-    expect(dateCol.get(0)).toBeNull()
-    expect(dateCol.get(1)).toBe(new Date("2024-06-20").getTime())
-    expect(dateCol.get(2)).toBeNull()
-  })
+  const cases: Case[] = [
+    {
+      name: "builds a DATE column from ISO strings",
+      columns: dateColumns,
+      rows: [
+        { file: "a.md", date: "2024-01-15" },
+        { file: "b.md", date: "2024-06-20" },
+      ],
+      check: (table) => {
+        const dateCol = getColumn(table, "date")
+        expect(dateCol.type.toString()).toContain("Date")
+        expect(dateCol.get(0)).toBe(new Date("2024-01-15").getTime())
+        expect(dateCol.get(1)).toBe(new Date("2024-06-20").getTime())
+      },
+    },
+    {
+      name: "packs null dates as null in a DATE column",
+      columns: dateColumns,
+      rows: [
+        { file: "a.md", date: null },
+        { file: "b.md", date: "2024-06-20" },
+        { file: "c.md", date: "" },
+      ],
+      check: (table) => {
+        const dateCol = getColumn(table, "date")
+        expect(dateCol.get(0)).toBeNull()
+        expect(dateCol.get(1)).toBe(new Date("2024-06-20").getTime())
+        expect(dateCol.get(2)).toBeNull()
+      },
+    },
+    {
+      name: "handles an all-null DATE column",
+      columns: dateColumns,
+      rows: [
+        { file: "a.md", date: null },
+        { file: "b.md", date: null },
+      ],
+      check: (table) => {
+        const dateCol = getColumn(table, "date")
+        expect(dateCol.type.toString()).toContain("Date")
+        expect(dateCol.get(0)).toBeNull()
+        expect(dateCol.get(1)).toBeNull()
+      },
+    },
+    {
+      name: "preserves existing types (integer, varchar) alongside date",
+      columns: [
+        { name: "file", type: "VARCHAR", nullable: false },
+        { name: "count", type: "INTEGER", nullable: true },
+        { name: "date", type: "DATE", nullable: true },
+      ],
+      rows: [
+        { file: "a.md", count: 3, date: "2024-01-15" },
+        { file: "b.md", count: null, date: null },
+      ],
+      check: (table) => {
+        expect(getColumn(table, "count").get(0)).toBe(3)
+        expect(getColumn(table, "count").get(1)).toBeNull()
+        expect(getColumn(table, "date").get(0)).toBe(new Date("2024-01-15").getTime())
+        expect(getColumn(table, "date").get(1)).toBeNull()
+      },
+    },
+  ]
 
-  it("handles an all-null DATE column", () => {
-    const rows = [
-      { file: "a.md", date: null },
-      { file: "b.md", date: null },
-    ]
-    const table = rowsToArrowTable(dateColumns, rows)
-    const dateCol = getColumn(table, "date")
-    expect(dateCol.type.toString()).toContain("Date")
-    expect(dateCol.get(0)).toBeNull()
-    expect(dateCol.get(1)).toBeNull()
-  })
-
-  it("preserves existing types (integer, varchar) alongside date", () => {
-    const columns: DbColumn[] = [
-      { name: "file", type: "VARCHAR", nullable: false },
-      { name: "count", type: "INTEGER", nullable: true },
-      { name: "date", type: "DATE", nullable: true },
-    ]
-    const rows = [
-      { file: "a.md", count: 3, date: "2024-01-15" },
-      { file: "b.md", count: null, date: null },
-    ]
-    const table = rowsToArrowTable(columns, rows)
-    expect(getColumn(table, "count").get(0)).toBe(3)
-    expect(getColumn(table, "count").get(1)).toBeNull()
-    expect(getColumn(table, "date").get(0)).toBe(new Date("2024-01-15").getTime())
-    expect(getColumn(table, "date").get(1)).toBeNull()
+  it.each(cases)("$name", ({ columns, rows, check }) => {
+    check(rowsToArrowTable(columns, rows))
   })
 })

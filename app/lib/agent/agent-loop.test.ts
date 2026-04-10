@@ -45,10 +45,8 @@ describe("shouldContinue", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(shouldContinue(blocks)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(shouldContinue(blocks)).toBe(expected)
   })
 })
 
@@ -74,10 +72,8 @@ describe("isRejectionBlock", () => {
     },
   ]
 
-  cases.forEach(({ name, block, expected }) => {
-    it(name, () => {
-      expect(isRejectionBlock(block)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ block, expected }) => {
+    expect(isRejectionBlock(block)).toBe(expected)
   })
 })
 
@@ -103,10 +99,8 @@ describe("hasRejection", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(hasRejection(blocks)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(hasRejection(blocks)).toBe(expected)
   })
 })
 
@@ -148,10 +142,8 @@ describe("hasNewUserBlock", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, before, expected }) => {
-    it(name, () => {
-      expect(hasNewUserBlock(blocks, before)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ blocks, before, expected }) => {
+    expect(hasNewUserBlock(blocks, before)).toBe(expected)
   })
 })
 
@@ -167,10 +159,8 @@ describe("hasToolCalls", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(hasToolCalls(blocks)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(hasToolCalls(blocks)).toBe(expected)
   })
 })
 
@@ -188,10 +178,8 @@ describe("excludeReasoning", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(excludeReasoning(blocks)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(excludeReasoning(blocks)).toEqual(expected)
   })
 })
 
@@ -259,9 +247,7 @@ describe("deriveMode", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(deriveMode(blocks)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(deriveMode(blocks)).toBe(expected)
   })
 })

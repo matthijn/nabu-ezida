@@ -49,17 +49,29 @@ describe("expandMatch", () => {
 describe("expandMatch + getMatchedText", () => {
   const content = "line0\nline1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9"
 
-  it("returns lines in expanded range", () => {
-    const match: Match = { start: 3, end: 4, fuzzy: false }
-    const expanded = expandMatch(match, 1, countLines(content))
-    expect(getMatchedText(content, expanded)).toBe("line2\nline3\nline4\nline5")
+  const cases: { name: string; match: Match; n: number; expected: string }[] = [
+    {
+      name: "returns lines in expanded range",
+      match: { start: 3, end: 4, fuzzy: false },
+      n: 1,
+      expected: "line2\nline3\nline4\nline5",
+    },
+  ]
+
+  it.each(cases)("$name", ({ match, n, expected }) => {
+    const expanded = expandMatch(match, n, countLines(content))
+    expect(getMatchedText(content, expanded)).toBe(expected)
   })
 })
 
 describe("countLines", () => {
-  it("counts lines correctly", () => {
-    expect(countLines("a\nb\nc")).toBe(3)
-    expect(countLines("single")).toBe(1)
-    expect(countLines("")).toBe(1)
+  const cases: { name: string; input: string; expected: number }[] = [
+    { name: "counts multi-line", input: "a\nb\nc", expected: 3 },
+    { name: "counts single line", input: "single", expected: 1 },
+    { name: "counts empty string as one line", input: "", expected: 1 },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(countLines(input)).toBe(expected)
   })
 })

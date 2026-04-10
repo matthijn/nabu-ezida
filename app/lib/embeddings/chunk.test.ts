@@ -102,23 +102,17 @@ describe("chunkText", () => {
         expect(chunks[0].text).toMatch(/^Paragraph 0/)
       },
     },
+    {
+      name: "no chunk is below MIN_CHUNK_SIZE except when total text is small",
+      input: Array.from({ length: 30 }, (_, i) => `Segment ${i}. ${"y".repeat(500)}`).join("\n\n"),
+      check: (chunks) => {
+        if (chunks.length <= 1) return
+        chunks.forEach((chunk) => {
+          expect(chunk.text.length).toBeGreaterThanOrEqual(MIN_CHUNK_SIZE)
+        })
+      },
+    },
   ]
 
-  cases.forEach(({ name, input, check }) => {
-    it(name, () => {
-      check(chunkText(input))
-    })
-  })
-
-  it("no chunk is below MIN_CHUNK_SIZE except when total text is small", () => {
-    const longText = Array.from({ length: 30 }, (_, i) => `Segment ${i}. ${"y".repeat(500)}`).join(
-      "\n\n"
-    )
-    const chunks = chunkText(longText)
-    if (chunks.length > 1) {
-      chunks.forEach((chunk) => {
-        expect(chunk.text.length).toBeGreaterThanOrEqual(MIN_CHUNK_SIZE)
-      })
-    }
-  })
+  it.each(cases)("$name", ({ input, check }) => check(chunkText(input)))
 })

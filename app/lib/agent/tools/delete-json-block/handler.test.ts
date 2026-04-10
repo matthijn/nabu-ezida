@@ -2,12 +2,7 @@ import { describe, it, expect, afterEach } from "vitest"
 import { deleteJsonBlock } from "./handler"
 import { setFiles } from "~/lib/files"
 import type { FileStore } from "~/lib/files"
-
-const doc = (json: object, language = "json-attributes"): string =>
-  `# Title\n\nSome text.\n\n\`\`\`${language}\n${JSON.stringify(json, null, "\t")}\n\`\`\`\n\nMore text.\n`
-
-const multiBlockDoc = (blocks: { id: string; title: string; content: string }[]): string =>
-  `# Codebook\n\n${blocks.map((b) => `\`\`\`json-callout\n${JSON.stringify(b, null, "\t")}\n\`\`\``).join("\n\nSome prose.\n\n")}\n`
+import { doc, multiBlockDoc } from "../json-block-test-helpers"
 
 describe("delete_json_block", () => {
   afterEach(() => setFiles({}))

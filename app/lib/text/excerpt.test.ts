@@ -81,9 +81,7 @@ describe("buildExcerpt", () => {
     },
   ]
 
-  cases.forEach(({ name, input, tokensPerSection, check }) => {
-    it(name, () => {
-      check(buildExcerpt(input, tokensPerSection))
-    })
+  it.each(cases)("$name", ({ input, tokensPerSection, check }) => {
+    check(buildExcerpt(input, tokensPerSection))
   })
 })

@@ -38,41 +38,35 @@ describe("findMatches", () => {
     })
   })
 
-  it("matches when needle has trailing newline but content does not", () => {
-    const contentNoTrailing = "# Notes"
-    const needleWithTrailing = "# Notes\n"
-
-    const matches = findMatches(contentNoTrailing, needleWithTrailing)
-
-    expect(matches.length).toBe(1)
-    expect(matches[0]).toEqual({ start: 0, end: 0, fuzzy: false })
-  })
-
-  const blankLineCases = [
+  const normalizedCases = [
     {
-      name: "normalized: whitespace-only blank line matches empty blank line",
+      name: "needle with trailing newline matches content without one",
+      content: "# Notes",
+      needle: "# Notes\n",
+      expected: { start: 0, end: 0, fuzzy: false },
+    },
+    {
+      name: "whitespace-only blank line matches empty blank line",
       content: "heading\n   \ntext after gap",
       needle: "heading\n\ntext after gap",
       expected: { start: 0, end: 2, fuzzy: false },
     },
     {
-      name: "normalized: tabs-only blank line matches empty blank line",
+      name: "tabs-only blank line matches empty blank line",
       content: "heading\n\t\t\ntext after gap",
       needle: "heading\n\ntext after gap",
       expected: { start: 0, end: 2, fuzzy: false },
     },
     {
-      name: "normalized: multi-line block with blank mismatch",
+      name: "multi-line block with blank mismatch",
       content: "Sarah is a senior nurse\n   \nin the emergency department",
       needle: "Sarah is a senior nurse\n\nin the emergency department",
       expected: { start: 0, end: 2, fuzzy: false },
     },
   ]
 
-  it.each(blankLineCases)("$name", ({ content: c, needle, expected }) => {
-    const nc = normalizeContent(c)
-    const nn = normalizeContent(needle)
-    const matches = findMatches(nc, nn)
+  it.each(normalizedCases)("$name", ({ content: c, needle, expected }) => {
+    const matches = findMatches(normalizeContent(c), normalizeContent(needle))
     expect(matches.length).toBe(1)
     expect(matches[0]).toEqual(expected)
   })

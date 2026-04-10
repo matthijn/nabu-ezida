@@ -34,9 +34,7 @@ describe("stripMarkdownFormatting", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(stripMarkdownFormatting(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(stripMarkdownFormatting(input)).toBe(expected)
   })
 })

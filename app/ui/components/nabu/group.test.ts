@@ -58,9 +58,7 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 
   describe("simple plan", () => {
@@ -123,9 +121,7 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 
   describe("nested steps", () => {
@@ -148,9 +144,7 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 
   describe("messages before and after plan", () => {
@@ -222,9 +216,7 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 
   describe("multiple plans", () => {
@@ -249,9 +241,7 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 
   describe("streaming not in message list", () => {
@@ -268,8 +258,6 @@ describe("toGroupedMessages", () => {
       },
     ]
 
-    cases.forEach(({ name, history, check }) => {
-      it(name, () => check(group(history)))
-    })
+    it.each(cases)("$name", ({ history, check }) => check(group(history)))
   })
 })

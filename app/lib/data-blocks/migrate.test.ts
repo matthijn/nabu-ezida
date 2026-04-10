@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { z } from "zod"
 import { shouldMigrate, migrateFile, type Migration } from "./migrate"
-
-const block = (lang: string, content: string) => `\`\`\`${lang}\n${content}\n\`\`\``
+import { block } from "./test-helpers"
 
 const oldSchema = z.object({ v: z.literal(1), data: z.string() }).strict()
 
@@ -63,10 +62,8 @@ describe("shouldMigrate", () => {
     },
   ]
 
-  cases.forEach(({ name, markdown, expected }) => {
-    it(name, () => {
-      expect(shouldMigrate(markdown, upgradeToyV1)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ markdown, expected }) => {
+    expect(shouldMigrate(markdown, upgradeToyV1)).toBe(expected)
   })
 })
 
@@ -139,9 +136,7 @@ describe("migrateFile", () => {
     },
   ]
 
-  cases.forEach(({ name, markdown, migrations, expected }) => {
-    it(name, () => {
-      expect(migrateFile(markdown, migrations)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ markdown, migrations, expected }) => {
+    expect(migrateFile(markdown, migrations)).toEqual(expected)
   })
 })

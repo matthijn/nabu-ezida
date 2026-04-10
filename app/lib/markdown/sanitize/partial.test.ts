@@ -70,10 +70,8 @@ describe("filterCodeBlocks", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(filterCodeBlocks(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(filterCodeBlocks(input)).toBe(expected)
   })
 })
 
@@ -131,10 +129,8 @@ describe("stripIncompleteLink", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(stripIncompleteLink(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(stripIncompleteLink(input)).toBe(expected)
   })
 })
 
@@ -162,9 +158,7 @@ describe("preprocessStreaming", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(preprocessStreaming(input)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(preprocessStreaming(input)).toBe(expected)
   })
 })

@@ -7,8 +7,8 @@ import {
   findBlockById,
   summarizeBlocks,
 } from "./parse"
+import { block } from "./test-helpers"
 
-const block = (lang: string, content: string) => `\`\`\`${lang}\n${content}\n\`\`\``
 const crlfBlock = (lang: string, content: string) => `\`\`\`${lang}\r\n${content}\r\n\`\`\``
 const trailingSpaceBlock = (lang: string, content: string) => `\`\`\`${lang}  \n${content}\n\`\`\``
 
@@ -77,11 +77,9 @@ describe("parseCodeBlocks", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      const result = parseCodeBlocks(input).map(({ language, content }) => ({ language, content }))
-      expect(result).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    const result = parseCodeBlocks(input).map(({ language, content }) => ({ language, content }))
+    expect(result).toEqual(expected)
   })
 })
 
@@ -94,10 +92,8 @@ describe("findBlocksByLanguage", () => {
     { name: "non-existent language", language: "yaml", expectedCount: 0 },
   ]
 
-  cases.forEach(({ name, language, expectedCount }) => {
-    it(name, () => {
-      expect(findBlocksByLanguage(doc, language)).toHaveLength(expectedCount)
-    })
+  it.each(cases)("$name", ({ language, expectedCount }) => {
+    expect(findBlocksByLanguage(doc, language)).toHaveLength(expectedCount)
   })
 })
 
@@ -132,10 +128,8 @@ describe("parseBlockJson", () => {
     },
   ]
 
-  cases.forEach(({ name, content, check }) => {
-    it(name, () => {
-      check(parseBlockJson({ language: "json", content, start: 0, end: 0 }))
-    })
+  it.each(cases)("$name", ({ content, check }) => {
+    check(parseBlockJson({ language: "json", content, start: 0, end: 0 }))
   })
 })
 

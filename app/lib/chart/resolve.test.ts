@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest"
 import { resolveChartData, type ResolveOptions } from "./resolve"
-import type { ColorContext } from "./color"
 import type {
   AxisRenderable,
   ChartEntityMap,
@@ -8,22 +7,7 @@ import type {
   PartRenderable,
   RenderableChart,
 } from "./types"
-
-const stubResolveRadix = (token: string, shade: number): string => `radix(${token},${shade})`
-
-const buildColorContext = (entityMap: ChartEntityMap = {}): ColorContext => ({
-  entityMap,
-  resolveRadix: stubResolveRadix,
-  shade: 9,
-  fallback: "#888888",
-})
-
-const chartEntity = (id: string, label: string, color: string): ChartEntityMap[string] => ({
-  id,
-  label,
-  url: `/${id}`,
-  color,
-})
+import { entity, buildColorContext } from "./test-helpers"
 
 const buildOptions = (
   spec: ChartSpec,
@@ -101,8 +85,8 @@ describe("resolveChartData — axis charts", () => {
         { month: "Feb", code: "callout-abc12345", value: 7 },
       ],
       entityMap: {
-        "callout-abc12345": chartEntity("callout-abc12345", "Trust", "red"),
-        "callout-def67890": chartEntity("callout-def67890", "Fear", "#112233"),
+        "callout-abc12345": entity("callout-abc12345", "Trust", "red"),
+        "callout-def67890": entity("callout-def67890", "Fear", "#112233"),
       },
       expect: (chart) => {
         expect(chart.type).toBe("stacked-bar")
@@ -201,7 +185,7 @@ describe("resolveChartData — axis charts", () => {
       },
       rows: [{ code: "callout-abc12345", count: 1 }],
       entityMap: {
-        "callout-abc12345": chartEntity("callout-abc12345", "Trust", "red"),
+        "callout-abc12345": entity("callout-abc12345", "Trust", "red"),
       },
       expect: (chart) => {
         expect(chart.rows[0]._entityUrl).toBe("/callout-abc12345")
@@ -223,11 +207,9 @@ describe("resolveChartData — axis charts", () => {
     },
   ]
 
-  cases.forEach(({ name, spec, rows, entityMap, expect: assertFn }) => {
-    it(name, () => {
-      const chart = resolveChartData(buildOptions(spec, rows, entityMap))
-      assertFn(asAxis(chart))
-    })
+  it.each(cases)("$name", ({ spec, rows, entityMap, expect: assertFn }) => {
+    const chart = resolveChartData(buildOptions(spec, rows, entityMap))
+    assertFn(asAxis(chart))
   })
 })
 
@@ -252,8 +234,8 @@ describe("resolveChartData — part charts", () => {
         { code: "callout-def67890", count: 60 },
       ],
       entityMap: {
-        "callout-abc12345": chartEntity("callout-abc12345", "Trust", "red"),
-        "callout-def67890": chartEntity("callout-def67890", "Fear", "blue"),
+        "callout-abc12345": entity("callout-abc12345", "Trust", "red"),
+        "callout-def67890": entity("callout-def67890", "Fear", "blue"),
       },
       expect: (chart) => {
         expect(chart.type).toBe("pie")
@@ -296,7 +278,7 @@ describe("resolveChartData — part charts", () => {
       },
       rows: [{ code: "callout-abc12345", count: 5 }],
       entityMap: {
-        "callout-abc12345": chartEntity("callout-abc12345", "Trust", "red"),
+        "callout-abc12345": entity("callout-abc12345", "Trust", "red"),
       },
       expect: (chart) => {
         expect(chart.rows[0]._entityUrl).toBe("/callout-abc12345")
@@ -304,11 +286,9 @@ describe("resolveChartData — part charts", () => {
     },
   ]
 
-  cases.forEach(({ name, spec, rows, entityMap, expect: assertFn }) => {
-    it(name, () => {
-      const chart = resolveChartData(buildOptions(spec, rows, entityMap))
-      assertFn(asPart(chart))
-    })
+  it.each(cases)("$name", ({ spec, rows, entityMap, expect: assertFn }) => {
+    const chart = resolveChartData(buildOptions(spec, rows, entityMap))
+    assertFn(asPart(chart))
   })
 })
 

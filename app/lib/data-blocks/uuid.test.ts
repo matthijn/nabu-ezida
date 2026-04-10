@@ -25,125 +25,91 @@ describe("isSystemId", () => {
     },
   ]
 
-  cases.forEach(({ id, prefix, expected, name }) => {
-    it(name, () => {
-      expect(isSystemId(id, prefix)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ id, prefix, expected }) => {
+    expect(isSystemId(id, prefix)).toBe(expected)
   })
 })
 
 describe("fillMissingIds", () => {
-  describe("root-level IDs (json-callout)", () => {
-    it("fills missing id on callout block", () => {
-      const input = `# Doc
+  type FillResult = ReturnType<typeof fillMissingIds>
+  interface FillCase {
+    name: string
+    input: string
+    check: (r: FillResult, input: string) => void
+  }
 
-\`\`\`json-callout
-{
-  "title": "My Callout"
-}
-\`\`\``
+  const cases: FillCase[] = [
+    {
+      name: "fills missing id on json-callout block",
+      input: '# Doc\n\n```json-callout\n{\n  "title": "My Callout"\n}\n```',
+      check: (r) => {
+        expect(r.generated).toHaveLength(1)
+        expect(r.generated[0].type).toBe("json-callout")
+        expect(r.generated[0].label).toBe("My Callout")
+        expect(r.content).toContain(`"id": "${r.generated[0].id}"`)
+      },
+    },
+    {
+      name: "preserves existing id on json-callout block",
+      input:
+        '# Doc\n\n```json-callout\n{\n  "id": "existing_123",\n  "title": "My Callout"\n}\n```',
+      check: (r, input) => {
+        expect(r.generated).toHaveLength(0)
+        expect(r.content).toBe(input)
+      },
+    },
+    {
+      name: "fills missing id on json-annotations",
+      input:
+        '# Doc\n\n```json-annotations\n{ "annotations": [\n  { "text": "hello", "reason": "test", "color": "blue" }\n] }\n```',
+      check: (r) => {
+        expect(r.generated).toHaveLength(1)
+        expect(r.generated[0].type).toBe("json-annotations.annotations")
+        expect(r.generated[0].id).toMatch(/^annotation-/)
+        expect(r.content).toContain(`"id": "${r.generated[0].id}"`)
+      },
+    },
+    {
+      name: "fills multiple missing annotation ids",
+      input:
+        '# Doc\n\n```json-annotations\n{ "annotations": [\n  { "text": "first", "reason": "a", "color": "blue" },\n  { "text": "second", "reason": "b", "color": "red" }\n] }\n```',
+      check: (r) => {
+        expect(r.generated).toHaveLength(2)
+        expect(r.generated[0].id).toMatch(/^annotation-/)
+        expect(r.generated[1].id).toMatch(/^annotation-/)
+        expect(r.generated[0].id).not.toBe(r.generated[1].id)
+      },
+    },
+    {
+      name: "preserves existing annotation ids",
+      input:
+        '# Doc\n\n```json-annotations\n{ "annotations": [\n  { "id": "ann_existing", "text": "hello", "reason": "test", "color": "blue" }\n] }\n```',
+      check: (r, input) => {
+        expect(r.generated).toHaveLength(0)
+        expect(r.content).toBe(input)
+      },
+    },
+    {
+      name: "fills only missing ids in mixed annotation array",
+      input:
+        '# Doc\n\n```json-annotations\n{ "annotations": [\n  { "id": "ann_existing", "text": "first", "reason": "a", "color": "blue" },\n  { "text": "second", "reason": "b", "color": "red" }\n] }\n```',
+      check: (r) => {
+        expect(r.generated).toHaveLength(1)
+        expect(r.content).toContain("ann_existing")
+        expect(r.content).toContain(r.generated[0].id)
+      },
+    },
+    {
+      name: "handles document with no json blocks",
+      input: "# Just text\n\nNo blocks here.",
+      check: (r, input) => {
+        expect(r.generated).toHaveLength(0)
+        expect(r.content).toBe(input)
+      },
+    },
+  ]
 
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(1)
-      expect(result.generated[0].type).toBe("json-callout")
-      expect(result.generated[0].label).toBe("My Callout")
-      expect(result.content).toContain(`"id": "${result.generated[0].id}"`)
-    })
-
-    it("preserves existing id on callout block", () => {
-      const input = `# Doc
-
-\`\`\`json-callout
-{
-  "id": "existing_123",
-  "title": "My Callout"
-}
-\`\`\``
-
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(0)
-      expect(result.content).toBe(input)
-    })
-  })
-
-  describe("nested IDs (json-annotations)", () => {
-    it("fills missing id on annotations", () => {
-      const input = `# Doc
-
-\`\`\`json-annotations
-{ "annotations": [
-  { "text": "hello", "reason": "test", "color": "blue" }
-] }
-\`\`\``
-
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(1)
-      expect(result.generated[0].type).toBe("json-annotations.annotations")
-      expect(result.generated[0].id).toMatch(/^annotation-/)
-      expect(result.content).toContain(`"id": "${result.generated[0].id}"`)
-    })
-
-    it("fills multiple missing annotation ids", () => {
-      const input = `# Doc
-
-\`\`\`json-annotations
-{ "annotations": [
-  { "text": "first", "reason": "a", "color": "blue" },
-  { "text": "second", "reason": "b", "color": "red" }
-] }
-\`\`\``
-
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(2)
-      expect(result.generated[0].id).toMatch(/^annotation-/)
-      expect(result.generated[1].id).toMatch(/^annotation-/)
-      expect(result.generated[0].id).not.toBe(result.generated[1].id)
-    })
-
-    it("preserves existing annotation ids", () => {
-      const input = `# Doc
-
-\`\`\`json-annotations
-{ "annotations": [
-  { "id": "ann_existing", "text": "hello", "reason": "test", "color": "blue" }
-] }
-\`\`\``
-
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(0)
-      expect(result.content).toBe(input)
-    })
-
-    it("fills only missing ids in mixed array", () => {
-      const input = `# Doc
-
-\`\`\`json-annotations
-{ "annotations": [
-  { "id": "ann_existing", "text": "first", "reason": "a", "color": "blue" },
-  { "text": "second", "reason": "b", "color": "red" }
-] }
-\`\`\``
-
-      const result = fillMissingIds(input)
-
-      expect(result.generated).toHaveLength(1)
-      expect(result.content).toContain("ann_existing")
-      expect(result.content).toContain(result.generated[0].id)
-    })
-  })
-
-  it("handles document with no json blocks", () => {
-    const input = "# Just text\n\nNo blocks here."
-    const result = fillMissingIds(input)
-
-    expect(result.generated).toHaveLength(0)
-    expect(result.content).toBe(input)
-  })
+  it.each(cases)("$name", ({ input, check }) => check(fillMissingIds(input), input))
 
   describe("malformed ID normalization", () => {
     const calloutBlock = (id: string) => `# Doc
@@ -208,8 +174,9 @@ describe("fillMissingIds", () => {
       },
     ]
 
-    cases.forEach(({ name, input, original, expectNormalized, expectedPrefix, expectedSource }) => {
-      it(name, () => {
+    it.each(cases)(
+      "$name",
+      ({ input, original, expectNormalized, expectedPrefix, expectedSource }) => {
         const result = fillMissingIds(input, original)
 
         if (expectNormalized) {
@@ -223,8 +190,8 @@ describe("fillMissingIds", () => {
           expect(result.generated).toHaveLength(0)
           expect(result.content).toBe(input)
         }
-      })
-    })
+      }
+    )
 
     it("returns same normalized ID for same malformed ID across calls", () => {
       const first = fillMissingIds(calloutBlock("my-custom-id"), emptyOriginal)
@@ -236,39 +203,51 @@ describe("fillMissingIds", () => {
 })
 
 describe("replaceUuidPlaceholders", () => {
-  it("replaces single placeholder", () => {
-    const input = '{"id": "[uuid-callout-1]"}'
-    const result = replaceUuidPlaceholders(input)
+  type ReplaceResult = ReturnType<typeof replaceUuidPlaceholders>
+  interface ReplaceCase {
+    name: string
+    input: string
+    check: (r: ReplaceResult, input: string) => void
+  }
 
-    expect(result.generated).toHaveProperty("callout-1")
-    expect(result.result).toContain(result.generated["callout-1"])
-    expect(result.result).not.toContain("[uuid-")
-  })
+  const cases: ReplaceCase[] = [
+    {
+      name: "replaces single placeholder",
+      input: '{"id": "[uuid-callout-1]"}',
+      check: (r) => {
+        expect(r.generated).toHaveProperty("callout-1")
+        expect(r.result).toContain(r.generated["callout-1"])
+        expect(r.result).not.toContain("[uuid-")
+      },
+    },
+    {
+      name: "replaces same placeholder with same id",
+      input: '{"id": "[uuid-ref-1]", "ref": "[uuid-ref-1]"}',
+      check: (r) => {
+        expect(Object.keys(r.generated)).toHaveLength(1)
+        const id = r.generated["ref-1"]
+        expect(r.result).toBe(`{"id": "${id}", "ref": "${id}"}`)
+      },
+    },
+    {
+      name: "replaces different placeholders with different ids",
+      input: '{"a": "[uuid-first]", "b": "[uuid-second]"}',
+      check: (r) => {
+        expect(Object.keys(r.generated)).toHaveLength(2)
+        expect(r.generated["first"]).not.toBe(r.generated["second"])
+      },
+    },
+    {
+      name: "leaves content without placeholders unchanged",
+      input: '{"id": "existing_123"}',
+      check: (r, input) => {
+        expect(r.generated).toEqual({})
+        expect(r.result).toBe(input)
+      },
+    },
+  ]
 
-  it("replaces same placeholder with same id", () => {
-    const input = '{"id": "[uuid-ref-1]", "ref": "[uuid-ref-1]"}'
-    const result = replaceUuidPlaceholders(input)
-
-    expect(Object.keys(result.generated)).toHaveLength(1)
-    const id = result.generated["ref-1"]
-    expect(result.result).toBe(`{"id": "${id}", "ref": "${id}"}`)
-  })
-
-  it("replaces different placeholders with different ids", () => {
-    const input = '{"a": "[uuid-first]", "b": "[uuid-second]"}'
-    const result = replaceUuidPlaceholders(input)
-
-    expect(Object.keys(result.generated)).toHaveLength(2)
-    expect(result.generated["first"]).not.toBe(result.generated["second"])
-  })
-
-  it("leaves content without placeholders unchanged", () => {
-    const input = '{"id": "existing_123"}'
-    const result = replaceUuidPlaceholders(input)
-
-    expect(result.generated).toEqual({})
-    expect(result.result).toBe(input)
-  })
+  it.each(cases)("$name", ({ input, check }) => check(replaceUuidPlaceholders(input), input))
 
   describe("normalization", () => {
     const cases = [
@@ -300,14 +279,12 @@ describe("replaceUuidPlaceholders", () => {
       },
     ]
 
-    cases.forEach(({ name, input, expectedKey, expectedCount }) => {
-      it(name, () => {
-        const result = replaceUuidPlaceholders(input)
-        expect(result.generated).toHaveProperty(expectedKey)
-        if (expectedCount !== undefined) {
-          expect(Object.keys(result.generated)).toHaveLength(expectedCount)
-        }
-      })
+    it.each(cases)("$name", ({ input, expectedKey, expectedCount }) => {
+      const result = replaceUuidPlaceholders(input)
+      expect(result.generated).toHaveProperty(expectedKey)
+      if (expectedCount !== undefined) {
+        expect(Object.keys(result.generated)).toHaveLength(expectedCount)
+      }
     })
   })
 

@@ -38,57 +38,68 @@ describe("collectExhibits", () => {
   const wrapInDocument = (chartJson: string) =>
     `# Some doc\n\n\`\`\`json-chart\n${chartJson}\n\`\`\`\n`
 
-  it("collects charts from multiple files", () => {
-    const files = {
-      "doc_a.md": wrapInDocument(axisChartBlock("chart-001", "Revenue", "bar")),
-      "doc_b.md": wrapInDocument(axisChartBlock("chart-002", "Trends", "line")),
-    }
+  interface Case {
+    name: string
+    files: Record<string, string>
+    check: (exhibits: ReturnType<typeof collectExhibits>) => void
+  }
 
-    const exhibits = collectExhibits(files)
+  const cases: Case[] = [
+    {
+      name: "collects charts from multiple files",
+      files: {
+        "doc_a.md": wrapInDocument(axisChartBlock("chart-001", "Revenue", "bar")),
+        "doc_b.md": wrapInDocument(axisChartBlock("chart-002", "Trends", "line")),
+      },
+      check: (exhibits) => {
+        expect(exhibits).toHaveLength(2)
+        expect(exhibits[0]).toEqual({
+          id: "chart-001",
+          title: "Revenue",
+          kind: "chart",
+          subtype: "bar",
+          documentId: "doc_a.md",
+          documentTitle: "Doc A",
+        })
+        expect(exhibits[1]).toEqual({
+          id: "chart-002",
+          title: "Trends",
+          kind: "chart",
+          subtype: "line",
+          documentId: "doc_b.md",
+          documentTitle: "Doc B",
+        })
+      },
+    },
+    {
+      name: "returns empty for files without charts",
+      files: { "doc.md": "# Just text\n\nNo charts here." },
+      check: (exhibits) => expect(exhibits).toEqual([]),
+    },
+    {
+      name: "maps stacked-bar and area to their canonical subtypes",
+      files: {
+        "multi.md": [
+          "# Multi chart doc",
+          "",
+          "```json-chart",
+          axisChartBlock("chart-a", "First", "stacked-bar"),
+          "```",
+          "",
+          "```json-chart",
+          axisChartBlock("chart-b", "Second", "area"),
+          "```",
+        ].join("\n"),
+      },
+      check: (exhibits) => {
+        expect(exhibits).toHaveLength(2)
+        expect(exhibits[0].subtype).toBe("bar")
+        expect(exhibits[1].subtype).toBe("line")
+      },
+    },
+  ]
 
-    expect(exhibits).toHaveLength(2)
-    expect(exhibits[0]).toEqual({
-      id: "chart-001",
-      title: "Revenue",
-      kind: "chart",
-      subtype: "bar",
-      documentId: "doc_a.md",
-      documentTitle: "Doc A",
-    })
-    expect(exhibits[1]).toEqual({
-      id: "chart-002",
-      title: "Trends",
-      kind: "chart",
-      subtype: "line",
-      documentId: "doc_b.md",
-      documentTitle: "Doc B",
-    })
-  })
-
-  it("returns empty for files without charts", () => {
-    const files = { "doc.md": "# Just text\n\nNo charts here." }
-    expect(collectExhibits(files)).toEqual([])
-  })
-
-  it("maps stacked-bar and area to their canonical subtypes", () => {
-    const doc = [
-      "# Multi chart doc",
-      "",
-      "```json-chart",
-      axisChartBlock("chart-a", "First", "stacked-bar"),
-      "```",
-      "",
-      "```json-chart",
-      axisChartBlock("chart-b", "Second", "area"),
-      "```",
-    ].join("\n")
-
-    const exhibits = collectExhibits({ "multi.md": doc })
-
-    expect(exhibits).toHaveLength(2)
-    expect(exhibits[0].subtype).toBe("bar")
-    expect(exhibits[1].subtype).toBe("line")
-  })
+  it.each(cases)("$name", ({ files, check }) => check(collectExhibits(files)))
 })
 
 describe("groupByKind", () => {
@@ -101,16 +112,28 @@ describe("groupByKind", () => {
     documentTitle: "Doc",
   })
 
-  it("groups exhibits by kind", () => {
-    const items = [exhibit("chart", "a"), exhibit("chart", "b")]
-    const groups = groupByKind(items)
+  interface Case {
+    name: string
+    items: ExhibitItem[]
+    check: (groups: ReturnType<typeof groupByKind>) => void
+  }
 
-    expect(groups).toHaveLength(1)
-    expect(groups[0].kind).toBe("chart")
-    expect(groups[0].items).toHaveLength(2)
-  })
+  const cases: Case[] = [
+    {
+      name: "groups exhibits by kind",
+      items: [exhibit("chart", "a"), exhibit("chart", "b")],
+      check: (groups) => {
+        expect(groups).toHaveLength(1)
+        expect(groups[0].kind).toBe("chart")
+        expect(groups[0].items).toHaveLength(2)
+      },
+    },
+    {
+      name: "returns empty for no exhibits",
+      items: [],
+      check: (groups) => expect(groups).toEqual([]),
+    },
+  ]
 
-  it("returns empty for no exhibits", () => {
-    expect(groupByKind([])).toEqual([])
-  })
+  it.each(cases)("$name", ({ items, check }) => check(groupByKind(items)))
 })

@@ -31,8 +31,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(stripPendingRefs(input)).toBe(expected))
+    it.each(cases)("$name", ({ input, expected }) => {
+      expect(stripPendingRefs(input)).toBe(expected)
     })
   })
 
@@ -50,8 +50,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(findPendingRefs(input)).toEqual(expected))
+    it.each(cases)("$name", ({ input, expected }) => {
+      expect(findPendingRefs(input)).toEqual(expected)
     })
   })
 
@@ -65,8 +65,8 @@ describe("pending-refs", () => {
       { name: "false for clean content", input: '"code": "callout-1bc12345"', expected: false },
     ]
 
-    cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(hasPendingRefs(input)).toBe(expected))
+    it.each(cases)("$name", ({ input, expected }) => {
+      expect(hasPendingRefs(input)).toBe(expected)
     })
   })
 
@@ -94,8 +94,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, expected }) => {
-      it(name, () => expect(findDefinitionIds(input)).toEqual(expected))
+    it.each(cases)("$name", ({ input, expected }) => {
+      expect(findDefinitionIds(input)).toEqual(expected)
     })
   })
 
@@ -127,8 +127,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, definitions, expected }) => {
-      it(name, () => expect(markPendingRefs(input, definitions)).toBe(expected))
+    it.each(cases)("$name", ({ input, definitions, expected }) => {
+      expect(markPendingRefs(input, definitions)).toBe(expected)
     })
   })
 
@@ -154,8 +154,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, id, expected }) => {
-      it(name, () => expect(resolvePendingRef(input, id)).toBe(expected))
+    it.each(cases)("$name", ({ input, id, expected }) => {
+      expect(resolvePendingRef(input, id)).toBe(expected)
     })
   })
 
@@ -175,8 +175,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, input, definitions, expected }) => {
-      it(name, () => expect(resolveAllPendingRefs(input, definitions)).toBe(expected))
+    it.each(cases)("$name", ({ input, definitions, expected }) => {
+      expect(resolveAllPendingRefs(input, definitions)).toBe(expected)
     })
   })
 
@@ -199,8 +199,8 @@ describe("pending-refs", () => {
       },
     ]
 
-    cases.forEach(({ name, files, expected }) => {
-      it(name, () => expect(getAllDefinitions(files)).toEqual(expected))
+    it.each(cases)("$name", ({ files, expected }) => {
+      expect(getAllDefinitions(files)).toEqual(expected)
     })
   })
 })

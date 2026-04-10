@@ -59,11 +59,9 @@ describe("diffChunks", () => {
     },
   ]
 
-  cases.forEach(({ name, existing, current, expectedKeep, expectedNeeded }) => {
-    it(name, () => {
-      const result = diffChunks(existing, current)
-      expect(result.keep).toEqual(expectedKeep)
-      expect(result.needed).toEqual(expectedNeeded)
-    })
+  it.each(cases)("$name", ({ existing, current, expectedKeep, expectedNeeded }) => {
+    const result = diffChunks(existing, current)
+    expect(result.keep).toEqual(expectedKeep)
+    expect(result.needed).toEqual(expectedNeeded)
   })
 })

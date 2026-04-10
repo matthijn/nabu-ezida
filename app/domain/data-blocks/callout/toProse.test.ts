@@ -13,7 +13,7 @@ describe("calloutToProse", () => {
     { name: "returns null for empty object", input: {}, expected: null },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => expect(calloutToProse(input)).toBe(expected))
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(calloutToProse(input)).toBe(expected)
   })
 })

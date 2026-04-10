@@ -126,9 +126,7 @@ describe("toStrictSchema", () => {
     },
   ]
 
-  cases.forEach(({ name, input, expected }) => {
-    it(name, () => {
-      expect(toStrictSchema(input)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(toStrictSchema(input)).toEqual(expected)
   })
 })

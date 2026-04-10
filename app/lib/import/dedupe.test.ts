@@ -38,18 +38,16 @@ describe("deduplicateName", () => {
     },
   ]
 
-  cases.forEach(({ name, input, existing, expectOriginal, expectPattern }) => {
-    it(name, () => {
-      const result = deduplicateName(input, existing)
+  it.each(cases)("$name", ({ input, existing, expectOriginal, expectPattern }) => {
+    const result = deduplicateName(input, existing)
 
-      if (expectOriginal) {
-        expect(result).toBe(input)
-      } else {
-        if (!expectPattern) throw new Error("expected expectPattern")
-        expect(result).not.toBe(input)
-        expect(result).toMatch(expectPattern)
-        expect(existing.has(result)).toBe(false)
-      }
-    })
+    if (expectOriginal) {
+      expect(result).toBe(input)
+    } else {
+      if (!expectPattern) throw new Error("expected expectPattern")
+      expect(result).not.toBe(input)
+      expect(result).toMatch(expectPattern)
+      expect(existing.has(result)).toBe(false)
+    }
   })
 })

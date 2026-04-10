@@ -43,12 +43,10 @@ describe("computeSyncPlan", () => {
     },
   ]
 
-  cases.forEach(({ name, prev, next, expected }) => {
-    it(name, () => {
-      const result = computeSyncPlan(prev, next)
-      expect(result.deleted.sort()).toEqual(expected.deleted.sort())
-      expect(result.changed.sort()).toEqual(expected.changed.sort())
-    })
+  it.each(cases)("$name", ({ prev, next, expected }) => {
+    const result = computeSyncPlan(prev, next)
+    expect(result.deleted.sort()).toEqual(expected.deleted.sort())
+    expect(result.changed.sort()).toEqual(expected.changed.sort())
   })
 })
 
@@ -81,9 +79,7 @@ describe("batchSyncPlan", () => {
     },
   ]
 
-  cases.forEach(({ name, plan, batchSize, expected }) => {
-    it(name, () => {
-      expect(batchSyncPlan(plan, batchSize)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ plan, batchSize, expected }) => {
+    expect(batchSyncPlan(plan, batchSize)).toEqual(expected)
   })
 })

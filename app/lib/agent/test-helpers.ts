@@ -112,6 +112,16 @@ export const userBlock = (content: string): Block => ({
   content,
 })
 
+export const systemBlock = (content: string): Block => ({
+  type: "system",
+  content,
+})
+
+export const reasoningBlock = (content: string): Block => ({
+  type: "reasoning",
+  content,
+})
+
 export const toolCallBlock = (
   name: string,
   id = "1",

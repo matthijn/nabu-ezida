@@ -82,14 +82,12 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(({ name, lines, expectedText, expectedChunks }) => {
-      it(name, () => {
-        const ctx = emptyCtx()
-        const blocks = flushBlocks(lines, makeCallbacks(ctx))
-        const textBlock = blocks.find((b) => b.type === "text")
-        expect(textBlock?.type === "text" ? textBlock.content : "").toBe(expectedText)
-        expect(ctx.chunks).toEqual(expectedChunks)
-      })
+    it.each(cases)("$name", ({ lines, expectedText, expectedChunks }) => {
+      const ctx = emptyCtx()
+      const blocks = flushBlocks(lines, makeCallbacks(ctx))
+      const textBlock = blocks.find((b) => b.type === "text")
+      expect(textBlock?.type === "text" ? textBlock.content : "").toBe(expectedText)
+      expect(ctx.chunks).toEqual(expectedChunks)
     })
   })
 
@@ -148,9 +146,9 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(
+    it.each(cases)(
+      "$name",
       ({
-        name,
         lines,
         expectedCalls,
         expectedChunks,
@@ -158,17 +156,15 @@ describe("parser", () => {
         expectedReasoningChunks,
         expectedToolNames,
       }) => {
-        it(name, () => {
-          const ctx = emptyCtx()
-          const blocks = flushBlocks(lines, makeCallbacks(ctx))
-          const toolBlock = blocks.find((b) => b.type === "tool_call")
-          const calls = toolBlock?.type === "tool_call" ? toolBlock.calls : []
-          expect(calls).toEqual(expectedCalls)
-          if (expectedChunks) expect(ctx.chunks).toEqual(expectedChunks)
-          if (expectedToolArgsChunks) expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
-          if (expectedReasoningChunks) expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
-          if (expectedToolNames) expect(ctx.toolNames).toEqual(expectedToolNames)
-        })
+        const ctx = emptyCtx()
+        const blocks = flushBlocks(lines, makeCallbacks(ctx))
+        const toolBlock = blocks.find((b) => b.type === "tool_call")
+        const calls = toolBlock?.type === "tool_call" ? toolBlock.calls : []
+        expect(calls).toEqual(expectedCalls)
+        if (expectedChunks) expect(ctx.chunks).toEqual(expectedChunks)
+        if (expectedToolArgsChunks) expect(ctx.toolArgsChunks).toEqual(expectedToolArgsChunks)
+        if (expectedReasoningChunks) expect(ctx.reasoningChunks).toEqual(expectedReasoningChunks)
+        if (expectedToolNames) expect(ctx.toolNames).toEqual(expectedToolNames)
       }
     )
   })
@@ -250,11 +246,9 @@ describe("parser", () => {
       },
     ]
 
-    cases.forEach(({ name, lines, expectedText }) => {
-      it(name, () => {
-        const state = processLines(lines)
-        expect(state.textContent).toBe(expectedText)
-      })
+    it.each(cases)("$name", ({ lines, expectedText }) => {
+      const state = processLines(lines)
+      expect(state.textContent).toBe(expectedText)
     })
   })
 })
@@ -347,9 +341,7 @@ describe("blocksToMessages", () => {
     },
   ]
 
-  cases.forEach(({ name, blocks, expected }) => {
-    it(name, () => {
-      expect(blocksToMessages(blocks)).toEqual(expected)
-    })
+  it.each(cases)("$name", ({ blocks, expected }) => {
+    expect(blocksToMessages(blocks)).toEqual(expected)
   })
 })

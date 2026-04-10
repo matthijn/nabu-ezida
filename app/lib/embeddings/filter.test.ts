@@ -12,9 +12,7 @@ describe("isEmbeddableFile", () => {
     { name: "another regular file", filename: "chapter_one.md", expected: true },
   ]
 
-  cases.forEach(({ name, filename, expected }) => {
-    it(name, () => {
-      expect(isEmbeddableFile(filename)).toBe(expected)
-    })
+  it.each(cases)("$name", ({ filename, expected }) => {
+    expect(isEmbeddableFile(filename)).toBe(expected)
   })
 })
