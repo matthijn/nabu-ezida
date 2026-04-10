@@ -8,6 +8,7 @@ import { getEntityPrefixes } from "~/lib/data-blocks/registry"
 import { getFiles } from "~/lib/files/store"
 import { getKnownEntityIds } from "~/domain/data-blocks/entity-ids"
 import { collectReferencedFields } from "~/lib/chart/template"
+import { rejectSqlPatterns } from "~/lib/sql/reject"
 
 const BLOCK = "json-chart"
 
@@ -27,6 +28,9 @@ const findMissingColumns = (referenced: string[], available: Set<string>): strin
   referenced.filter((field) => !available.has(field))
 
 const validateChartQuery = async (parsed: ChartBlock): Promise<ValidationError[]> => {
+  const rejectErrors = rejectSqlPatterns(parsed.query)
+  if (rejectErrors.length > 0) return rejectErrors.map(toQueryError)
+
   const db = getDatabase()
   if (!db) return []
 

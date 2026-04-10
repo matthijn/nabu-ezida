@@ -1,5 +1,6 @@
 import type { Result } from "~/lib/fp/result"
 import { ok, err } from "~/lib/fp/result"
+import { rejectSqlPatterns } from "~/lib/sql/reject"
 import { LIMIT_RE, extractLimit, stripPaging } from "./paging"
 
 export interface SemanticToken {
@@ -82,7 +83,7 @@ const ILIKE_PATTERN = /\bILIKE\b/gi
 export const countIlikeClauses = (sql: string): number => (sql.match(ILIKE_PATTERN) ?? []).length
 
 export const validateSql = (sql: string): Result<void, string> => {
-  const errors: string[] = []
+  const errors: string[] = [...rejectSqlPatterns(sql)]
 
   if (countIlikeClauses(sql) > MAX_ILIKE_CLAUSES)
     errors.push(
