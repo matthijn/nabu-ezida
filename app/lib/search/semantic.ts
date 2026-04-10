@@ -11,6 +11,7 @@ export interface SemanticToken {
 export interface HydeQuery {
   text: string
   language: string
+  group: string
   cosineVector: number[]
 }
 

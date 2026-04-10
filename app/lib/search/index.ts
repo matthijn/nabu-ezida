@@ -6,3 +6,4 @@ export { sanitizeSemanticError, formatDebugSql, sqlQueriesFilesTable } from "./s
 export type { HybridSearchPlan } from "./semantic"
 export { capLimit, hasOffset, dropOffset, stripPaging, extractLimit } from "./paging"
 export type { LimitRewrite } from "./paging"
+export { formatHydeDebug } from "./format-hydes"

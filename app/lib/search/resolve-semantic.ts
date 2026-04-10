@@ -58,9 +58,9 @@ const flattenHydes = (
 ): HydeQuery[] => {
   const entries: HydeQuery[] = []
   let idx = 0
-  for (const texts of Object.values(hydeResult)) {
+  for (const [group, texts] of Object.entries(hydeResult)) {
     for (const text of texts) {
-      entries.push({ text, language, cosineVector: vectors[idx++] })
+      entries.push({ text, language, group, cosineVector: vectors[idx++] })
     }
   }
   return entries

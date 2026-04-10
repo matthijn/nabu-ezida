@@ -7,8 +7,7 @@ import { SearchResultList } from "~/ui/components/search/SearchResultList"
 import { StatusBar } from "~/ui/components/StatusBar"
 import type { SearchHit } from "~/domain/search"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
-import { formatDebugSql } from "~/lib/search"
-import type { HydeQuery } from "~/lib/search/semantic"
+import { formatDebugSql, formatHydeDebug } from "~/lib/search"
 import type { SearchPhase } from "~/ui/hooks/useSearchResults"
 import { buildIdentifierResolver } from "~/lib/files/selectors"
 import { setPageContextOverride } from "~/lib/editor/chat-context"
@@ -52,23 +51,6 @@ const filterHitsByTags = (
         const tags = getFileTags(h.file)
         return isUntagged(tags) || hasAnyActiveTag(tags, activeTags)
       })
-
-const groupHydesByLanguage = (hydes: HydeQuery[]): Map<string, string[]> => {
-  const map = new Map<string, string[]>()
-  for (const hyde of hydes) {
-    const existing = map.get(hyde.language) ?? []
-    existing.push(hyde.text)
-    map.set(hyde.language, existing)
-  }
-  return map
-}
-
-const formatHydeDebug = (hydes: HydeQuery[]): string => {
-  const grouped = groupHydesByLanguage(hydes)
-  return [...grouped.entries()]
-    .map(([lang, texts]) => `[${lang}]\n${texts.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}`)
-    .join("\n")
-}
 
 const countUniqueFiles = (hits: SearchHit[]): number => new Set(hits.map((h) => h.file)).size
 
