@@ -152,7 +152,8 @@ const resolveChartIcon = (
   options: Record<string, unknown>
 ): ComponentType<{ className?: string }> => {
   const type = extractSeriesType(options)
-  return (type && CHART_TYPE_ICONS[type]) ?? ChartLine
+  if (!type) return ChartLine
+  return CHART_TYPE_ICONS[type] ?? ChartLine
 }
 
 const resolveChartRef = (
