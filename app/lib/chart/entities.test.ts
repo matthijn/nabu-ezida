@@ -1,17 +1,5 @@
 import { describe, it, expect } from "vitest"
-import {
-  extractEntityIdsFromRows,
-  extractEntityIdsFromText,
-  findEntityInRow,
-  type ChartEntityMap,
-} from "./entities"
-
-const testEntity = (label: string, color: string): ChartEntityMap[string] => ({
-  label,
-  url: `/p/${label.toLowerCase()}`,
-  textColor: color,
-  backgroundColor: `${color}20`,
-})
+import { extractEntityIdsFromRows, extractEntityIdsFromText } from "./entities"
 
 describe("extractEntityIdsFromRows", () => {
   const prefixes = ["annotation", "callout", "tag", "search"]
@@ -138,47 +126,6 @@ describe("extractEntityIdsFromText", () => {
   cases.forEach(({ name, text, prefixes: pref, expected }) => {
     it(name, () => {
       expect(extractEntityIdsFromText(text, pref).sort()).toEqual(expected.sort())
-    })
-  })
-})
-
-describe("findEntityInRow", () => {
-  const entityMap: ChartEntityMap = {
-    "annotation-1abc2def": testEntity("Trust", "#cd2b31"),
-    "callout-3xyz4ghi": testEntity("Finding", "#1a6b2d"),
-  }
-
-  const cases: {
-    name: string
-    row: Record<string, unknown>
-    expected: string | null
-  }[] = [
-    {
-      name: "finds entity in row",
-      row: { id: "annotation-1abc2def", count: 5 },
-      expected: "Trust",
-    },
-    {
-      name: "returns null when no entity matches",
-      row: { code: "Trust", count: 5 },
-      expected: null,
-    },
-    {
-      name: "finds first matching entity",
-      row: { a: "annotation-1abc2def", b: "callout-3xyz4ghi" },
-      expected: "Trust",
-    },
-    {
-      name: "ignores non-string values",
-      row: { id: 42, flag: true },
-      expected: null,
-    },
-  ]
-
-  cases.forEach(({ name, row, expected }) => {
-    it(name, () => {
-      const result = findEntityInRow(row, entityMap)
-      expect(result?.label ?? null).toBe(expected)
     })
   })
 })

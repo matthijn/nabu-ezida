@@ -2,23 +2,28 @@ import type { FileStore } from "~/lib/files/store"
 import { toDisplayName } from "~/lib/files/filename"
 import { getCharts } from "~/domain/data-blocks/chart/selectors"
 import type { ChartBlock } from "~/domain/data-blocks/chart/schema"
+import type { ChartType } from "~/lib/chart/types"
+import { exhaustive } from "~/lib/utils/exhaustive"
 import type { ExhibitItem, ChartSubtype, ExhibitKind } from "./types"
 
-export const inferChartSubtype = (options: Record<string, unknown>): ChartSubtype => {
-  const series = options.series
-  if (!Array.isArray(series) || series.length === 0) return "other"
-  const type = (series[0] as Record<string, unknown>).type
+export const inferChartSubtype = (type: ChartType): ChartSubtype => {
   switch (type) {
     case "bar":
+    case "stacked-bar":
+    case "grouped-bar":
       return "bar"
     case "line":
+    case "area":
       return "line"
     case "pie":
+    case "treemap":
       return "pie"
     case "scatter":
       return "scatter"
-    default:
+    case "heatmap":
       return "other"
+    default:
+      return exhaustive(type)
   }
 }
 
@@ -26,7 +31,7 @@ const chartToExhibit = (chart: ChartBlock, filename: string): ExhibitItem => ({
   id: chart.id,
   title: chart.caption.label,
   kind: "chart",
-  subtype: inferChartSubtype(chart.options),
+  subtype: inferChartSubtype(chart.spec.type),
   documentId: filename,
   documentTitle: toDisplayName(filename),
 })

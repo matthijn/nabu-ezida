@@ -6,6 +6,7 @@ import type { EntityKind, EntityRef } from "./linkify/types"
 import { parseEntityLink } from "./linkify/parse"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
 import { BarChart, ChartLine, ChartPie, ChartScatter } from "lucide-react"
+import type { ChartType } from "~/lib/chart/types"
 import { calloutTypeIcons } from "~/domain/data-blocks/callout/schema"
 import { annotationIcon } from "~/domain/data-blocks/attributes/schema"
 import {
@@ -35,6 +36,7 @@ export interface ResolvedColors {
 export interface ResolvedLink {
   kind: EntityKind
   colors: ResolvedColors
+  color?: string
   icon: ComponentType<{ className?: string }>
   url: string
   label: string
@@ -92,9 +94,11 @@ const resolveAnnotationRef = (
   if (!annotation) return null
   const documentId = findDocumentForAnnotation(files, ref.id)
   if (!documentId) return null
+  const color = resolveAnnotationColor(files, annotation)
   return {
     kind: "annotation",
-    colors: radixColors(resolveAnnotationColor(files, annotation)),
+    colors: radixColors(color),
+    color,
     icon: annotationIcon,
     url: buildEntityUrl(projectId, documentId, ref.id),
     label: annotation.text,
@@ -113,6 +117,7 @@ const resolveCalloutRef = (
   return {
     kind: "callout",
     colors: radixColors(callout.color),
+    color: callout.color,
     icon: calloutTypeIcons[callout.type],
     url: buildEntityUrl(projectId, documentId, ref.id),
     label: callout.title,
@@ -128,32 +133,23 @@ const resolveTagRef = (
   return {
     kind: "tag",
     colors: radixColors(tag.color),
+    color: tag.color,
     icon: resolveIcon(tag.icon),
     url: "",
     label: tag.display,
   }
 }
 
-const CHART_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+const CHART_TYPE_ICONS: Record<ChartType, ComponentType<{ className?: string }>> = {
   bar: BarChart,
+  "stacked-bar": BarChart,
+  "grouped-bar": BarChart,
   line: ChartLine,
+  area: ChartLine,
   pie: ChartPie,
+  treemap: ChartPie,
   scatter: ChartScatter,
-}
-
-const extractSeriesType = (options: Record<string, unknown>): string | null => {
-  const series = options.series
-  if (!Array.isArray(series) || series.length === 0) return null
-  const type = series[0]?.type
-  return typeof type === "string" ? type : null
-}
-
-const resolveChartIcon = (
-  options: Record<string, unknown>
-): ComponentType<{ className?: string }> => {
-  const type = extractSeriesType(options)
-  if (!type) return ChartLine
-  return CHART_TYPE_ICONS[type] ?? ChartLine
+  heatmap: ChartLine,
 }
 
 const resolveChartRef = (
@@ -168,7 +164,7 @@ const resolveChartRef = (
   return {
     kind: "chart",
     colors: CHART_COLORS,
-    icon: resolveChartIcon(chart.options),
+    icon: CHART_TYPE_ICONS[chart.spec.type],
     url: buildEntityUrl(projectId, documentId, ref.id),
     label: chart.caption.label,
   }

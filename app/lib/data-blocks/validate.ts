@@ -9,6 +9,7 @@ import type { AsyncValidationContext, ValidationContext } from "./definition"
 import { parseCodeBlocks, extractProse, type CodeBlock } from "./parse"
 import { tryParseJson } from "./json"
 import { recoverArrayItems } from "./query"
+import { validateFences, type FenceError } from "./validate-fences"
 
 export type { ValidationContext } from "./definition"
 
@@ -35,10 +36,28 @@ export interface ValidateOptions {
   skipImmutableCheck?: boolean
 }
 
+const FENCE_BLOCK = "_fences"
+
+const fenceErrorsToValidationErrors = (fenceErrors: FenceError[]): ValidationError[] =>
+  fenceErrors.map((e) => ({
+    block: FENCE_BLOCK,
+    field: `line ${e.line}`,
+    message: e.message,
+  }))
+
 export const validateMarkdownBlocks = (
   markdown: string,
   options: ValidateOptions = {}
 ): ValidationResult => {
+  const fenceErrors = validateFences(markdown)
+  if (fenceErrors.length > 0) {
+    return {
+      valid: false,
+      errors: fenceErrorsToValidationErrors(fenceErrors),
+      warnings: [],
+    }
+  }
+
   const blocks = parseCodeBlocks(markdown)
   const errors: ValidationError[] = []
   const warnings: string[] = []

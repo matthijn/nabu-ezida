@@ -1,43 +1,38 @@
 import { describe, it, expect } from "vitest"
 import { inferChartSubtype, collectExhibits, groupByKind } from "./selectors"
-import type { ExhibitItem, ExhibitKind } from "./types"
+import type { ChartType } from "~/lib/chart/types"
+import type { ChartSubtype, ExhibitItem, ExhibitKind } from "./types"
 
 describe("inferChartSubtype", () => {
   interface Case {
-    name: string
-    options: Record<string, unknown>
-    expected: string
+    type: ChartType
+    expected: ChartSubtype
   }
 
   const cases: Case[] = [
-    { name: "bar series", options: { series: [{ type: "bar" }] }, expected: "bar" },
-    { name: "line series", options: { series: [{ type: "line" }] }, expected: "line" },
-    { name: "pie series", options: { series: [{ type: "pie" }] }, expected: "pie" },
-    { name: "scatter series", options: { series: [{ type: "scatter" }] }, expected: "scatter" },
-    { name: "unknown series type", options: { series: [{ type: "radar" }] }, expected: "other" },
-    { name: "empty series array", options: { series: [] }, expected: "other" },
-    { name: "no series key", options: {}, expected: "other" },
-    { name: "series is not array", options: { series: "bar" }, expected: "other" },
-    {
-      name: "multiple series uses first",
-      options: { series: [{ type: "line" }, { type: "bar" }] },
-      expected: "line",
-    },
+    { type: "bar", expected: "bar" },
+    { type: "stacked-bar", expected: "bar" },
+    { type: "grouped-bar", expected: "bar" },
+    { type: "line", expected: "line" },
+    { type: "area", expected: "line" },
+    { type: "pie", expected: "pie" },
+    { type: "treemap", expected: "pie" },
+    { type: "scatter", expected: "scatter" },
+    { type: "heatmap", expected: "other" },
   ]
 
-  it.each(cases)("$name → $expected", ({ options, expected }) => {
-    expect(inferChartSubtype(options)).toBe(expected)
+  it.each(cases)("$type → $expected", ({ type, expected }) => {
+    expect(inferChartSubtype(type)).toBe(expected)
   })
 })
 
 describe("collectExhibits", () => {
-  const chartBlock = (id: string, title: string, seriesType: string) =>
+  const axisChartBlock = (id: string, title: string, type: ChartType) =>
     JSON.stringify({
       id,
       caption: { label: title },
       query: "SELECT 1",
-      tooltip: "",
-      options: { series: [{ type: seriesType }] },
+      spec: { type, x: "month", y: "revenue", color: "blue" },
     })
 
   const wrapInDocument = (chartJson: string) =>
@@ -45,8 +40,8 @@ describe("collectExhibits", () => {
 
   it("collects charts from multiple files", () => {
     const files = {
-      "doc_a.md": wrapInDocument(chartBlock("chart-001", "Revenue", "bar")),
-      "doc_b.md": wrapInDocument(chartBlock("chart-002", "Trends", "line")),
+      "doc_a.md": wrapInDocument(axisChartBlock("chart-001", "Revenue", "bar")),
+      "doc_b.md": wrapInDocument(axisChartBlock("chart-002", "Trends", "line")),
     }
 
     const exhibits = collectExhibits(files)
@@ -75,24 +70,24 @@ describe("collectExhibits", () => {
     expect(collectExhibits(files)).toEqual([])
   })
 
-  it("collects multiple charts from a single file", () => {
+  it("maps stacked-bar and area to their canonical subtypes", () => {
     const doc = [
       "# Multi chart doc",
       "",
       "```json-chart",
-      chartBlock("chart-a", "First", "pie"),
+      axisChartBlock("chart-a", "First", "stacked-bar"),
       "```",
       "",
       "```json-chart",
-      chartBlock("chart-b", "Second", "scatter"),
+      axisChartBlock("chart-b", "Second", "area"),
       "```",
     ].join("\n")
 
     const exhibits = collectExhibits({ "multi.md": doc })
 
     expect(exhibits).toHaveLength(2)
-    expect(exhibits[0].subtype).toBe("pie")
-    expect(exhibits[1].subtype).toBe("scatter")
+    expect(exhibits[0].subtype).toBe("bar")
+    expect(exhibits[1].subtype).toBe("line")
   })
 })
 

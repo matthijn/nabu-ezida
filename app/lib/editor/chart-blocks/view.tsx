@@ -1,33 +1,25 @@
 "use client"
 
-import { createElement, useRef, useEffect, useSyncExternalStore, useState } from "react"
-import { renderToStaticMarkup } from "react-dom/server"
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import { useNavigate, useParams } from "react-router"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { Trash2, FileText, MapPin, Copy } from "lucide-react"
-import { echarts } from "~/lib/chart/register"
-import { resolveSqlPlaceholders } from "~/lib/db/resolve"
-import { buildChartOption, type ChartColorMap } from "~/lib/chart/options"
-import {
-  extractEntityIdsFromRows,
-  extractEntityIdsFromText,
-  findEntityInRow,
-  type ChartEntityMap,
-} from "~/lib/chart/entities"
-import { enhanceEntityLabels } from "~/lib/chart/enhancements/entity-labels"
+import { Copy, FileText, MapPin, Trash2 } from "lucide-react"
 import { executeQuery } from "~/lib/db/query"
-import { getDatabase, subscribeSyncRevision, getSyncRevision } from "~/domain/db/database"
+import { extractEntityIdsFromRows } from "~/lib/chart/entities"
+import { resolveChartData } from "~/lib/chart/resolve"
+import type { ColorContext } from "~/lib/chart/color"
+import type { ChartEntityMap } from "~/lib/chart/types"
+import { getDatabase, getSyncRevision, subscribeSyncRevision } from "~/domain/db/database"
 import { getEntityPrefixes } from "~/lib/data-blocks/registry"
-import { resolveRadixHex, resolveCssColorHex } from "~/ui/theme/radix"
+import { resolveRadixHex } from "~/ui/theme/radix"
 import { resolveEntityLink, type EntityIcons } from "~/lib/markdown/resolve"
-import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
-import { useFilePath } from "~/ui/components/editor/FilePathContext"
 import { useIsReadOnly } from "~/ui/components/editor/ReadOnlyContext"
 import { useDebugOptions } from "~/ui/components/editor/DebugOptionsContext"
 import { useFiles } from "~/ui/hooks/useFiles"
 import { IconButton } from "~/ui/components/IconButton"
 import type { ChartBlock } from "~/domain/data-blocks/chart/schema"
+import { ChartRenderer } from "./renderers/dispatch"
+import type { ChartTooltipContext } from "./renderers/ChartTooltip"
+import { CHART_HEIGHT, FALLBACK_COLOR } from "./renderers/shared"
 
 interface ChartBlockViewProps {
   data: ChartBlock
@@ -40,78 +32,37 @@ type ChartState =
   | { status: "loading" }
   | { status: "empty" }
   | { status: "error"; message: string }
-  | { status: "ready"; rows: Record<string, unknown>[]; sql: string }
+  | { status: "ready"; rows: Record<string, unknown>[] }
 
-const CHART_HEIGHT = 300
+const CHART_COLOR_SHADE = 9
 
 const ENTITY_ICONS: EntityIcons = { file: FileText, spotlight: MapPin }
 
-const buildColorMap = (rows: Record<string, unknown>[]): ChartColorMap => {
-  const uniqueColors = [
-    ...new Set(rows.map((r) => r.color).filter((c): c is string => typeof c === "string")),
-  ]
-  const map: ChartColorMap = {}
-  for (const color of uniqueColors) {
-    map[color] = resolveRadixHex(color, 9)
-  }
-  return map
-}
+const EMPTY_ENTITY_MAP: ChartEntityMap = {}
 
-const extractSeriesNames = (options: Record<string, unknown>): string[] => {
-  const series = options.series
-  if (!Array.isArray(series)) return []
-  return series
-    .map((s: Record<string, unknown>) => s.name)
-    .filter((n): n is string => typeof n === "string")
-}
-
-const resolveChartEntityMap = (
+const buildChartEntityMap = (
   rows: Record<string, unknown>[],
-  tooltipTemplate: string,
-  options: Record<string, unknown>,
   files: Record<string, string>,
   projectId: string | undefined
 ): ChartEntityMap => {
-  if (!projectId) return {}
-  const prefixes = getEntityPrefixes()
-  const textSources = [tooltipTemplate, ...extractSeriesNames(options)].join("\n")
-  const entityIds = [
-    ...new Set([
-      ...extractEntityIdsFromRows(rows, prefixes),
-      ...extractEntityIdsFromText(textSources, prefixes),
-    ]),
-  ]
-  if (entityIds.length === 0) return {}
+  if (!projectId) return EMPTY_ENTITY_MAP
+  const ids = extractEntityIdsFromRows(rows, getEntityPrefixes())
+  if (ids.length === 0) return EMPTY_ENTITY_MAP
 
   const map: ChartEntityMap = {}
-  for (const id of entityIds) {
+  for (const id of ids) {
     const resolved = resolveEntityLink(`file://${id}`, files, projectId, ENTITY_ICONS)
     if (!resolved) continue
     map[id] = {
+      id,
       label: resolved.label,
       url: resolved.url,
-      textColor: resolveCssColorHex(resolved.colors.text),
-      backgroundColor: resolveCssColorHex(resolved.colors.background),
+      color: resolved.color ?? "",
+      icon: resolved.icon,
     }
   }
   return map
 }
-
-const remarkPlugins = [remarkGfm]
-
-const buildTooltipRenderer = (
-  files: Record<string, string>,
-  projectId: string | null
-): ((md: string) => string) => {
-  const components = createEntityLinkComponents({ files, projectId })
-  return (md: string): string =>
-    renderToStaticMarkup(createElement(Markdown, { remarkPlugins, components }, md))
-}
-
-const isAxisLabel = (params: Record<string, unknown>): boolean =>
-  params.componentType === "xAxis" || params.componentType === "yAxis"
-
-const isSeriesItem = (params: Record<string, unknown>): boolean => params.componentType === "series"
 
 const formatCaption = (
   captionType: string | undefined,
@@ -193,13 +144,10 @@ export const ChartBlockView = ({
   captionType,
   captionIndex,
 }: ChartBlockViewProps) => {
-  const filePath = useFilePath()
   const isReadOnly = useIsReadOnly()
   const { files } = useFiles()
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
-  const chartRef = useRef<HTMLDivElement>(null)
-  const instanceRef = useRef<ReturnType<typeof echarts.init> | null>(null)
   const debugOptions = useDebugOptions()
   const showQueryResults = !!debugOptions.showQueryResults
   const [chartState, setChartState] = useState<ChartState>({ status: "loading" })
@@ -213,8 +161,7 @@ export const ChartBlockView = ({
       const db = getDatabase()
       if (!db) return
 
-      const sql = resolveSqlPlaceholders(data.query, { file: filePath })
-      const result = await executeQuery<Record<string, unknown>>(db.instance, sql)
+      const result = await executeQuery<Record<string, unknown>>(db.instance, data.query)
       if (aborted) return
 
       if (!result.ok) {
@@ -227,104 +174,40 @@ export const ChartBlockView = ({
         return
       }
 
-      setChartState({ status: "ready", rows: result.value.rows, sql })
+      setChartState({ status: "ready", rows: result.value.rows })
     }
 
     fetchData()
     return () => {
       aborted = true
     }
-  }, [data.query, filePath, syncRevision])
+  }, [data.query, syncRevision])
 
-  useEffect(() => {
-    const container = chartRef.current
-    if (!container) return
+  const handleDatumClick = useCallback((url: string) => navigate(url), [navigate])
 
-    if (chartState.status !== "ready") {
-      if (instanceRef.current) {
-        instanceRef.current.dispose()
-        instanceRef.current = null
-      }
-      return
-    }
-
-    if (!instanceRef.current) {
-      instanceRef.current = echarts.init(container)
-    }
-
-    const instance = instanceRef.current
-    const colorMap = buildColorMap(chartState.rows)
-    const option = buildChartOption(data.options, chartState.rows, colorMap)
-    const entityMap = resolveChartEntityMap(
-      chartState.rows,
-      data.tooltip,
-      data.options,
-      files,
-      projectId
-    )
-    const renderHtml = buildTooltipRenderer(files, projectId ?? null)
-    const enrichedOption = enhanceEntityLabels(option, {
+  const renderableData = useMemo(() => {
+    if (chartState.status !== "ready") return null
+    const entityMap = buildChartEntityMap(chartState.rows, files, projectId)
+    const colorContext: ColorContext = {
       entityMap,
-      tooltipTemplate: data.tooltip,
-      renderHtml,
+      resolveRadix: resolveRadixHex,
+      shade: CHART_COLOR_SHADE,
+      fallback: FALLBACK_COLOR,
+    }
+    const renderable = resolveChartData({
+      spec: data.spec,
+      rows: chartState.rows,
+      entityMap,
+      colorContext,
     })
-    instance.setOption(enrichedOption, true)
-
-    const hasEntities = Object.keys(entityMap).length > 0
-    if (!hasEntities) return
-
-    const resolveClickEntity = (params: Record<string, unknown>): string | null => {
-      if (isAxisLabel(params)) {
-        return entityMap[String(params.value ?? "")]?.url ?? null
-      }
-      if (isSeriesItem(params)) {
-        const data = params.data as Record<string, unknown> | undefined
-        return data ? (findEntityInRow(data, entityMap)?.url ?? null) : null
-      }
-      return null
+    const tooltipContext: ChartTooltipContext = {
+      files,
+      projectId: projectId ?? null,
+      entityMap,
+      navigate,
     }
-
-    const handleClick = (params: Record<string, unknown>) => {
-      const url = resolveClickEntity(params)
-      if (url) navigate(url)
-    }
-
-    const handleMouseOver = (params: Record<string, unknown>) => {
-      if (resolveClickEntity(params)) container.style.cursor = "pointer"
-    }
-
-    const handleMouseOut = () => {
-      container.style.cursor = ""
-    }
-
-    instance.on("click", handleClick)
-    instance.on("mouseover", handleMouseOver)
-    instance.on("mouseout", handleMouseOut)
-
-    return () => {
-      instance.off("click", handleClick)
-      instance.off("mouseover", handleMouseOver)
-      instance.off("mouseout", handleMouseOut)
-    }
-  }, [chartState, data.options, data.tooltip, files, projectId, navigate])
-
-  useEffect(() => {
-    const container = chartRef.current
-    if (!container || !instanceRef.current) return
-
-    const observer = new ResizeObserver(() => {
-      instanceRef.current?.resize()
-    })
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [chartState])
-
-  useEffect(() => {
-    return () => {
-      instanceRef.current?.dispose()
-      instanceRef.current = null
-    }
-  }, [])
+    return { renderable, tooltipContext }
+  }, [chartState, data.spec, files, projectId, navigate])
 
   return (
     <div className="group/chart flex w-full flex-col overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background my-2 relative">
@@ -363,16 +246,16 @@ export const ChartBlockView = ({
             No data
           </div>
         )}
-        <div
-          ref={chartRef}
-          style={{
-            height: CHART_HEIGHT,
-            display: chartState.status === "ready" ? "block" : "none",
-          }}
-        />
+        {renderableData && (
+          <ChartRenderer
+            renderable={renderableData.renderable}
+            tooltipContext={renderableData.tooltipContext}
+            onDatumClick={handleDatumClick}
+          />
+        )}
       </div>
       {showQueryResults && chartState.status === "ready" && (
-        <QueryResultsTable rows={chartState.rows} query={chartState.sql} />
+        <QueryResultsTable rows={chartState.rows} query={data.query} />
       )}
       {data.caption.label && (
         <div className="px-4 pb-3">

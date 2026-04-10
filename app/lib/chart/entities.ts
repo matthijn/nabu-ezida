@@ -1,12 +1,3 @@
-export interface ChartEntityLink {
-  label: string
-  url: string
-  textColor: string
-  backgroundColor: string
-}
-
-export type ChartEntityMap = Record<string, ChartEntityLink>
-
 const ENTITY_SUFFIX = "[a-z0-9]{8}"
 
 const buildEntityPattern = (prefixes: string[]): RegExp =>
@@ -36,16 +27,4 @@ export const extractEntityIdsFromText = (text: string, prefixes: string[]): stri
   if (prefixes.length === 0) return []
   const pattern = buildEntityScanPattern(prefixes)
   return [...new Set(Array.from(text.matchAll(pattern), (m) => m[0]))]
-}
-
-export const findEntityInRow = (
-  row: Record<string, unknown>,
-  entityMap: ChartEntityMap
-): ChartEntityLink | null => {
-  for (const value of Object.values(row)) {
-    if (typeof value === "string" && entityMap[value]) {
-      return entityMap[value]
-    }
-  }
-  return null
 }

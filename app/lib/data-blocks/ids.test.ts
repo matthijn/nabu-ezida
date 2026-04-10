@@ -185,8 +185,7 @@ describe("collectAllEntityIds", () => {
       id,
       caption: { label: "Test Chart" },
       query: "SELECT 1",
-      tooltip: "{x}",
-      options: {},
+      spec: { type: "bar", x: "month", y: "value", color: "blue" },
     })
 
   const makeAnnotations = (
