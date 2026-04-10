@@ -21,6 +21,6 @@ export type ScoutFileEntry = z.infer<typeof ScoutFileEntry>
 export const scoutTool: AnyTool = {
   name: "scout",
   description:
-    "Scout files to understand their structure. Large files are mapped into sections with line ranges; small files are inlined.",
+    "Load files and map their prose into sections with line ranges for a planner to work through. Small files are inlined.",
   schema: ScoutArgs,
 }
