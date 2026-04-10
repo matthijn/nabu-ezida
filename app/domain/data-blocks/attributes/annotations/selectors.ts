@@ -59,3 +59,27 @@ export const getAnnotationCountsByCode = (annotations: Annotation[]): Record<str
     if (a.code) acc[a.code] = (acc[a.code] ?? 0) + 1
     return acc
   }, {})
+
+export interface GlobalAnnotationCount {
+  count: number
+  fileCount: number
+}
+
+export const getAnnotationGlobalCountsByCode = (
+  files: FileStore
+): Record<string, GlobalAnnotationCount> => {
+  const result: Record<string, GlobalAnnotationCount> = {}
+  for (const raw of Object.values(files)) {
+    const codesInFile = new Set<string>()
+    for (const a of getStoredAnnotations(raw)) {
+      if (!a.code) continue
+      result[a.code] = result[a.code] ?? { count: 0, fileCount: 0 }
+      result[a.code].count += 1
+      codesInFile.add(a.code)
+    }
+    codesInFile.forEach((code) => {
+      result[code].fileCount += 1
+    })
+  }
+  return result
+}

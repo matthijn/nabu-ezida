@@ -6,7 +6,8 @@ import { Flag, Search } from "lucide-react"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { matchesAny } from "~/lib/utils/filter"
-import { solidBackground, elementBackground } from "~/ui/theme/radix"
+import { solidBackground, elementBackground, hoveredElementBorder } from "~/ui/theme/radix"
+import type { GlobalAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeItem } from "./CodeItem"
 import { CodeDetail } from "./CodeDetail"
@@ -14,12 +15,16 @@ import { CodeDetail } from "./CodeDetail"
 interface CodesSidebarProps {
   codebook: Codebook
   annotationCounts?: Record<string, number>
+  globalAnnotationCounts?: Record<string, GlobalAnnotationCount>
   reviewCount?: number
   onEditCode?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
   onSearchCode?: (code: Code) => void
   onReviewClick?: () => void
 }
+
+const formatGlobalTooltip = ({ count, fileCount }: GlobalAnnotationCount): string =>
+  `${count} annotation${count === 1 ? "" : "s"} across ${fileCount} file${fileCount === 1 ? "" : "s"}`
 
 const filterCategories = (categories: CodeCategory[], query: string): CodeCategory[] => {
   if (query.length === 0) return categories
@@ -28,6 +33,45 @@ const filterCategories = (categories: CodeCategory[], query: string): CodeCatego
     if (codes.length > 0) acc.push({ ...cat, codes })
     return acc
   }, [])
+}
+
+const EMPTY_COUNT: GlobalAnnotationCount = { count: 0, fileCount: 0 }
+
+const SearchCodeButton = ({
+  code,
+  globalCount,
+  onClick,
+}: {
+  code: Code
+  globalCount?: GlobalAnnotationCount
+  onClick: () => void
+}) => {
+  const [isHovered, setIsHovered] = useState(false)
+  const resolvedCount = globalCount ?? EMPTY_COUNT
+  const isDisabled = resolvedCount.count === 0
+  return (
+    <TooltipWrap text={isDisabled ? "No annotations yet" : formatGlobalTooltip(resolvedCount)}>
+      <button
+        disabled={isDisabled}
+        className="ml-auto flex flex-none items-center gap-1.5 rounded-full border-2 border-solid py-0.5 pl-1.5 pr-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 enabled:cursor-pointer"
+        style={{
+          color: solidBackground(code.color),
+          borderColor: isHovered ? hoveredElementBorder(code.color) : "transparent",
+        }}
+        onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <Search className="h-4 w-4" />
+        <span
+          className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none text-white"
+          style={{ backgroundColor: solidBackground(code.color) }}
+        >
+          {resolvedCount.count}
+        </span>
+      </button>
+    </TooltipWrap>
+  )
 }
 
 const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => void }) => (
@@ -51,6 +95,7 @@ const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => voi
 export const CodesSidebar = ({
   codebook,
   annotationCounts = {},
+  globalAnnotationCounts = {},
   reviewCount = 0,
   onEditCode,
   onFileSelect,
@@ -125,15 +170,11 @@ export const CodesSidebar = ({
               <span className="text-heading-3 font-heading-3 text-default-font">
                 {hoveredCode.name}
               </span>
-              <TooltipWrap text="Show sections">
-                <button
-                  className="ml-auto flex-none cursor-pointer"
-                  style={{ color: solidBackground(hoveredCode.color) }}
-                  onClick={() => onSearchCode?.(hoveredCode)}
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </TooltipWrap>
+              <SearchCodeButton
+                code={hoveredCode}
+                globalCount={globalAnnotationCounts[hoveredCode.id]}
+                onClick={() => onSearchCode?.(hoveredCode)}
+              />
             </div>
             <CodeDetail code={hoveredCode} />
           </motion.div>

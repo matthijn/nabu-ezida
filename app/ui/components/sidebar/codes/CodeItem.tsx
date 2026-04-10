@@ -1,5 +1,6 @@
 "use client"
 
+import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { solidBackground, elementBackground, hoveredElementBorder } from "~/ui/theme/radix"
 import type { Code } from "./types"
 
@@ -10,6 +11,9 @@ interface CodeItemProps {
   onMouseEnter?: () => void
   onClick?: () => void
 }
+
+const formatFileTooltip = (count: number): string =>
+  `${count} annotation${count === 1 ? "" : "s"} in this file`
 
 export const CodeItem = ({
   code,
@@ -33,12 +37,14 @@ export const CodeItem = ({
     />
     <span className="grow shrink-0 basis-0 text-body font-body text-default-font">{code.name}</span>
     {count > 0 && (
-      <span
-        className="flex h-5 min-w-5 flex-none items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none text-white"
-        style={{ backgroundColor: solidBackground(code.color) }}
-      >
-        {count}
-      </span>
+      <TooltipWrap text={formatFileTooltip(count)}>
+        <span
+          className="flex h-5 min-w-5 flex-none items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none text-white"
+          style={{ backgroundColor: solidBackground(code.color) }}
+        >
+          {count}
+        </span>
+      </TooltipWrap>
     )}
   </div>
 )

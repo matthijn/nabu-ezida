@@ -46,6 +46,7 @@ import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
 import {
   getAnnotationCount,
   getAnnotationCountsByCode,
+  getAnnotationGlobalCountsByCode,
   getReviewAnnotationCount,
 } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
@@ -357,11 +358,9 @@ export default function ProjectLayout() {
     navigateToFirstFile,
   ])
 
-  const documents = filesToSidebarDocuments(
-    files,
-    getFileTags,
-    getFileDateFn,
-    !!debugOptions.expanded
+  const documents = useMemo(
+    () => filesToSidebarDocuments(files, getFileTags, getFileDateFn, !!debugOptions.expanded),
+    [files, getFileTags, getFileDateFn, debugOptions.expanded]
   )
 
   const exhibits = useMemo(() => collectExhibits(files), [files])
@@ -425,6 +424,7 @@ export default function ProjectLayout() {
     () => (currentFile ? getAnnotationCountsByCode(getFileAnnotations(currentFile)) : {}),
     [currentFile, files]
   )
+  const globalAnnotationCounts = useMemo(() => getAnnotationGlobalCountsByCode(files), [files])
 
   const handleReviewClick = () => {
     const id = saveNewSearch({
@@ -487,6 +487,7 @@ export default function ProjectLayout() {
             <CodesSidebar
               codebook={codebook}
               annotationCounts={annotationCounts}
+              globalAnnotationCounts={globalAnnotationCounts}
               reviewCount={reviewCount}
               onEditCode={handleEditCode}
               onFileSelect={handleDocumentSelect}
