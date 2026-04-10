@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import {
   getFiles,
   getCurrentFile,
@@ -11,7 +11,6 @@ import {
   getAnnotations,
   getTagDefinitions,
 } from "~/lib/files"
-import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { buildIdentifierResolver } from "~/lib/files/selectors"
 
 export const useFiles = () => {
@@ -19,23 +18,19 @@ export const useFiles = () => {
   const currentFile = useSyncExternalStore(subscribe, getCurrentFile)
   const codebook = useSyncExternalStore(subscribe, getCodebook)
 
-  const getFileTags = (filename: string): string[] => getTags(files[filename] ?? "")
-  const getFileDateFn = (filename: string): string | undefined => getFileDate(files[filename] ?? "")
-  const getFileLineCountFn = (filename: string): number => getFileLineCount(filename)
-  const getFileAnnotations = (filename: string) => getAnnotations(files, files[filename] ?? "")
-  const tagDefinitions: TagDefinition[] = getTagDefinitions(files)
-  const resolveIds = buildIdentifierResolver(files)
-
-  return {
-    files,
-    currentFile,
-    codebook,
-    setCurrentFile,
-    getFileTags,
-    getFileDate: getFileDateFn,
-    getFileLineCount: getFileLineCountFn,
-    getFileAnnotations,
-    tagDefinitions,
-    resolveIds,
-  }
+  return useMemo(
+    () => ({
+      files,
+      currentFile,
+      codebook,
+      setCurrentFile,
+      getFileTags: (filename: string): string[] => getTags(files[filename] ?? ""),
+      getFileDate: (filename: string): string | undefined => getFileDate(files[filename] ?? ""),
+      getFileLineCount: (filename: string): number => getFileLineCount(filename),
+      getFileAnnotations: (filename: string) => getAnnotations(files, files[filename] ?? ""),
+      tagDefinitions: getTagDefinitions(files),
+      resolveIds: buildIdentifierResolver(files),
+    }),
+    [files, currentFile, codebook]
+  )
 }
