@@ -32,6 +32,8 @@ let persistSuppressed = false
 let pendingRefsSuppressed = false
 const persistDebounce = createScopedDebounce(500)
 
+export const getProjectId = (): string | null => projectId
+
 export const setProjectId = (id: string | null): void => {
   projectId = id
 }

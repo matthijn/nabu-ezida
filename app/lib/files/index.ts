@@ -13,6 +13,7 @@ export {
   deleteFile,
   renameFile,
   subscribe,
+  getProjectId,
   setProjectId,
   setPersistEnabled,
   setPendingRefsSuppressed,

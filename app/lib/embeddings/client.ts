@@ -1,4 +1,5 @@
 import { ok, err, type Result } from "~/lib/fp/result"
+import { getLlmHeaders } from "~/lib/agent/env"
 
 export interface EmbeddingError {
   type: "network" | "api"
@@ -29,7 +30,7 @@ export const fetchEmbeddingBatch = async (
   try {
     response = await fetch(`${baseUrl}/embeddings`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getLlmHeaders(),
       body: buildRequestBody(texts),
     })
   } catch (e) {

@@ -1,4 +1,4 @@
-import { getLlmUrl } from "~/lib/agent/env"
+import { getLlmUrl, getLlmHeaders } from "~/lib/agent/env"
 
 interface ApproachMeta {
   keys: string[]
@@ -14,7 +14,7 @@ const toMeta = (dict: Record<string, string>): ApproachMeta => ({
 
 export const fetchApproachMeta = async (): Promise<ApproachMeta> => {
   if (cached) return cached
-  const resp = await fetch(getLlmUrl("/approaches"))
+  const resp = await fetch(getLlmUrl("/approaches"), { headers: getLlmHeaders() })
   cached = toMeta((await resp.json()) as Record<string, string>)
   return cached
 }

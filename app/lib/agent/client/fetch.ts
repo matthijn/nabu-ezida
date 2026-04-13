@@ -1,7 +1,7 @@
 import type { Block } from "./blocks"
 import type { ToolDefinition } from "../executors/tool"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
-import { getLlmHost } from "~/lib/agent/env"
+import { getLlmHost, getLlmHeaders } from "~/lib/agent/env"
 import { calculateBackoff } from "~/lib/utils/backoff"
 import { initialParseState, processLine, stateToBlocks, type ParseCallbacks } from "./parse"
 import type { InputItem, ResponseFormat } from "./convert"
@@ -23,7 +23,7 @@ const fetchWithRetry = async ({ url, body, signal }: FetchOptions): Promise<Resp
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getLlmHeaders(),
       body,
       signal,
     })
