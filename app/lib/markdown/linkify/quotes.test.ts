@@ -87,6 +87,28 @@ describe("linkifyQuotes", () => {
       fileContent: FILE_CONTENT,
       expected: "No quotes here at all.",
     },
+    {
+      name: "skips quoted filenames so entity linkifier can claim them",
+      text: 'The data is in "interviews.md" and worth reviewing.',
+      documentId: "notes.md",
+      fileContent: "The data is in interviews.md and worth reviewing.",
+      expected: 'The data is in "interviews.md" and worth reviewing.',
+    },
+    {
+      name: "skips curly-quoted filenames",
+      text: "See \u201Cfield-notes.md\u201D for details.",
+      documentId: "notes.md",
+      fileContent: "See field-notes.md for details.",
+      expected: "See \u201Cfield-notes.md\u201D for details.",
+    },
+    {
+      name: "still spotlights non-filename quotes in same text as filenames",
+      text: 'Look at "interviews.md" and "frustration with the onboarding flow" together.',
+      documentId: "notes.md",
+      fileContent: FILE_CONTENT,
+      expected:
+        'Look at "interviews.md" and [frustration with the onboarding flow](file://notes.md/frustration%20with%20the%20onboarding%20flow) together.',
+    },
   ]
 
   test.each(cases)("$name", ({ text, documentId, fileContent, expected }) => {

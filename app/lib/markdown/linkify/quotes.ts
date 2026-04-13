@@ -4,11 +4,19 @@ import { serializeSpotlight } from "~/lib/editor/spotlight"
 const QUOTE_PATTERN =
   /\[([^\]]*)\]\([^)]*\)|[\u201C\u201D""]([^"\u201C\u201D""]+?)[\u201C\u201D""]/g
 
+const isFilename = (text: string): boolean => /^[\w][\w-]*\.md$/.test(text)
+
 const encodeSpotlightText = (text: string): string =>
   encodeURIComponent(serializeSpotlight({ type: "single", text }))
 
 const buildSpotlightLink = (quoted: string, documentId: string): string =>
   `[${quoted}](file://${documentId}/${encodeSpotlightText(quoted)})`
+
+const shouldSkip = (match: RegExpExecArray): boolean => {
+  if (match[1] !== undefined) return true
+  if (isFilename(match[2])) return true
+  return false
+}
 
 export const linkifyQuotes = (
   text: string,
@@ -26,7 +34,7 @@ export const linkifyQuotes = (
     const match = pattern.exec(text)
     if (!match) break
 
-    if (match[1] !== undefined) {
+    if (shouldSkip(match)) {
       result += text.slice(lastIndex, match.index + match[0].length)
       lastIndex = match.index + match[0].length
       continue
