@@ -346,7 +346,6 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const allBlocks = useBlockStore()
   const compacted = readStepCompaction() ? stepCompactedIndices(allBlocks) : new Set<number>()
   const mode = deriveMode(allBlocks)
-  const reasoning = modes[mode].reasoning
   const paused = isPaused(allBlocks)
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
@@ -390,7 +389,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         <span className="text-sm font-medium text-neutral-700">
           Debug Stream
           <span className="text-xs text-neutral-400 ml-2">
-            {mode} · {reasoning} · {blocksSinceCompaction(allBlocks)}b
+            {mode} · {blocksSinceCompaction(allBlocks)}b
           </span>
           {hasSelection && (
             <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>

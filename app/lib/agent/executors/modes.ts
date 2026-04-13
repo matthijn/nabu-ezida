@@ -26,14 +26,10 @@ import { createSettingsNudge } from "../steering/nudges/settings"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
-type ReasoningLevel = "none" | "low" | "medium" | "high"
-
 interface ModeConfig {
   tools: AnyTool[]
   triggers: string[]
   prompt?: string
-  model: string
-  reasoning: ReasoningLevel
   nudges: Nudger[]
 }
 
@@ -68,8 +64,6 @@ const raw: Record<ModeName, ModeConfig> = {
       recordDecisionTool,
     ],
     triggers: ["cancel"],
-    model: "gpt-5.4",
-    reasoning: "low",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   plan: {
@@ -85,8 +79,6 @@ const raw: Record<ModeName, ModeConfig> = {
     ],
     triggers: [],
     prompt: "planning",
-    model: "gpt-5.4",
-    reasoning: "medium",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   exec: {
@@ -107,8 +99,6 @@ const raw: Record<ModeName, ModeConfig> = {
     ],
     triggers: ["submit_plan"],
     prompt: "execution",
-    model: "gpt-5.4",
-    reasoning: "medium",
     nudges: [baselineNudge, memoryNudge, settingsNudge, stepStateNudge, planProgressNudge],
   },
 }
@@ -154,9 +144,6 @@ export const deriveMode = (blocks: Block[]): ModeName => {
 
 export const modeSystemBlocks = (mode: ModeName): Block[] => {
   const config = modes[mode]
-  const blocks: Block[] = []
-  if (config.prompt) blocks.push({ type: "system", content: `<!-- prompt: ${config.prompt} -->` })
-  blocks.push({ type: "system", content: `<!-- model: ${config.model} -->` })
-  blocks.push({ type: "system", content: `<!-- reasoning: ${config.reasoning} -->` })
-  return blocks
+  if (!config.prompt) return []
+  return [{ type: "system", content: `<!-- prompt: ${config.prompt} -->` }]
 }

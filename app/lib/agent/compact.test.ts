@@ -162,7 +162,7 @@ describe("compactHistory", () => {
       name: "collects directive blocks from pre-compaction history",
       blocks: [
         systemBlock("<!-- prompt: planning -->"),
-        systemBlock("<!-- reasoning: high -->"),
+        systemBlock("<!-- tier: fast -->"),
         userBlock("hi"),
         compactedToolCall("Summary here"),
         compactedResult(),
@@ -171,7 +171,7 @@ describe("compactHistory", () => {
       expected: [
         systemBlock("Summary here"),
         systemBlock("<!-- prompt: planning -->"),
-        systemBlock("<!-- reasoning: high -->"),
+        systemBlock("<!-- tier: fast -->"),
         userBlock("hi"),
       ],
     },
