@@ -12,7 +12,6 @@ import {
   cancel,
   scoutTool,
   startPlanTool,
-  getGuidanceTool,
   completeStep,
   askTool,
   recordDecisionTool,
@@ -27,7 +26,6 @@ import { createSettingsNudge } from "../steering/nudges/settings"
 import { createStepStateNudge } from "../steering/nudges/step-state"
 import { createPlanProgressNudge } from "../steering/nudges/plan-progress"
 import { getFiles } from "~/lib/files/store"
-// off is for gpt mini, none is for gpt regular (or its 5.2 vs 5... unclear)
 type ReasoningLevel = "none" | "low" | "medium" | "high"
 
 interface ModeConfig {
@@ -36,7 +34,6 @@ interface ModeConfig {
   prompt?: string
   model: string
   reasoning: ReasoningLevel
-  verbosity: string
   nudges: Nudger[]
 }
 
@@ -67,14 +64,12 @@ const raw: Record<ModeName, ModeConfig> = {
       removeFile,
       scoutTool,
       startPlanTool,
-      getGuidanceTool,
       askTool,
       recordDecisionTool,
     ],
     triggers: ["cancel"],
     model: "gpt-5.4",
     reasoning: "low",
-    verbosity: "low",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   plan: {
@@ -83,7 +78,6 @@ const raw: Record<ModeName, ModeConfig> = {
       queryTool,
       searchTool,
       scoutTool,
-      getGuidanceTool,
       submitPlanTool,
       cancel,
       askTool,
@@ -93,7 +87,6 @@ const raw: Record<ModeName, ModeConfig> = {
     prompt: "planning",
     model: "gpt-5.4",
     reasoning: "medium",
-    verbosity: "low",
     nudges: [baselineNudge, memoryNudge, settingsNudge],
   },
   exec: {
@@ -116,7 +109,6 @@ const raw: Record<ModeName, ModeConfig> = {
     prompt: "execution",
     model: "gpt-5.4",
     reasoning: "medium",
-    verbosity: "medium",
     nudges: [baselineNudge, memoryNudge, settingsNudge, stepStateNudge, planProgressNudge],
   },
 }
@@ -166,6 +158,5 @@ export const modeSystemBlocks = (mode: ModeName): Block[] => {
   if (config.prompt) blocks.push({ type: "system", content: `<!-- prompt: ${config.prompt} -->` })
   blocks.push({ type: "system", content: `<!-- model: ${config.model} -->` })
   blocks.push({ type: "system", content: `<!-- reasoning: ${config.reasoning} -->` })
-  blocks.push({ type: "system", content: `<!-- verbosity: ${config.verbosity} -->` })
   return blocks
 }

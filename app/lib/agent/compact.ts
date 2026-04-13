@@ -58,6 +58,11 @@ export const stepCompactHistory = (blocks: Block[]): Block[] => {
 export const hasCompactedBlock = (blocks: Block[]): boolean =>
   findLastCompactedResultIndex(blocks) !== -1
 
+export const postCompactionFloor = (blocks: Block[]): number => {
+  const idx = findLastCompactedResultIndex(blocks)
+  return idx === -1 ? 0 : idx + 1
+}
+
 const findLastCompactedResultIndex = (blocks: Block[]): number => {
   for (let i = blocks.length - 1; i >= 0; i--) {
     if (isCompactedResult(blocks[i])) return i

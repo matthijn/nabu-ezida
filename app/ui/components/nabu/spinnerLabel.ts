@@ -15,7 +15,6 @@ const toolLabels: Record<string, string[]> = {
   remove_file: REMOVING_LABELS,
   scout: ["Scouting", "Mapping terrain", "Surveying files"],
   start_planning: ["Planning", "Preparing approach", "Laying groundwork"],
-  get_guidance: ["Reading guidance", "Studying instructions", "Loading playbook"],
   submit_plan: ["Starting execution", "Locking in plan", "Transitioning"],
   complete_step: ["Working", "Making progress", "Finishing up"],
   cancel: ["Cancelling", "Winding down", "Stepping back"],

@@ -144,9 +144,15 @@ const writeBack = (
 ): string =>
   block ? replaceBlock(content, block, newJson) : replaceSingletonBlock(content, language, newJson)
 
+const CHART_GUIDANCE_KEY = "qual-coding/project/output"
+
+const requiresGuidance = (_files: Map<string, string>, args: { language: string }): string[] =>
+  args.language === "json-chart" ? [CHART_GUIDANCE_KEY] : []
+
 export const patchJsonBlock = registerTool(
   tool({
     ...def,
+    requiresGuidance,
     handler: async (_files, { path, language, block_id, operations }) => {
       const file = resolveFile(path)
       if (!file) return err(`${path}: No such file`)

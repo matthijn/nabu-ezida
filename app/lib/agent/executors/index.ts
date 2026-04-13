@@ -18,7 +18,6 @@ import "../tools/submit-plan/handler"
 import "../tools/compact/handler"
 import "../tools/scout/handler"
 import "../tools/start-planning/handler"
-import "../tools/get-guidance/handler"
 import "../tools/query/handler"
 import "../tools/search/handler"
 

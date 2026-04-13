@@ -3,11 +3,13 @@ import { exhaustive } from "~/lib/utils/exhaustive"
 import { tool, registerTool, ok, err, withHint } from "../../executors/tool"
 import { applyLocalPatch as def } from "./def"
 import { detectHint } from "./hints"
+import { requiresChartGuidance } from "./guidance"
 import { isProtectedFile } from "~/lib/files/filename"
 
 const _applyLocalPatch = registerTool(
   tool({
     ...def,
+    requiresGuidance: requiresChartGuidance,
     handler: async (files, { operation }) => {
       const validationError = validateOperation(files, operation)
       if (validationError) return err(validationError)
