@@ -43,7 +43,13 @@ import {
   type PlanStep,
   type StepStatus,
 } from "./group"
-import type { AskMessage, AskScope, ScoutMessage, ScoutFileStatus } from "./messages"
+import type {
+  AskMessage,
+  AskScope,
+  ScoutMessage,
+  ScoutFileStatus,
+  ScoutFileState,
+} from "./messages"
 import { isWaitingForAsk } from "./messages"
 import { getSpinnerLabels, LABEL_ADVANCE_MS } from "./spinnerLabel"
 import { useFiles } from "~/ui/hooks/useFiles"
@@ -458,13 +464,15 @@ interface ScoutFileRowProps {
   projectId: string | null
 }
 
+const scoutFileIcon: Record<ScoutFileState, ReactNode> = {
+  done: <Check className="text-body text-success-600 flex-none" />,
+  failed: <X className="text-body text-error-600 flex-none" />,
+  pending: <Loader2 className="text-body text-brand-600 flex-none animate-spin" />,
+}
+
 const ScoutFileRow = ({ file, files, projectId }: ScoutFileRowProps) => (
   <div className="flex items-center gap-2">
-    {file.done ? (
-      <Check className="text-body text-success-600 flex-none" />
-    ) : (
-      <Loader2 className="text-body text-brand-600 flex-none animate-spin" />
-    )}
+    {scoutFileIcon[file.status]}
     <span className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
       <InlineMarkdown
         files={files}

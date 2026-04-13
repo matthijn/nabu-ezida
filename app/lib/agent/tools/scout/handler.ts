@@ -18,16 +18,42 @@ const toSystemBlock = (content: string): Block => ({ type: "system", content })
 const formatScoutMap = (path: string, map: ScoutMap): string =>
   `File: ${path}\n${JSON.stringify(map, null, 2)}`
 
-const scoutEntry = async (path: string, task: string, reason: string): Promise<Block> => {
-  const content = getFileView(path)
-  if (content === undefined) throw new Error(`File not viewable: ${path}`)
+type ScoutEntryResult = { ok: true; block: Block } | { ok: false; path: string }
 
-  const isLarge = countLines(content) > FILE_LINE_THRESHOLD
+const tryScoutEntry = async (
+  path: string,
+  task: string,
+  reason: string
+): Promise<ScoutEntryResult> => {
+  try {
+    const content = getFileView(path)
+    if (content === undefined) return { ok: false, path }
 
-  if (!isLarge) return toSystemBlock(`File: ${path}\n${content}`)
+    const isLarge = countLines(content) > FILE_LINE_THRESHOLD
+    const block = isLarge
+      ? toSystemBlock(formatScoutMap(path, await scoutFile(content, task, reason)))
+      : toSystemBlock(`File: ${path}\n${content}`)
 
-  const map = await scoutFile(content, task, reason)
-  return toSystemBlock(formatScoutMap(path, map))
+    return { ok: true, block }
+  } catch {
+    return { ok: false, path }
+  }
+}
+
+const toScoutResult = (total: number, failed: string[]): ToolResult<unknown> => {
+  if (failed.length === 0) return { status: "ok", output: "ok" }
+
+  const successCount = total - failed.length
+  const failedList = failed.join(", ")
+
+  if (successCount === 0)
+    return { status: "error", output: `All files failed to map: ${failedList}` }
+
+  return {
+    status: "partial",
+    output: "ok",
+    message: `${successCount}/${total} files mapped. Failed: ${failedList}`,
+  }
 }
 
 const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
@@ -42,14 +68,23 @@ const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>
   if (missing.length > 0)
     return { status: "error", output: `Files not found: ${missing.join(", ")}` }
 
+  const failed: string[] = []
+
   await processPool(
     files,
-    async (f: ScoutFileEntry) => [await scoutEntry(f.path, task, f.reason)],
+    async (f: ScoutFileEntry) => {
+      const result = await tryScoutEntry(f.path, task, f.reason)
+      if (!result.ok) {
+        failed.push(result.path)
+        return []
+      }
+      return [result.block]
+    },
     (blocks) => pushBlocks(blocks),
     { concurrency: 3 }
   )
 
-  return { status: "ok", output: "ok" }
+  return toScoutResult(files.length, failed)
 }
 
 registerSpecialHandler("scout", handleScout)

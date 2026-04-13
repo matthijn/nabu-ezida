@@ -172,11 +172,13 @@ export const extractAskMessages = (history: Block[]): AskExtraction => {
   return { messages, consumedUserIndices: consumed }
 }
 
+export type ScoutFileState = "pending" | "done" | "failed"
+
 export interface ScoutFileStatus {
   path: string
   reason: string
   group: string
-  done: boolean
+  status: ScoutFileState
 }
 
 export interface ScoutMessage {
@@ -210,6 +212,16 @@ const collectDoneFiles = (history: Block[], from: number, to: number): Set<strin
   return done
 }
 
+const deriveFileState = (
+  path: string,
+  doneFiles: Set<string>,
+  toolFinished: boolean
+): ScoutFileState => {
+  if (doneFiles.has(path)) return "done"
+  if (toolFinished) return "failed"
+  return "pending"
+}
+
 const extractSingleScout = (
   index: number,
   call: ToolCall,
@@ -219,14 +231,15 @@ const extractSingleScout = (
   if (!parsed.success) return []
 
   const resultIndex = findScoutResultIndex(history, call.id)
+  const toolFinished = resultIndex !== null
   const scanEnd = resultIndex ?? history.length
-  const done = collectDoneFiles(history, index + 1, scanEnd)
+  const doneFiles = collectDoneFiles(history, index + 1, scanEnd)
 
   const files: ScoutFileStatus[] = parsed.data.files.map((f) => ({
     path: f.path,
     reason: f.reason,
     group: f.group,
-    done: done.has(f.path),
+    status: deriveFileState(f.path, doneFiles, toolFinished),
   }))
 
   return [{ index, message: { type: "scout" as const, task: parsed.data.task, files } }]
