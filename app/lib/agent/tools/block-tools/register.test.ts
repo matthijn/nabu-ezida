@@ -42,12 +42,12 @@ describe("block patch tools", () => {
 
   const patchCases: PatchCase[] = [
     {
-      name: "patch_attributes: update fields",
+      name: "patch_attributes: set fields",
       tool: "patch_attributes",
       files: { "doc.md": doc({ tags: ["a"], date: "2024-01-01" }) },
       args: {
         path: "doc.md",
-        operations: [{ op: "update", fields: { date: "2025-01-01" } }],
+        operations: [{ op: "set", fields: { date: "2025-01-01" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
@@ -95,7 +95,7 @@ describe("block patch tools", () => {
       expectMutations: 1,
     },
     {
-      name: "patch_annotations: update annotation fields",
+      name: "patch_annotations: set annotation fields",
       tool: "patch_annotations",
       files: {
         "doc.md": doc(
@@ -110,16 +110,14 @@ describe("block patch tools", () => {
       },
       args: {
         path: "doc.md",
-        operations: [
-          { op: "update_annotation", match: { id: "ann_1" }, fields: { reason: "new" } },
-        ],
+        operations: [{ op: "set_annotation", match: { id: "ann_1" }, fields: { reason: "new" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,
       expectMutations: 1,
     },
     {
-      name: "patch_callout: update fields with block_id",
+      name: "patch_callout: set fields with block_id",
       tool: "patch_callout",
       files: {
         "codebook.md": multiBlockDoc([
@@ -130,7 +128,7 @@ describe("block patch tools", () => {
       args: {
         path: "codebook.md",
         block_id: "callout_a",
-        operations: [{ op: "update", fields: { content: "new" } }],
+        operations: [{ op: "set", fields: { content: "new" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched.*json-callout/,
@@ -147,7 +145,7 @@ describe("block patch tools", () => {
       },
       args: {
         path: "codebook.md",
-        operations: [{ op: "update", fields: { content: "z" } }],
+        operations: [{ op: "set", fields: { content: "z" } }],
       },
       expectStatus: "error",
       expectOutput: /block_id is required/,
@@ -161,7 +159,7 @@ describe("block patch tools", () => {
       args: {
         path: "codebook.md",
         block_id: "callout_a",
-        operations: [{ op: "update", fields: { color: "not-a-valid-color" } }],
+        operations: [{ op: "set", fields: { color: "not-a-valid-color" } }],
       },
       expectStatus: "error",
       expectOutput: /invalid.*json-callout/i,
@@ -193,7 +191,7 @@ describe("block patch tools", () => {
       expectMutations: 1,
     },
     {
-      name: "patch_callout: patch_content with update in same batch",
+      name: "patch_callout: patch_content with set in same batch",
       tool: "patch_callout",
       files: {
         "codebook.md": multiBlockDoc([
@@ -208,7 +206,7 @@ describe("block patch tools", () => {
         path: "codebook.md",
         block_id: "callout_a",
         operations: [
-          { op: "update", fields: { color: "red" } },
+          { op: "set", fields: { color: "red" } },
           { op: "patch_content", diff: "@@\n-Original content.\n+Updated content." },
         ],
       },
@@ -222,7 +220,7 @@ describe("block patch tools", () => {
       files: {},
       args: {
         path: "missing.md",
-        operations: [{ op: "update", fields: { date: "2025-01-01" } }],
+        operations: [{ op: "set", fields: { date: "2025-01-01" } }],
       },
       expectStatus: "error",
       expectOutput: /No such file/,
@@ -233,7 +231,7 @@ describe("block patch tools", () => {
       files: { "doc.md": doc({ date: "2024-01-01" }) },
       args: {
         path: "doc.md",
-        operations: [{ op: "update", fields: { date: "2024-01-01" } }],
+        operations: [{ op: "set", fields: { date: "2024-01-01" } }],
       },
       expectStatus: "ok",
       expectOutput: /No changes/,
@@ -245,7 +243,7 @@ describe("block patch tools", () => {
       files: { "doc.md": doc({ date: "2024-01-01" }) },
       args: {
         path: "doc.md.md",
-        operations: [{ op: "update", fields: { date: "2025-01-01" } }],
+        operations: [{ op: "set", fields: { date: "2025-01-01" } }],
       },
       expectStatus: "ok",
       expectOutput: /Patched/,

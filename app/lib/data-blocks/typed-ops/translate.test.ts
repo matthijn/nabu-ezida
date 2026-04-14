@@ -7,7 +7,7 @@ const annotationsSpec: TypedOpsSpec = {
   language: "json-annotations",
   shortName: "annotations",
   singleton: true,
-  updateFieldsSchema: { type: "object", properties: {} },
+  setFieldsSchema: { type: "object", properties: {} },
   arrayOps: [
     {
       fieldName: "annotations",
@@ -25,7 +25,7 @@ const calloutSpec: TypedOpsSpec = {
   language: "json-callout",
   shortName: "callout",
   singleton: false,
-  updateFieldsSchema: {
+  setFieldsSchema: {
     type: "object",
     properties: { color: { type: "string" }, title: { type: "string" } },
   },
@@ -38,7 +38,7 @@ const settingsSpec: TypedOpsSpec = {
   language: "json-settings",
   shortName: "settings",
   singleton: true,
-  updateFieldsSchema: { type: "object", properties: {} },
+  setFieldsSchema: { type: "object", properties: {} },
   arrayOps: [
     {
       fieldName: "tags",
@@ -69,9 +69,9 @@ describe("translateOps", () => {
 
   const cases: Case[] = [
     {
-      name: "update: produces replace ops per field",
+      name: "set: produces replace ops per field",
       spec: calloutSpec,
-      ops: [{ op: "update", fields: { color: "red", title: "New" } }],
+      ops: [{ op: "set", fields: { color: "red", title: "New" } }],
       expected: [
         { op: "replace", path: "/color", value: "red" },
         { op: "replace", path: "/title", value: "New" },
@@ -101,11 +101,11 @@ describe("translateOps", () => {
       expected: [{ op: "remove", path: "/annotations[id=annotation_abc]" }],
     },
     {
-      name: "update_annotation: produces selector-based replace per field",
+      name: "set_annotation: produces selector-based replace per field",
       spec: annotationsSpec,
       ops: [
         {
-          op: "update_annotation",
+          op: "set_annotation",
           match: { id: "annotation_abc" },
           fields: { code: "new_code", reason: "updated" },
         },

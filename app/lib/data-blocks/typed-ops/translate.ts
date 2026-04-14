@@ -6,7 +6,7 @@ type TypedOp = Record<string, unknown>
 const findArrayOp = (spec: TypedOpsSpec, singular: string): ArrayOpSpec | undefined =>
   spec.arrayOps.find((a) => a.singularName === singular)
 
-const translateUpdate = (fields: Record<string, unknown>): JsonPatchOp[] =>
+const translateSet = (fields: Record<string, unknown>): JsonPatchOp[] =>
   Object.entries(fields).map(([key, value]) => ({
     op: "replace" as const,
     path: `/${key}`,
@@ -23,7 +23,7 @@ const translateRemove = (
   matchValue: string
 ): JsonPatchOp[] => [{ op: "remove" as const, path: `/${fieldName}[${matchKey}=${matchValue}]` }]
 
-const translateUpdateItem = (
+const translateSetItem = (
   fieldName: string,
   matchKey: string,
   matchValue: string,
@@ -43,7 +43,7 @@ export const translateOps = (ops: TypedOp[], spec: TypedOpsSpec): JsonPatchOp[] 
 const translateSingleOp = (op: TypedOp, spec: TypedOpsSpec): JsonPatchOp[] => {
   const opName = op.op as string
 
-  if (opName === "update") return translateUpdate(op.fields as Record<string, unknown>)
+  if (opName === "set") return translateSet(op.fields as Record<string, unknown>)
 
   if (opName.startsWith("add_")) {
     const singular = extractSuffix(opName, "add_")
@@ -60,12 +60,12 @@ const translateSingleOp = (op: TypedOp, spec: TypedOpsSpec): JsonPatchOp[] => {
     return translateRemove(arrayOp.fieldName, arrayOp.matchKey, match[arrayOp.matchKey])
   }
 
-  if (opName.startsWith("update_")) {
-    const singular = extractSuffix(opName, "update_")
+  if (opName.startsWith("set_")) {
+    const singular = extractSuffix(opName, "set_")
     const arrayOp = findArrayOp(spec, singular)
     if (!arrayOp) throw new Error(`unknown op: ${opName}`)
     const match = op.match as Record<string, string>
-    return translateUpdateItem(
+    return translateSetItem(
       arrayOp.fieldName,
       arrayOp.matchKey,
       match[arrayOp.matchKey],

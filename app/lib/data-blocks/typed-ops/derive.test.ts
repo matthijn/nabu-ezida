@@ -20,7 +20,7 @@ describe("deriveTypedOps", () => {
     expectImmutableFields: string[]
     expectMultilineFields: string[]
     expectArrayOps: string[]
-    expectUpdateFields: string[]
+    expectSetFields: string[]
   }
 
   const cases: Case[] = [
@@ -32,7 +32,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: [],
       expectMultilineFields: [],
       expectArrayOps: [],
-      expectUpdateFields: ["tags", "date"],
+      expectSetFields: ["tags", "date"],
     },
     {
       name: "json-annotations: singleton, annotations array with id",
@@ -42,7 +42,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: [],
       expectMultilineFields: [],
       expectArrayOps: ["annotations"],
-      expectUpdateFields: [],
+      expectSetFields: [],
     },
     {
       name: "json-callout: non-singleton, id is immutable, multiline content",
@@ -52,7 +52,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: ["id"],
       expectMultilineFields: ["content"],
       expectArrayOps: [],
-      expectUpdateFields: ["type", "title", "content", "color", "collapsed"],
+      expectSetFields: ["type", "title", "content", "color", "collapsed"],
     },
     {
       name: "json-settings: singleton, tags and searches arrays with id, file-locked",
@@ -63,7 +63,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: [],
       expectMultilineFields: [],
       expectArrayOps: ["tags", "searches"],
-      expectUpdateFields: [],
+      expectSetFields: [],
     },
     {
       name: "json-chart: non-singleton, id is immutable, nested objects",
@@ -73,7 +73,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: ["id"],
       expectMultilineFields: [],
       expectArrayOps: [],
-      expectUpdateFields: ["caption", "query", "spec"],
+      expectSetFields: ["caption", "query", "spec"],
     },
   ]
 
@@ -87,7 +87,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields,
       expectMultilineFields,
       expectArrayOps,
-      expectUpdateFields,
+      expectSetFields,
     }) => {
       const config = mustGetConfig(language)
       const spec = deriveTypedOps(language, config)
@@ -99,11 +99,8 @@ describe("deriveTypedOps", () => {
       expect(spec.multilineFields).toEqual(expectMultilineFields)
       expect(spec.arrayOps.map((a) => a.fieldName)).toEqual(expectArrayOps)
 
-      const updateProps = (spec.updateFieldsSchema as JsonSchema).properties as Record<
-        string,
-        unknown
-      >
-      expect(Object.keys(updateProps).sort()).toEqual([...expectUpdateFields].sort())
+      const setProps = (spec.setFieldsSchema as JsonSchema).properties as Record<string, unknown>
+      expect(Object.keys(setProps).sort()).toEqual([...expectSetFields].sort())
     }
   )
 })
@@ -118,41 +115,41 @@ describe("deriveOpsJsonSchema", () => {
 
   const cases: Case[] = [
     {
-      name: "attributes: only update op",
+      name: "attributes: only set op",
       language: "json-attributes",
-      expectOpNames: ["update"],
+      expectOpNames: ["set"],
       expectIsArray: true,
     },
     {
-      name: "annotations: update + add/remove/update_annotation",
+      name: "annotations: set + add/remove/set_annotation",
       language: "json-annotations",
-      expectOpNames: ["update", "add_annotation", "remove_annotation", "update_annotation"],
+      expectOpNames: ["set", "add_annotation", "remove_annotation", "set_annotation"],
       expectIsArray: true,
     },
     {
-      name: "settings: update + add/remove/update for tag and search",
+      name: "settings: set + add/remove/set for tag and search",
       language: "json-settings",
       expectOpNames: [
-        "update",
+        "set",
         "add_tag",
         "remove_tag",
-        "update_tag",
+        "set_tag",
         "add_search",
         "remove_search",
-        "update_search",
+        "set_search",
       ],
       expectIsArray: true,
     },
     {
-      name: "callout: update + patch_content",
+      name: "callout: set + patch_content",
       language: "json-callout",
-      expectOpNames: ["update", "patch_content"],
+      expectOpNames: ["set", "patch_content"],
       expectIsArray: true,
     },
     {
-      name: "chart: only update op",
+      name: "chart: only set op",
       language: "json-chart",
-      expectOpNames: ["update"],
+      expectOpNames: ["set"],
       expectIsArray: true,
     },
   ]

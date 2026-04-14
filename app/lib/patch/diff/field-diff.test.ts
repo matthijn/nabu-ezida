@@ -61,6 +61,21 @@ describe("applyFieldDiff", () => {
       diff: "@@\\nFirst paragraph.\\n\\n-Second paragraph.\\n+Revised paragraph.",
       expected: { ok: true, content: "First paragraph.\n\nRevised paragraph." },
     },
+    {
+      name: "context skip: locate via anchors and change after",
+      value: "Intro paragraph.\nLong middle text.\nMore detail here.\nConclusion old.",
+      diff: "@@\nIntro paragraph.\n...\nMore detail here.\n-Conclusion old.\n+Conclusion new.",
+      expected: {
+        ok: true,
+        content: "Intro paragraph.\nLong middle text.\nMore detail here.\nConclusion new.",
+      },
+    },
+    {
+      name: "remove skip: delete range between anchors",
+      value: "Keep start.\nDrop A.\nDrop B.\nDrop C.\nKeep end.",
+      diff: "@@\nKeep start.\n-Drop A.\n-...\n-Drop C.\nKeep end.",
+      expected: { ok: true, content: "Keep start.\nKeep end." },
+    },
   ]
 
   it.each(cases)("$name", ({ value, diff, expected }) => {

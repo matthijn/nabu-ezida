@@ -142,11 +142,54 @@ const formatNotFoundError = (matchText: string, content: string): string => {
   ].join("\n")
 }
 
+const SKIP_CONTENT = "...\n"
+
+const isSkipMarker = (part: HunkPart): boolean =>
+  (part.type === "context" || part.type === "remove") && part.content === SKIP_CONTENT
+
+type ExpandResult = { ok: true; parts: HunkPart[] } | { ok: false; error: string }
+
+const expandSkipMarker = (parts: HunkPart[], content: string): ExpandResult => {
+  const skipIdx = parts.findIndex(isSkipMarker)
+  if (skipIdx === -1) return { ok: true, parts }
+
+  const skipType = parts[skipIdx].type as "context" | "remove"
+  const before = parts.slice(0, skipIdx)
+  const after = parts.slice(skipIdx + 1)
+
+  const startAnchor = buildMatchText(before)
+  const endAnchor = buildMatchText(after)
+  if (startAnchor === "") return { ok: false, error: "... requires preceding context lines" }
+  if (endAnchor === "") return { ok: false, error: "... requires following context lines" }
+
+  const startMatches = findMatches(content, startAnchor)
+  if (startMatches.length === 0) return { ok: false, error: "... start anchor not found" }
+  if (startMatches.length > 1) return { ok: false, error: "... start anchor ambiguous" }
+
+  const contentLines = content.split("\n")
+  const searchFrom = startMatches[0].end + 1
+  const suffix = contentLines.slice(searchFrom).join("\n")
+  const endMatches = findMatches(suffix, endAnchor)
+  if (endMatches.length === 0) return { ok: false, error: "... end anchor not found" }
+  if (endMatches.length > 1) return { ok: false, error: "... end anchor ambiguous" }
+
+  const gapLines = contentLines.slice(searchFrom, searchFrom + endMatches[0].start)
+  if (gapLines.length === 0)
+    return { ok: false, error: "... anchors are adjacent, nothing to skip" }
+
+  const gapParts: HunkPart[] = gapLines.map((line) => ({ type: skipType, content: line + "\n" }))
+  return { ok: true, parts: [...before, ...gapParts, ...after] }
+}
+
 const applyHunk = (content: string, hunk: Hunk): DiffResult => {
-  const matchText = buildMatchText(hunk.parts)
+  const expanded = expandSkipMarker(hunk.parts, content)
+  if (!expanded.ok) return expanded
+  const { parts } = expanded
+
+  const matchText = buildMatchText(parts)
 
   if (matchText === "") {
-    const addText = buildAddText(hunk.parts)
+    const addText = buildAddText(parts)
     const needsSeparator = content.length > 0 && !content.endsWith("\n")
     return { ok: true, content: content + (needsSeparator ? "\n" : "") + addText }
   }
@@ -169,7 +212,7 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   }
 
   const matchedText = getMatchedText(content, matches[0])
-  const newText = buildReplacement(hunk.parts, matchedText)
+  const newText = buildReplacement(parts, matchedText)
   return { ok: true, content: content.replace(matchedText, newText) }
 }
 

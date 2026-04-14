@@ -208,6 +208,67 @@ line3
 +new line`,
       expected: { ok: true, content: "line1\nline2\nline3\nnew line" },
     },
+    {
+      name: "context skip: keep implicit lines between anchors",
+      content: "line A\nline B\nline C\nline D\nline E",
+      patch: `@@
+line A
+...
+line D
+-line E
++line F`,
+      expected: { ok: true, content: "line A\nline B\nline C\nline D\nline F" },
+    },
+    {
+      name: "remove skip: delete entire range between anchors",
+      content: "keep\nremove A\nremove B\nremove C\nalso keep",
+      patch: `@@
+keep
+-remove A
+-...
+-remove C
+also keep`,
+      expected: { ok: true, content: "keep\nalso keep" },
+    },
+    {
+      name: "context skip with add after end anchor",
+      content: "header\nfoo\nbar\nbaz\nfooter",
+      patch: `@@
+header
+...
+footer
++appended`,
+      expected: { ok: true, content: "header\nfoo\nbar\nbaz\nfooter\nappended" },
+    },
+    {
+      name: "skip error: no preceding context",
+      content: "A\nB\nC",
+      patch: `@@
+...
+B
+-C
++D`,
+      expected: { ok: false, error: "... requires preceding context lines" },
+    },
+    {
+      name: "skip error: no following context",
+      content: "A\nB\nC",
+      patch: `@@
+A
+...`,
+      expected: { ok: false, error: "... requires following context lines" },
+    },
+    {
+      name: "skip error: adjacent anchors",
+      content: "line A\nline B\nline C",
+      patch: `@@
+line A
+...
+line B
+-line C
++line D`,
+      expected: { ok: false, error: "... anchors are adjacent, nothing to skip" },
+    },
   ]
 
   it.each(cases)("$name", ({ content, patch, expected }) => {

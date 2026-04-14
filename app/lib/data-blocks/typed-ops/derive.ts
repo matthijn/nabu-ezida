@@ -17,7 +17,7 @@ export interface TypedOpsSpec {
   shortName: string
   singleton: boolean
   allowedFiles?: string[]
-  updateFieldsSchema: unknown
+  setFieldsSchema: unknown
   arrayOps: ArrayOpSpec[]
   multilineFields: string[]
   immutableFields: string[]
@@ -61,7 +61,7 @@ const classifyProperty = (
   fieldName: string,
   prop: JsonSchema,
   arrayOps: ArrayOpSpec[],
-  updateProps: Properties
+  setProps: Properties
 ): void => {
   if (isObjectArray(prop) && hasIdProperty(prop.items as JsonSchema)) {
     const itemSchema = prop.items as JsonSchema
@@ -73,20 +73,20 @@ const classifyProperty = (
       partialItemSchema: toPartialItemSchema(itemSchema),
     })
   } else {
-    updateProps[fieldName] = prop
+    setProps[fieldName] = prop
   }
 }
 
-const buildUpdateFieldsSchema = (properties: Properties): JsonSchema => ({
+const buildSetFieldsSchema = (properties: Properties): JsonSchema => ({
   type: "object",
   properties,
   additionalProperties: false,
 })
 
-const buildUpdateOpSchema = (fieldsSchema: JsonSchema): JsonSchema => ({
+const buildSetOpSchema = (fieldsSchema: JsonSchema): JsonSchema => ({
   type: "object",
   properties: {
-    op: { type: "string", enum: ["update"] },
+    op: { type: "string", enum: ["set"] },
     fields: fieldsSchema,
   },
   required: ["op", "fields"],
@@ -118,14 +118,14 @@ const buildRemoveOpSchema = (singular: string, matchKey: string): JsonSchema => 
   additionalProperties: false,
 })
 
-const buildUpdateItemOpSchema = (
+const buildSetItemOpSchema = (
   singular: string,
   matchKey: string,
   partialItemSchema: unknown
 ): JsonSchema => ({
   type: "object",
   properties: {
-    op: { type: "string", enum: [`update_${singular}`] },
+    op: { type: "string", enum: [`set_${singular}`] },
     match: {
       type: "object",
       properties: { [matchKey]: { type: "string" } },
@@ -141,7 +141,7 @@ const buildUpdateItemOpSchema = (
 const buildArrayOpSchemas = (spec: ArrayOpSpec): JsonSchema[] => [
   buildAddOpSchema(spec.singularName, spec.itemSchema),
   buildRemoveOpSchema(spec.singularName, spec.matchKey),
-  buildUpdateItemOpSchema(spec.singularName, spec.matchKey, spec.partialItemSchema),
+  buildSetItemOpSchema(spec.singularName, spec.matchKey, spec.partialItemSchema),
 ]
 
 const buildPatchFieldOpSchema = (fieldName: string): JsonSchema => ({
@@ -155,7 +155,7 @@ const buildPatchFieldOpSchema = (fieldName: string): JsonSchema => ({
 })
 
 export const deriveOpsJsonSchema = (spec: TypedOpsSpec): unknown => {
-  const variants: JsonSchema[] = [buildUpdateOpSchema(spec.updateFieldsSchema as JsonSchema)]
+  const variants: JsonSchema[] = [buildSetOpSchema(spec.setFieldsSchema as JsonSchema)]
   for (const arrayOp of spec.arrayOps) {
     variants.push(...buildArrayOpSchemas(arrayOp))
   }
@@ -176,10 +176,10 @@ export const deriveTypedOps = (language: string, config: BlockTypeConfig): Typed
   const editable = removeImmutable(allProperties, immutableFields)
 
   const arrayOps: ArrayOpSpec[] = []
-  const updateProps: Properties = {}
+  const setProps: Properties = {}
 
   for (const [fieldName, prop] of Object.entries(editable)) {
-    classifyProperty(fieldName, prop, arrayOps, updateProps)
+    classifyProperty(fieldName, prop, arrayOps, setProps)
   }
 
   return {
@@ -187,7 +187,7 @@ export const deriveTypedOps = (language: string, config: BlockTypeConfig): Typed
     shortName: stripJsonPrefix(language),
     singleton: config.singleton,
     allowedFiles: config.allowedFiles,
-    updateFieldsSchema: buildUpdateFieldsSchema(updateProps),
+    setFieldsSchema: buildSetFieldsSchema(setProps),
     arrayOps,
     multilineFields: config.multilineFields ?? [],
     immutableFields,

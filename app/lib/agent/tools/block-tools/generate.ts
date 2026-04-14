@@ -36,8 +36,8 @@ const extractFieldNames = (schema: unknown): string[] => {
   return props ? Object.keys(props) : []
 }
 
-const buildUpdateLine = (spec: TypedOpsSpec): string | null => {
-  const allFields = extractFieldNames(spec.updateFieldsSchema)
+const buildSetLine = (spec: TypedOpsSpec): string | null => {
+  const allFields = extractFieldNames(spec.setFieldsSchema)
   if (allFields.length === 0) return null
 
   const multilineSet = new Set(spec.multilineFields)
@@ -54,7 +54,7 @@ const buildUpdateLine = (spec: TypedOpsSpec): string | null => {
     parts.push(`${prefix} ${overlapFields.join(", ")}, but prefer ${patchRefs} for long content`)
   }
 
-  return `- update: ${parts.join(". ")}`
+  return `- set: ${parts.join(". ")}`
 }
 
 const buildPatchDescription = (spec: TypedOpsSpec): string => {
@@ -63,18 +63,18 @@ const buildPatchDescription = (spec: TypedOpsSpec): string => {
 
   const ops: string[] = []
 
-  const updateLine = buildUpdateLine(spec)
-  if (updateLine) ops.push(updateLine)
+  const setLine = buildSetLine(spec)
+  if (setLine) ops.push(setLine)
 
   for (const a of spec.arrayOps) {
     ops.push(`- add_${a.singularName}: append item to ${a.fieldName}`)
     ops.push(`- remove_${a.singularName}: remove from ${a.fieldName} by ${a.matchKey}`)
-    ops.push(`- update_${a.singularName}: partial update in ${a.fieldName} by ${a.matchKey}`)
+    ops.push(`- set_${a.singularName}: set fields on item in ${a.fieldName} by ${a.matchKey}`)
   }
 
   for (const field of spec.multilineFields) {
     ops.push(
-      `- patch_${field}: V4A diff against ${field} — prefer over update for substantial content`
+      `- patch_${field}: V4A diff against ${field} — prefer over set for substantial content`
     )
   }
 
