@@ -35,6 +35,7 @@ export interface BlockTypeConfig<T = unknown> {
   idPaths?: IdPathConfig[]
   actorPaths?: ActorPathConfig[]
   fuzzyFields?: string[]
+  multilineFields?: string[]
   patchSchema?: (schema: Record<string, unknown>) => Record<string, unknown>
   rowPath?: string
   asyncValidate?: (parsed: T, context: AsyncValidationContext) => Promise<ValidationError[]>

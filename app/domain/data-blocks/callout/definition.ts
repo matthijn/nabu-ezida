@@ -13,6 +13,7 @@ export const jsonCallout: BlockTypeConfig = {
   projected: true,
   tableName: "callouts",
   labelKey: "title",
+  multilineFields: ["content"],
   idPaths: [{ path: "id", prefix: "callout" }],
   actorPaths: [{ path: "actor" }],
 }

@@ -19,6 +19,7 @@ export interface TypedOpsSpec {
   allowedFiles?: string[]
   updateFieldsSchema: unknown
   arrayOps: ArrayOpSpec[]
+  multilineFields: string[]
   immutableFields: string[]
   fuzzyFields: string[]
 }
@@ -143,10 +144,23 @@ const buildArrayOpSchemas = (spec: ArrayOpSpec): JsonSchema[] => [
   buildUpdateItemOpSchema(spec.singularName, spec.matchKey, spec.partialItemSchema),
 ]
 
+const buildPatchFieldOpSchema = (fieldName: string): JsonSchema => ({
+  type: "object",
+  properties: {
+    op: { type: "string", enum: [`patch_${fieldName}`] },
+    diff: { type: "string", minLength: 1 },
+  },
+  required: ["op", "diff"],
+  additionalProperties: false,
+})
+
 export const deriveOpsJsonSchema = (spec: TypedOpsSpec): unknown => {
   const variants: JsonSchema[] = [buildUpdateOpSchema(spec.updateFieldsSchema as JsonSchema)]
   for (const arrayOp of spec.arrayOps) {
     variants.push(...buildArrayOpSchemas(arrayOp))
+  }
+  for (const field of spec.multilineFields) {
+    variants.push(buildPatchFieldOpSchema(field))
   }
   return {
     type: "array",
@@ -175,6 +189,7 @@ export const deriveTypedOps = (language: string, config: BlockTypeConfig): Typed
     allowedFiles: config.allowedFiles,
     updateFieldsSchema: buildUpdateFieldsSchema(updateProps),
     arrayOps,
+    multilineFields: config.multilineFields ?? [],
     immutableFields,
     fuzzyFields: config.fuzzyFields ?? [],
   }
