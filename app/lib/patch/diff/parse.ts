@@ -173,20 +173,18 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
   return { ok: true, content: content.replace(matchedText, newText) }
 }
 
-export const applyDiff = (content: string, patch: string): DiffResult => {
-  const hunks = parseV4ADiff(patch).map(normalizeHunk)
-  let result = normalizeContent(content)
-
+export const applyHunks = (content: string, hunks: Hunk[]): DiffResult => {
+  let result = content
   for (const hunk of hunks) {
     const applied = applyHunk(result, hunk)
-    if (!applied.ok) {
-      return applied
-    }
+    if (!applied.ok) return applied
     result = applied.content
   }
-
   return { ok: true, content: result }
 }
+
+export const applyDiff = (content: string, patch: string): DiffResult =>
+  applyHunks(normalizeContent(content), parseV4ADiff(patch).map(normalizeHunk))
 
 const normalizePartContent = (content: string): string =>
   normalizeLine(content.replace(/\n$/, "")) + "\n"
