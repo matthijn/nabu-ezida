@@ -10,6 +10,7 @@ const RenameFileArgs = z.object({
 
 export const renameFile = {
   name: "rename_file" as const,
-  description: "Rename/move a file. Fails if source is missing or destination already exists.",
+  description:
+    "Rename/move a file. Fails if source is missing or destination already exists.\n\nparallel: self=yes (if independent) / others=not with ops on same file / source disappears after call",
   schema: RenameFileArgs,
 }

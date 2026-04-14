@@ -4,13 +4,21 @@ import { toStrictSchema } from "../executors/tool"
 
 type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
-  | { type: "function_call"; call_id: string; status: string; name: string; arguments: string }
+  | {
+      type: "function_call"
+      call_id: string
+      status: string
+      name: string
+      arguments: string
+      extra_content?: unknown
+    }
   | { type: "function_call_output"; call_id: string; status: string; output: string }
   | {
       type: "reasoning"
       id: string
-      summary: { type: "summary_text"; text: string }[]
-      encrypted_content: string
+      summary?: { type: "summary_text"; text: string }[]
+      encrypted_content?: string
+      extra_content?: unknown
     }
 
 export interface ResponseFormat {
@@ -53,6 +61,7 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
       status: "completed",
       name: c.name,
       arguments: JSON.stringify(c.args),
+      ...(c.extraContent ? { extra_content: c.extraContent } : {}),
     }))
   }
   if (block.type === "tool_result") {
@@ -64,15 +73,21 @@ const blockToInputItem = (block: Block): InputItem | InputItem[] => {
     }
   }
   if (block.type === "reasoning") {
-    if (block.id && block.encryptedContent) {
-      return {
-        type: "reasoning",
-        id: block.id,
-        summary: [{ type: "summary_text" as const, text: block.content }],
-        encrypted_content: block.encryptedContent,
-      }
+    if (!block.id) return []
+    const hasEncrypted = !!block.encryptedContent
+    const hasExtra = !!block.extraContent
+    if (!hasEncrypted && !hasExtra) return []
+    return {
+      type: "reasoning" as const,
+      id: block.id,
+      ...(hasEncrypted
+        ? {
+            summary: [{ type: "summary_text" as const, text: block.content }],
+            encrypted_content: block.encryptedContent,
+          }
+        : {}),
+      ...(hasExtra ? { extra_content: block.extraContent } : {}),
     }
-    return []
   }
   if (block.type === "empty_nudge") {
     return []

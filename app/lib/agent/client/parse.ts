@@ -16,6 +16,7 @@ interface ParseState {
   reasoningContent: string
   reasoningId: string | undefined
   reasoningEncryptedContent: string | undefined
+  reasoningExtraContent: unknown | undefined
   pendingToolCalls: ToolCall[]
   streamingToolName: string | null
   blocks: Block[]
@@ -27,6 +28,7 @@ export const initialParseState = (): ParseState => ({
   reasoningContent: "",
   reasoningId: undefined,
   reasoningEncryptedContent: undefined,
+  reasoningExtraContent: undefined,
   pendingToolCalls: [],
   streamingToolName: null,
   blocks: [],
@@ -47,6 +49,7 @@ const flushReasoning = (state: ParseState): ParseState =>
         reasoningContent: "",
         reasoningId: undefined,
         reasoningEncryptedContent: undefined,
+        reasoningExtraContent: undefined,
         blocks: [
           ...state.blocks,
           {
@@ -54,6 +57,7 @@ const flushReasoning = (state: ParseState): ParseState =>
             content: state.reasoningContent,
             id: state.reasoningId,
             encryptedContent: state.reasoningEncryptedContent,
+            extraContent: state.reasoningExtraContent,
           },
         ],
       }
@@ -128,6 +132,15 @@ export const processLine = (
       return state
     }
 
+    if (state.currentEvent === "response.failed") {
+      const message = parsed?.response?.error?.message
+      if (message) {
+        const flushed = flushReasoning(flushText(flushToolCalls(state)))
+        return { ...flushed, blocks: [...flushed.blocks, { type: "error", content: message }] }
+      }
+      return state
+    }
+
     if (state.currentEvent === "response.output_item.done" && parsed.item) {
       const item = parsed.item
       if (item.type === "function_call") {
@@ -135,12 +148,18 @@ export const processLine = (
           id: item.call_id,
           name: item.name,
           args: parseToolArgs(item.arguments),
+          ...(item.extra_content ? { extraContent: item.extra_content } : {}),
         }
         callbacks.onToolCall?.(toolCall)
         return { ...state, pendingToolCalls: [...state.pendingToolCalls, toolCall] }
       }
       if (item.type === "reasoning") {
-        return { ...state, reasoningId: item.id, reasoningEncryptedContent: item.encrypted_content }
+        return {
+          ...state,
+          reasoningId: item.id,
+          reasoningEncryptedContent: item.encrypted_content,
+          reasoningExtraContent: item.extra_content,
+        }
       }
     }
 

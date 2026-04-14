@@ -8,6 +8,6 @@ export const StartPlanningArgs = z.object({
 export const startPlanTool: AnyTool = {
   name: "start_planning",
   description:
-    "Start planning mode for work that applies a shared framework or analytical criteria, or requires sequential attention across sections. Do not use for bounded mechanical operations (rename, reformat, delete).",
+    "Start planning mode for work that applies a shared framework or analytical criteria, or requires sequential attention across sections. Do not use for bounded mechanical operations (rename, reformat, delete).\n\nparallel: no — mode transition, must be solo",
   schema: StartPlanningArgs,
 }

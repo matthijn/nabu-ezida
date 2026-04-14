@@ -21,6 +21,6 @@ export const SearchArgs = z.object({
 export const searchTool: AnyTool = {
   name: "search",
   description:
-    "Search the project database and persist results as a browsable page the user can revisit. Not for counting or aggregation — use query for those.",
+    "Search the project database and persist results as a browsable page the user can revisit. Not for counting or aggregation — use query for those.\n\nparallel: no — user-facing interaction",
   schema: SearchArgs,
 }

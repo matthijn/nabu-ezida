@@ -15,6 +15,7 @@ const CompleteStepArgs = z.object({
 
 export const completeStep = {
   name: "complete_step" as const,
-  description: "Mark the current plan step as done.",
+  description:
+    "Mark the current plan step as done.\n\nparallel: yes — can fire alongside next step's work",
   schema: CompleteStepArgs,
 }

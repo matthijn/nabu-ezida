@@ -6,6 +6,7 @@ const RemoveFileArgs = z.object({
 
 export const removeFile = {
   name: "remove_file" as const,
-  description: "Delete a file. Fails if the file does not exist.",
+  description:
+    "Delete a file. Fails if the file does not exist.\n\nparallel: self=yes (if independent) / others=not with ops on same file / file gone after call",
   schema: RemoveFileArgs,
 }

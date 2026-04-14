@@ -48,6 +48,7 @@ const flushBlocks = (lines: string[], callbacks: ParseCallbacks = {}): Block[] =
       content: state.reasoningContent,
       id: state.reasoningId,
       encryptedContent: state.reasoningEncryptedContent,
+      extraContent: state.reasoningExtraContent,
     })
   if (state.textContent) blocks.push({ type: "text", content: state.textContent })
   if (state.pendingToolCalls.length > 0)
@@ -207,6 +208,28 @@ describe("parser", () => {
       ])
     })
 
+    it("captures gemini extra_content reasoning from output_item.done", () => {
+      const extraContent = { google: { thought_signature: "dGVzdHNpZw==" } }
+      const blocks = flushBlocks([
+        "event: response.reasoning_summary_text.delta",
+        'data: {"delta":"Gemini thought"}',
+        "event: response.output_item.done",
+        `data: {"item":{"type":"reasoning","id":"rs_0","extra_content":${JSON.stringify(extraContent)}}}`,
+        "event: response.output_text.delta",
+        'data: {"delta":"Answer"}',
+      ])
+
+      expect(blocks).toEqual([
+        {
+          type: "reasoning",
+          content: "Gemini thought",
+          id: "rs_0",
+          extraContent,
+        },
+        { type: "text", content: "Answer" },
+      ])
+    })
+
     it("interleaves reasoning and tool calls into separate blocks", () => {
       const blocks = flushBlocks([
         "event: response.reasoning_summary_text.delta",
@@ -229,6 +252,31 @@ describe("parser", () => {
         { type: "reasoning", content: "Second thought" },
         { type: "tool_call", calls: [{ id: "call_2", name: "write_file", args: {} }] },
       ])
+    })
+  })
+
+  describe("error handling", () => {
+    it("parses response.failed into error block", () => {
+      const blocks = flushBlocks([
+        "event: response.output_text.delta",
+        'data: {"delta":"partial"}',
+        "event: response.failed",
+        'data: {"response":{"status":"failed","error":{"type":"SAFETY","message":"output blocked by safety filter"}}}',
+      ])
+
+      expect(blocks).toEqual([
+        { type: "text", content: "partial" },
+        { type: "error", content: "output blocked by safety filter" },
+      ])
+    })
+
+    it("creates error block from response.failed without prior content", () => {
+      const blocks = flushBlocks([
+        "event: response.failed",
+        'data: {"response":{"status":"failed","error":{"type":"stream_error","message":"connection reset"}}}',
+      ])
+
+      expect(blocks).toEqual([{ type: "error", content: "connection reset" }])
     })
   })
 
@@ -322,8 +370,37 @@ describe("blocksToMessages", () => {
       ],
     },
     {
-      name: "skips reasoning without encrypted content",
+      name: "skips reasoning without encrypted content or extra content",
       blocks: [{ type: "reasoning" as const, content: "thought" }],
+      expected: [],
+    },
+    {
+      name: "converts reasoning with gemini extra_content",
+      blocks: [
+        {
+          type: "reasoning" as const,
+          content: "thought",
+          id: "rs_0",
+          extraContent: { google: { thought_signature: "dGVzdHNpZw==" } },
+        },
+      ],
+      expected: [
+        {
+          type: "reasoning",
+          id: "rs_0",
+          extra_content: { google: { thought_signature: "dGVzdHNpZw==" } },
+        },
+      ],
+    },
+    {
+      name: "skips reasoning without id",
+      blocks: [
+        {
+          type: "reasoning" as const,
+          content: "thought",
+          extraContent: { google: { thought_signature: "dGVzdHNpZw==" } },
+        },
+      ],
       expected: [],
     },
     {

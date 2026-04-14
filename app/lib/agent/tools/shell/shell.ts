@@ -66,7 +66,11 @@ ${sections.join("\n\n")}
 ### Limitations
 
 - **Flat filesystem**: No subdirectories. Paths \`/\`, \`.\`, \`./\` all refer to root.
-- **Readonly**: No writes. If you do not have write tools, you were not meant to write.`
+- **Readonly**: No writes. If you do not have write tools, you were not meant to write.
+
+### Parallelism
+
+parallel: self=yes (if independent) / others=yes / sequential if next depends on previous result`
 }
 
 const helpText = (): string =>

@@ -8,6 +8,6 @@ const CopyFileArgs = z.object({
 export const copyFile = {
   name: "copy_file" as const,
   description:
-    "Copy a file to a new path. Fails if source is missing or destination already exists.",
+    "Copy a file to a new path. Fails if source is missing or destination already exists.\n\nparallel: self=yes (if independent) / others=yes / conflicts only if dest overlaps",
   schema: CopyFileArgs,
 }

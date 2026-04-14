@@ -198,6 +198,55 @@ const shortId = (id: string): string => id.slice(-6)
 
 const toolCallIds = (calls: ToolCall[]): string => calls.map((c) => shortId(c.id)).join(",")
 
+type BlockRole = "input" | "output" | "hidden"
+
+const blockRole = (block: Block): BlockRole => {
+  switch (block.type) {
+    case "user":
+    case "tool_result":
+    case "system":
+      return "input"
+    case "text":
+    case "reasoning":
+    case "tool_call":
+    case "error":
+      return "output"
+    case "empty_nudge":
+    case "debug_pause":
+      return "hidden"
+    default:
+      return exhaustive(block)
+  }
+}
+
+const computeRoundtripStarts = (blocks: Block[]): Map<number, number> => {
+  const starts = new Map<number, number>()
+  let roundtrip = 0
+  let lastRole: BlockRole = "input"
+
+  for (let i = 0; i < blocks.length; i++) {
+    const role = blockRole(blocks[i])
+    if (role === "hidden") continue
+    if (role === "output" && lastRole !== "output") {
+      roundtrip++
+      starts.set(i, roundtrip)
+    }
+    lastRole = role
+  }
+
+  return starts
+}
+
+const RoundtripBadge = ({ number }: { number: number }) => (
+  <div className="flex items-center gap-2 my-1">
+    <div className="flex-1 border-t border-neutral-200" />
+    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-neutral-200 text-[10px] font-medium text-neutral-600">
+      {number}
+    </span>
+    <div className="flex-1 border-t border-neutral-200" />
+  </div>
+)
+
 const isSubagentBlock = (source: string): boolean => source !== "base"
 
 const sourceLabel = (source: string): string => (isSubagentBlock(source) ? ` [${source}]` : "")
@@ -345,6 +394,7 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const { position, handleMouseDown } = useDraggable({ x: 106, y: 16 }, { x: "left" })
   const allBlocks = useBlockStore()
   const compacted = readStepCompaction() ? stepCompactedIndices(allBlocks) : new Set<number>()
+  const roundtripStarts = computeRoundtripStarts(allBlocks)
   const mode = deriveMode(allBlocks)
   const paused = isPaused(allBlocks)
   const [copiedAll, setCopiedAll] = useState(false)
@@ -472,8 +522,10 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
           const source = getSource(block)
           const indent = isSubagentBlock(source) ? "ml-4" : ""
           const opacity = compacted.has(i) ? "opacity-50" : ""
+          const roundtrip = roundtripStarts.get(i)
           return (
             <div key={i} className={`${indent} ${opacity}`}>
+              {roundtrip !== undefined && <RoundtripBadge number={roundtrip} />}
               <BlockRenderer
                 block={block}
                 source={source}

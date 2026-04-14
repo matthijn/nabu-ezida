@@ -136,7 +136,7 @@ const buildRequestBody = (options: CallLlmOptions): string => {
     extras.push(toSystemMessage(formatBlockSchemasContent(options.blockSchemas)))
   if (options.databaseDdl)
     extras.push(toSystemMessage(formatDatabaseDdlContent(options.databaseDdl)))
-  const messages = extras.length > 0 ? [...options.messages, ...extras] : options.messages
+  const messages = extras.length > 0 ? [...extras, ...options.messages] : options.messages
   const body: Record<string, unknown> = { messages }
   if (options.tools) body.tools = options.tools
   if (options.responseFormat) body.response_format = options.responseFormat

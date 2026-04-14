@@ -17,6 +17,6 @@ export const RecordDecisionArgs = z.object({
 export const recordDecisionTool: AnyTool = {
   name: "record_decision",
   description:
-    "Persist a decision reached through ask exchanges to the codebook or preferences file. Call after one or more ask/answer rounds have converged on a decision worth recording. Not needed for local-scope asks.",
+    "Persist a decision reached through ask exchanges to the codebook or preferences file. Call after one or more ask/answer rounds have converged on a decision worth recording. Not needed for local-scope asks.\n\nparallel: no — depends on prior ask convergence",
   schema: RecordDecisionArgs,
 }

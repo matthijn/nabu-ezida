@@ -16,6 +16,7 @@ const CancelArgs = z.object({
 
 export const cancel = {
   name: "cancel" as const,
-  description: "Report that the delegated task cannot be completed.",
+  description:
+    "Report that the delegated task cannot be completed.\n\nparallel: no — mode transition, must be solo",
   schema: CancelArgs,
 }

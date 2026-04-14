@@ -22,6 +22,6 @@ export type AskScope = z.infer<typeof AskArgs>["scope"]
 export const askTool: AnyTool = {
   name: "ask",
   description:
-    "Ask the user a question. Every question must go through this tool — never ask in chat text. Provide options when discrete choices exist, omit for open-ended questions. Execution pauses until answered. Call once per question — earlier answers may shape later questions.",
+    "Ask the user a question. Every question must go through this tool — never ask in chat text. Provide options when discrete choices exist, omit for open-ended questions. Execution pauses until answered. Call once per question — earlier answers may shape later questions.\n\nparallel: no — blocks on user response",
   schema: AskArgs,
 }

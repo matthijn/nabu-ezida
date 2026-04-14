@@ -111,6 +111,11 @@ describe("toStrictSchema", () => {
       },
     },
     {
+      name: "converts const to single-element enum",
+      input: { const: "create_file", type: "string", description: "op type" },
+      expected: { enum: ["create_file"], type: "string", description: "op type" },
+    },
+    {
       name: "handles object with no required array",
       input: {
         type: "object",

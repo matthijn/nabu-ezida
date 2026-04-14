@@ -2,6 +2,7 @@ export interface ToolCall {
   id: string
   name: string
   args: Record<string, unknown>
+  extraContent?: unknown
 }
 
 export interface TextBlock {
@@ -38,6 +39,7 @@ export interface ReasoningBlock {
   content: string
   id?: string
   encryptedContent?: string
+  extraContent?: unknown
   draft?: true
 }
 

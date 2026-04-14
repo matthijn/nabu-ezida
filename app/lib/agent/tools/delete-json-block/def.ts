@@ -17,6 +17,6 @@ const DeleteJsonBlockArgs = z.object({
 export const deleteJsonBlock = {
   name: "delete_json_block" as const,
   description:
-    "Delete an entire fenced JSON code block from a document. For singleton block types, no block_id is needed. For multi-block types (e.g. json-callout), block_id is required.",
+    "Delete an entire fenced JSON code block from a document. For singleton block types, no block_id is needed. For multi-block types (e.g. json-callout), block_id is required.\n\nparallel: self=diff blocks yes / others=with reads yes",
   schema: DeleteJsonBlockArgs,
 }

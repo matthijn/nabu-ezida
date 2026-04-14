@@ -97,6 +97,11 @@ export const toStrictSchema = (schema: unknown): unknown => {
   if (typeof schema !== "object" || schema === null) return schema
   const { $schema: _, ...s } = schema as Record<string, unknown>
 
+  if ("const" in s) {
+    const { const: value, ...rest } = s
+    return { ...rest, enum: [value] }
+  }
+
   if (s.type === "array" && s.items) {
     return { ...s, items: toStrictSchema(s.items) }
   }

@@ -10,6 +10,6 @@ export const QueryArgs = z.object({
 export const queryTool: AnyTool = {
   name: "query",
   description:
-    "Run SQL against the project database for your own analysis. Results returned to you, not shown to the user. Max 50 rows. Use search for user-facing result pages.",
+    "Run SQL against the project database for your own analysis. Results returned to you, not shown to the user. Max 50 rows. Use search for user-facing result pages.\n\nparallel: self=yes (if independent) / others=yes / sequential if next depends on previous result",
   schema: QueryArgs,
 }
