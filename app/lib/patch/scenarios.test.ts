@@ -84,7 +84,7 @@ describe("range ref resolves against pretty content", () => {
 
   const cases: Case[] = [
     {
-      name: "anchors use triple-quote format from pretty expansion",
+      name: "anchors use boundary comments from injected view",
       store: { "source.md": SOURCE_RAW },
       targetPath: "target.md",
       targetContent: "# Target\n",

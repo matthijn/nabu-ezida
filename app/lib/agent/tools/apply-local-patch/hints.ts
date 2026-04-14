@@ -117,7 +117,7 @@ const detectJsonStructureHint = (classified: ClassifiedHunk[]): string | null =>
 }
 
 const isPureAppendClassified = (c: ClassifiedHunk): boolean =>
-  c.zones.size === 1 && c.addLineCount > 0 && !c.zones.has("structure") && !c.zones.has("prose")
+  c.zones.size === 1 && c.addLineCount > 0 && !c.zones.has("structure")
 
 const detectWholeBlockHint = (classified: ClassifiedHunk[]): string | null => {
   const hasLargeBlockRewrite = classified.some((c) =>

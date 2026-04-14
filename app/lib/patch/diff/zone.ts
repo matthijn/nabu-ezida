@@ -1,6 +1,6 @@
 import { exhaustive } from "~/lib/utils/exhaustive"
 
-export type LineZone = "outside" | "prose" | "structure"
+export type LineZone = "outside" | "structure"
 export type ZoneMap = LineZone[]
 export interface JsonBlockSpan {
   startLine: number
@@ -8,7 +8,7 @@ export interface JsonBlockSpan {
   lineCount: number
 }
 
-type ZoneState = "outside" | "json-block" | "prose" | "non-json-block"
+type ZoneState = "outside" | "json-block" | "non-json-block"
 
 const isJsonFenceOpen = (line: string): boolean => /^```json-/.test(line)
 
@@ -16,11 +16,6 @@ const isNonJsonFenceOpen = (line: string): boolean =>
   /^```[a-zA-Z]/.test(line) && !isJsonFenceOpen(line)
 
 const isFenceClose = (line: string): boolean => line.trimStart() === "```" || /^```\s*$/.test(line)
-
-const isProseOpen = (line: string): boolean => line.endsWith('"""') && !isProseClose(line)
-
-const isProseClose = (line: string): boolean =>
-  /^\s*"""[,}]?\s*$/.test(line) && !/:\s*"""$/.test(line)
 
 export const buildLineZones = (content: string): ZoneMap => {
   const lines = content.split("\n")
@@ -45,20 +40,8 @@ export const buildLineZones = (content: string): ZoneMap => {
         if (isFenceClose(line)) {
           state = "outside"
           zones.push("outside")
-        } else if (isProseOpen(line)) {
-          state = "prose"
-          zones.push("structure")
         } else {
           zones.push("structure")
-        }
-        break
-
-      case "prose":
-        if (isProseClose(line)) {
-          state = "json-block"
-          zones.push("structure")
-        } else {
-          zones.push("prose")
         }
         break
 
@@ -85,7 +68,7 @@ export const findJsonBlockSpans = (zones: ZoneMap): JsonBlockSpan[] => {
 
   for (let i = 0; i < zones.length; i++) {
     const zone = zones[i]
-    const inBlock = zone === "structure" || zone === "prose"
+    const inBlock = zone === "structure"
 
     if (inBlock && blockStart === null) {
       blockStart = i

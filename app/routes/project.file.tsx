@@ -5,7 +5,6 @@ import { parseSpotlight } from "~/lib/editor/spotlight"
 import { patchBlock } from "~/lib/data-blocks/patch"
 import type { TagDefinition } from "~/domain/data-blocks/settings/schema"
 import { useProject } from "./project"
-import { toExtraPretty } from "~/lib/patch/resolve/json-expand"
 import { toDisplayName } from "~/lib/files/filename"
 import { MilkdownEditor } from "~/ui/components/editor/MilkdownEditor"
 import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
@@ -102,10 +101,8 @@ export default function ProjectFile() {
   const rawContent = currentFile ? getFileRaw(files, currentFile) : undefined
   const content = useMemo(() => {
     if (!rawContent || !currentFile) return rawContent
-    if (isJsonFile(currentFile)) return rawContent
-    if (debugOptions.renderAsJson) return toExtraPretty(rawContent)
     return rawContent
-  }, [rawContent, currentFile, debugOptions.renderAsJson])
+  }, [rawContent, currentFile])
   const copyRawMarkdown = useCallback(() => {
     if (rawContent) navigator.clipboard.writeText(rawContent)
   }, [rawContent])

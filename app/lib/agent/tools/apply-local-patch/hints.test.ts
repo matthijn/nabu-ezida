@@ -2,17 +2,19 @@ import { describe, expect, it } from "vitest"
 import { detectHint, type HintContext } from "./hints"
 
 const jsonCalloutBlock = (lines: number): string => {
-  const contentLines = Array.from({ length: lines - 4 }, (_, i) => `Line ${i + 1} of content.`)
+  const paddingLines = Array.from(
+    { length: Math.max(0, lines - 8) },
+    (_, i) => `\t\t"extra_${i}": "value"`
+  )
+  const extra = paddingLines.length > 0 ? ",\n" + paddingLines.join(",\n") : ""
   return [
     "```json-callout",
     "{",
-    '  "id": "code_abc12345",',
-    '  "type": "codebook",',
-    '  "color": "blue",',
-    '  "content": """',
-    ...contentLines,
-    '""",',
-    '  "collapsed": false',
+    '\t"id": "code_abc12345",',
+    '\t"type": "codebook",',
+    '\t"color": "blue",',
+    '\t"content": "Some content here.",',
+    `\t"collapsed": false${extra}`,
     "}",
     "```",
   ].join("\n")
@@ -32,37 +34,6 @@ const makeFileContent = (blockLineCount: number): string =>
 describe("detectHint", () => {
   const cases: { name: string; ctx: HintContext; expected: string | null }[] = [
     {
-      name: "prose edit inside triple-quote returns null",
-      ctx: {
-        fileContent: [
-          "# Document",
-          "",
-          "```json-callout",
-          "{",
-          '  "id": "code_abc",',
-          '  "content": """',
-          "Definition: References to data collection methods.",
-          "",
-          "Inclusion criteria:",
-          "- Surveillance",
-          "- Data retention",
-          '""",',
-          '  "color": "red"',
-          "}",
-          "```",
-        ].join("\n"),
-        diff: [
-          "@@",
-          " Definition: References to data collection methods.",
-          "-",
-          "+",
-          "-Inclusion criteria:",
-          "+Updated criteria:",
-        ].join("\n"),
-      },
-      expected: null,
-    },
-    {
       name: "JSON structure edit (color change) returns structure hint",
       ctx: {
         fileContent: [
@@ -70,18 +41,18 @@ describe("detectHint", () => {
           "",
           "```json-callout",
           "{",
-          '  "id": "code_abc",',
-          '  "color": "blue",',
-          '  "collapsed": false',
+          '\t"id": "code_abc",',
+          '\t"color": "blue",',
+          '\t"collapsed": false',
           "}",
           "```",
         ].join("\n"),
         diff: [
           "@@",
-          ' "id": "code_abc",',
-          '-  "color": "blue",',
-          '+  "color": "red",',
-          ' "collapsed": false',
+          '\t"id": "code_abc",',
+          '-\t"color": "blue",',
+          '+\t"color": "red",',
+          '\t"collapsed": false',
         ].join("\n"),
       },
       expected:
@@ -91,45 +62,41 @@ describe("detectHint", () => {
       name: "whole block rewrite, large (>15 lines) returns block rewrite hint",
       ctx: {
         fileContent: makeFileContent(20),
-        diff: [
-          "*** Update File: doc.md",
-          "@@",
-          "-```json-callout",
-          "-{",
-          '-  "id": "code_abc12345",',
-          '-  "type": "codebook",',
-          '-  "color": "blue",',
-          '-  "content": """',
-          ...Array.from({ length: 16 }, (_, i) => `-Line ${i + 1} of content.`),
-          '-""",',
-          '-  "collapsed": false',
-          "-}",
-          "-```",
-          "+```json-callout",
-          "+{",
-          '+  "id": "code_abc12345",',
-          '+  "type": "codebook",',
-          '+  "color": "red",',
-          '+  "content": """',
-          ...Array.from({ length: 16 }, (_, i) => `+New line ${i + 1}.`),
-          '+""",',
-          '+  "collapsed": false',
-          "+}",
-          "+```",
-        ].join("\n"),
+        diff: (() => {
+          const fileContent = makeFileContent(20)
+          const blockLines = fileContent.split("\n").filter((_, i, arr) => {
+            const start = arr.indexOf("```json-callout")
+            const end = arr.indexOf("```", start + 1)
+            return i >= start && i <= end
+          })
+          return [
+            "*** Update File: doc.md",
+            "@@",
+            ...blockLines.map((l) => `-${l}`),
+            "+```json-callout",
+            "+{",
+            '+\t"id": "code_abc12345",',
+            '+\t"type": "codebook",',
+            '+\t"color": "red",',
+            '+\t"content": "Replaced.",',
+            '+\t"collapsed": false',
+            "+}",
+            "+```",
+          ].join("\n")
+        })(),
       },
       expected:
         "Use the typed patch tool (e.g. patch_callout, patch_attributes) for property changes in large JSON blocks — more reliable than rewriting the whole block.",
     },
     {
-      name: "whole block rewrite, small (<15 lines) returns null",
+      name: "whole block rewrite, small (<15 lines) returns structure hint",
       ctx: {
         fileContent: [
           "# Document",
           "",
           "```json-attributes",
           "{",
-          '  "tags": ["test"]',
+          '\t"tags": ["test"]',
           "}",
           "```",
         ].join("\n"),
@@ -137,12 +104,12 @@ describe("detectHint", () => {
           "@@",
           "-```json-attributes",
           "-{",
-          '-  "tags": ["test"]',
+          '-\t"tags": ["test"]',
           "-}",
           "-```",
           "+```json-attributes",
           "+{",
-          '+  "tags": ["updated"]',
+          '+\t"tags": ["updated"]',
           "+}",
           "+```",
         ].join("\n"),
@@ -191,33 +158,6 @@ describe("detectHint", () => {
       expected: null,
     },
     {
-      name: "mixed prose + structure returns structure hint",
-      ctx: {
-        fileContent: [
-          "```json-callout",
-          "{",
-          '  "id": "code_abc",',
-          '  "color": "blue",',
-          '  "content": """',
-          "Some prose content.",
-          '""",',
-          '  "collapsed": false',
-          "}",
-          "```",
-        ].join("\n"),
-        diff: [
-          "@@",
-          '-  "color": "blue",',
-          '+  "color": "red",',
-          ' "content": """',
-          "-Some prose content.",
-          "+Updated prose content.",
-        ].join("\n"),
-      },
-      expected:
-        "Use the typed patch tool (e.g. patch_callout, patch_attributes) for JSON property changes — targets fields by path, no context matching needed.",
-    },
-    {
       name: "create_file (no existing content) returns null",
       ctx: {
         fileContent: "",
@@ -233,8 +173,8 @@ describe("detectHint", () => {
           "",
           "```json-callout",
           "{",
-          '  "id": "code_abc",',
-          '  "color": "blue"',
+          '\t"id": "code_abc",',
+          '\t"color": "blue"',
           "}",
           "```",
         ].join("\n"),

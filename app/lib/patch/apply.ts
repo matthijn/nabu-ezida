@@ -1,12 +1,7 @@
 import { applyDiff } from "./diff/parse"
 import { expandRangeRefs, type FileReader } from "./resolve/range-expand"
 import { resolveFuzzyPatterns } from "./resolve/fuzzy-match"
-import {
-  repairJsonNewlines,
-  toExtraPretty,
-  fromExtraPretty,
-  PrettyJsonError,
-} from "./resolve/json-expand"
+import { injectBoundaryComments, stripBoundaryComments } from "./resolve/json-boundary"
 import { stripPendingRefs } from "~/lib/files/pending-refs"
 import { parseCodeBlocks, extractProse } from "~/lib/data-blocks/parse"
 import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/data-blocks/uuid"
@@ -33,6 +28,29 @@ const isJsonBlock = (language: string): boolean => language.startsWith("json")
 
 const ensureTrailingNewline = (s: string): string =>
   s.length > 0 && !s.endsWith("\n") ? s + "\n" : s
+
+const repairJsonNewlines = (json: string): string => {
+  let result = ""
+  let inString = false
+  let i = 0
+
+  while (i < json.length) {
+    const char = json[i]
+    if (char === '"' && (i === 0 || json[i - 1] !== "\\")) {
+      inString = !inString
+      result += char
+    } else if (inString && char === "\n") {
+      result += "\\n"
+    } else if (inString && char === "\r") {
+      result += "\\r"
+    } else {
+      result += char
+    }
+    i++
+  }
+
+  return result
+}
 
 const repairJsonBlocks = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown).filter((b) => isJsonBlock(b.language))
@@ -89,13 +107,13 @@ interface FinalizeContentOptions {
   placeholderIds?: Record<string, string>
 }
 
-const toPretty = (raw: string): string => toExtraPretty(stripPendingRefs(raw))
+const toViewContent = (raw: string): string => injectBoundaryComments(stripPendingRefs(raw))
 
 const buildFileReader =
   (currentPath: string, currentContent: string): FileReader =>
   (p) => {
     const raw = p === currentPath ? currentContent : getFiles()[p]
-    return raw !== undefined ? toPretty(raw) : undefined
+    return raw !== undefined ? toViewContent(raw) : undefined
   }
 
 export const finalizeContent = (
@@ -185,23 +203,14 @@ const applyMdPatch = (
     }
   }
 
-  const prettyContent = toExtraPretty(stripPendingRefs(content))
-  const diffResult = applyDiff(prettyContent, resolvedPatch)
+  const viewContent = toViewContent(content)
+  const diffResult = applyDiff(viewContent, resolvedPatch)
   if (!diffResult.ok) {
     return { path, status: "error", error: diffResult.error }
   }
 
-  let collapsedContent: string
-  try {
-    collapsedContent = fromExtraPretty(diffResult.content)
-  } catch (e) {
-    if (e instanceof PrettyJsonError) {
-      return { path, status: "error", error: e.message }
-    }
-    throw e
-  }
-
-  const repairedContent = ensureTrailingNewline(repairJsonBlocks(collapsedContent))
+  const rawContent = stripBoundaryComments(diffResult.content)
+  const repairedContent = ensureTrailingNewline(repairJsonBlocks(rawContent))
   return finalizeContent(path, repairedContent, { original: content, ...options })
 }
 

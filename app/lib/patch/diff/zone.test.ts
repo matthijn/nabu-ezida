@@ -14,17 +14,12 @@ describe("buildLineZones", () => {
       expected: ["structure", "structure", "structure", "structure", "outside"],
     },
     {
-      name: "json-callout with prose",
+      name: "json-callout content is structure",
       content: [
         "```json-callout",
         "{",
         '  "id": "code_abc",',
-        '  "content": """',
-        "Definition: References...",
-        "",
-        "Inclusion criteria:",
-        "- Surveillance",
-        '""",',
+        '  "content": "Definition: References...",',
         '  "color": "red"',
         "}",
         "```",
@@ -33,11 +28,6 @@ describe("buildLineZones", () => {
         "structure",
         "structure",
         "structure",
-        "structure",
-        "prose",
-        "prose",
-        "prose",
-        "prose",
         "structure",
         "structure",
         "structure",
@@ -80,33 +70,6 @@ describe("buildLineZones", () => {
         "outside",
       ],
     },
-    {
-      name: "prose close with trailing comma",
-      content: '```json-callout\n{\n  "content": """\nHello\n""",\n  "color": "red"\n}\n```',
-      expected: [
-        "structure",
-        "structure",
-        "structure",
-        "prose",
-        "structure",
-        "structure",
-        "structure",
-        "outside",
-      ],
-    },
-    {
-      name: "prose close bare",
-      content: '```json-callout\n{\n  "content": """\nHello\n"""\n}\n```',
-      expected: [
-        "structure",
-        "structure",
-        "structure",
-        "prose",
-        "structure",
-        "structure",
-        "outside",
-      ],
-    },
   ]
 
   it.each(cases)("$name", ({ content, expected }) => {
@@ -125,11 +88,6 @@ describe("findJsonBlockSpans", () => {
       name: "single block",
       zones: ["outside", "structure", "structure", "structure", "outside"],
       expected: [{ startLine: 1, endLine: 3, lineCount: 3 }],
-    },
-    {
-      name: "block with prose",
-      zones: ["outside", "structure", "structure", "prose", "prose", "structure", "outside"],
-      expected: [{ startLine: 1, endLine: 5, lineCount: 5 }],
     },
     {
       name: "multiple blocks",
