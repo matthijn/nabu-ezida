@@ -49,6 +49,18 @@ describe("applyFieldDiff", () => {
       diff: "@@\n+First line.",
       expected: { ok: true, content: "First line." },
     },
+    {
+      name: "unescape literal \\t from JSON field",
+      value: "Line one.\n\tIndented line.\nLine three.",
+      diff: "@@\\nLine one.\\n-\\tIndented line.\\n+\\tUpdated line.\\nLine three.",
+      expected: { ok: true, content: "Line one.\n\tUpdated line.\nLine three." },
+    },
+    {
+      name: "unescape literal \\n from JSON field",
+      value: "First paragraph.\n\nSecond paragraph.",
+      diff: "@@\\nFirst paragraph.\\n\\n-Second paragraph.\\n+Revised paragraph.",
+      expected: { ok: true, content: "First paragraph.\n\nRevised paragraph." },
+    },
   ]
 
   it.each(cases)("$name", ({ value, diff, expected }) => {
