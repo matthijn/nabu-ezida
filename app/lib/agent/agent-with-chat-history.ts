@@ -3,7 +3,7 @@ import type { Block } from "./client"
 import type { Handler } from "./types"
 import { getToolHandlers } from "./executors/tool"
 import { createExecutor } from "./executors/execute"
-import { patchJsonBlock, applyLocalPatch, runLocalShell } from "./tools"
+import { blockPatchTools, applyLocalPatch, runLocalShell } from "./tools"
 import { filterBySource, getAllBlocks, pushBlocks } from "./client"
 import { runAgentLoop } from "./agent-loop"
 import { compactHistory, hasCompactedBlock } from "./compact"
@@ -27,7 +27,7 @@ const doneDef = {
   }),
 }
 
-const TOOLS = [patchJsonBlock, applyLocalPatch, runLocalShell, doneDef]
+const TOOLS = [...blockPatchTools, applyLocalPatch, runLocalShell, doneDef]
 
 const doneHandler: Handler = async (_files, args) => ({
   status: "ok",

@@ -24,9 +24,9 @@ const LARGE_HUNK_THRESHOLD = 20
 const LARGE_BLOCK_THRESHOLD = 15
 
 const HINT_JSON_STRUCTURE =
-  "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed."
+  "Use the typed patch tool (e.g. patch_callout, patch_attributes) for JSON property changes — targets fields by path, no context matching needed."
 const HINT_LARGE_BLOCK =
-  "Use patch_json_block for property changes in large JSON blocks — more reliable than rewriting the whole block."
+  "Use the typed patch tool (e.g. patch_callout, patch_attributes) for property changes in large JSON blocks — more reliable than rewriting the whole block."
 const HINT_LARGE_HUNK =
   "Split large patches into one per markdown block — smaller patches match more reliably."
 

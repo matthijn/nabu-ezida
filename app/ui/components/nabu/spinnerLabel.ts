@@ -7,8 +7,16 @@ const REMOVING_LABELS = ["Removing", "Cleaning up", "Tidying"]
 
 const toolLabels: Record<string, string[]> = {
   run_local_shell: ["Reading", "Examining files", "Processing"],
-  patch_json_block: WRITING_LABELS,
-  delete_json_block: REMOVING_LABELS,
+  patch_attributes: WRITING_LABELS,
+  patch_annotations: WRITING_LABELS,
+  patch_callout: WRITING_LABELS,
+  patch_settings: WRITING_LABELS,
+  patch_chart: WRITING_LABELS,
+  delete_attributes: REMOVING_LABELS,
+  delete_annotations: REMOVING_LABELS,
+  delete_callout: REMOVING_LABELS,
+  delete_settings: REMOVING_LABELS,
+  delete_chart: REMOVING_LABELS,
   apply_local_patch: WRITING_LABELS,
   copy_file: WRITING_LABELS,
   rename_file: WRITING_LABELS,

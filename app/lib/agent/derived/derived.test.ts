@@ -314,11 +314,11 @@ describe("derived", () => {
         expected: true,
       },
       {
-        name: "patch_json_block = deliverable",
+        name: "patch_callout = deliverable",
         history: [
           ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("patch_json_block", "99"),
-          terminalResult("patch_json_block", "99"),
+          toolCallBlock("patch_callout", "99"),
+          terminalResult("patch_callout", "99"),
         ],
         expected: true,
       },

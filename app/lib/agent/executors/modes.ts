@@ -2,8 +2,8 @@ import type { AnyTool } from "./tool"
 import type { Nudger } from "../steering/nudge-tools"
 import type { Block } from "../client"
 import {
-  patchJsonBlock,
-  deleteJsonBlock,
+  blockPatchTools,
+  blockDeleteTools,
   applyLocalPatch,
   copyFile,
   renameFile,
@@ -52,8 +52,8 @@ const raw: Record<ModeName, ModeConfig> = {
       runLocalShell,
       queryTool,
       searchTool,
-      patchJsonBlock,
-      deleteJsonBlock,
+      ...blockPatchTools,
+      ...blockDeleteTools,
       applyLocalPatch,
       copyFile,
       renameFile,
@@ -86,8 +86,8 @@ const raw: Record<ModeName, ModeConfig> = {
       runLocalShell,
       queryTool,
       searchTool,
-      patchJsonBlock,
-      deleteJsonBlock,
+      ...blockPatchTools,
+      ...blockDeleteTools,
       applyLocalPatch,
       copyFile,
       renameFile,

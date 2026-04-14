@@ -85,7 +85,7 @@ describe("detectHint", () => {
         ].join("\n"),
       },
       expected:
-        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+        "Use the typed patch tool (e.g. patch_callout, patch_attributes) for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "whole block rewrite, large (>15 lines) returns block rewrite hint",
@@ -119,7 +119,7 @@ describe("detectHint", () => {
         ].join("\n"),
       },
       expected:
-        "Use patch_json_block for property changes in large JSON blocks — more reliable than rewriting the whole block.",
+        "Use the typed patch tool (e.g. patch_callout, patch_attributes) for property changes in large JSON blocks — more reliable than rewriting the whole block.",
     },
     {
       name: "whole block rewrite, small (<15 lines) returns null",
@@ -148,7 +148,7 @@ describe("detectHint", () => {
         ].join("\n"),
       },
       expected:
-        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+        "Use the typed patch tool (e.g. patch_callout, patch_attributes) for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "large hunk outside JSON (25 add lines) returns large hunk hint",
@@ -215,7 +215,7 @@ describe("detectHint", () => {
         ].join("\n"),
       },
       expected:
-        "Use patch_json_block for JSON property changes — targets fields by path, no context matching needed.",
+        "Use the typed patch tool (e.g. patch_callout, patch_attributes) for JSON property changes — targets fields by path, no context matching needed.",
     },
     {
       name: "create_file (no existing content) returns null",

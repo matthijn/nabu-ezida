@@ -17,6 +17,8 @@ const blockTypes: Record<string, AnyBlockConfig> = {
   "json-chart": jsonChart as AnyBlockConfig,
 }
 
+export const BLOCK_LANGUAGES = Object.keys(blockTypes) as [string, ...string[]]
+
 export const getBlockConfig = (language: string): AnyBlockConfig | undefined => blockTypes[language]
 
 export const isKnownBlockType = (language: string): boolean => language in blockTypes

@@ -18,6 +18,7 @@ export interface AnyTool {
   name: string
   description: string
   schema: z.ZodType
+  jsonSchema?: unknown
 }
 
 export const tool = <TSchema extends z.ZodType, TOutput>(
@@ -136,7 +137,7 @@ export const toStrictSchema = (schema: unknown): unknown => {
 }
 
 export const toToolDefinition = (t: AnyTool): ToolDefinition => {
-  const jsonSchema = t.schema.toJSONSchema()
+  const jsonSchema = t.jsonSchema ?? t.schema.toJSONSchema()
   const strict = isStrictCompatible(jsonSchema)
   const parameters = strict
     ? (toStrictSchema(jsonSchema) as ToolDefinition["parameters"])
