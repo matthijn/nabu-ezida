@@ -167,6 +167,56 @@ describe("block patch tools", () => {
       expectOutput: /invalid.*json-callout/i,
     },
     {
+      name: "patch_callout: patch_content applies field diff",
+      tool: "patch_callout",
+      files: {
+        "codebook.md": multiBlockDoc([
+          {
+            id: "callout_a",
+            title: "Alpha",
+            content: "Line one.\nLine two.\nLine three.",
+          },
+        ]),
+      },
+      args: {
+        path: "codebook.md",
+        block_id: "callout_a",
+        operations: [
+          {
+            op: "patch_content",
+            diff: "@@\nLine one.\n-Line two.\n+Line two updated.\nLine three.",
+          },
+        ],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched.*json-callout/,
+      expectMutations: 1,
+    },
+    {
+      name: "patch_callout: patch_content with update in same batch",
+      tool: "patch_callout",
+      files: {
+        "codebook.md": multiBlockDoc([
+          {
+            id: "callout_a",
+            title: "Alpha",
+            content: "Original content.",
+          },
+        ]),
+      },
+      args: {
+        path: "codebook.md",
+        block_id: "callout_a",
+        operations: [
+          { op: "update", fields: { color: "red" } },
+          { op: "patch_content", diff: "@@\n-Original content.\n+Updated content." },
+        ],
+      },
+      expectStatus: "ok",
+      expectOutput: /Patched.*json-callout/,
+      expectMutations: 1,
+    },
+    {
       name: "patch_attributes: error when file not found",
       tool: "patch_attributes",
       files: {},

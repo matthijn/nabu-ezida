@@ -5,6 +5,7 @@ import { applyLocalPatch as def } from "./def"
 import { detectHint } from "./hints"
 import { requiresChartGuidance } from "./guidance"
 import { isProtectedFile } from "~/lib/files/filename"
+import { detectBlockTouches, formatBlockTouchErrors } from "./block-guard"
 
 const _applyLocalPatch = registerTool(
   tool({
@@ -13,6 +14,12 @@ const _applyLocalPatch = registerTool(
     handler: async (files, { operation }) => {
       const validationError = validateOperation(files, operation)
       if (validationError) return err(validationError)
+
+      if (operation.type === "update_file") {
+        const fileContent = files.get(operation.path) ?? ""
+        const blockTouches = detectBlockTouches(fileContent, operation.diff)
+        if (blockTouches.length > 0) return err(formatBlockTouchErrors(blockTouches))
+      }
 
       const result = ok(formatSuccess(operation), [operation])
       const hint =

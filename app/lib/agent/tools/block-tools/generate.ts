@@ -11,6 +11,7 @@ import {
   type TypedOpsSpec,
 } from "~/lib/data-blocks/typed-ops/derive"
 import { translateOps } from "~/lib/data-blocks/typed-ops/translate"
+import { applyFieldDiff } from "~/lib/patch/diff/field-diff"
 import {
   resolveFile,
   resolveBlock,
@@ -28,17 +29,56 @@ interface GenerateOpts {
 const PARALLEL_NOTE =
   "parallel: self=diff blocks yes / others=with reads yes / same block: batch into operations array"
 
+const extractFieldNames = (schema: unknown): string[] => {
+  const props = (schema as Record<string, unknown>).properties as
+    | Record<string, unknown>
+    | undefined
+  return props ? Object.keys(props) : []
+}
+
+const buildUpdateLine = (spec: TypedOpsSpec): string | null => {
+  const allFields = extractFieldNames(spec.updateFieldsSchema)
+  if (allFields.length === 0) return null
+
+  const multilineSet = new Set(spec.multilineFields)
+  const scalarFields = allFields.filter((f) => !multilineSet.has(f))
+  const overlapFields = allFields.filter((f) => multilineSet.has(f))
+
+  const parts: string[] = []
+  if (scalarFields.length > 0) {
+    parts.push(`replace individual fields (${scalarFields.join(", ")})`)
+  }
+  if (overlapFields.length > 0) {
+    const patchRefs = overlapFields.map((f) => `patch_${f}`).join(", ")
+    const prefix = scalarFields.length > 0 ? "also accepts" : "set"
+    parts.push(`${prefix} ${overlapFields.join(", ")}, but prefer ${patchRefs} for long content`)
+  }
+
+  return `- update: ${parts.join(". ")}`
+}
+
 const buildPatchDescription = (spec: TypedOpsSpec): string => {
-  const opNames = ["update"]
-  for (const arrayOp of spec.arrayOps) {
-    opNames.push(
-      `add_${arrayOp.singularName}`,
-      `remove_${arrayOp.singularName}`,
-      `update_${arrayOp.singularName}`
+  const blockIdNote = spec.singleton ? "" : " Requires block_id."
+  const header = `Apply typed operations to a \`${spec.language}\` block.${blockIdNote}`
+
+  const ops: string[] = []
+
+  const updateLine = buildUpdateLine(spec)
+  if (updateLine) ops.push(updateLine)
+
+  for (const a of spec.arrayOps) {
+    ops.push(`- add_${a.singularName}: append item to ${a.fieldName}`)
+    ops.push(`- remove_${a.singularName}: remove from ${a.fieldName} by ${a.matchKey}`)
+    ops.push(`- update_${a.singularName}: partial update in ${a.fieldName} by ${a.matchKey}`)
+  }
+
+  for (const field of spec.multilineFields) {
+    ops.push(
+      `- patch_${field}: V4A diff against ${field} — prefer over update for substantial content`
     )
   }
-  const blockIdNote = spec.singleton ? "" : " Requires block_id to target a specific block."
-  return `Apply typed operations to a \`${spec.language}\` block. Operations: ${opNames.join(", ")}.${blockIdNote}\n\n${PARALLEL_NOTE}`
+
+  return [header, "", "Operations:", ...ops, "", PARALLEL_NOTE].join("\n")
 }
 
 const buildDeleteDescription = (spec: TypedOpsSpec): string => {
@@ -60,6 +100,64 @@ const buildDeleteLooseSchema = (spec: TypedOpsSpec) =>
     path: z.string().min(1),
     ...(spec.singleton ? {} : { block_id: z.string().optional() }),
   })
+
+interface FieldDiffOp {
+  field: string
+  diff: string
+}
+
+const PATCH_FIELD_PREFIX = "patch_"
+
+const isFieldDiffOp = (
+  op: Record<string, unknown>,
+  multilineFields: Set<string>
+): op is { op: string; diff: string } =>
+  typeof op.op === "string" &&
+  op.op.startsWith(PATCH_FIELD_PREFIX) &&
+  multilineFields.has(op.op.slice(PATCH_FIELD_PREFIX.length)) &&
+  typeof op.diff === "string"
+
+const partitionFieldDiffOps = (
+  operations: Record<string, unknown>[],
+  multilineFields: string[]
+): { regularOps: Record<string, unknown>[]; fieldDiffOps: FieldDiffOp[] } => {
+  const fieldSet = new Set(multilineFields)
+  const regularOps: Record<string, unknown>[] = []
+  const fieldDiffOps: FieldDiffOp[] = []
+
+  for (const op of operations) {
+    if (isFieldDiffOp(op, fieldSet)) {
+      fieldDiffOps.push({
+        field: (op.op as string).slice(PATCH_FIELD_PREFIX.length),
+        diff: op.diff as string,
+      })
+    } else {
+      regularOps.push(op)
+    }
+  }
+
+  return { regularOps, fieldDiffOps }
+}
+
+const applyFieldDiffOps = (
+  doc: Record<string, unknown>,
+  ops: FieldDiffOp[]
+): { ok: true; doc: Record<string, unknown> } | { ok: false; error: string } => {
+  let result = { ...doc }
+  for (const { field, diff } of ops) {
+    const value = result[field]
+    if (typeof value !== "string") {
+      return {
+        ok: false,
+        error: `patch_${field}: field "${field}" is not a string (got ${typeof value})`,
+      }
+    }
+    const diffResult = applyFieldDiff(value, diff)
+    if (!diffResult.ok) return { ok: false, error: `patch_${field}: ${diffResult.error}` }
+    result = { ...result, [field]: diffResult.content }
+  }
+  return { ok: true, doc: result }
+}
 
 const pathSchema = (allowedFiles?: string[]): unknown =>
   allowedFiles?.length === 1
@@ -136,7 +234,9 @@ export const generatePatchTool = (
         const file = resolveFile(path)
         if (!file) return err(`${path}: No such file`)
 
-        const rfc6902Ops = translateOps(operations, spec)
+        const { regularOps, fieldDiffOps } = partitionFieldDiffOps(operations, spec.multilineFields)
+
+        const rfc6902Ops = translateOps(regularOps, spec)
 
         const resolved = resolveBlock({
           content: file.content,
@@ -146,13 +246,28 @@ export const generatePatchTool = (
         })
         if (!resolved.ok) return err(`${file.path}: ${resolved.error}`)
 
-        const fuzzyFields = getFuzzyFields(language)
-        const {
-          doc: patchedDoc,
-          failures,
-          applied,
-          rejectedPaths,
-        } = applyEnrichedOps(rfc6902Ops, resolved.json, file.content, { fuzzyFields })
+        let patchedDoc: unknown = resolved.json
+        let failures: string[] = []
+        let applied = 0
+        let rejectedPaths: string[] = []
+
+        if (rfc6902Ops.length > 0) {
+          const fuzzyFields = getFuzzyFields(language)
+          const enrichedResult = applyEnrichedOps(rfc6902Ops, resolved.json, file.content, {
+            fuzzyFields,
+          })
+          patchedDoc = enrichedResult.doc
+          failures = enrichedResult.failures
+          applied = enrichedResult.applied
+          rejectedPaths = enrichedResult.rejectedPaths
+        }
+
+        if (fieldDiffOps.length > 0) {
+          const fieldResult = applyFieldDiffOps(patchedDoc as Record<string, unknown>, fieldDiffOps)
+          if (!fieldResult.ok) return err(`${file.path}: ${fieldResult.error}`)
+          patchedDoc = fieldResult.doc
+          applied += fieldDiffOps.length
+        }
 
         const rejectedMessage =
           rejectedPaths.length > 0
