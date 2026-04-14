@@ -14,11 +14,11 @@ interface AutoScrollProps {
 }
 
 const ScrollToBottomButton = ({ onClick }: { onClick: () => void }) => (
-  <div className="sticky bottom-3 ml-auto mr-1 pointer-events-none">
+  <div className="sticky bottom-3 mx-auto pointer-events-none">
     <button
       type="button"
       onClick={onClick}
-      className="pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-neutral-400/80 shadow-md backdrop-blur-sm transition-colors hover:bg-neutral-400"
+      className="pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-neutral-400/80 shadow-md backdrop-blur-sm transition-colors hover:bg-neutral-400"
     >
       <ChevronDown className="h-4 w-4 text-white" />
     </button>
