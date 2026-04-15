@@ -1,0 +1,72 @@
+[
+  {
+    "name": "add tag",
+    "fixture": "settings-one-tag.md",
+    "storePath": "settings.hidden.md",
+    "tool": "patch_settings",
+    "args": {
+      "path": "settings.hidden.md",
+      "operations": [
+        {
+          "op": "add_tag",
+          "item": {
+            "id": "tag_2",
+            "label": "new",
+            "display": "New",
+            "color": "red",
+            "icon": "hash"
+          }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "add-tag.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "add tag to complex settings with searches",
+    "fixture": "settings-complex.md",
+    "storePath": "settings.hidden.md",
+    "tool": "patch_settings",
+    "args": {
+      "path": "settings.hidden.md",
+      "operations": [
+        {
+          "op": "add_tag",
+          "item": {
+            "id": "tag-9a8b7c6d5e",
+            "label": "analysis",
+            "display": "Analysis",
+            "color": "violet",
+            "icon": "chart-line"
+          }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentMatch": "analysis" },
+    "expectedFile": "add-tag-complex.expected.md"
+  },
+  {
+    "name": "add tag to real settings with entity-referencing searches (fence bug)",
+    "fixture": "settings-real-bug.md",
+    "storePath": "settings.hidden.md",
+    "tool": "patch_settings",
+    "args": {
+      "path": "settings.hidden.md",
+      "operations": [
+        {
+          "op": "add_tag",
+          "item": {
+            "id": "tag-analysis-12345678",
+            "label": "analysis",
+            "display": "Analysis",
+            "color": "violet",
+            "icon": "chart-line"
+          }
+        }
+      ]
+    },
+    "expected": { "status": "error", "outputMatch": "Unknown entity" },
+    "stabilizeIds": true
+  }
+]

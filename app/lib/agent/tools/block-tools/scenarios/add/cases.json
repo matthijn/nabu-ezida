@@ -1,0 +1,48 @@
+[
+  {
+    "name": "add callout inserts block after anchor",
+    "fixture": "callout-single.md",
+    "storePath": "codebook.md",
+    "tool": "add_callout",
+    "args": { "path": "codebook.md", "context": "# Codebook" },
+    "expected": {
+      "status": "ok",
+      "outputMatch": "Inserted.*json-callout.*id: callout-",
+      "contentMatch": "json-callout"
+    },
+    "expectedFile": "callout-after-anchor.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "add chart inserts empty block after anchor",
+    "fixture": "report-prose.md",
+    "storePath": "report.md",
+    "tool": "add_chart",
+    "args": { "path": "report.md", "context": "Some prose about the data." },
+    "expected": {
+      "status": "ok",
+      "outputMatch": "Inserted.*json-chart.*id: chart-",
+      "contentMatch": "json-chart"
+    },
+    "expectedFile": "chart-after-anchor.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "add callout error when file not found",
+    "fixture": null,
+    "tool": "add_callout",
+    "args": { "path": "missing.md", "context": "some context" },
+    "expected": { "status": "error", "outputMatch": "No such file" }
+  },
+  {
+    "name": "add callout error when anchor not found",
+    "fixture": "callout-single.md",
+    "storePath": "codebook.md",
+    "tool": "add_callout",
+    "args": {
+      "path": "codebook.md",
+      "context": "This text does not exist anywhere in the document"
+    },
+    "expected": { "status": "error", "outputMatch": "not found" }
+  }
+]

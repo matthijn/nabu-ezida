@@ -13,7 +13,7 @@
     }
   },
   "expected": {
-    "status": "ok",
-    "outputContains": ["Generated IDs:", "callout-1", "json-callout"]
+    "status": "error",
+    "outputContains": ["Cannot create", "json-callout", "add_callout", "patch_callout"]
   }
 }

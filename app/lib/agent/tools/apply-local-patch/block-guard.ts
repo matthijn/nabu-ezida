@@ -1,7 +1,7 @@
 import { parseV4ADiff, buildMatchText, type HunkPart } from "~/lib/patch/diff/parse"
 import { findMatches, type Match } from "~/lib/patch/diff/search"
 import { parseCodeBlocks, parseBlockJson } from "~/lib/data-blocks/parse"
-import { isKnownBlockType } from "~/lib/data-blocks/registry"
+import { isKnownBlockType, isSingleton } from "~/lib/data-blocks/registry"
 
 export interface BlockTouch {
   language: string
@@ -110,3 +110,40 @@ const formatTouch = (t: BlockTouch): string => {
 
 export const formatBlockTouchErrors = (touches: BlockTouch[]): string =>
   touches.map(formatTouch).join("\n")
+
+const FENCE_PREFIX = "```"
+
+const extractFenceLanguage = (line: string): string | null => {
+  const trimmed = line.trim()
+  if (!trimmed.startsWith(FENCE_PREFIX)) return null
+  const lang = trimmed.slice(FENCE_PREFIX.length).trim()
+  return lang && isKnownBlockType(lang) ? lang : null
+}
+
+const collectAddedLines = (diff: string): string[] =>
+  parseV4ADiff(diff).flatMap((hunk) =>
+    hunk.parts.filter((p) => p.type === "add").map((p) => p.content)
+  )
+
+export const detectBlockCreations = (diff: string): string[] => {
+  const added = collectAddedLines(diff)
+  const seen = new Set<string>()
+
+  for (const line of added) {
+    const lang = extractFenceLanguage(line)
+    if (lang && !seen.has(lang)) seen.add(lang)
+  }
+
+  return [...seen]
+}
+
+const formatCreation = (language: string): string => {
+  const shortName = stripJsonPrefix(language)
+  const createTool = isSingleton(language)
+    ? `\`patch_${shortName}\``
+    : `\`add_${shortName}\` to place the block, then \`patch_${shortName}\``
+  return `Cannot create \`${language}\` block with this tool. Use ${createTool} to populate it.`
+}
+
+export const formatBlockCreationErrors = (languages: string[]): string =>
+  languages.map(formatCreation).join("\n")

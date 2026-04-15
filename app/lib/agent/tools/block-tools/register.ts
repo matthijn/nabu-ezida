@@ -1,6 +1,11 @@
 import type { AnyTool } from "../../executors/tool"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
-import { generatePatchTool, generateDeleteTool } from "./generate"
+import {
+  generatePatchTool,
+  generateDeleteTool,
+  generateAddTool,
+  generateMoveTool,
+} from "./generate"
 
 const CHART_GUIDANCE_KEY = "qual-coding/project/output"
 
@@ -23,15 +28,23 @@ const mustGetConfig = (language: string) => {
   return config
 }
 
-const buildEntry = (entry: BlockToolEntry): [AnyTool, AnyTool] => {
+const buildEntry = (entry: BlockToolEntry): AnyTool[] => {
   const config = mustGetConfig(entry.language)
-  const patch = generatePatchTool(entry.language, config, { guidance: entry.guidance })
-  const del = generateDeleteTool(entry.language, config)
-  return [patch, del]
+  const tools: AnyTool[] = [
+    generatePatchTool(entry.language, config, { guidance: entry.guidance }),
+    generateDeleteTool(entry.language, config),
+  ]
+  if (!config.singleton) {
+    tools.push(generateAddTool(entry.language, config))
+    tools.push(generateMoveTool(entry.language, config))
+  }
+  return tools
 }
 
 const allTools = BLOCK_TOOL_ENTRIES.flatMap(buildEntry)
 
 export const blockPatchTools: AnyTool[] = allTools.filter((t) => t.name.startsWith("patch_"))
 export const blockDeleteTools: AnyTool[] = allTools.filter((t) => t.name.startsWith("delete_"))
+export const blockAddTools: AnyTool[] = allTools.filter((t) => t.name.startsWith("add_"))
+export const blockMoveTools: AnyTool[] = allTools.filter((t) => t.name.startsWith("move_"))
 export const blockTools: AnyTool[] = allTools

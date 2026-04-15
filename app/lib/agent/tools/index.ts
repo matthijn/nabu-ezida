@@ -4,7 +4,13 @@ export { completeStep } from "./complete-step/def"
 export { copyFile } from "./copy-file/def"
 export { renameFile } from "./rename-file/def"
 export { removeFile } from "./remove-file/def"
-export { blockPatchTools, blockDeleteTools, blockTools } from "./block-tools/register"
+export {
+  blockPatchTools,
+  blockDeleteTools,
+  blockAddTools,
+  blockMoveTools,
+  blockTools,
+} from "./block-tools/register"
 export { runLocalShell } from "./run-local-shell/def"
 export { scoutTool } from "./scout/def"
 export { startPlanTool } from "./start-planning/def"

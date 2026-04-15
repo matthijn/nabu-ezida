@@ -1,0 +1,26 @@
+[
+  {
+    "name": "move callout to new position",
+    "fixture": "callouts-two.md",
+    "storePath": "codebook.md",
+    "tool": "move_callout",
+    "args": { "path": "codebook.md", "block_id": "callout_b", "context": "# Codebook" },
+    "expected": { "status": "ok", "outputMatch": "Moved.*json-callout.*callout_b" },
+    "expectedFile": "callout-to-new-pos.expected.md"
+  },
+  {
+    "name": "move callout error when file not found",
+    "fixture": null,
+    "tool": "move_callout",
+    "args": { "path": "missing.md", "block_id": "callout_a", "context": "some context" },
+    "expected": { "status": "error", "outputMatch": "No such file" }
+  },
+  {
+    "name": "move callout error when block not found",
+    "fixture": "callout-single.md",
+    "storePath": "codebook.md",
+    "tool": "move_callout",
+    "args": { "path": "codebook.md", "block_id": "callout_nonexistent", "context": "# Codebook" },
+    "expected": { "status": "error", "outputMatch": "No.*block.*callout_nonexistent" }
+  }
+]

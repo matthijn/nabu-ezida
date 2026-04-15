@@ -103,7 +103,7 @@ const SYSTEM_ID_SUFFIX_RE = /^(?=.*\d)[a-z0-9]{6,10}$/
 const persistentIdMap: UuidMapping = {}
 const shownIds = new Set<string>()
 
-const generateShortId = (): string => {
+export const generateShortId = (): string => {
   const digit = Math.floor(Math.random() * 10).toString()
   const rest = Math.random().toString(36).substring(2, 9)
   return digit + rest

@@ -107,7 +107,12 @@ const applyMutation = async (
     }
     case "write_file": {
       const oldContent = getFileRaw(op.path)
-      const result = finalizeContent(op.path, op.content, { original: oldContent, actor: "ai" })
+      const result = finalizeContent(op.path, op.content, {
+        original: oldContent,
+        actor: "ai",
+        skipImmutableCheck: op.skipBlockValidation,
+        skipCodeValidation: op.skipBlockValidation,
+      })
       if (result.status === "error") return { error: result.error }
 
       const asyncError = await runAsyncValidation(op.path, result.content)

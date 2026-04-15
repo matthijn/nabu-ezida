@@ -1,0 +1,146 @@
+[
+  {
+    "name": "add annotation to empty array",
+    "fixture": "annotations-verslag-empty.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        {
+          "op": "add_annotation",
+          "item": {
+            "text": "De minister kondigde aan dat er stappen worden genomen",
+            "reason": "key finding",
+            "color": "blue"
+          }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "add-to-empty.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "remove annotation by id",
+    "fixture": "annotations-one.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "remove_annotation", "match": { "id": "ann_1" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "remove-by-id.expected.md"
+  },
+  {
+    "name": "set annotation fields",
+    "fixture": "annotations-two.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        { "op": "set_annotation", "match": { "id": "ann_1" }, "fields": { "reason": "new" } }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "set-fields.expected.md"
+  },
+  {
+    "name": "add annotation appends to array",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        {
+          "op": "add_annotation",
+          "item": { "text": "68 miljard euro", "reason": "fiscal figure", "color": "green" }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentMatch": "68 miljard euro" },
+    "expectedFile": "add-to-full.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "remove annotation from full by id",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "remove_annotation", "match": { "id": "ann_1" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentNotMatch": "\"ann_1\"" },
+    "expectedFile": "remove-from-full.expected.md"
+  },
+  {
+    "name": "set annotation updates reason",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        {
+          "op": "set_annotation",
+          "match": { "id": "ann_1" },
+          "fields": { "reason": "updated reason" }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentMatch": "updated reason" },
+    "expectedFile": "set-reason.expected.md"
+  },
+  {
+    "name": "set annotation updates color",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        { "op": "set_annotation", "match": { "id": "ann_2" }, "fields": { "color": "green" } }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentMatch": "green" },
+    "expectedFile": "set-color.expected.md"
+  },
+  {
+    "name": "batch: add + remove in same call",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        { "op": "remove_annotation", "match": { "id": "ann_1" } },
+        {
+          "op": "add_annotation",
+          "item": { "text": "68 miljard euro", "reason": "new entry", "color": "orange" }
+        }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentNotMatch": "\"ann_1\"" },
+    "expectedFile": "batch-add-remove.expected.md",
+    "stabilizeIds": true
+  },
+  {
+    "name": "batch: set + remove in same call",
+    "fixture": "annotations-verslag-full.md",
+    "storePath": "doc.md",
+    "tool": "patch_annotations",
+    "args": {
+      "path": "doc.md",
+      "operations": [
+        { "op": "set_annotation", "match": { "id": "ann_1" }, "fields": { "reason": "changed" } },
+        { "op": "remove_annotation", "match": { "id": "ann_2" } }
+      ]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched", "contentMatch": "changed" },
+    "expectedFile": "batch-set-remove.expected.md"
+  }
+]

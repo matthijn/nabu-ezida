@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { detectBlockTouches, formatBlockTouchErrors, type BlockTouch } from "./block-guard"
+import {
+  detectBlockTouches,
+  formatBlockTouchErrors,
+  detectBlockCreations,
+  formatBlockCreationErrors,
+  type BlockTouch,
+} from "./block-guard"
 
 const calloutBlock = (id: string): string =>
   [
@@ -257,5 +263,101 @@ describe("formatBlockTouchErrors", () => {
 
   it.each(cases)("$name", ({ touches, expected }) => {
     expect(formatBlockTouchErrors(touches)).toBe(expected)
+  })
+})
+
+describe("detectBlockCreations", () => {
+  const cases: { name: string; diff: string; expected: string[] }[] = [
+    {
+      name: "added callout fence detected",
+      diff: [
+        "@@",
+        "Some prose.",
+        "+",
+        "+```json-callout",
+        "+{",
+        '+\t"id": "callout_x"',
+        "+}",
+        "+```",
+      ].join("\n"),
+      expected: ["json-callout"],
+    },
+    {
+      name: "added chart fence detected",
+      diff: ["@@", "+```json-chart", "+{}", "+```"].join("\n"),
+      expected: ["json-chart"],
+    },
+    {
+      name: "multiple block types in one diff",
+      diff: [
+        "@@",
+        "+```json-callout",
+        "+{}",
+        "+```",
+        "+",
+        "+```json-annotations",
+        "+{}",
+        "+```",
+      ].join("\n"),
+      expected: ["json-callout", "json-annotations"],
+    },
+    {
+      name: "removed fence not detected",
+      diff: ["@@", "-```json-callout", "-{}", "-```"].join("\n"),
+      expected: [],
+    },
+    {
+      name: "context fence not detected",
+      diff: ["@@", "```json-callout", "-old line", "+new line", "```"].join("\n"),
+      expected: [],
+    },
+    {
+      name: "non-block language fence ignored",
+      diff: ["@@", "+```typescript", "+const x = 1", "+```"].join("\n"),
+      expected: [],
+    },
+    {
+      name: "no add lines returns empty",
+      diff: ["@@", "Some context.", "-removed."].join("\n"),
+      expected: [],
+    },
+    {
+      name: "duplicate fences deduplicated",
+      diff: ["@@", "+```json-callout", "+{}", "+```", "+```json-callout", "+{}", "+```"].join("\n"),
+      expected: ["json-callout"],
+    },
+  ]
+
+  it.each(cases)("$name", ({ diff, expected }) => {
+    expect(detectBlockCreations(diff)).toEqual(expected)
+  })
+})
+
+describe("formatBlockCreationErrors", () => {
+  const cases: { name: string; languages: string[]; expected: string }[] = [
+    {
+      name: "non-singleton names add tool",
+      languages: ["json-callout"],
+      expected:
+        "Cannot create `json-callout` block with this tool. Use `add_callout` to place the block, then `patch_callout` to populate it.",
+    },
+    {
+      name: "singleton names patch tool only",
+      languages: ["json-settings"],
+      expected:
+        "Cannot create `json-settings` block with this tool. Use `patch_settings` to populate it.",
+    },
+    {
+      name: "multiple languages joined",
+      languages: ["json-callout", "json-settings"],
+      expected: [
+        "Cannot create `json-callout` block with this tool. Use `add_callout` to place the block, then `patch_callout` to populate it.",
+        "Cannot create `json-settings` block with this tool. Use `patch_settings` to populate it.",
+      ].join("\n"),
+    },
+  ]
+
+  it.each(cases)("$name", ({ languages, expected }) => {
+    expect(formatBlockCreationErrors(languages)).toBe(expected)
   })
 })

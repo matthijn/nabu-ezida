@@ -1,0 +1,48 @@
+[
+  {
+    "name": "set fields",
+    "fixture": "attributes-tags-date.md",
+    "storePath": "doc.md",
+    "tool": "patch_attributes",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "set", "fields": { "date": "2025-01-01" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "set-fields.expected.md"
+  },
+  {
+    "name": "no-op when result is identical",
+    "fixture": "attributes-date.md",
+    "storePath": "doc.md",
+    "tool": "patch_attributes",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "set", "fields": { "date": "2024-01-01" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "No changes", "unchanged": true }
+  },
+  {
+    "name": "double extension resolves",
+    "fixture": "attributes-date.md",
+    "storePath": "doc.md",
+    "tool": "patch_attributes",
+    "args": {
+      "path": "doc.md.md",
+      "operations": [{ "op": "set", "fields": { "date": "2025-01-01" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "double-extension.expected.md",
+    "checkPath": "doc.md"
+  },
+  {
+    "name": "error when file not found",
+    "fixture": null,
+    "tool": "patch_attributes",
+    "args": {
+      "path": "missing.md",
+      "operations": [{ "op": "set", "fields": { "date": "2025-01-01" } }]
+    },
+    "expected": { "status": "error", "outputMatch": "No such file" }
+  }
+]

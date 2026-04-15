@@ -128,7 +128,7 @@ export const replaceBlockContents = (
     const blockStart = block.start + offset
     const blockEnd = block.end + offset
     const section = result.slice(blockStart, blockEnd)
-    const replaced = section.replace(block.content, newContent)
+    const replaced = section.replace(block.content, () => newContent)
 
     result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
     offset += replaced.length - section.length

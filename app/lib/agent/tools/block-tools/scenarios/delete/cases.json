@@ -1,0 +1,70 @@
+[
+  {
+    "name": "delete attributes singleton",
+    "fixture": "attributes-tags-date.md",
+    "storePath": "doc.md",
+    "tool": "delete_attributes",
+    "args": { "path": "doc.md" },
+    "expected": {
+      "status": "ok",
+      "outputMatch": "Deleted.*json-attributes",
+      "contentNotMatch": "json-attributes"
+    },
+    "expectedFile": "attributes.expected.md"
+  },
+  {
+    "name": "delete callout by block_id",
+    "fixture": "callouts-two.md",
+    "storePath": "codebook.md",
+    "tool": "delete_callout",
+    "args": { "path": "codebook.md", "block_id": "callout_b" },
+    "expected": {
+      "status": "ok",
+      "outputMatch": "Deleted.*json-callout",
+      "contentNotMatch": "callout_b"
+    },
+    "expectedFile": "callout-by-id.expected.md"
+  },
+  {
+    "name": "delete callout error when block_id required but missing",
+    "fixture": "callouts-two.md",
+    "storePath": "codebook.md",
+    "tool": "delete_callout",
+    "args": { "path": "codebook.md" },
+    "expected": { "status": "error", "outputMatch": "block_id is required" }
+  },
+  {
+    "name": "delete attributes error when file not found",
+    "fixture": null,
+    "tool": "delete_attributes",
+    "args": { "path": "missing.md" },
+    "expected": { "status": "error", "outputMatch": "No such file" }
+  },
+  {
+    "name": "delete annotations singleton",
+    "fixture": "annotations-one.md",
+    "storePath": "doc.md",
+    "tool": "delete_annotations",
+    "args": { "path": "doc.md" },
+    "expected": { "status": "ok", "outputMatch": "Deleted.*json-annotations" },
+    "expectedFile": "annotations.expected.md"
+  },
+  {
+    "name": "delete settings singleton",
+    "fixture": "settings-empty.md",
+    "storePath": "settings.hidden.md",
+    "tool": "delete_settings",
+    "args": { "path": "settings.hidden.md" },
+    "expected": { "status": "ok", "outputMatch": "Deleted.*json-settings" },
+    "expectedFile": "settings.expected.md"
+  },
+  {
+    "name": "delete chart by block_id",
+    "fixture": "chart-simple.md",
+    "storePath": "doc.md",
+    "tool": "delete_chart",
+    "args": { "path": "doc.md", "block_id": "chart_1" },
+    "expected": { "status": "ok", "outputMatch": "Deleted.*json-chart" },
+    "expectedFile": "chart.expected.md"
+  }
+]

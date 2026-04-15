@@ -12,6 +12,7 @@ import {
 } from "~/lib/data-blocks/typed-ops/derive"
 import { translateOps } from "~/lib/data-blocks/typed-ops/translate"
 import { applyFieldDiff } from "~/lib/patch/diff/field-diff"
+import { insertBlockAtAnchor, moveBlockToAnchor } from "~/lib/data-blocks/anchor"
 import {
   resolveFile,
   resolveBlock,
@@ -335,6 +336,108 @@ export const generateDeleteTool = (language: string, config: BlockTypeConfig): A
         const newContent = deleteBlock(file.content, resolved.block)
         return ok(`Deleted \`${language}\` block from ${file.path}`, [
           { type: "write_file", path: file.path, content: newContent },
+        ])
+      },
+    })
+  )
+}
+
+const buildAddDescription = (language: string): string =>
+  `Insert a new empty \`${language}\` block after the anchor position. Returns the generated block id.\n\nProvide \`context\` — a few lines of prose from the document that uniquely identify where to place the block. The block is inserted after the matched context.\n\n${PARALLEL_NOTE}`
+
+const buildAddLooseSchema = () =>
+  z.object({
+    path: z.string().min(1),
+    context: z.string().min(1),
+  })
+
+const buildAddJsonSchema = (allowedFiles?: string[]): unknown => ({
+  type: "object",
+  properties: {
+    path: pathSchema(allowedFiles),
+    context: { type: "string", minLength: 1 },
+  },
+  required: ["path", "context"],
+})
+
+export const generateAddTool = (language: string, config: BlockTypeConfig): AnyTool => {
+  const spec = deriveTypedOps(language, config)
+  const idPrefix = config.idPaths?.[0]?.prefix ?? spec.shortName
+  const name = `add_${spec.shortName}`
+
+  return registerTool(
+    tool({
+      name,
+      description: buildAddDescription(language),
+      schema: buildAddLooseSchema(),
+      jsonSchema: buildAddJsonSchema(spec.allowedFiles),
+      handler: async (_files, args) => {
+        const { path, context } = args as { path: string; context: string }
+
+        const file = resolveFile(path)
+        if (!file) return err(`${path}: No such file`)
+
+        const result = insertBlockAtAnchor(file.content, language, context, idPrefix)
+        if (!result.ok) return err(`${file.path}: ${result.error}`)
+
+        return ok(`Inserted \`${language}\` block in ${file.path} — id: ${result.generatedId}`, [
+          {
+            type: "write_file",
+            path: file.path,
+            content: result.content,
+            skipBlockValidation: true,
+          },
+        ])
+      },
+    })
+  )
+}
+
+const buildMoveDescription = (language: string): string =>
+  `Move an existing \`${language}\` block to a new position after the anchor. The block is removed from its current position and re-inserted after the matched context.\n\n${PARALLEL_NOTE}`
+
+const buildMoveLooseSchema = () =>
+  z.object({
+    path: z.string().min(1),
+    block_id: z.string().min(1),
+    context: z.string().min(1),
+  })
+
+const buildMoveJsonSchema = (allowedFiles?: string[]): unknown => ({
+  type: "object",
+  properties: {
+    path: pathSchema(allowedFiles),
+    block_id: { type: "string" },
+    context: { type: "string", minLength: 1 },
+  },
+  required: ["path", "block_id", "context"],
+})
+
+export const generateMoveTool = (language: string, config: BlockTypeConfig): AnyTool => {
+  const spec = deriveTypedOps(language, config)
+  const name = `move_${spec.shortName}`
+
+  return registerTool(
+    tool({
+      name,
+      description: buildMoveDescription(language),
+      schema: buildMoveLooseSchema(),
+      jsonSchema: buildMoveJsonSchema(spec.allowedFiles),
+      handler: async (_files, args) => {
+        const { path, block_id, context } = args as {
+          path: string
+          block_id: string
+          context: string
+        }
+
+        const file = resolveFile(path)
+        if (!file) return err(`${path}: No such file`)
+
+        const result = moveBlockToAnchor(file.content, language, block_id, context)
+        if (!result.ok) return err(`${file.path}: ${result.error}`)
+
+        return ok(`Moved \`${language}\` block "${block_id}" in ${file.path}`, [
+          { type: "write_file", path: file.path, content: result.content },
         ])
       },
     })

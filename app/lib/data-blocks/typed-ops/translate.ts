@@ -8,7 +8,7 @@ const findArrayOp = (spec: TypedOpsSpec, singular: string): ArrayOpSpec | undefi
 
 const translateSet = (fields: Record<string, unknown>): JsonPatchOp[] =>
   Object.entries(fields).map(([key, value]) => ({
-    op: "replace" as const,
+    op: "add" as const,
     path: `/${key}`,
     value,
   }))

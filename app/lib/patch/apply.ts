@@ -66,7 +66,7 @@ const repairJsonBlocks = (markdown: string): string => {
     const blockStart = block.start + offset
     const blockEnd = block.end + offset
     const original = result.slice(blockStart, blockEnd)
-    const replaced = original.replace(block.content, repaired)
+    const replaced = original.replace(block.content, () => repaired)
 
     result = result.slice(0, blockStart) + replaced + result.slice(blockEnd)
     offset += replaced.length - original.length

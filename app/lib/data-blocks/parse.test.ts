@@ -6,6 +6,7 @@ import {
   findSingletonBlock,
   findBlockById,
   summarizeBlocks,
+  replaceBlockContents,
 } from "./parse"
 import { block } from "./test-helpers"
 
@@ -220,5 +221,24 @@ describe("summarizeBlocks", () => {
 
   it.each(cases)("$name", ({ doc, language, labelKey, expected }) => {
     expect(summarizeBlocks(doc, language, labelKey)).toEqual(expected)
+  })
+})
+
+describe("replaceBlockContents", () => {
+  const cases: { name: string; newContent: string }[] = [
+    { name: "plain content", newContent: '{"id":"x","value":"hello"}' },
+    { name: "content with $' (post-match pattern)", newContent: '{"sql":"WHERE file ~ \'.md$\'"}' },
+    { name: "content with $& (matched-text pattern)", newContent: '{"note":"costs $& fees"}' },
+    { name: "content with $` (pre-match pattern)", newContent: '{"cmd":"echo $`hostname`"}' },
+    { name: "content with $$ (literal dollar)", newContent: '{"price":"$$100"}' },
+  ]
+
+  it.each(cases)("$name", ({ newContent }) => {
+    const md = `# Doc\n\n${block("json-settings", '{"id":"old"}')}\n\nMore text.`
+    const blocks = parseCodeBlocks(md)
+    const result = replaceBlockContents(md, [{ block: blocks[0], newContent }])
+    expect(result).toContain(newContent)
+    expect(result).toContain("```json-settings")
+    expect(result).toContain("```\n\nMore text.")
   })
 })

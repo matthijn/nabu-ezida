@@ -69,12 +69,12 @@ describe("translateOps", () => {
 
   const cases: Case[] = [
     {
-      name: "set: produces replace ops per field",
+      name: "set: produces add ops per field (upsert)",
       spec: calloutSpec,
       ops: [{ op: "set", fields: { color: "red", title: "New" } }],
       expected: [
-        { op: "replace", path: "/color", value: "red" },
-        { op: "replace", path: "/title", value: "New" },
+        { op: "add", path: "/color", value: "red" },
+        { op: "add", path: "/title", value: "New" },
       ],
     },
     {
