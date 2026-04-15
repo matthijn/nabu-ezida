@@ -130,10 +130,16 @@ const MessageContent = memo(
       >
         {fixMarkdownUrls(
           linkifyTags(
-            linkifyEntityIds(
-              linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent),
-              (id) => resolveAndTruncateName(files, id),
-              boldMissingFile
+            linkifyQuotes(
+              normalizeBacktickQuotes(
+                linkifyEntityIds(
+                  content,
+                  (id) => resolveAndTruncateName(files, id),
+                  boldMissingFile
+                )
+              ),
+              currentFile,
+              currentFileContent
             ),
             (label) => resolveTagForLinkify(files, label)
           )

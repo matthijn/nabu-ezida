@@ -40,10 +40,12 @@ export const InlineMarkdown = memo(
     )
     return (
       <Markdown components={components} urlTransform={allowFileProtocol}>
-        {linkifyEntityIds(
-          linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
-          (id) => resolveEntityName(files, id),
-          boldMissingFile
+        {linkifyQuotes(
+          normalizeBacktickQuotes(
+            linkifyEntityIds(children, (id) => resolveEntityName(files, id), boldMissingFile)
+          ),
+          currentFile,
+          currentFileContent
         )}
       </Markdown>
     )
