@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useMemo,
+  memo,
   type KeyboardEvent,
   type ReactNode,
 } from "react"
@@ -105,40 +106,42 @@ const ScrollableTable = ({
   </div>
 )
 
-const MessageContent = ({
-  content,
-  files,
-  projectId,
-  currentFile,
-  currentFileContent,
-  navigate,
-}: MessageContentProps) => {
-  const components = useMemo(
-    () => ({
-      ...createEntityLinkComponents({ files, projectId, navigate }),
-      table: ScrollableTable,
-    }),
-    [files, projectId, navigate]
-  )
-  return (
-    <Markdown
-      remarkPlugins={remarkPlugins}
-      components={components}
-      urlTransform={allowFileProtocol}
-    >
-      {fixMarkdownUrls(
-        linkifyTags(
-          linkifyEntityIds(
-            linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent),
-            (id) => resolveAndTruncateName(files, id),
-            boldMissingFile
-          ),
-          (label) => resolveTagForLinkify(files, label)
-        )
-      )}
-    </Markdown>
-  )
-}
+const MessageContent = memo(
+  ({
+    content,
+    files,
+    projectId,
+    currentFile,
+    currentFileContent,
+    navigate,
+  }: MessageContentProps) => {
+    const components = useMemo(
+      () => ({
+        ...createEntityLinkComponents({ files, projectId, navigate }),
+        table: ScrollableTable,
+      }),
+      [files, projectId, navigate]
+    )
+    return (
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        components={components}
+        urlTransform={allowFileProtocol}
+      >
+        {fixMarkdownUrls(
+          linkifyTags(
+            linkifyEntityIds(
+              linkifyQuotes(normalizeBacktickQuotes(content), currentFile, currentFileContent),
+              (id) => resolveAndTruncateName(files, id),
+              boldMissingFile
+            ),
+            (label) => resolveTagForLinkify(files, label)
+          )
+        )}
+      </Markdown>
+    )
+  }
+)
 
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">

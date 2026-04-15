@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, memo } from "react"
 import Markdown from "react-markdown"
 import { createEntityLinkComponents } from "~/ui/components/markdown/createEntityLinkComponents"
 import { linkifyEntityIds } from "~/lib/markdown/linkify/entities"
@@ -22,28 +22,30 @@ interface InlineMarkdownProps {
   navigate?: (url: string) => void
 }
 
-export const InlineMarkdown = ({
-  children,
-  files,
-  projectId,
-  currentFile,
-  currentFileContent,
-  navigate,
-}: InlineMarkdownProps) => {
-  const components = useMemo(
-    () => ({
-      ...createEntityLinkComponents({ files, projectId, navigate }),
-      p: InlineP,
-    }),
-    [files, projectId, navigate]
-  )
-  return (
-    <Markdown components={components} urlTransform={allowFileProtocol}>
-      {linkifyEntityIds(
-        linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
-        (id) => resolveEntityName(files, id),
-        boldMissingFile
-      )}
-    </Markdown>
-  )
-}
+export const InlineMarkdown = memo(
+  ({
+    children,
+    files,
+    projectId,
+    currentFile,
+    currentFileContent,
+    navigate,
+  }: InlineMarkdownProps) => {
+    const components = useMemo(
+      () => ({
+        ...createEntityLinkComponents({ files, projectId, navigate }),
+        p: InlineP,
+      }),
+      [files, projectId, navigate]
+    )
+    return (
+      <Markdown components={components} urlTransform={allowFileProtocol}>
+        {linkifyEntityIds(
+          linkifyQuotes(normalizeBacktickQuotes(children), currentFile, currentFileContent),
+          (id) => resolveEntityName(files, id),
+          boldMissingFile
+        )}
+      </Markdown>
+    )
+  }
+)
