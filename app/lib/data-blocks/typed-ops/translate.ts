@@ -6,12 +6,13 @@ type TypedOp = Record<string, unknown>
 const findArrayOp = (spec: TypedOpsSpec, singular: string): ArrayOpSpec | undefined =>
   spec.arrayOps.find((a) => a.singularName === singular)
 
+const translateSetEntry = (key: string, value: unknown): JsonPatchOp =>
+  value === null
+    ? { op: "remove" as const, path: `/${key}` }
+    : { op: "add" as const, path: `/${key}`, value }
+
 const translateSet = (fields: Record<string, unknown>): JsonPatchOp[] =>
-  Object.entries(fields).map(([key, value]) => ({
-    op: "add" as const,
-    path: `/${key}`,
-    value,
-  }))
+  Object.entries(fields).map(([key, value]) => translateSetEntry(key, value))
 
 const translateAdd = (fieldName: string, item: unknown): JsonPatchOp[] => [
   { op: "add" as const, path: `/${fieldName}/-`, value: item },

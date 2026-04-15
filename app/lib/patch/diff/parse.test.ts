@@ -168,6 +168,18 @@ appended`,
       expected: { ok: true, content: "# Coffee Bean Research Codebook" },
     },
     {
+      name: "create file with @@ and mixed prefixed/unprefixed lines",
+      content: "",
+      patch: `@@
++# Governance Evolution
+
+This file tracks the discursive shifts in governance.`,
+      expected: {
+        ok: true,
+        content: "# Governance Evolution\n\nThis file tracks the discursive shifts in governance.",
+      },
+    },
+    {
       name: "malformed: LLM prefixes @@ with +",
       content: "",
       patch: `+@@

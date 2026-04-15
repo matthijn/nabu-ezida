@@ -42,6 +42,6 @@ const PatchArgs = z.object({
 export const applyLocalPatch = {
   name: "apply_local_patch" as const,
   description:
-    "Apply file operations to the local filesystem.\n\nparallel: self=same file no, diff files yes / others=with reads yes / line offsets shift on same file",
+    "Apply file operations to the local filesystem.\n\nFor JSON blocks use their dedicated tools (patch_<type>, add_<type>, delete_<type>).\n\nparallel: self=same file no, diff files yes / others=with reads yes / line offsets shift on same file",
   schema: PatchArgs,
 }

@@ -106,6 +106,12 @@ const buildAddText = (parts: HunkPart[]): string =>
     .join("")
     .replace(/\n$/, "")
 
+const buildAllText = (parts: HunkPart[]): string =>
+  parts
+    .map((p) => p.content)
+    .join("")
+    .replace(/\n$/, "")
+
 const buildReplacement = (parts: HunkPart[], matchedText: string): string => {
   const padded = matchedText + "\n"
   let offset = 0
@@ -188,10 +194,12 @@ const applyHunk = (content: string, hunk: Hunk): DiffResult => {
 
   const matchText = buildMatchText(parts)
 
-  if (matchText === "") {
-    const addText = buildAddText(parts)
+  const isEmptyFile = content === ""
+
+  if (matchText === "" || isEmptyFile) {
+    const allText = isEmptyFile ? buildAllText(parts) : buildAddText(parts)
     const needsSeparator = content.length > 0 && !content.endsWith("\n")
-    return { ok: true, content: content + (needsSeparator ? "\n" : "") + addText }
+    return { ok: true, content: content + (needsSeparator ? "\n" : "") + allText }
   }
 
   const matches = findMatches(content, matchText)

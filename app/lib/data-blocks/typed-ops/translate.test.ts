@@ -128,6 +128,15 @@ describe("translateOps", () => {
       expected: [{ op: "remove", path: "/searches[id=search_abc]" }],
     },
     {
+      name: "set: null values produce remove ops",
+      spec: calloutSpec,
+      ops: [{ op: "set", fields: { color: "red", title: null } }],
+      expected: [
+        { op: "add", path: "/color", value: "red" },
+        { op: "remove", path: "/title" },
+      ],
+    },
+    {
       name: "multiple ops in sequence",
       spec: annotationsSpec,
       ops: [
