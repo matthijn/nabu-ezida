@@ -59,8 +59,9 @@ const buildSetLine = (spec: TypedOpsSpec): string | null => {
 }
 
 const buildPatchDescription = (spec: TypedOpsSpec): string => {
+  const singletonNote = spec.singleton ? " Creates the block if it doesn't exist." : ""
   const blockIdNote = spec.singleton ? "" : " Requires block_id."
-  const header = `Apply typed operations to a \`${spec.language}\` block.${blockIdNote}`
+  const header = `Apply typed operations to a \`${spec.language}\` block.${singletonNote}${blockIdNote}`
 
   const ops: string[] = []
 

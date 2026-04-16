@@ -36,6 +36,30 @@
     "checkPath": "doc.md"
   },
   {
+    "name": "remove absent field is no-op",
+    "fixture": "attributes-date.md",
+    "storePath": "doc.md",
+    "tool": "patch_attributes",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "set", "fields": { "author": null, "date": "2025-01-01" } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "remove-absent-field.expected.md"
+  },
+  {
+    "name": "upsert with null field on missing block",
+    "fixture": "report-prose.md",
+    "storePath": "doc.md",
+    "tool": "patch_attributes",
+    "args": {
+      "path": "doc.md",
+      "operations": [{ "op": "set", "fields": { "date": null, "tags": ["tag-abc"] } }]
+    },
+    "expected": { "status": "ok", "outputMatch": "Patched" },
+    "expectedFile": "upsert-with-null.expected.md"
+  },
+  {
     "name": "error when file not found",
     "fixture": null,
     "tool": "patch_attributes",

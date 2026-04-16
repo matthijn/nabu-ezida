@@ -10,6 +10,7 @@ import {
   capLimit,
   hasOffset,
   dropOffset,
+  SEMANTIC_ABSENCE_HINT,
   type LimitRewrite,
   type HybridSearchPlan,
 } from "~/lib/search"
@@ -83,7 +84,10 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
     const result = await executeHybridLocal(db, rewrite.plan)
     if (!result.ok) return { status: "error", output: sanitizeSemanticError(result.error.message) }
     const hits = result.value
-    return { status: "ok", output: formatRows(hits) + hybridSuffix(rewrite, hits.length) }
+    return {
+      status: "ok",
+      output: formatRows(hits) + hybridSuffix(rewrite, hits.length) + SEMANTIC_ABSENCE_HINT,
+    }
   }
 
   const rewrite = capLimit(resolved.value.sql, MAX_QUERY_ROWS)

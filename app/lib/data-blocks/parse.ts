@@ -1,4 +1,5 @@
 import { getByPath } from "./json"
+import { errorMessage } from "~/lib/utils/error"
 
 export interface CodeBlock {
   language: string
@@ -35,8 +36,6 @@ export const countBlocksByLanguage = (markdown: string, language: string): numbe
   findBlocksByLanguage(markdown, language).length
 
 type ParseJsonResult<T> = { ok: true; data: T } | { ok: false; error: string; raw: string }
-
-const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
 const snippet = (s: string, max = 200): string => (s.length <= max ? s : s.slice(0, max) + "…")
 

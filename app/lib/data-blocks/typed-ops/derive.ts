@@ -93,11 +93,18 @@ const buildSetOpSchema = (fieldsSchema: JsonSchema): JsonSchema => ({
   additionalProperties: false,
 })
 
-const buildAddOpSchema = (singular: string, itemSchema: unknown): JsonSchema => ({
+const stripProperty = (schema: JsonSchema, field: string): JsonSchema => {
+  const props = (schema.properties ?? {}) as Properties
+  if (!(field in props)) return schema
+  const { [field]: _, ...rest } = props
+  return { ...schema, properties: rest }
+}
+
+const buildAddOpSchema = (singular: string, itemSchema: unknown, matchKey: string): JsonSchema => ({
   type: "object",
   properties: {
     op: { type: "string", enum: [`add_${singular}`] },
-    item: itemSchema as JsonSchema,
+    item: stripProperty(itemSchema as JsonSchema, matchKey),
   },
   required: ["op", "item"],
   additionalProperties: false,
@@ -139,7 +146,7 @@ const buildSetItemOpSchema = (
 })
 
 const buildArrayOpSchemas = (spec: ArrayOpSpec): JsonSchema[] => [
-  buildAddOpSchema(spec.singularName, spec.itemSchema),
+  buildAddOpSchema(spec.singularName, spec.itemSchema, spec.matchKey),
   buildRemoveOpSchema(spec.singularName, spec.matchKey),
   buildSetItemOpSchema(spec.singularName, spec.matchKey, spec.partialItemSchema),
 ]

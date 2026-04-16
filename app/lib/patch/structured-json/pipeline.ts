@@ -40,6 +40,8 @@ export const applyEnrichedOps = (
   }
 }
 
+const isIdempotentRemove = (op: JsonPatchOp): boolean => op.op === "remove"
+
 const applyOpsIndividually = (
   ops: JsonPatchOp[],
   doc: unknown,
@@ -65,6 +67,7 @@ const applyOpsIndividually = (
 
     const result = applyJsonPatchOps(currentDoc, fuzzyResult.ops)
     if (!result.ok) {
+      if (isIdempotentRemove(op)) continue
       failures.push(`${op.path}: ${result.error}`)
       continue
     }

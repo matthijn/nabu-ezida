@@ -14,8 +14,13 @@ const translateSetEntry = (key: string, value: unknown): JsonPatchOp =>
 const translateSet = (fields: Record<string, unknown>): JsonPatchOp[] =>
   Object.entries(fields).map(([key, value]) => translateSetEntry(key, value))
 
+const stripNulls = (obj: unknown): unknown => {
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) return obj
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null))
+}
+
 const translateAdd = (fieldName: string, item: unknown): JsonPatchOp[] => [
-  { op: "add" as const, path: `/${fieldName}/-`, value: item },
+  { op: "add" as const, path: `/${fieldName}/-`, value: stripNulls(item) },
 ]
 
 const translateRemove = (
@@ -24,17 +29,26 @@ const translateRemove = (
   matchValue: string
 ): JsonPatchOp[] => [{ op: "remove" as const, path: `/${fieldName}[${matchKey}=${matchValue}]` }]
 
+const translateSetItemEntry = (
+  fieldName: string,
+  matchKey: string,
+  matchValue: string,
+  key: string,
+  value: unknown
+): JsonPatchOp =>
+  value === null
+    ? { op: "remove" as const, path: `/${fieldName}[${matchKey}=${matchValue}]/${key}` }
+    : { op: "replace" as const, path: `/${fieldName}[${matchKey}=${matchValue}]/${key}`, value }
+
 const translateSetItem = (
   fieldName: string,
   matchKey: string,
   matchValue: string,
   fields: Record<string, unknown>
 ): JsonPatchOp[] =>
-  Object.entries(fields).map(([key, value]) => ({
-    op: "replace" as const,
-    path: `/${fieldName}[${matchKey}=${matchValue}]/${key}`,
-    value,
-  }))
+  Object.entries(fields).map(([key, value]) =>
+    translateSetItemEntry(fieldName, matchKey, matchValue, key, value)
+  )
 
 const extractSuffix = (opName: string, prefix: string): string => opName.slice(prefix.length)
 

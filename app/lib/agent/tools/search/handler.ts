@@ -9,6 +9,7 @@ import {
   resolveSemanticSql,
   sanitizeSemanticError,
   stripPaging,
+  SEMANTIC_ABSENCE_HINT,
 } from "~/lib/search"
 import { saveNewSearch } from "./settings"
 import { buildClassificationTree } from "~/lib/topic-assignment/tree"
@@ -31,10 +32,18 @@ const formatEmpty = (sql: string): ToolResult<unknown> => ({
   output: `0 results returned for query: ${sql}`,
 })
 
-const formatOutput = (id: string, hits: SearchHit[], capped: boolean): string => {
+const formatOutput = (
+  id: string,
+  hits: SearchHit[],
+  capped: boolean,
+  isSemantic: boolean
+): string => {
   const lines = hits.map(formatHit).join("\n")
   const suffix = capped ? `\n(capped to ${MAX_SEARCH_ROWS} rows)` : ""
-  return `file://${id}\nresult samples:\n${lines}${suffix}`
+  const link = `file://${id}`
+  const linkHint = `\nIf these results answer the user's request, cite ${link} in your reply so they can open the full result page and browse every hit.`
+  const semanticHint = isSemantic ? SEMANTIC_ABSENCE_HINT : ""
+  return `${link}\nresult samples:\n${lines}${suffix}${linkHint}${semanticHint}`
 }
 
 const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
@@ -55,10 +64,11 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   })
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
+  const isSemantic = resolved.value.type === "hybrid"
   const rawHits =
-    resolved.value.type === "plain"
-      ? await executeSearch(db, resolved.value.sql)
-      : await executeHybridLocal(db, resolved.value.plan)
+    resolved.value.type === "hybrid"
+      ? await executeHybridLocal(db, resolved.value.plan)
+      : await executeSearch(db, resolved.value.sql)
 
   if (!rawHits.ok) return { status: "error", output: sanitizeSemanticError(rawHits.error.message) }
 
@@ -69,7 +79,7 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const id = saveNewSearch({ ...parsed.data, sql })
   if (!id) return { status: "error", output: "Failed to save search" }
 
-  return { status: "ok", output: formatOutput(id, hits, capped) }
+  return { status: "ok", output: formatOutput(id, hits, capped, isSemantic) }
 }
 
 registerSpecialHandler("search", handleSearch)

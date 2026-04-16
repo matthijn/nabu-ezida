@@ -31,6 +31,9 @@ export const sqlQueriesFilesTable = (sql: string): boolean => FILES_TABLE_RE.tes
 const SEMANTIC_PATTERN = /SEMANTIC\('([^']+)'\)/g
 const SCORE_COLUMN = "_semantic_score"
 
+export const SEMANTIC_ABSENCE_HINT =
+  "\n-----\nIf SEMANTIC results are off-topic, the corpus does not contain what was asked for. Do not retry with grep or ILIKE. Absence is data."
+
 const OPERATOR_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*(>|<|>=|<=|=|!=|<>)/
 const AS_AFTER_SEMANTIC = /SEMANTIC\('[^']+'\)\s*AS\b/i
 const SEMANTIC_IN_ORDER_BY = /ORDER\s+BY\s[\s\S]*?SEMANTIC\s*\(/i

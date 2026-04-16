@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { AnyTool } from "../../executors/tool"
+import { normalizeLlmSql } from "~/lib/sql/normalize"
 
 export const SearchArgs = z.object({
   title: z
@@ -9,8 +10,9 @@ export const SearchArgs = z.object({
   sql: z
     .string()
     .describe(
-      "SQL query. Must SELECT file. Optionally id and/or text. Supports SEMANTIC('description of passages to find')."
-    ),
+      "SQL query. Must SELECT file. Optionally id and/or text. Use ILIKE only for verbatim strings (names, dates, specific terms). For meanings, paraphrases, synonyms, or concepts — use SEMANTIC('passage description'). Stacking multiple ILIKE variants to cover wording is a signal you want SEMANTIC instead."
+    )
+    .transform(normalizeLlmSql),
   highlight: z
     .string()
     .describe(

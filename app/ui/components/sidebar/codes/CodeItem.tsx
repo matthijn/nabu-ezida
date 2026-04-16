@@ -35,7 +35,7 @@ export const CodeItem = ({
       className="flex h-2 w-2 flex-none rounded-full"
       style={{ backgroundColor: solidBackground(code.color) }}
     />
-    <span className="grow shrink-0 basis-0 text-body font-body text-default-font">{code.name}</span>
+    <span className="grow truncate text-body font-body text-default-font">{code.name}</span>
     {count > 0 && (
       <TooltipWrap text={formatFileTooltip(count)}>
         <span

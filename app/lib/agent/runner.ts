@@ -5,7 +5,7 @@ import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
 import { fetchApproachMeta } from "~/lib/modes/approaches"
-import { isAbortError } from "~/lib/utils/error"
+import { isAbortError, errorMessage } from "~/lib/utils/error"
 
 export type RunnerDeps = ToolDeps
 
@@ -86,7 +86,8 @@ export const run = async (deps: RunnerDeps = {}): Promise<void> => {
     await runAgent(deps)
   } catch (e) {
     if (!isAbortError(e)) {
-      pushBlocks([{ type: "error", content: "Something went wrong" }])
+      console.error(e)
+      pushBlocks([{ type: "error", content: errorMessage(e) }])
     }
   } finally {
     active = false

@@ -1,4 +1,4 @@
-import type { z } from "zod"
+import { z } from "zod"
 import type { Handler, HandlerResult, RawFiles, Operation } from "../types"
 import { checkGuidance } from "./guidance"
 
@@ -137,7 +137,7 @@ export const toStrictSchema = (schema: unknown): unknown => {
 }
 
 export const toToolDefinition = (t: AnyTool): ToolDefinition => {
-  const jsonSchema = t.jsonSchema ?? t.schema.toJSONSchema()
+  const jsonSchema = t.jsonSchema ?? z.toJSONSchema(t.schema, { io: "input" })
   const strict = isStrictCompatible(jsonSchema)
   const parameters = strict
     ? (toStrictSchema(jsonSchema) as ToolDefinition["parameters"])

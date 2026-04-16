@@ -7,6 +7,7 @@ import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground, hoveredElementBorder } from "~/ui/theme/radix"
+import { CheckableWrap } from "~/ui/components/CheckableWrap"
 import type { GlobalAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeItem } from "./CodeItem"
@@ -104,6 +105,7 @@ export const CodesSidebar = ({
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set())
 
   const filteredCategories = useMemo(
     () => filterCategories(codebook.categories, searchValue),
@@ -133,14 +135,27 @@ export const CodesSidebar = ({
               {category.name}
             </span>
             {category.codes.map((code) => (
-              <CodeItem
+              <CheckableWrap
                 key={code.id}
-                code={code}
-                count={annotationCounts[code.id]}
-                highlighted={code.id === hoveredCode?.id}
-                onMouseEnter={() => setHoveredCode(code)}
-                onClick={() => onEditCode?.(code)}
-              />
+                color={code.color}
+                checked={selectedCodes.has(code.id)}
+                onToggle={() =>
+                  setSelectedCodes((prev) => {
+                    const next = new Set(prev)
+                    if (next.has(code.id)) next.delete(code.id)
+                    else next.add(code.id)
+                    return next
+                  })
+                }
+              >
+                <CodeItem
+                  code={code}
+                  count={annotationCounts[code.id]}
+                  highlighted={code.id === hoveredCode?.id}
+                  onMouseEnter={() => setHoveredCode(code)}
+                  onClick={() => onEditCode?.(code)}
+                />
+              </CheckableWrap>
             ))}
           </div>
         ))}
@@ -154,7 +169,7 @@ export const CodesSidebar = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -12, opacity: 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
-            className="absolute left-full top-0 h-full w-96 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
+            className="absolute left-full top-0 h-full w-80 flex flex-col items-start bg-default-background [box-shadow:4px_0_6px_-1px_rgb(0_0_0/0.1),4px_0_4px_-2px_rgb(0_0_0/0.1)]"
           >
             <div
               className="flex w-full items-center gap-2 border-b-2 border-solid px-4 py-4"

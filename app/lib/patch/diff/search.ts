@@ -21,7 +21,12 @@ export const findMatches = (content: string, needle: string): Match[] => {
   const exactMatches = findExactMatches(contentLines, needleLines)
   if (exactMatches.length > 0) return exactMatches
 
-  return findFuzzyMatches(contentLines, needleLines)
+  const fuzzyMatches = findFuzzyMatches(contentLines, needleLines)
+  if (fuzzyMatches.length > 0) return fuzzyMatches
+
+  if (needleLines.length === 1) return findSubstringMatches(content, needle)
+
+  return []
 }
 
 export const getMatchedText = (content: string, match: Match): string => {
@@ -50,15 +55,18 @@ const toBigrams = (s: string): Map<string, number> => {
 
 const bigramSimilarity = (a: string, b: string): number => {
   if (a === b) return 1
-  if (a.length < 2 || b.length < 2) return 0
-  const gramsA = toBigrams(a)
-  const gramsB = toBigrams(b)
+  const la = a.toLowerCase()
+  const lb = b.toLowerCase()
+  if (la === lb) return 1
+  if (la.length < 2 || lb.length < 2) return 0
+  const gramsA = toBigrams(la)
+  const gramsB = toBigrams(lb)
   let intersection = 0
   for (const [pair, countB] of gramsB) {
     const countA = gramsA.get(pair) ?? 0
     intersection += Math.min(countA, countB)
   }
-  return (2 * intersection) / (a.length - 1 + b.length - 1)
+  return (2 * intersection) / (la.length - 1 + lb.length - 1)
 }
 
 const findExactMatches = (contentLines: string[], needleLines: string[]): Match[] => {
@@ -211,6 +219,22 @@ const findBestOffset = (content: string, needle: string): MatchOffset | null => 
   const docTokens = getDocTokens(content)
   const needleWords = tokenizeWords(needle)
   return findTokenMatchOffset(docTokens, needleWords)
+}
+
+const charOffsetToLine = (content: string, charOffset: number): number => {
+  let line = 0
+  for (let i = 0; i < charOffset && i < content.length; i++) {
+    if (content[i] === "\n") line++
+  }
+  return line
+}
+
+const findSubstringMatches = (content: string, needle: string): Match[] => {
+  const offset = findBestOffset(content, needle)
+  if (!offset) return []
+  const startLine = charOffsetToLine(content, offset.start)
+  const endLine = charOffsetToLine(content, offset.end)
+  return [{ start: startLine, end: endLine, fuzzy: true }]
 }
 
 export const findMatchOffset = (content: string, needle: string): MatchOffset | null =>
