@@ -3,7 +3,7 @@ import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
 
 export const jsonAttributes: BlockTypeConfig<DocumentMeta> = {
   schema: documentMetaSchema,
-  readonly: ["type", "source", "subject"],
+  readonly: ["type", "source", "subject", "hash"],
   immutable: {},
   constraints: ["tags: must be tag IDs defined in settings"],
   renderer: "hidden",

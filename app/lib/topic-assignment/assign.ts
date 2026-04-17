@@ -1,4 +1,5 @@
-import { callLlm, extractText, type Block } from "~/lib/agent/client"
+import { z } from "zod"
+import { callLlm, extractText, toResponseFormat } from "~/lib/agent/client"
 
 const ENDPOINT = "/topic-assigner"
 
@@ -14,19 +15,11 @@ export interface ExistingClassifications {
   subjects: string[]
 }
 
-const parseField = (text: string, field: string): string | null => {
-  const pattern = new RegExp(`^${field}:\\s*(.+)$`, "mi")
-  const match = text.match(pattern)
-  return match ? match[1].trim() : null
-}
-
-const parseClassification = (text: string): Classification | null => {
-  const type = parseField(text, "type")
-  const source = parseField(text, "source")
-  const subject = parseField(text, "subject")
-  if (!type || !source || !subject) return null
-  return { type: type.toLowerCase(), source: source.toLowerCase(), subject: subject.toLowerCase() }
-}
+const ClassificationSchema = z.object({
+  type: z.string().describe("document format, 1-3 words"),
+  source: z.string().describe("who produced the document, 1-3 words"),
+  subject: z.string().describe("topic of the document, 3-5 words"),
+})
 
 const formatList = (items: string[]): string =>
   items.length === 0 ? "(none yet)" : items.join(", ")
@@ -34,11 +27,19 @@ const formatList = (items: string[]): string =>
 const buildExistingMessage = (existing: ExistingClassifications): string =>
   `Existing types: ${formatList(existing.types)}\nExisting sources: ${formatList(existing.sources)}\nExisting subjects: ${formatList(existing.subjects)}`
 
-const buildConfirmation = (): string =>
-  `Classify this document. Pick from existing labels when they fit well, create new ones when they don't. Output only the three fields.`
+const CALL_TO_ACTION = "Classify this document."
 
-const summarizeBlocks = (blocks: Block[]): string =>
-  blocks.map((b) => `${b.type}${b.type === "text" ? `(${b.content.length}ch)` : ""}`).join(", ")
+const toSystem = (content: string) => ({
+  type: "message" as const,
+  role: "system" as const,
+  content,
+})
+
+const lowercaseClassification = (c: Classification): Classification => ({
+  type: c.type.toLowerCase(),
+  source: c.source.toLowerCase(),
+  subject: c.subject.toLowerCase(),
+})
 
 export const classifyDocument = async (
   excerpt: string,
@@ -47,28 +48,24 @@ export const classifyDocument = async (
   const blocks = await callLlm({
     endpoint: ENDPOINT,
     messages: [
-      { type: "message", role: "system", content: buildExistingMessage(existing) },
-      { type: "message", role: "system", content: excerpt },
-      { type: "message", role: "system", content: buildConfirmation() },
+      toSystem(buildExistingMessage(existing)),
+      toSystem(excerpt),
+      toSystem(CALL_TO_ACTION),
     ],
+    responseFormat: toResponseFormat(ClassificationSchema),
   })
 
   const text = extractText(blocks)
   if (!text) {
-    console.warn(`[classify] empty LLM response, blocks: [${summarizeBlocks(blocks)}]`)
+    console.warn("[classify] empty LLM response")
     return null
   }
 
-  const result = parseClassification(text)
-  if (!result) {
-    const type = parseField(text, "type")
-    const source = parseField(text, "source")
-    const subject = parseField(text, "subject")
-    console.warn(
-      `[classify] failed to parse response — type: ${type}, source: ${source}, subject: ${subject}, raw: ${text}`
-    )
+  const parsed = ClassificationSchema.safeParse(JSON.parse(text))
+  if (!parsed.success) {
+    console.warn(`[classify] failed to parse response — ${parsed.error.message}, raw: ${text}`)
     return null
   }
 
-  return result
+  return lowercaseClassification(parsed.data)
 }

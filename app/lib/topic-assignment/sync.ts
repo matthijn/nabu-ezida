@@ -5,7 +5,7 @@ import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
 import { toEmbeddableText } from "~/lib/embeddings/text"
 import { buildExcerpt } from "~/lib/text/excerpt"
 import { getAttributes } from "~/domain/data-blocks/attributes/selectors"
-import { hasClassification } from "~/domain/data-blocks/attributes/topics/selectors"
+import { shouldReclassify, contentHash } from "~/domain/data-blocks/attributes/topics/selectors"
 import { replaceSingletonBlock } from "~/lib/data-blocks/parse"
 import { classifyDocument, type Classification, type ExistingClassifications } from "./assign"
 import { collectTypeCounts, collectSourceCounts, collectSubjectCounts } from "./log"
@@ -39,8 +39,6 @@ const findChangedFiles = (prev: FileStore, curr: FileStore): string[] => {
   return changed
 }
 
-const isAlreadyClassified = (content: string): boolean => hasClassification(content)
-
 const toExcerpt = (raw: string, toProseFns: Record<string, ToProseFn>): string => {
   const stripped = stripAttributesBlock(raw)
   const prose = toEmbeddableText(stripped, toProseFns)
@@ -59,6 +57,7 @@ const writeClassificationToAttributes = (
     type: classification.type,
     source: classification.source,
     subject: classification.subject,
+    hash: contentHash(content),
   }
   const newContent = replaceSingletonBlock(content, "json-attributes", JSON.stringify(updated))
   updateFile(filename, newContent)
@@ -97,7 +96,7 @@ const processFile = async (
 
 const processSync = async (changedFiles: string[], deps: TopicSyncDeps): Promise<void> => {
   const files = deps.getFiles()
-  const filesToProcess = changedFiles.filter((f) => !isAlreadyClassified(files[f]))
+  const filesToProcess = changedFiles.filter((f) => shouldReclassify(files[f]))
 
   if (filesToProcess.length === 0) return
 

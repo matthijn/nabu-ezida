@@ -74,6 +74,10 @@ const BaseDocumentMeta = z.object({
   type: z.string().optional().describe("Auto-classified document format"),
   source: z.string().optional().describe("Auto-classified document source"),
   subject: z.string().optional().describe("Auto-classified topic, 3-5 words"),
+  hash: z
+    .string()
+    .optional()
+    .describe("Content hash used to skip re-classification when unchanged"),
 })
 
 export const documentMetaSchema = (ctx?: ValidationContext) => {
