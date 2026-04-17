@@ -46,6 +46,16 @@ export const resolveBlockLabel = (
   return typeof value === "string" ? value : null
 }
 
+export const resolveBlockId = (
+  language: string,
+  parsed: Record<string, unknown>
+): string | null => {
+  const rootIdPath = (blockTypes[language]?.idPaths ?? []).find((p) => !p.path.includes("."))
+  if (!rootIdPath) return null
+  const value = getByPath(parsed, rootIdPath.path)
+  return typeof value === "string" ? value : null
+}
+
 export const getImmutableFields = (language: string): Record<string, string> =>
   blockTypes[language]?.immutable ?? {}
 

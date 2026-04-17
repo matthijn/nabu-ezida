@@ -3,22 +3,38 @@ import type { ToolResult } from "../../types"
 import type { ScoutFileEntry } from "./def"
 import { ScoutArgs } from "./def"
 import { registerSpecialHandler } from "../../executors/delegation"
-import { scoutFile, type ScoutMap } from "../scout-map"
+import { scoutProse } from "../scout-map"
+import { buildProseWithLineMap, formatScoutMap, translateSections } from "./prose"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks } from "../../client"
 import { processPool } from "~/lib/utils/pool"
 
-const FILE_LINE_THRESHOLD = 50
+const PROSE_LINE_THRESHOLD = 50
 
 const countLines = (text: string): number => text.split("\n").length
 
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
-const formatScoutMap = (path: string, map: ScoutMap): string =>
-  `File: ${path}\n${JSON.stringify(map, null, 2)}`
-
 type ScoutEntryResult = { ok: true; block: Block } | { ok: false; path: string }
+
+const scoutEntryBlock = async (
+  path: string,
+  content: string,
+  task: string,
+  reason: string
+): Promise<Block> => {
+  const { prose, proseToOrig, codeblocks } = buildProseWithLineMap(content)
+
+  if (countLines(prose) <= PROSE_LINE_THRESHOLD) {
+    return toSystemBlock(`File: ${path}\n${content}`)
+  }
+
+  const raw = await scoutProse(prose, task, reason)
+  const translated = translateSections(raw.sections, proseToOrig, countLines(content))
+  const map = { file_context: raw.file_context, sections: translated }
+  return toSystemBlock(formatScoutMap(path, map, codeblocks))
+}
 
 const tryScoutEntry = async (
   path: string,
@@ -28,13 +44,7 @@ const tryScoutEntry = async (
   try {
     const content = getFileView(path)
     if (content === undefined) return { ok: false, path }
-
-    const isLarge = countLines(content) > FILE_LINE_THRESHOLD
-    const block = isLarge
-      ? toSystemBlock(formatScoutMap(path, await scoutFile(content, task, reason)))
-      : toSystemBlock(`File: ${path}\n${content}`)
-
-    return { ok: true, block }
+    return { ok: true, block: await scoutEntryBlock(path, content, task, reason) }
   } catch {
     return { ok: false, path }
   }

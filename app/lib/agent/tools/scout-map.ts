@@ -5,7 +5,14 @@ export const ScoutSection = z.object({
   label: z.string().describe("Short name for this section"),
   start_line: z.number().int().min(1).describe("1-based first line of this section"),
   end_line: z.number().int().min(1).describe("1-based last line of this section"),
-  desc: z.string().describe("Brief description of section contents"),
+  desc: z.string().optional().describe("Brief description of section contents"),
+  keywords: z
+    .array(z.string())
+    .min(1)
+    .max(6)
+    .describe(
+      "Key names, topics, and entities present in this section — no interpretation, just what's concretely there."
+    ),
 })
 
 export const ScoutMapResponse = z.object({
@@ -29,12 +36,12 @@ const numberLines = (text: string): string =>
 const buildContextMessage = (numbered: string, task: string, reason: string): string =>
   `<document>\n${numbered}\n</document>\n\nTask: ${task}\nFile purpose: ${reason}`
 
-export const scoutFile = async (
-  content: string,
+export const scoutProse = async (
+  prose: string,
   task: string,
   reason: string
 ): Promise<ScoutMap> => {
-  const numbered = numberLines(content)
+  const numbered = numberLines(prose)
 
   const blocks = await callLlm({
     endpoint: SCOUT_ENDPOINT,
