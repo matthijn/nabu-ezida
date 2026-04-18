@@ -10,7 +10,9 @@ import {
 import { countLines } from "~/lib/text/stats"
 import { debounce, createScopedDebounce } from "~/lib/utils/debounce"
 import { sendCommand } from "~/lib/server/sync/commands"
-import { normalizeContent } from "~/lib/patch/diff/normalize"
+import { normalizeContent as normalize } from "~/lib/patch/diff/normalize"
+
+const normalizeFile = (text: string): string => normalize(text) + "\n"
 import { memoByRef } from "~/lib/utils/memo"
 
 export type FileStore = Record<string, string>
@@ -97,7 +99,7 @@ export const getFileLineCount = (filename: string): number => countLines(getFile
 
 export const setFiles = (newFiles: FileStore): void => {
   console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))
-  files = Object.fromEntries(Object.entries(newFiles).map(([k, v]) => [k, normalizeContent(v)]))
+  files = Object.fromEntries(Object.entries(newFiles).map(([k, v]) => [k, normalizeFile(v)]))
   notify()
 }
 
@@ -107,7 +109,7 @@ export const setCurrentFile = (filename: string | null): void => {
 }
 
 export const updateFileRaw = (filename: string, raw: string): void => {
-  const normalized = normalizeContent(raw)
+  const normalized = normalizeFile(raw)
   const isNew = !(filename in files)
   console.debug(
     `[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`

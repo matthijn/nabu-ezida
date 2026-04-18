@@ -13,6 +13,8 @@ export {
 } from "./block-tools/register"
 export { runLocalShell } from "./run-local-shell/def"
 export { scoutTool } from "./scout/def"
+export { planDeepAnalysisTool } from "./plan-deep-analysis/def"
+export { applyDeepAnalysisTool } from "./apply-deep-analysis/def"
 export { startPlanTool } from "./start-planning/def"
 export { submitPlanTool } from "./submit-plan/def"
 export { askTool } from "./ask/def"

@@ -96,7 +96,7 @@ const formatCodeblockMarker = (m: CodeblockMarker): string => {
   return `codeblock ${m.language}${id}${label} on line ${m.line}`
 }
 
-const formatSection = (section: ScoutSection): string => {
+export const formatSection = (section: ScoutSection): string => {
   const header = `[${section.start_line}-${section.end_line}] ${section.label}`
   const keywords = `  keywords: ${section.keywords.join(", ")}`
   const desc = section.desc ? `  desc: ${section.desc}` : null

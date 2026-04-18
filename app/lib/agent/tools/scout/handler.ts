@@ -1,100 +1,74 @@
 import type { Block } from "../../client"
-import type { ToolResult } from "../../types"
+import type { HandlerResult } from "../../types"
 import type { ScoutFileEntry } from "./def"
-import { ScoutArgs } from "./def"
-import { registerSpecialHandler } from "../../executors/delegation"
-import { scoutProse } from "../scout-map"
-import { buildProseWithLineMap, formatScoutMap, translateSections } from "./prose"
+import { scoutTool, ScoutArgs } from "./def"
+import { registerTool, tool } from "../../executors/tool"
+import { scoutFile, formatScoutEntry } from "./api"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks } from "../../client"
 import { processPool } from "~/lib/utils/pool"
 
-const PROSE_LINE_THRESHOLD = 50
-
-const countLines = (text: string): number => text.split("\n").length
-
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
 type ScoutEntryResult = { ok: true; block: Block } | { ok: false; path: string }
 
-const scoutEntryBlock = async (
-  path: string,
-  content: string,
-  task: string,
-  reason: string
-): Promise<Block> => {
-  const { prose, proseToOrig, codeblocks } = buildProseWithLineMap(content)
-
-  if (countLines(prose) <= PROSE_LINE_THRESHOLD) {
-    return toSystemBlock(`File: ${path}\n${content}`)
-  }
-
-  const raw = await scoutProse(prose, task, reason)
-  const translated = translateSections(raw.sections, proseToOrig, countLines(content))
-  const map = { file_context: raw.file_context, sections: translated }
-  return toSystemBlock(formatScoutMap(path, map, codeblocks))
-}
-
-const tryScoutEntry = async (
-  path: string,
-  task: string,
-  reason: string
-): Promise<ScoutEntryResult> => {
+const tryScoutEntry = async (path: string, reason: string): Promise<ScoutEntryResult> => {
   try {
     const content = getFileView(path)
     if (content === undefined) return { ok: false, path }
-    return { ok: true, block: await scoutEntryBlock(path, content, task, reason) }
+    const entry = await scoutFile(path, content, reason)
+    return { ok: true, block: toSystemBlock(formatScoutEntry(entry)) }
   } catch {
     return { ok: false, path }
   }
 }
 
-const toScoutResult = (total: number, failed: string[]): ToolResult<unknown> => {
-  if (failed.length === 0) return { status: "ok", output: "ok" }
+const toResult = (total: number, failed: string[]): HandlerResult<string> => {
+  if (failed.length === 0) return { status: "ok", output: "ok", mutations: [] }
 
   const successCount = total - failed.length
   const failedList = failed.join(", ")
 
   if (successCount === 0)
-    return { status: "error", output: `All files failed to map: ${failedList}` }
+    return { status: "error", output: `All files failed to map: ${failedList}`, mutations: [] }
 
   return {
     status: "partial",
     output: "ok",
     message: `${successCount}/${total} files mapped. Failed: ${failedList}`,
+    mutations: [],
   }
 }
 
-const handleScout = async (call: { args: unknown }): Promise<ToolResult<unknown>> => {
-  const parsed = ScoutArgs.safeParse(call.args)
-  if (!parsed.success) return { status: "error", output: `Invalid args: ${parsed.error.message}` }
+registerTool(
+  tool({
+    ...scoutTool,
+    schema: ScoutArgs,
+    handler: async (_files, { files }) => {
+      const missing = files
+        .filter((f: ScoutFileEntry) => getFile(f.path) === undefined)
+        .map((f: ScoutFileEntry) => f.path)
+      if (missing.length > 0)
+        return { status: "error", output: `Files not found: ${missing.join(", ")}`, mutations: [] }
 
-  const { task, files } = parsed.data
+      const failed: string[] = []
 
-  const missing = files
-    .filter((f: ScoutFileEntry) => getFile(f.path) === undefined)
-    .map((f: ScoutFileEntry) => f.path)
-  if (missing.length > 0)
-    return { status: "error", output: `Files not found: ${missing.join(", ")}` }
+      await processPool(
+        files,
+        async (f: ScoutFileEntry) => {
+          const result = await tryScoutEntry(f.path, f.reason)
+          if (!result.ok) {
+            failed.push(result.path)
+            return []
+          }
+          return [result.block]
+        },
+        (blocks) => pushBlocks(blocks),
+        { concurrency: 3 }
+      )
 
-  const failed: string[] = []
-
-  await processPool(
-    files,
-    async (f: ScoutFileEntry) => {
-      const result = await tryScoutEntry(f.path, task, f.reason)
-      if (!result.ok) {
-        failed.push(result.path)
-        return []
-      }
-      return [result.block]
+      return toResult(files.length, failed)
     },
-    (blocks) => pushBlocks(blocks),
-    { concurrency: 3 }
-  )
-
-  return toScoutResult(files.length, failed)
-}
-
-registerSpecialHandler("scout", handleScout)
+  })
+)

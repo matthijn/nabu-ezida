@@ -158,7 +158,7 @@ const summarizeBlocks = (blocks: Block[]): Record<string, number> =>
 
 const previewText = (blocks: Block[]): string | undefined => {
   const text = blocks.find((b) => b.type === "text")
-  return text?.type === "text" ? text.content.slice(0, 200) : undefined
+  return text?.type === "text" ? text.content : undefined
 }
 
 export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {

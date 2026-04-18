@@ -1,26 +1,16 @@
 import { z } from "zod"
 import type { AnyTool } from "../../executors/tool"
-
-const ScoutFileEntry = z.object({
-  path: z.string().describe("File path"),
-  reason: z
-    .string()
-    .describe(
-      "Why this file is relevant — what it will be used for (e.g. 'codebook to restructure', 'transcript to code')"
-    ),
-  group: z.string().describe('UI grouping label (e.g. "Transcript", "Codebook")'),
-})
+import { FileEntry, TOO_MANY_FILES_NUDGE } from "../file-entry"
 
 export const ScoutArgs = z.object({
-  task: z.string().describe("What you intend to do — the user's request in your own words."),
-  files: z.array(ScoutFileEntry).max(15).describe("Files involved in the task."),
+  files: z.array(FileEntry).max(40, TOO_MANY_FILES_NUDGE).describe("Files involved in the task."),
 })
 
-export type ScoutFileEntry = z.infer<typeof ScoutFileEntry>
+export type ScoutFileEntry = FileEntry
 
 export const scoutTool: AnyTool = {
   name: "scout",
   description:
-    "Load files and map their prose into sections with line ranges for a planner to work through. Small files are inlined.\n\nparallel: no — batches internally (accepts array), wait for results before acting",
+    "NOT for interpretive work (coding, framework application, evaluation) — use plan_deep_analysis for those. This tool maps file prose into sections for mechanical/structural tasks (translate, reformat, extract).\n\nSmall files are inlined.\n\nparallel: no — batches internally (accepts array), wait for results before acting",
   schema: ScoutArgs,
 }

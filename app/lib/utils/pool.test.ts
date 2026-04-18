@@ -13,6 +13,7 @@ describe("processPool", () => {
     fn: (item: number) => Promise<number[]>
     concurrency: number
     target?: number
+    warmup?: number
     expectedMin: number
     expectedMax: number
   }[] = [
@@ -84,15 +85,27 @@ describe("processPool", () => {
       expectedMin: 3,
       expectedMax: 4,
     },
+    {
+      name: "warmup processes all items",
+      items: [1, 2, 3, 4],
+      fn: (n) => immediate([n]),
+      concurrency: 3,
+      warmup: 1,
+      expectedMin: 4,
+      expectedMax: 4,
+    },
   ]
 
-  it.each(cases)("$name", async ({ items, fn, concurrency, target, expectedMin, expectedMax }) => {
-    const batches: number[][] = []
-    const onResults = (results: number[]) => batches.push(results)
-    const { results } = await processPool(items, fn, onResults, { concurrency, target })
-    expect(results.length).toBeGreaterThanOrEqual(expectedMin)
-    expect(results.length).toBeLessThanOrEqual(expectedMax)
-  })
+  it.each(cases)(
+    "$name",
+    async ({ items, fn, concurrency, target, warmup, expectedMin, expectedMax }) => {
+      const batches: number[][] = []
+      const onResults = (results: number[]) => batches.push(results)
+      const { results } = await processPool(items, fn, onResults, { concurrency, target, warmup })
+      expect(results.length).toBeGreaterThanOrEqual(expectedMin)
+      expect(results.length).toBeLessThanOrEqual(expectedMax)
+    }
+  )
 
   const behaviorCases: { name: string; check: () => Promise<void> }[] = [
     {
@@ -149,6 +162,27 @@ describe("processPool", () => {
           { concurrency: 2 }
         )
         expect(consumed).toBe(3)
+      },
+    },
+    {
+      name: "warmup runs first N items serially then opens concurrency",
+      check: async () => {
+        const order: string[] = []
+        let active = 0
+        const fn = async (n: number): Promise<number[]> => {
+          active++
+          order.push(`start:${n}@${active}`)
+          await delay(10)
+          order.push(`end:${n}@${active}`)
+          active--
+          return [n]
+        }
+        await processPool([1, 2, 3, 4, 5], fn, noop as (results: number[]) => void, {
+          concurrency: 3,
+          warmup: 1,
+        })
+        expect(order[0]).toBe("start:1@1")
+        expect(order[1]).toBe("end:1@1")
       },
     },
     {

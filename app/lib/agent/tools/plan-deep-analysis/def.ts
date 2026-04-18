@@ -1,0 +1,27 @@
+import { z } from "zod"
+import type { AnyTool } from "../../executors/tool"
+import { FileEntry, TOO_MANY_FILES_NUDGE } from "../file-entry"
+import { PostAction } from "../apply-deep-analysis/def"
+
+export const PlanDeepAnalysisArgs = z.object({
+  target_files: z
+    .array(FileEntry)
+    .max(5, TOO_MANY_FILES_NUDGE)
+    .describe("Files to analyze — content that will be examined against the source criteria."),
+  source_files: z
+    .array(FileEntry)
+    .max(40, TOO_MANY_FILES_NUDGE)
+    .describe("Files containing analysis definitions, frameworks, or criteria to apply."),
+  post_action: PostAction.describe(
+    "How apply_deep_analysis handles results: return (results only), annotate_as_code (write code annotations), annotate_as_comment (write comment annotations)."
+  ),
+})
+
+export type PlanDeepAnalysisArgs = z.infer<typeof PlanDeepAnalysisArgs>
+
+export const planDeepAnalysisTool: AnyTool = {
+  name: "plan_deep_analysis",
+  description:
+    "Load source criteria and target files, filter target sections by relevance, then transition to plan mode. Use when applying analytical criteria from source files across target content.\n\nparallel: no — batches internally, wait for results before acting",
+  schema: PlanDeepAnalysisArgs,
+}

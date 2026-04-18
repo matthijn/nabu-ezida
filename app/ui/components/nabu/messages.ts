@@ -3,6 +3,7 @@ import type { FileStore } from "~/lib/files"
 import { derive, findCall, type DerivedPlan } from "~/lib/agent"
 import { AskArgs, type AskScope } from "~/lib/agent/tools/ask/def"
 import { ScoutArgs } from "~/lib/agent/tools/scout/def"
+import { PlanDeepAnalysisArgs } from "~/lib/agent/tools/plan-deep-analysis/def"
 
 export interface TextMessage {
   type: "text"
@@ -183,15 +184,18 @@ export interface ScoutFileStatus {
 
 export interface ScoutMessage {
   type: "scout"
-  task: string
   files: ScoutFileStatus[]
 }
 
-const findScoutCalls = (history: Block[]): { index: number; call: ToolCall }[] =>
-  history.flatMap((block, index) => {
-    const call = findCall(block, "scout")
-    return call ? [{ index, call }] : []
-  })
+const SCOUT_TOOL_NAMES = ["scout", "plan_deep_analysis"] as const
+
+const findScoutLikeCalls = (history: Block[]): { index: number; call: ToolCall }[] =>
+  history.flatMap((block, index) =>
+    SCOUT_TOOL_NAMES.flatMap((name) => {
+      const call = findCall(block, name)
+      return call ? [{ index, call }] : []
+    })
+  )
 
 const findScoutResultIndex = (history: Block[], callId: string): number | null => {
   for (let i = 0; i < history.length; i++) {
@@ -222,30 +226,60 @@ const deriveFileState = (
   return "pending"
 }
 
+interface ParsedScoutFiles {
+  files: ScoutFileStatus[]
+}
+
+const parseScoutCallFiles = (
+  call: ToolCall,
+  doneFiles: Set<string>,
+  toolFinished: boolean
+): ParsedScoutFiles | null => {
+  const scoutParsed = ScoutArgs.safeParse(call.args)
+  if (scoutParsed.success) {
+    return {
+      files: scoutParsed.data.files.map((f) => ({
+        path: f.path,
+        reason: f.reason,
+        group: f.group,
+        status: deriveFileState(f.path, doneFiles, toolFinished),
+      })),
+    }
+  }
+
+  const deepParsed = PlanDeepAnalysisArgs.safeParse(call.args)
+  if (deepParsed.success) {
+    const allFiles = [...deepParsed.data.source_files, ...deepParsed.data.target_files]
+    return {
+      files: allFiles.map((f) => ({
+        path: f.path,
+        reason: f.reason,
+        group: f.group,
+        status: deriveFileState(f.path, doneFiles, toolFinished),
+      })),
+    }
+  }
+
+  return null
+}
+
 const extractSingleScout = (
   index: number,
   call: ToolCall,
   history: Block[]
 ): Indexed<ScoutMessage>[] => {
-  const parsed = ScoutArgs.safeParse(call.args)
-  if (!parsed.success) return []
-
   const resultIndex = findScoutResultIndex(history, call.id)
   const toolFinished = resultIndex !== null
   const scanEnd = resultIndex ?? history.length
   const doneFiles = collectDoneFiles(history, index + 1, scanEnd)
 
-  const files: ScoutFileStatus[] = parsed.data.files.map((f) => ({
-    path: f.path,
-    reason: f.reason,
-    group: f.group,
-    status: deriveFileState(f.path, doneFiles, toolFinished),
-  }))
+  const parsed = parseScoutCallFiles(call, doneFiles, toolFinished)
+  if (!parsed) return []
 
-  return [{ index, message: { type: "scout" as const, task: parsed.data.task, files } }]
+  return [{ index, message: { type: "scout" as const, files: parsed.files } }]
 }
 
 export const extractScoutMessages = (history: Block[]): Indexed<ScoutMessage>[] =>
-  findScoutCalls(history).flatMap(({ index, call }) => extractSingleScout(index, call, history))
+  findScoutLikeCalls(history).flatMap(({ index, call }) => extractSingleScout(index, call, history))
 
 export { isWaitingForAsk } from "~/lib/agent/client"
