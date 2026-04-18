@@ -33,16 +33,15 @@ const numberLines = (text: string): string =>
     .map((line, i) => `${i + 1}: ${line}`)
     .join("\n")
 
-const buildContextMessage = (numbered: string, reason: string): string =>
-  `<document>\n${numbered}\n</document>\n\nFile purpose: ${reason}`
+const buildContextMessage = (numbered: string): string => `<document>\n${numbered}\n</document>`
 
-export const scoutProse = async (prose: string, reason: string): Promise<ScoutMap> => {
+export const scoutProse = async (prose: string): Promise<ScoutMap> => {
   const numbered = numberLines(prose)
 
   const blocks = await callLlm({
     endpoint: SCOUT_ENDPOINT,
     messages: [
-      { type: "message", role: "system", content: buildContextMessage(numbered, reason) },
+      { type: "message", role: "system", content: buildContextMessage(numbered) },
       {
         type: "message",
         role: "user",

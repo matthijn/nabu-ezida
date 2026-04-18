@@ -177,7 +177,6 @@ export type ScoutFileState = "pending" | "done" | "failed"
 
 export interface ScoutFileStatus {
   path: string
-  reason: string
   group: string
   status: ScoutFileState
 }
@@ -240,7 +239,6 @@ const parseScoutCallFiles = (
     return {
       files: scoutParsed.data.files.map((f) => ({
         path: f.path,
-        reason: f.reason,
         group: f.group,
         status: deriveFileState(f.path, doneFiles, toolFinished),
       })),
@@ -253,7 +251,6 @@ const parseScoutCallFiles = (
     return {
       files: allFiles.map((f) => ({
         path: f.path,
-        reason: f.reason,
         group: f.group,
         status: deriveFileState(f.path, doneFiles, toolFinished),
       })),

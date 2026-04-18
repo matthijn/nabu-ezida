@@ -22,7 +22,6 @@ export interface ScoutOptions {
 export const scoutFile = async (
   path: string,
   content: string,
-  reason: string,
   options?: ScoutOptions
 ): Promise<ScoutEntry> => {
   const { prose, proseToOrig, codeblocks } = buildProseWithLineMap(content)
@@ -31,7 +30,7 @@ export const scoutFile = async (
     return { kind: "inline", path, content }
   }
 
-  const raw = await scoutProse(prose, reason)
+  const raw = await scoutProse(prose)
   const translated = translateSections(raw.sections, proseToOrig, countLines(content))
   return {
     kind: "mapped",

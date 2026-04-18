@@ -5,6 +5,7 @@ import { getLlmHost, getLlmHeaders } from "~/lib/agent/env"
 import { calculateBackoff } from "~/lib/utils/backoff"
 import { initialParseState, processLine, stateToBlocks, type ParseCallbacks } from "./parse"
 import type { InputItem, ResponseFormat } from "./convert"
+import { pushRawCall } from "./raw-store"
 
 const RETRYABLE_STATUS = [429, 502, 503]
 const MAX_RETRIES = 3
@@ -162,12 +163,22 @@ const previewText = (blocks: Block[]): string | undefined => {
 }
 
 export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
+  const body = buildRequestBody(options)
+  const t0 = performance.now()
   const response = await fetchWithRetry({
     url: buildUrl(options.endpoint, options.temperature),
-    body: buildRequestBody(options),
+    body,
     signal: options.signal,
   })
   const blocks = await streamToBlocks(response, options.callbacks ?? {})
+  const duration = Math.round(performance.now() - t0)
+  pushRawCall({
+    endpoint: options.endpoint,
+    requestBody: body,
+    rawResponse: JSON.stringify(blocks),
+    timestamp: Date.now(),
+    duration,
+  })
   console.debug(`[LLM ${options.endpoint}]`, {
     blocks: summarizeBlocks(blocks),
     preview: previewText(blocks),

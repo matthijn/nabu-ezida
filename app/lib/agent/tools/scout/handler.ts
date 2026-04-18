@@ -13,11 +13,11 @@ const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
 type ScoutEntryResult = { ok: true; block: Block } | { ok: false; path: string }
 
-const tryScoutEntry = async (path: string, reason: string): Promise<ScoutEntryResult> => {
+const tryScoutEntry = async (path: string): Promise<ScoutEntryResult> => {
   try {
     const content = getFileView(path)
     if (content === undefined) return { ok: false, path }
-    const entry = await scoutFile(path, content, reason)
+    const entry = await scoutFile(path, content)
     return { ok: true, block: toSystemBlock(formatScoutEntry(entry)) }
   } catch {
     return { ok: false, path }
@@ -57,7 +57,7 @@ registerTool(
       await processPool(
         files,
         async (f: ScoutFileEntry) => {
-          const result = await tryScoutEntry(f.path, f.reason)
+          const result = await tryScoutEntry(f.path)
           if (!result.ok) {
             failed.push(result.path)
             return []

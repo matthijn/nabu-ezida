@@ -33,7 +33,7 @@ const tryScout = async (file: FileEntry, forceScout: boolean): Promise<ScoutResu
   try {
     const content = getFileView(file.path)
     if (content === undefined) return { ok: false, path: file.path }
-    const entry = await scoutFile(file.path, content, file.reason, { forceScout })
+    const entry = await scoutFile(file.path, content, { forceScout })
     return { ok: true, path: file.path, entry }
   } catch {
     return { ok: false, path: file.path }

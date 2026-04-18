@@ -23,6 +23,12 @@ import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent/client"
 import { exhaustive } from "~/lib/utils/exhaustive"
 import { isCompactedResult, stepCompactedIndices } from "~/lib/agent/compact"
+import { DebugRawTab } from "./DebugRawTab"
+
+type DebugTab = "stream" | "raw"
+
+const TAB_ACTIVE = "border-b-2 border-neutral-700 text-neutral-700"
+const TAB_INACTIVE = "text-neutral-400 hover:text-neutral-600"
 
 const noop = () => undefined
 
@@ -399,8 +405,10 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
   const paused = isPaused(allBlocks)
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+  const [activeTab, setActiveTab] = useState<DebugTab>("stream")
 
   const hasSelection = selectedIndices.size > 0
+  const isStreamTab = activeTab === "stream"
 
   const handleCopyAll = () => {
     const blocksToFormat = hasSelection ? filterByIndices(allBlocks, selectedIndices) : allBlocks
@@ -437,16 +445,18 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         className="flex w-full cursor-move items-center justify-between rounded-t-lg bg-neutral-100 px-4 py-2"
       >
         <span className="text-sm font-medium text-neutral-700">
-          Debug Stream
-          <span className="text-xs text-neutral-400 ml-2">
-            {mode} · {blocksSinceCompaction(allBlocks)}b
-          </span>
-          {hasSelection && (
+          Debug
+          {isStreamTab && (
+            <span className="text-xs text-neutral-400 ml-2">
+              {mode} · {blocksSinceCompaction(allBlocks)}b
+            </span>
+          )}
+          {isStreamTab && hasSelection && (
             <span className="text-xs text-neutral-400 ml-1">({selectedIndices.size} selected)</span>
           )}
         </span>
         <div className="flex items-center gap-1">
-          {hasSelection && (
+          {isStreamTab && hasSelection && (
             <button
               onClick={handleDeselectAll}
               className="p-1 text-neutral-400 hover:text-neutral-600"
@@ -455,17 +465,19 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
               <ListX className="w-4 h-4" />
             </button>
           )}
-          <button
-            onClick={handleCopyAll}
-            className="p-1 text-neutral-500 hover:text-neutral-700"
-            title={hasSelection ? `Copy ${selectedIndices.size} selected` : "Copy all messages"}
-          >
-            {copiedAll ? (
-              <Check className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </button>
+          {isStreamTab && (
+            <button
+              onClick={handleCopyAll}
+              className="p-1 text-neutral-500 hover:text-neutral-700"
+              title={hasSelection ? `Copy ${selectedIndices.size} selected` : "Copy all messages"}
+            >
+              {copiedAll ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </button>
+          )}
           {paused && (
             <button
               onClick={clearPauseBlocks}
@@ -479,63 +491,82 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         </div>
       </div>
 
-      <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
-        <CollapsibleBlock
-          label={`tools (${mode})`}
-          content={formatToolDefinitions(mode)}
-          borderColor="border-cyan-400"
-          labelColor="text-cyan-600"
-          bgColor="bg-cyan-50"
-          defaultExpanded={false}
-          mono
-          selected={false}
-          onToggleSelect={noop}
-        />
-        <CollapsibleBlock
-          label="block schemas"
-          content={formatBlockSchemaDefinitions()}
-          borderColor="border-cyan-400"
-          labelColor="text-cyan-600"
-          bgColor="bg-cyan-50"
-          defaultExpanded={false}
-          mono
-          selected={false}
-          onToggleSelect={noop}
-        />
-        <CollapsibleBlock
-          label="database schema"
-          content={formatDatabaseSchema()}
-          borderColor="border-cyan-400"
-          labelColor="text-cyan-600"
-          bgColor="bg-cyan-50"
-          defaultExpanded={false}
-          mono
-          selected={false}
-          onToggleSelect={noop}
-        />
-        {allBlocks.length === 0 && (
-          <div className="flex h-full items-center justify-center">
-            <span className="text-sm text-neutral-400">No blocks yet</span>
-          </div>
-        )}
-        {allBlocks.map((block, i) => {
-          const source = getSource(block)
-          const indent = isSubagentBlock(source) ? "ml-4" : ""
-          const opacity = compacted.has(i) ? "opacity-50" : ""
-          const roundtrip = roundtripStarts.get(i)
-          return (
-            <div key={i} className={`${indent} ${opacity}`}>
-              {roundtrip !== undefined && <RoundtripBadge number={roundtrip} />}
-              <BlockRenderer
-                block={block}
-                source={source}
-                selected={selectedIndices.has(i)}
-                onToggleSelect={() => handleToggleBlock(i)}
-              />
+      <div className="flex gap-4 border-b border-neutral-200 px-4">
+        <button
+          onClick={() => setActiveTab("stream")}
+          className={`py-1.5 text-xs font-medium ${isStreamTab ? TAB_ACTIVE : TAB_INACTIVE}`}
+        >
+          Stream
+        </button>
+        <button
+          onClick={() => setActiveTab("raw")}
+          className={`py-1.5 text-xs font-medium ${activeTab === "raw" ? TAB_ACTIVE : TAB_INACTIVE}`}
+        >
+          Raw
+        </button>
+      </div>
+
+      {isStreamTab ? (
+        <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
+          <CollapsibleBlock
+            label={`tools (${mode})`}
+            content={formatToolDefinitions(mode)}
+            borderColor="border-cyan-400"
+            labelColor="text-cyan-600"
+            bgColor="bg-cyan-50"
+            defaultExpanded={false}
+            mono
+            selected={false}
+            onToggleSelect={noop}
+          />
+          <CollapsibleBlock
+            label="block schemas"
+            content={formatBlockSchemaDefinitions()}
+            borderColor="border-cyan-400"
+            labelColor="text-cyan-600"
+            bgColor="bg-cyan-50"
+            defaultExpanded={false}
+            mono
+            selected={false}
+            onToggleSelect={noop}
+          />
+          <CollapsibleBlock
+            label="database schema"
+            content={formatDatabaseSchema()}
+            borderColor="border-cyan-400"
+            labelColor="text-cyan-600"
+            bgColor="bg-cyan-50"
+            defaultExpanded={false}
+            mono
+            selected={false}
+            onToggleSelect={noop}
+          />
+          {allBlocks.length === 0 && (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-sm text-neutral-400">No blocks yet</span>
             </div>
-          )
-        })}
-      </AutoScroll>
+          )}
+          {allBlocks.map((block, i) => {
+            const source = getSource(block)
+            const indent = isSubagentBlock(source) ? "ml-4" : ""
+            const opacity = compacted.has(i) ? "opacity-50" : ""
+            const roundtrip = roundtripStarts.get(i)
+            return (
+              <div key={i} className={`${indent} ${opacity}`}>
+                {roundtrip !== undefined && <RoundtripBadge number={roundtrip} />}
+                <BlockRenderer
+                  block={block}
+                  source={source}
+                  selected={selectedIndices.has(i)}
+                  onToggleSelect={() => handleToggleBlock(i)}
+                />
+              </div>
+            )
+          })}
+        </AutoScroll>
+      ) : (
+        <DebugRawTab />
+      )}
     </div>
   )
 }
