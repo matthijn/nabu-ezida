@@ -1,14 +1,10 @@
 import { z } from "zod"
 import type { AnyTool } from "../../executors/tool"
 import { normalizeLlmSql } from "~/lib/sql/normalize"
+import { SQL_ARG_DESCRIPTION } from "../sql-describe"
 
 export const QueryArgs = z.object({
-  sql: z
-    .string()
-    .describe(
-      "SQL query. Use ILIKE only for verbatim strings (names, dates, specific terms). For meanings, paraphrases, synonyms, or concepts — use SEMANTIC('passage description'). Stacking multiple ILIKE variants to cover wording is a signal you want SEMANTIC instead."
-    )
-    .transform(normalizeLlmSql),
+  sql: z.string().describe(SQL_ARG_DESCRIPTION).transform(normalizeLlmSql),
 })
 
 export const queryTool: AnyTool = {
