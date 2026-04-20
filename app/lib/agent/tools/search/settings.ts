@@ -3,13 +3,15 @@ import { replaceSingletonBlock } from "~/lib/data-blocks/parse"
 import type { Settings } from "~/domain/data-blocks/settings/schema"
 import { getSettings } from "~/domain/data-blocks/settings/selectors"
 import { SETTINGS_FILE } from "~/lib/files/filename"
-import type { SearchEntry } from "~/domain/search"
+import type { SearchEntry, HydesCache } from "~/domain/search"
 
 export interface NewSearchData {
   title: string
   description: string
   highlight?: string
   sql: string
+  hydes?: HydesCache
+  descriptionsHash?: string
 }
 
 const MAX_UNSAVED = 3
@@ -49,15 +51,34 @@ const bySql =
   (e: SearchEntry): boolean =>
     e.sql === sql
 
-const bumpExisting = (entries: SearchEntry[], sql: string): SearchEntry[] =>
-  entries.map((e) => (e.sql === sql ? { ...e, createdAt: Date.now() } : e))
+const bumpExisting = (
+  entries: SearchEntry[],
+  sql: string,
+  hydes?: HydesCache,
+  descriptionsHash?: string
+): SearchEntry[] =>
+  entries.map((e) =>
+    e.sql === sql
+      ? {
+          ...e,
+          createdAt: Date.now(),
+          ...(hydes && { hydes }),
+          ...(descriptionsHash && { descriptionsHash }),
+        }
+      : e
+  )
 
 export const saveNewSearch = (data: NewSearchData): string | null => {
   const settings = readSettings()
   const existing = (settings.searches ?? []).find(bySql(data.sql))
 
   if (existing) {
-    const bumped = bumpExisting(settings.searches ?? [], data.sql)
+    const bumped = bumpExisting(
+      settings.searches ?? [],
+      data.sql,
+      data.hydes,
+      data.descriptionsHash
+    )
     const writeError = updateSearchEntries(bumped)
     return writeError ? null : existing.id
   }
@@ -71,10 +92,25 @@ export const saveNewSearch = (data: NewSearchData): string | null => {
     saved: false,
     createdAt: Date.now(),
     sql: data.sql,
+    hydes: data.hydes,
+    descriptionsHash: data.descriptionsHash,
   }
 
   const withNew = [...(settings.searches ?? []), entry]
   const rotated = rotateUnsaved(withNew)
   const writeError = updateSearchEntries(rotated)
   return writeError ? null : id
+}
+
+export const updateSearchHydes = (
+  searchId: string,
+  hydes: HydesCache,
+  descriptionsHash?: string
+): void => {
+  const settings = readSettings()
+  const entries = settings.searches ?? []
+  const updated = entries.map((e) =>
+    e.id === searchId ? { ...e, hydes, ...(descriptionsHash && { descriptionsHash }) } : e
+  )
+  updateSearchEntries(updated)
 }

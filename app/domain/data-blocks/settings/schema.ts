@@ -2,6 +2,7 @@ import { z } from "zod"
 import { slug, radixColor } from "~/domain/data-blocks/attributes/schema"
 import { ICON_NAMES } from "~/ui/theme/icons"
 import { SearchEntrySchema } from "~/domain/search"
+import { CorpusDescriptionSchema } from "~/domain/corpus/types"
 
 export const TagDefinition = z.object({
   id: z.string(),
@@ -21,6 +22,7 @@ const deduplicateByLabel = (tags: TagDefinition[]): TagDefinition[] => {
 const BaseSettings = z.object({
   tags: z.array(TagDefinition).optional(),
   searches: z.array(SearchEntrySchema).optional(),
+  corpusDescriptions: z.array(CorpusDescriptionSchema).optional(),
 })
 
 export const settingsSchema = () =>

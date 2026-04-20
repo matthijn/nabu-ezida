@@ -130,9 +130,17 @@ describe("diffFileContent", () => {
     },
     {
       name: "annotation review changed (updated)",
-      oldRaw: buildDoc(buildAnnotations([annotation("annotation-1", "text")])),
+      oldRaw: buildDoc(
+        buildAnnotations([annotation("annotation-1", "text", { code: "code_1", color: undefined })])
+      ),
       newRaw: buildDoc(
-        buildAnnotations([annotation("annotation-1", "text", { review: "needs check" })])
+        buildAnnotations([
+          annotation("annotation-1", "text", {
+            code: "code_1",
+            color: undefined,
+            review: "needs check",
+          }),
+        ])
       ),
       expected: [
         {
@@ -140,7 +148,6 @@ describe("diffFileContent", () => {
           entityKind: "annotation",
           entityId: "annotation-1",
           label: "text",
-          color: "red",
         },
       ],
     },

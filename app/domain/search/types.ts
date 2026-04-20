@@ -14,6 +14,10 @@ const validSql = z.string().superRefine((sql, ctx) => {
   if (!result.ok) ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error })
 })
 
+export const HydesCacheSchema = z.record(z.string(), z.array(z.string()))
+
+export type HydesCache = z.infer<typeof HydesCacheSchema>
+
 export const SearchEntrySchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -22,6 +26,8 @@ export const SearchEntrySchema = z.object({
   saved: z.boolean(),
   createdAt: z.number(),
   sql: validSql,
+  hydes: HydesCacheSchema.optional(),
+  descriptionsHash: z.string().optional(),
 })
 
 export type SearchEntry = z.infer<typeof SearchEntrySchema>

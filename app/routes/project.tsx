@@ -41,7 +41,7 @@ import {
   type OnDbSyncProgress,
 } from "~/domain/db/database"
 import { startEmbeddings } from "~/domain/embeddings/init"
-import { startTopicAssignment } from "~/domain/topic-assignment/init"
+import { startTopicAssignment } from "~/domain/corpus/init"
 import { WelcomeBackLoading } from "~/ui/components/WelcomeBackLoading"
 import {
   getAnnotationCount,

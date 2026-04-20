@@ -338,7 +338,6 @@ describe("buildCosineQuery", () => {
   const hyde = (language: string, vector: number[]): HydeQuery => ({
     text: "hypothetical passage",
     language,
-    group: "test",
     cosineVector: vector,
   })
 
@@ -412,29 +411,25 @@ describe("sqlQueriesFilesTable", () => {
 })
 
 describe("buildHybridPlan", () => {
-  it("builds plan from SQL, token, tree, and hydes", () => {
+  it("builds plan from SQL, token, and hydes", () => {
     const sql = "SELECT f.file, f.text, SEMANTIC('emotional distress') FROM files f LIMIT 30"
     const token: SemanticToken = { text: "emotional distress", start: 23, end: 52 }
-    const tree = "interviews:transcript\n  mental health\n  workplace stress"
     const hydes: HydeQuery[] = [
       {
         text: "I feel so anxious all the time",
         language: "eng",
-        group: "interviews",
         cosineVector: [0.1, 0.2],
       },
       {
         text: "De stress is ondraaglijk geworden",
         language: "nld",
-        group: "interviews",
         cosineVector: [0.3, 0.4],
       },
     ]
 
-    const plan = buildHybridPlan(sql, token, tree, hydes)
+    const plan = buildHybridPlan(sql, token, hydes)
 
     expect(plan.intent).toBe("emotional distress")
-    expect(plan.tree).toBe(tree)
     expect(plan.limit).toBe(30)
     expect(plan.hydes).toHaveLength(2)
     expect(plan.hydes[0].language).toBe("eng")

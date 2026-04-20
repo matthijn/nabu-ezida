@@ -14,7 +14,6 @@ import { computeTextStats, countLines, formatStatsLabel, formatStatsDetail } fro
 import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
 import {
   getDocumentType,
-  getDocumentSource,
   getDocumentSubject,
 } from "~/domain/data-blocks/attributes/topics/selectors"
 import {
@@ -41,10 +40,9 @@ import {
 
 const formatClassificationLine = (
   type: string | undefined,
-  source: string | undefined,
   subject: string | undefined
 ): string | null => {
-  const parts = [type, source, subject].filter(Boolean)
+  const parts = [type, subject].filter(Boolean)
   return parts.length > 0 ? parts.join(" \u00b7 ") : null
 }
 
@@ -54,7 +52,6 @@ const documentStatusTooltip = (content: string): string => {
   const detail = `${lines.toLocaleString()} lines · ${formatStatsDetail(stats)}`
   const classification = formatClassificationLine(
     getDocumentType(content),
-    getDocumentSource(content),
     getDocumentSubject(content)
   )
   return classification ? `${detail}\n${classification}` : detail

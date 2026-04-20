@@ -63,7 +63,7 @@ describe("deriveTypedOps", () => {
       expectImmutableFields: [],
       expectMultilineFields: [],
       expectArrayOps: ["tags", "searches"],
-      expectSetFields: [],
+      expectSetFields: ["corpusDescriptions"],
     },
     {
       name: "json-chart: non-singleton, id is immutable, nested objects",

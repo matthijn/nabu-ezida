@@ -1,0 +1,46 @@
+import { callLlm, extractText } from "~/lib/agent/client"
+import type { CorpusDescription } from "~/domain/corpus/types"
+
+const HYDE_GENERATOR_ENDPOINT = "/hyde-generator"
+const EXPECTED_HYDE_COUNT = 3
+const SEPARATOR = "---"
+
+const toSystem = (content: string) => ({
+  type: "message" as const,
+  role: "system" as const,
+  content,
+})
+
+const formatCallToAction = (language: string): string =>
+  `Generate the 3 passages now in ${language}. Separate with ---`
+
+const parseHydes = (text: string): string[] =>
+  text
+    .split(SEPARATOR)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+
+export const generateHydesForDescription = async (
+  description: CorpusDescription,
+  query: string
+): Promise<string[]> => {
+  const blocks = await callLlm({
+    endpoint: HYDE_GENERATOR_ENDPOINT,
+    messages: [
+      toSystem(`[${description.corpus}] ${description.description}`),
+      toSystem(`language: ${description.language}\nquery: ${query}`),
+      toSystem(formatCallToAction(description.language)),
+    ],
+  })
+
+  const text = extractText(blocks)
+  if (!text) throw new Error("HyDE generator returned empty response")
+
+  const hydes = parseHydes(text)
+  if (hydes.length !== EXPECTED_HYDE_COUNT)
+    throw new Error(
+      `HyDE generator returned ${hydes.length} passages, expected ${EXPECTED_HYDE_COUNT}`
+    )
+
+  return hydes
+}

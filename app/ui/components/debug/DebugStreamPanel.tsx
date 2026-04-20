@@ -24,8 +24,9 @@ import type { Block, ToolCall } from "~/lib/agent/client"
 import { exhaustive } from "~/lib/utils/exhaustive"
 import { isCompactedResult, stepCompactedIndices } from "~/lib/agent/compact"
 import { DebugRawTab } from "./DebugRawTab"
+import { DebugStatsTab } from "./DebugStatsTab"
 
-type DebugTab = "stream" | "raw"
+type DebugTab = "stream" | "raw" | "stats"
 
 const TAB_ACTIVE = "border-b-2 border-neutral-700 text-neutral-700"
 const TAB_INACTIVE = "text-neutral-400 hover:text-neutral-600"
@@ -504,9 +505,17 @@ export const DebugStreamPanel = ({ onClose }: DebugStreamPanelProps) => {
         >
           Raw
         </button>
+        <button
+          onClick={() => setActiveTab("stats")}
+          className={`py-1.5 text-xs font-medium ${activeTab === "stats" ? TAB_ACTIVE : TAB_INACTIVE}`}
+        >
+          Stats
+        </button>
       </div>
 
-      {isStreamTab ? (
+      {activeTab === "stats" ? (
+        <DebugStatsTab />
+      ) : isStreamTab ? (
         <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-3 px-3 py-3">
           <CollapsibleBlock
             label={`tools (${mode})`}

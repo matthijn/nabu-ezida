@@ -1,2 +1,2 @@
-export { SearchHitSchema, SearchEntrySchema } from "./types"
-export type { SearchHit, SearchEntry } from "./types"
+export { SearchHitSchema, SearchEntrySchema, HydesCacheSchema } from "./types"
+export type { SearchHit, SearchEntry, HydesCache } from "./types"

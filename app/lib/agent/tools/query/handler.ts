@@ -14,8 +14,7 @@ import {
   type LimitRewrite,
   type HybridSearchPlan,
 } from "~/lib/search"
-import { buildClassificationTree } from "~/lib/topic-assignment/tree"
-import { getFiles } from "~/lib/files/store"
+import { buildSemanticContext } from "~/domain/corpus/init"
 
 const MAX_QUERY_ROWS = 50
 
@@ -70,13 +69,9 @@ const executeQuery = async (call: { args: unknown }): Promise<ToolResult<unknown
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const tree = buildClassificationTree(getFiles()) ?? ""
+  const ctx = await buildSemanticContext(db, getLlmHost())
 
-  const resolved = await resolveSemanticSql(parsed.data.sql, {
-    db,
-    baseUrl: getLlmHost(),
-    tree,
-  })
+  const resolved = await resolveSemanticSql(parsed.data.sql, ctx)
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
   if (resolved.value.type === "hybrid") {

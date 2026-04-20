@@ -12,8 +12,9 @@ import {
   SEMANTIC_ABSENCE_HINT,
 } from "~/lib/search"
 import { saveNewSearch } from "./settings"
-import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getFiles } from "~/lib/files/store"
+import { getSearchEntries } from "~/domain/data-blocks/settings/searches/selectors"
+import { buildSemanticContext } from "~/domain/corpus/init"
 import type { SearchHit } from "~/domain/search"
 
 const MAX_SEARCH_ROWS = 50
@@ -53,18 +54,24 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const db = getDatabase()
   if (!db) return { status: "error", output: "Database not ready. Try again shortly." }
 
-  const tree = buildClassificationTree(getFiles()) ?? ""
-
+  const ctx = await buildSemanticContext(db, getLlmHost())
   const sql = stripPaging(parsed.data.sql)
 
+  const files = getFiles()
+  const existingEntry = getSearchEntries(files).find((e) => e.sql === sql)
+
   const resolved = await resolveSemanticSql(sql, {
-    db,
-    baseUrl: getLlmHost(),
-    tree,
+    ...ctx,
+    cachedHydes: existingEntry?.hydes,
+    cachedDescriptionsHash: existingEntry?.descriptionsHash,
   })
   if (!resolved.ok) return { status: "error", output: resolved.error.message }
 
   const isSemantic = resolved.value.type === "hybrid"
+  const hydes = resolved.value.type === "hybrid" ? resolved.value.hydesCache : undefined
+  const entryDescriptionsHash =
+    resolved.value.type === "hybrid" ? resolved.value.descriptionsHash : undefined
+
   const rawHits =
     resolved.value.type === "hybrid"
       ? await executeHybridLocal(db, resolved.value.plan)
@@ -76,7 +83,7 @@ const handleSearch = async (call: { args: unknown }): Promise<ToolResult<unknown
   const hits = capped ? rawHits.value.slice(0, MAX_SEARCH_ROWS) : rawHits.value
   if (hasNoResults(hits)) return formatEmpty(sql)
 
-  const id = saveNewSearch({ ...parsed.data, sql })
+  const id = saveNewSearch({ ...parsed.data, sql, hydes, descriptionsHash: entryDescriptionsHash })
   if (!id) return { status: "error", output: "Failed to save search" }
 
   return { status: "ok", output: formatOutput(id, hits, capped, isSemantic) }

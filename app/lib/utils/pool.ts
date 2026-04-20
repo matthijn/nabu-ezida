@@ -3,9 +3,8 @@ const DEFAULT_CONCURRENCY = 5
 interface PoolOptions {
   concurrency?: number
   target?: number
-  // LLM prompt caching: run first N items serially so the provider caches the
-  // shared prefix, then open up to full concurrency for cache hits.
   warmup?: number
+  onItemComplete?: (completed: number, total: number) => void
 }
 
 interface PoolResult<R> {
@@ -19,7 +18,7 @@ export const processPool = <T, R>(
   onResults: (results: R[]) => void,
   opts: PoolOptions
 ): Promise<PoolResult<R>> => {
-  const { concurrency = DEFAULT_CONCURRENCY, target, warmup = 0 } = opts
+  const { concurrency = DEFAULT_CONCURRENCY, target, warmup = 0, onItemComplete } = opts
   const all: R[] = []
   let cursor = 0
   let inFlight = 0
@@ -50,6 +49,8 @@ export const processPool = <T, R>(
             completed++
             if (done) return
 
+            onItemComplete?.(completed, items.length)
+
             if (results.length > 0) {
               all.push(...results)
               onResults(results)
@@ -65,6 +66,8 @@ export const processPool = <T, R>(
             inFlight--
             completed++
             if (done) return
+
+            onItemComplete?.(completed, items.length)
 
             if (isComplete()) {
               settle()

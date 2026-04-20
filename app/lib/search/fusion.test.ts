@@ -37,7 +37,7 @@ describe("mergeScoreMaps", () => {
       expected: new Map([["h1", 0.5]]),
     },
     {
-      name: "sums values across maps",
+      name: "keeps max value across maps",
       maps: [
         new Map([
           ["h1", 0.4],
@@ -49,7 +49,7 @@ describe("mergeScoreMaps", () => {
         ]),
       ],
       expected: new Map([
-        ["h1", 0.6],
+        ["h1", 0.4],
         ["h2", 0.3],
         ["h3", 0.6],
       ]),
@@ -113,13 +113,13 @@ describe("fuseCosineResults", () => {
       expectedFiles: [],
     },
     {
-      name: "multi-hyde overlapping chunks accumulate scores",
+      name: "multi-hyde overlapping chunks keep max score",
       cosinePerHyde: [
         [chunk("a.md", "h1", 0.8)],
         [chunk("a.md", "h1", 0.7), chunk("b.md", "h2", 0.9)],
       ],
       limit: 50,
-      expectedFiles: ["a.md", "b.md"],
+      expectedFiles: ["b.md", "a.md"],
     },
     {
       name: "multi-hyde disjoint chunks merged and ranked",
@@ -132,12 +132,12 @@ describe("fuseCosineResults", () => {
       expectedFiles: ["b.md", "c.md", "a.md"],
     },
     {
-      name: "filters out chunks at or below 0.3",
+      name: "filters out chunks below 0.3",
       cosinePerHyde: [
         [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.3), chunk("c.md", "h3", 0.1)],
       ],
       limit: 50,
-      expectedFiles: ["a.md"],
+      expectedFiles: ["a.md", "b.md"],
     },
   ]
 

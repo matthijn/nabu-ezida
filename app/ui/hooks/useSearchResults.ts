@@ -12,8 +12,9 @@ import {
 } from "~/lib/search"
 import { filterAndGrow, FILTER_BATCH_SIZE } from "~/lib/search/filter-hits"
 import { growHits } from "~/lib/search/slices"
-import { buildClassificationTree } from "~/lib/topic-assignment/tree"
 import { getLlmHost } from "~/lib/agent/env"
+import { buildSemanticContext } from "~/domain/corpus/init"
+import { updateSearchHydes } from "~/lib/agent/tools/search/settings"
 import type { SearchEntry, SearchHit } from "~/domain/search"
 import type { HydeQuery } from "~/lib/search/semantic"
 
@@ -117,12 +118,12 @@ export const useSearchResults = (
         hasMore: false,
       })
 
-      const tree = buildClassificationTree(getFiles()) ?? ""
+      const ctx = await buildSemanticContext(db, getLlmHost())
       const resolved = await resolveSemanticSql(search.sql, {
-        db,
-        baseUrl: getLlmHost(),
-        tree,
+        ...ctx,
         skipCache,
+        cachedHydes: search.hydes,
+        cachedDescriptionsHash: search.descriptionsHash,
       })
       if (cancelled) return
       if (!resolved.ok) {
@@ -138,6 +139,10 @@ export const useSearchResults = (
       }
 
       const hydes = resolved.value.type === "hybrid" ? resolved.value.plan.hydes : []
+
+      if (resolved.value.type === "hybrid") {
+        updateSearchHydes(search.id, resolved.value.hydesCache, resolved.value.descriptionsHash)
+      }
 
       const rawHits =
         resolved.value.type === "plain"

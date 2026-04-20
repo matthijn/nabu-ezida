@@ -5,29 +5,27 @@ const ENDPOINT = "/topic-assigner"
 
 export interface Classification {
   type: string
-  source: string
   subject: string
 }
 
 export interface ExistingClassifications {
   types: string[]
-  sources: string[]
   subjects: string[]
 }
 
 const ClassificationSchema = z.object({
-  type: z.string().describe("document format, 1-3 words"),
-  source: z.string().describe("who produced the document, 1-3 words"),
-  subject: z.string().describe("topic of the document, 3-5 words"),
+  type: z.string().describe("document type, 1-3 words"),
+  subject: z.string().describe("document subject, 1-3 words"),
 })
 
 const formatList = (items: string[]): string =>
-  items.length === 0 ? "(none yet)" : items.join(", ")
+  items.length === 0 ? "(none yet)" : [...items].sort().join(", ")
 
 const buildExistingMessage = (existing: ExistingClassifications): string =>
-  `Existing types: ${formatList(existing.types)}\nExisting sources: ${formatList(existing.sources)}\nExisting subjects: ${formatList(existing.subjects)}`
+  `Existing types: ${formatList(existing.types)}\nExisting subjects: ${formatList(existing.subjects)}`
 
-const CALL_TO_ACTION = "Classify this document."
+const CALL_TO_ACTION =
+  "Classify the document above. Reuse an existing type and subject from the lists provided if any fit reasonably. Only create new labels if nothing existing applies."
 
 const toSystem = (content: string) => ({
   type: "message" as const,
@@ -35,9 +33,14 @@ const toSystem = (content: string) => ({
   content,
 })
 
+const toUser = (content: string) => ({
+  type: "message" as const,
+  role: "user" as const,
+  content,
+})
+
 const lowercaseClassification = (c: Classification): Classification => ({
   type: c.type.toLowerCase(),
-  source: c.source.toLowerCase(),
   subject: c.subject.toLowerCase(),
 })
 
@@ -47,11 +50,7 @@ export const classifyDocument = async (
 ): Promise<Classification | null> => {
   const blocks = await callLlm({
     endpoint: ENDPOINT,
-    messages: [
-      toSystem(buildExistingMessage(existing)),
-      toSystem(excerpt),
-      toSystem(CALL_TO_ACTION),
-    ],
+    messages: [toSystem(buildExistingMessage(existing)), toSystem(excerpt), toUser(CALL_TO_ACTION)],
     responseFormat: toResponseFormat(ClassificationSchema),
   })
 
