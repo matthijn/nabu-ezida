@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { toStrictSchema } from "./tool"
+import { toStrictSchema, stripUnsupportedKeywords } from "./tool"
 
 describe("toStrictSchema", () => {
   const cases = [
@@ -133,5 +133,85 @@ describe("toStrictSchema", () => {
 
   it.each(cases)("$name", ({ input, expected }) => {
     expect(toStrictSchema(input)).toEqual(expected)
+  })
+})
+
+describe("stripUnsupportedKeywords", () => {
+  const cases = [
+    {
+      name: "passes through primitives",
+      input: { type: "string" },
+      expected: { type: "string" },
+    },
+    {
+      name: "strips propertyNames from record schema",
+      input: {
+        type: "object",
+        propertyNames: { type: "string" },
+        additionalProperties: { type: "array", items: { type: "string" } },
+      },
+      expected: {
+        type: "object",
+        additionalProperties: { type: "array", items: { type: "string" } },
+      },
+    },
+    {
+      name: "strips patternProperties",
+      input: {
+        type: "object",
+        patternProperties: { "^S_": { type: "string" } },
+        properties: { name: { type: "string" } },
+      },
+      expected: {
+        type: "object",
+        properties: { name: { type: "string" } },
+      },
+    },
+    {
+      name: "recurses into nested properties",
+      input: {
+        type: "object",
+        properties: {
+          hydes: {
+            anyOf: [
+              {
+                type: "object",
+                propertyNames: { type: "string" },
+                additionalProperties: { type: "array", items: { type: "string" } },
+              },
+              { type: "null" },
+            ],
+          },
+        },
+      },
+      expected: {
+        type: "object",
+        properties: {
+          hydes: {
+            anyOf: [
+              {
+                type: "object",
+                additionalProperties: { type: "array", items: { type: "string" } },
+              },
+              { type: "null" },
+            ],
+          },
+        },
+      },
+    },
+    {
+      name: "handles arrays",
+      input: [{ type: "object", propertyNames: { type: "string" } }],
+      expected: [{ type: "object" }],
+    },
+    {
+      name: "returns non-objects unchanged",
+      input: "string",
+      expected: "string",
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(stripUnsupportedKeywords(input)).toEqual(expected)
   })
 })

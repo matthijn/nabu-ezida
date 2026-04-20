@@ -12,6 +12,8 @@ const PENDING_REF_PATTERN = /#\[([^\]]+)\]/g
 const ID_SOURCE = "[a-z]+-[a-z0-9]{8}"
 const ID_PATTERN = new RegExp(ID_SOURCE, "g")
 
+let definitionIndex = new Map<string, Set<string>>()
+
 export const stripPendingRefs = (content: string): string =>
   content.replace(PENDING_REF_PATTERN, "$1")
 
@@ -53,12 +55,28 @@ const findForeignIds = (content: string): string[] => {
   return findAllIds(content).filter((id) => !definitions.has(id))
 }
 
-export const getAllDefinitions = (files: FileStore): Set<string> => {
+export const rebuildDefinitionIndex = (files: FileStore): void => {
+  definitionIndex = new Map(Object.entries(files).map(([k, v]) => [k, findDefinitionIds(v)]))
+}
+
+export const updateDefinitionIndex = (filename: string, content: string): void => {
+  definitionIndex.set(filename, findDefinitionIds(content))
+}
+
+export const removeFromDefinitionIndex = (filename: string): void => {
+  definitionIndex.delete(filename)
+}
+
+export const renameInDefinitionIndex = (oldName: string, newName: string): void => {
+  const defs = definitionIndex.get(oldName)
+  definitionIndex.delete(oldName)
+  if (defs) definitionIndex.set(newName, defs)
+}
+
+export const getAllDefinitions = (): Set<string> => {
   const all = new Set<string>()
-  for (const content of Object.values(files)) {
-    for (const id of findDefinitionIds(stripPendingRefs(content))) {
-      all.add(id)
-    }
+  for (const ids of definitionIndex.values()) {
+    for (const id of ids) all.add(id)
   }
   return all
 }

@@ -10,9 +10,9 @@ describe("hashChunk", () => {
       },
     },
     {
-      name: "returns 8 character hex string",
+      name: "returns 16 character hex string",
       check: () => {
-        expect(hashChunk("test input")).toMatch(/^[0-9a-f]{8}$/)
+        expect(hashChunk("test input")).toMatch(/^[0-9a-f]{16}$/)
       },
     },
     {

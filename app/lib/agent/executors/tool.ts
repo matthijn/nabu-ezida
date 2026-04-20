@@ -136,8 +136,23 @@ export const toStrictSchema = (schema: unknown): unknown => {
   return s
 }
 
+const UNSUPPORTED_KEYWORDS = new Set(["propertyNames", "patternProperties"])
+
+export const stripUnsupportedKeywords = (schema: unknown): unknown => {
+  if (typeof schema !== "object" || schema === null) return schema
+  if (Array.isArray(schema)) return schema.map(stripUnsupportedKeywords)
+  const cleaned: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (UNSUPPORTED_KEYWORDS.has(key)) continue
+    cleaned[key] = stripUnsupportedKeywords(value)
+  }
+  return cleaned
+}
+
 export const toToolDefinition = (t: AnyTool): ToolDefinition => {
-  const jsonSchema = t.jsonSchema ?? z.toJSONSchema(t.schema, { io: "input" })
+  const jsonSchema = stripUnsupportedKeywords(
+    t.jsonSchema ?? z.toJSONSchema(t.schema, { io: "input" })
+  )
   const strict = isStrictCompatible(jsonSchema)
   const parameters = strict
     ? (toStrictSchema(jsonSchema) as ToolDefinition["parameters"])

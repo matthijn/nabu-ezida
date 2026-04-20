@@ -4,6 +4,10 @@ import {
   markPendingRefs,
   resolvePendingRef,
   getAllDefinitions,
+  rebuildDefinitionIndex,
+  updateDefinitionIndex,
+  removeFromDefinitionIndex,
+  renameInDefinitionIndex,
   findPendingRefs,
   findDefinitionIds,
 } from "./pending-refs"
@@ -100,6 +104,7 @@ export const getFileLineCount = (filename: string): number => countLines(getFile
 export const setFiles = (newFiles: FileStore): void => {
   console.debug(`[store] setFiles: ${Object.keys(newFiles).length} files`, Object.keys(newFiles))
   files = Object.fromEntries(Object.entries(newFiles).map(([k, v]) => [k, normalizeFile(v)]))
+  rebuildDefinitionIndex(files)
   notify()
 }
 
@@ -115,6 +120,8 @@ export const updateFileRaw = (filename: string, raw: string): void => {
     `[store] updateFileRaw: ${isNew ? "create" : "update"} "${filename}" (${normalized.length} chars)`
   )
 
+  updateDefinitionIndex(filename, normalized)
+
   if (pendingRefsSuppressed) {
     files = { ...files, [filename]: normalized }
     persistWrite(filename)
@@ -122,7 +129,7 @@ export const updateFileRaw = (filename: string, raw: string): void => {
     return
   }
 
-  const definitions = getAllDefinitions(files)
+  const definitions = getAllDefinitions()
   const marked = markPendingRefs(normalized, definitions)
   const pendingRefsInNew = findPendingRefs(marked)
   if (pendingRefsInNew.length > 0) {
@@ -157,6 +164,7 @@ export const updateFileRaw = (filename: string, raw: string): void => {
 
 export const deleteFile = (filename: string): void => {
   console.debug(`[store] deleteFile: "${filename}"`)
+  removeFromDefinitionIndex(filename)
   const { [filename]: _, ...rest } = files
   files = rest
   if (currentFile === filename) {
@@ -171,6 +179,7 @@ export const renameFile = (oldName: string, newName: string): void => {
   const content = files[oldName]
   if (content === undefined) return
 
+  renameInDefinitionIndex(oldName, newName)
   const { [oldName]: _, ...rest } = files
   files = { ...rest, [newName]: content }
 
@@ -182,7 +191,7 @@ export const renameFile = (oldName: string, newName: string): void => {
 }
 
 export const resolvePendingRefsInBulk = (): void => {
-  const definitions = getAllDefinitions(files)
+  const definitions = getAllDefinitions()
   let updated = files
 
   for (const [path, content] of Object.entries(updated)) {

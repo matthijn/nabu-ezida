@@ -7,6 +7,10 @@ import {
   resolvePendingRef,
   resolveAllPendingRefs,
   getAllDefinitions,
+  rebuildDefinitionIndex,
+  updateDefinitionIndex,
+  removeFromDefinitionIndex,
+  renameInDefinitionIndex,
   findDefinitionIds,
 } from "."
 import type { FileStore } from "../store"
@@ -191,7 +195,7 @@ describe("pending-refs", () => {
         expected: new Set(["code-1aaaaaaa", "code-2bbbbbbb"]),
       },
       {
-        name: "strips pending ref markers before finding definitions",
+        name: "pending ref markers on non-id fields do not appear as definitions",
         files: {
           "a.md": '{"id": "code-1aaaaaaa", "ref": "#[code-2bbbbbbb]"}',
         },
@@ -200,7 +204,31 @@ describe("pending-refs", () => {
     ]
 
     it.each(cases)("$name", ({ files, expected }) => {
-      expect(getAllDefinitions(files)).toEqual(expected)
+      rebuildDefinitionIndex(files)
+      expect(getAllDefinitions()).toEqual(expected)
+    })
+  })
+
+  describe("incremental definition index", () => {
+    it("updateDefinitionIndex adds definitions for a single file", () => {
+      rebuildDefinitionIndex({})
+      updateDefinitionIndex("a.md", '{"id": "code-1aaaaaaa"}')
+      expect(getAllDefinitions()).toEqual(new Set(["code-1aaaaaaa"]))
+    })
+
+    it("removeFromDefinitionIndex removes a file's definitions", () => {
+      rebuildDefinitionIndex({
+        "a.md": '{"id": "code-1aaaaaaa"}',
+        "b.md": '{"id": "code-2bbbbbbb"}',
+      })
+      removeFromDefinitionIndex("a.md")
+      expect(getAllDefinitions()).toEqual(new Set(["code-2bbbbbbb"]))
+    })
+
+    it("renameInDefinitionIndex preserves definitions under new key", () => {
+      rebuildDefinitionIndex({ "old.md": '{"id": "code-1aaaaaaa"}' })
+      renameInDefinitionIndex("old.md", "new.md")
+      expect(getAllDefinitions()).toEqual(new Set(["code-1aaaaaaa"]))
     })
   })
 })
