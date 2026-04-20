@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, X } from "lucide-react"
 import { Button } from "~/ui/components/Button"
 import { TextField } from "~/ui/components/TextField"
 
@@ -30,6 +30,17 @@ export const SidebarHeader = ({
       label=""
       helpText=""
       icon={<Search />}
+      iconRight={
+        filterValue ? (
+          <button
+            type="button"
+            className="flex items-center justify-center rounded-sm hover:bg-neutral-200 p-0.5"
+            onClick={() => onFilterChange("")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        ) : null
+      }
     >
       <TextField.Input
         placeholder={filterPlaceholder}

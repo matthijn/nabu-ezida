@@ -26,8 +26,8 @@ export const DEBUG_TOGGLES: DebugToggle[] = [
   },
   { key: "stepCompaction", label: "Step compaction", icon: <Filter />, defaultValue: false },
   {
-    key: "skipSearchCache",
-    label: "Skip search cache",
+    key: "skipCache",
+    label: "Skip cache",
     icon: <Filter />,
     defaultValue: false,
   },

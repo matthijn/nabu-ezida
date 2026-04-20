@@ -105,7 +105,7 @@ const callSemanticFilterBatch = async (
 }
 
 const FILTER_CACHE_PREFIX = "filter"
-const FILTER_CACHE_CAP = 20_000
+const FILTER_CACHE_CAP = 200_000
 
 const hitCacheKey = (intent: string, numbered: string): string => buildKey([intent, numbered])
 
@@ -153,17 +153,12 @@ const reconstructBatchHits = (prepared: PreparedHit[], results: number[][][]): S
     return reconstructHits(p.sentences, groups, p.hit.file, p.hit.id)
   })
 
-const filterBatch = async (
-  hits: SearchHit[],
-  intent: string,
-  skipCache = false
-): Promise<SearchHit[]> => {
+const filterBatch = async (hits: SearchHit[], intent: string): Promise<SearchHit[]> => {
   const prepared = hits.map(prepareHit).filter((p): p is PreparedHit => p !== null)
   if (prepared.length === 0) return hits.filter((h) => !h.text)
 
   try {
-    const call = skipCache ? callSemanticFilterBatch : cachedCallSemanticFilterBatch
-    const results = await call(intent, prepared)
+    const results = await cachedCallSemanticFilterBatch(intent, prepared)
     const passThrough = hits.filter((h) => !h.text)
     return [...passThrough, ...reconstructBatchHits(prepared, results)]
   } catch (e) {
@@ -175,9 +170,8 @@ const filterBatch = async (
 export const filterAndGrow = async (
   hits: SearchHit[],
   intent: string,
-  files: FileStore,
-  skipCache = false
+  files: FileStore
 ): Promise<SearchHit[]> => {
-  const filtered = await filterBatch(hits, intent, skipCache)
+  const filtered = await filterBatch(hits, intent)
   return growHits(filtered, files)
 }

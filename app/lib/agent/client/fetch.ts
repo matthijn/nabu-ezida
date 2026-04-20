@@ -6,6 +6,7 @@ import { calculateBackoff } from "~/lib/utils/backoff"
 import { initialParseState, processLine, stateToBlocks, type ParseCallbacks } from "./parse"
 import type { InputItem, ResponseFormat } from "./convert"
 import { pushRawCall } from "./raw-store"
+import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
 
 const RETRYABLE_STATUS = [429, 502, 503]
 const MAX_RETRIES = 3
@@ -162,8 +163,30 @@ const previewText = (blocks: Block[]): string | undefined => {
   return text?.type === "text" ? text.content : undefined
 }
 
+const LLM_CACHE_PREFIX = "llm"
+const LLM_CACHE_CAP = 10_000
+const UNCACHEABLE_ENDPOINTS = ["/qual-coder", "/semantic-filter", "/write-answer"]
+
+const isCacheable = (options: CallLlmOptions): boolean =>
+  !options.callbacks &&
+  options.temperature === undefined &&
+  !UNCACHEABLE_ENDPOINTS.some((p) => options.endpoint.includes(p))
+
+const hasErrorBlock = (blocks: Block[]): boolean => blocks.some((b) => b.type === "error")
+
 export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   const body = buildRequestBody(options)
+  const cacheable = isCacheable(options)
+  const cacheKey = cacheable ? buildKey([options.endpoint, body]) : undefined
+
+  if (cacheKey) {
+    const cached = await tryGet<Block[]>(LLM_CACHE_PREFIX, cacheKey)
+    if (cached) {
+      console.debug(`[LLM ${options.endpoint}] cache hit`)
+      return cached
+    }
+  }
+
   const t0 = performance.now()
   const response = await fetchWithRetry({
     url: buildUrl(options.endpoint, options.temperature),
@@ -183,5 +206,10 @@ export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
     blocks: summarizeBlocks(blocks),
     preview: previewText(blocks),
   })
+
+  if (cacheKey && !hasErrorBlock(blocks)) {
+    tryPut(LLM_CACHE_PREFIX, cacheKey, blocks, LLM_CACHE_CAP, options.endpoint)
+  }
+
   return blocks
 }

@@ -82,6 +82,13 @@ describe("parseCodeBlocks", () => {
     const result = parseCodeBlocks(input).map(({ language, content }) => ({ language, content }))
     expect(result).toEqual(expected)
   })
+
+  it("returns same reference for identical input (cache hit)", () => {
+    const input = block("json", '{"a":1}')
+    const first = parseCodeBlocks(input)
+    const second = parseCodeBlocks(input)
+    expect(second).toBe(first)
+  })
 })
 
 describe("findBlocksByLanguage", () => {

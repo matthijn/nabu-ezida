@@ -1,5 +1,13 @@
 import { fnvHash } from "./hash"
 
+let cacheSkipped = false
+
+export const setCacheSkipped = (skip: boolean): void => {
+  cacheSkipped = skip
+}
+
+export const isCacheSkipped = (): boolean => cacheSkipped
+
 const STORE_NAME = "kv"
 const DB_VERSION = 1
 const SEQ_INDEX = "seq"
@@ -9,6 +17,7 @@ const EVICT_RATIO = 0.1
 interface CacheEnvelope<T> {
   value: T
   seq: number
+  label?: string
 }
 
 let lastSeq = 0
@@ -54,10 +63,10 @@ const idbGet = <T>(db: IDBDatabase, key: string): Promise<T | undefined> =>
     request.onerror = () => reject(request.error)
   })
 
-const idbPut = <T>(db: IDBDatabase, key: string, value: T): Promise<void> =>
+const idbPut = <T>(db: IDBDatabase, key: string, value: T, label?: string): Promise<void> =>
   new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite")
-    const envelope: CacheEnvelope<T> = { value, seq: nextSeq() }
+    const envelope: CacheEnvelope<T> = { value, seq: nextSeq(), label }
     const request = tx.objectStore(STORE_NAME).put(envelope, key)
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
@@ -110,6 +119,7 @@ const scheduleEviction = (db: IDBDatabase, prefix: string, cap: number): void =>
 export const buildKey = (args: string[]): string => fnvHash(args.join("\0"))
 
 export const tryGet = async <T>(prefix: string, key: string): Promise<T | undefined> => {
+  if (cacheSkipped) return undefined
   try {
     const db = await getDb(prefix)
     return await idbGet<T>(db, key)
@@ -123,11 +133,13 @@ export const tryPut = async <T>(
   prefix: string,
   key: string,
   value: T,
-  cap?: number
+  cap?: number,
+  label?: string
 ): Promise<void> => {
+  if (cacheSkipped) return
   try {
     const db = await getDb(prefix)
-    await idbPut(db, key, value)
+    await idbPut(db, key, value, label)
     if (cap !== undefined) scheduleEviction(db, prefix, cap)
   } catch (e) {
     console.debug("[CACHE] put failed for", prefix, e)

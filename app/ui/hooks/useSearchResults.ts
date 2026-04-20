@@ -53,7 +53,6 @@ interface FilterState {
   cursor: number
   pageCount: number
   highlight: string
-  skipCache: boolean
   loading: boolean
   cancelled: boolean
 }
@@ -61,7 +60,6 @@ interface FilterState {
 export const useSearchResults = (
   searchId: string,
   revision = 0,
-  skipCache = false,
   dbReady = false
 ): SearchResults => {
   const files = useSyncExternalStore(subscribe, getFiles)
@@ -82,7 +80,7 @@ export const useSearchResults = (
       state.cursor += chunk.length
 
       try {
-        const hits = await filterAndGrow(chunk, state.highlight, getFiles(), state.skipCache)
+        const hits = await filterAndGrow(chunk, state.highlight, getFiles())
         if (state.cancelled) return
         state.pageCount += hits.length
         setSettled((prev) => ({ ...prev, results: [...prev.results, ...hits] }))
@@ -121,7 +119,6 @@ export const useSearchResults = (
       const ctx = await buildSemanticContext(db, getLlmHost())
       const resolved = await resolveSemanticSql(search.sql, {
         ...ctx,
-        skipCache,
         cachedHydes: search.hydes,
         cachedDescriptionsHash: search.descriptionsHash,
       })
@@ -185,7 +182,6 @@ export const useSearchResults = (
         cursor: 0,
         pageCount: 0,
         highlight: search.highlight,
-        skipCache,
         loading: false,
         cancelled,
       }
@@ -198,7 +194,7 @@ export const useSearchResults = (
       cancelled = true
       if (filterRef.current) filterRef.current.cancelled = true
     }
-  }, [search, searchId, revision, skipCache, dbReady, filterNextChunk])
+  }, [search, searchId, revision, dbReady, filterNextChunk])
 
   return {
     search,

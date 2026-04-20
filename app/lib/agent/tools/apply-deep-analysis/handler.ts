@@ -27,7 +27,7 @@ const BaseResultSchema = z.object({
 })
 
 const ReviewableResultSchema = BaseResultSchema.extend({
-  review: z.string().optional().describe("Flag for human review — explain what needs attention"),
+  review: z.string().nullish().describe("Flag for human review — explain what needs attention"),
 })
 
 const buildResponseSchema = (postAction: PostAction) =>
@@ -73,25 +73,75 @@ const buildMessages = (numbered: string, sourcePaths: string[], postAction: Post
   return messages
 }
 
+type AnalysisParseResult =
+  | { ok: true; results: AnalysisResult[]; failed: number }
+  | { ok: false; error: string }
+
+const parseResultItems = (
+  rawItems: unknown[],
+  itemSchema: z.ZodType
+): { results: AnalysisResult[]; failed: number } => {
+  let failed = 0
+  const results: AnalysisResult[] = []
+  for (const item of rawItems) {
+    const parsed = itemSchema.safeParse(item)
+    if (!parsed.success) {
+      failed++
+      continue
+    }
+    results.push(parsed.data as AnalysisResult)
+  }
+  return { results, failed }
+}
+
+const tryParseJson = (text: string): unknown | undefined => {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
+const RawResultsWrapper = z.object({ results: z.array(z.unknown()) })
+
 const runAnalysis = async (
   numbered: string,
   sourcePaths: string[],
   postAction: PostAction
-): Promise<AnalysisResult[]> => {
-  const responseSchema = buildResponseSchema(postAction)
+): Promise<AnalysisParseResult> => {
   const blocks = await callLlm({
     endpoint: DEEP_ANALYSIS_ENDPOINT,
     messages: buildMessages(numbered, sourcePaths, postAction),
-    responseFormat: toResponseFormat(responseSchema),
+    responseFormat: toResponseFormat(buildResponseSchema(postAction)),
   })
 
   const text = extractText(blocks)
-  if (!text) return []
+  if (!text) return { ok: false, error: "LLM returned no text response" }
 
-  const parsed = responseSchema.safeParse(JSON.parse(text))
-  if (!parsed.success) return []
+  const raw = tryParseJson(text)
+  if (raw === undefined) return { ok: false, error: "LLM returned invalid JSON" }
 
-  return parsed.data.results
+  const wrapper = RawResultsWrapper.safeParse(raw)
+  if (!wrapper.success) return { ok: false, error: "LLM response missing results array" }
+
+  const itemSchema = postAction === "annotate_as_code" ? ReviewableResultSchema : BaseResultSchema
+  const { results, failed } = parseResultItems(wrapper.data.results, itemSchema)
+
+  return { ok: true, results, failed }
+}
+
+const withParseFailures = (
+  result: HandlerResult<string>,
+  valid: number,
+  failed: number
+): HandlerResult<string> => {
+  if (failed === 0) return result
+  if (result.status === "error") return result
+  return {
+    ...result,
+    status: "partial",
+    message: `${valid}/${valid + failed} results passed schema validation`,
+  }
 }
 
 const applyAnnotations = async (
@@ -137,11 +187,18 @@ registerTool(
       if (sentences.length === 0)
         return { status: "ok", output: "Section contains no sentences.", mutations: [] }
 
-      const rawResults = await runAnalysis(numbered, source_files, post_action)
-      const mapped = mapResults(sentences, rawResults)
+      const outcome = await runAnalysis(numbered, source_files, post_action)
+      if (!outcome.ok) return { status: "error", output: outcome.error, mutations: [] }
+
+      const { results: validResults, failed: parseFailures } = outcome
+      const mapped = mapResults(sentences, validResults)
 
       if (post_action === "return") {
-        return { status: "ok", output: formatReturnOutput(mapped), mutations: [] }
+        return withParseFailures(
+          { status: "ok", output: formatReturnOutput(mapped), mutations: [] },
+          validResults.length,
+          parseFailures
+        )
       }
 
       if (!isAnnotateAction(post_action)) {
@@ -149,18 +206,32 @@ registerTool(
       }
 
       if (mapped.length === 0) {
-        return { status: "ok", output: formatAnnotateOutput(mapped, post_action), mutations: [] }
+        if (parseFailures > 0 && validResults.length === 0)
+          return {
+            status: "error",
+            output: `All ${parseFailures} results failed schema validation`,
+            mutations: [],
+          }
+        return withParseFailures(
+          { status: "ok", output: formatAnnotateOutput(mapped, post_action), mutations: [] },
+          validResults.length,
+          parseFailures
+        )
       }
 
       const ops = toAnnotationOps(mapped, post_action)
       const annotationResult = await applyAnnotations(path, ops)
       if (annotationResult.status === "error") return annotationResult
 
-      return {
-        status: "ok",
-        output: formatAnnotateOutput(mapped, post_action),
-        mutations: annotationResult.mutations,
-      }
+      return withParseFailures(
+        {
+          status: "ok",
+          output: formatAnnotateOutput(mapped, post_action),
+          mutations: annotationResult.mutations,
+        },
+        validResults.length,
+        parseFailures
+      )
     },
   })
 )

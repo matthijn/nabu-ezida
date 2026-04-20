@@ -1,11 +1,14 @@
-const FNV_OFFSET = 0x811c9dc5
+const FNV_OFFSET_A = 0x811c9dc5
+const FNV_OFFSET_B = 0x050c5d1f
 const FNV_PRIME = 0x01000193
 
 export const fnvHash = (text: string): string => {
-  let hash = FNV_OFFSET
+  let a = FNV_OFFSET_A
+  let b = FNV_OFFSET_B
   for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i)
-    hash = Math.imul(hash, FNV_PRIME) >>> 0
+    const c = text.charCodeAt(i)
+    a = Math.imul(a ^ c, FNV_PRIME) >>> 0
+    b = Math.imul(b ^ c, FNV_PRIME) >>> 0
   }
-  return hash.toString(16).padStart(8, "0")
+  return a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0")
 }

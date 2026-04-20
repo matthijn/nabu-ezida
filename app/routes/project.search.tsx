@@ -69,7 +69,6 @@ export default function ProjectSearch() {
   const { search, results, hydes, phase, error, hasMore, loadMore } = useSearchResults(
     params.searchId ?? "",
     revision,
-    !!debugOptions.skipSearchCache,
     dbReady
   )
   const tagOptions = useMemo(() => {

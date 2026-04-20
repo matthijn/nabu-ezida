@@ -1,5 +1,6 @@
 import { getByPath } from "./json"
 import { errorMessage } from "~/lib/utils/error"
+import { createCappedCache } from "~/lib/utils/cache"
 
 export interface CodeBlock {
   language: string
@@ -10,7 +11,17 @@ export interface CodeBlock {
 
 const CODE_BLOCK_REGEX = /```(\S+)[ \t]*\r?\n([\s\S]*?)```/g
 
+const blockCache = createCappedCache<string, CodeBlock[]>(1000)
+
 export const parseCodeBlocks = (markdown: string): CodeBlock[] => {
+  const cached = blockCache.get(markdown)
+  if (cached) return cached
+  const blocks = parseCodeBlocksUncached(markdown)
+  blockCache.set(markdown, blocks)
+  return blocks
+}
+
+const parseCodeBlocksUncached = (markdown: string): CodeBlock[] => {
   const blocks: CodeBlock[] = []
   let match: RegExpExecArray | null
 
@@ -31,9 +42,6 @@ export const findBlocksByLanguage = (markdown: string, language: string): CodeBl
 
 export const findSingletonBlock = (markdown: string, language: string): CodeBlock | undefined =>
   findBlocksByLanguage(markdown, language)[0]
-
-export const countBlocksByLanguage = (markdown: string, language: string): number =>
-  findBlocksByLanguage(markdown, language).length
 
 type ParseJsonResult<T> = { ok: true; data: T } | { ok: false; error: string; raw: string }
 

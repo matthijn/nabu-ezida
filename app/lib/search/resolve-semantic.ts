@@ -7,6 +7,7 @@ import { ok, err } from "~/lib/fp/result"
 import { fetchEmbeddingBatch } from "~/lib/embeddings/client"
 import { generateHydesForDescription, generateGenericHydes } from "~/lib/corpus/generate-hydes"
 import { processPool } from "~/lib/utils/pool"
+import { isCacheSkipped } from "~/lib/utils/storage-cache"
 import { extractSemanticTokens, hasSemanticTokens, validateSql, buildHybridPlan } from "./semantic"
 
 export type ResolvedQuery =
@@ -22,7 +23,6 @@ export interface SemanticContext {
   baseUrl: string
   descriptions: CorpusDescription[]
   descriptionsHash: string
-  skipCache?: boolean
   cachedHydes?: HydesCache
   cachedDescriptionsHash?: string
 }
@@ -67,7 +67,7 @@ const notReady = (message: string): Result<ResolvedQuery, ResolveError> =>
   err({ type: "not_ready", message })
 
 const isCacheValid = (ctx: SemanticContext, languages: string[]): boolean => {
-  if (ctx.skipCache) return false
+  if (isCacheSkipped()) return false
   if (!ctx.cachedHydes) return false
   if (ctx.cachedDescriptionsHash !== ctx.descriptionsHash) return false
   const cachedLanguages = Object.keys(ctx.cachedHydes)

@@ -6,7 +6,7 @@ export interface AnalysisResult {
   end: number
   analysis_source_id: string
   reason: string
-  review?: string
+  review?: string | null
 }
 
 export interface MappedResult {

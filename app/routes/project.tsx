@@ -24,6 +24,7 @@ import { DebugMenuButton, DebugStreamPanel } from "~/ui/components/debug"
 import { FileDropOverlay } from "~/ui/components/import"
 import { useNotifications } from "~/ui/hooks/useNotifications"
 import { DEFAULT_DEBUG_OPTIONS, type DebugOptions } from "~/ui/components/editor/debug-config"
+import { setCacheSkipped } from "~/lib/utils/storage-cache"
 
 import { createWebSocket, applyCommand } from "~/lib/server/sync"
 import type { Command } from "~/lib/server/sync/types"
@@ -206,6 +207,10 @@ export default function ProjectLayout() {
   useEffect(() => {
     setPersistEnabled(debugOptions.persistToServer)
   }, [debugOptions.persistToServer])
+
+  useEffect(() => {
+    setCacheSkipped(!!debugOptions.skipCache)
+  }, [debugOptions.skipCache])
 
   const toggleDebugOption = useCallback(
     (key: string) => setDebugOptions((prev) => ({ ...prev, [key]: !prev[key] })),
