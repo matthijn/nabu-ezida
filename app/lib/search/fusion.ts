@@ -5,6 +5,8 @@ export interface ScoredChunk {
   score: number
 }
 
+export const RRF_K = 60
+
 export const chunkKey = (row: ScoredChunk): string => row.hash ?? `${row.file}:${row.text}`
 
 const buildChunkLookup = (chunks: ScoredChunk[]): Map<string, ScoredChunk> => {
@@ -15,42 +17,39 @@ const buildChunkLookup = (chunks: ScoredChunk[]): Map<string, ScoredChunk> => {
   return lookup
 }
 
-export const mergeScoreMaps = (maps: Map<string, number>[]): Map<string, number> => {
-  const best = new Map<string, number>()
-
-  for (const map of maps) {
-    for (const [key, score] of map) {
-      const current = best.get(key) ?? 0
-      if (score > current) best.set(key, score)
-    }
-  }
-
-  return best
-}
-
-const toCosineMap = (rows: ScoredChunk[]): Map<string, number> => {
+export const toRankMap = (rows: ScoredChunk[]): Map<string, number> => {
   const map = new Map<string, number>()
-  for (const row of rows) {
-    map.set(chunkKey(row), row.score)
+  for (let i = 0; i < rows.length; i++) {
+    const key = chunkKey(rows[i])
+    if (!map.has(key)) map.set(key, i + 1)
   }
   return map
 }
 
-const MIN_COSINE_SCORE = 0.3
+export const rrfScores = (rankMaps: Map<string, number>[], k = RRF_K): Map<string, number> => {
+  const scores = new Map<string, number>()
+
+  for (const rankMap of rankMaps) {
+    for (const [key, rank] of rankMap) {
+      const contribution = 1 / (k + rank)
+      scores.set(key, (scores.get(key) ?? 0) + contribution)
+    }
+  }
+
+  return scores
+}
 
 export const fuseCosineResults = (
   cosinePerHyde: ScoredChunk[][],
   limit: number | undefined
 ): ScoredChunk[] => {
-  const scoreMaps = cosinePerHyde.map(toCosineMap)
-  const best = mergeScoreMaps(scoreMaps)
+  const rankMaps = cosinePerHyde.map(toRankMap)
+  const scores = rrfScores(rankMaps)
 
   const allChunks = cosinePerHyde.flat()
   const chunkLookup = buildChunkLookup(allChunks)
 
-  const sorted = [...best.entries()]
-    .filter(([, score]) => score >= MIN_COSINE_SCORE)
-    .sort((a, b) => b[1] - a[1])
+  const sorted = [...scores.entries()].sort((a, b) => b[1] - a[1])
   const sliced = limit !== undefined ? sorted.slice(0, limit) : sorted
 
   return sliced.flatMap(([key, score]) => {

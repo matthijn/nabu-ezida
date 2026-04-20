@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest"
-import { mergeScoreMaps, fuseCosineResults, chunkKey, type ScoredChunk } from "./fusion"
+import {
+  rrfScores,
+  toRankMap,
+  fuseCosineResults,
+  chunkKey,
+  RRF_K,
+  type ScoredChunk,
+} from "./fusion"
 
 describe("chunkKey", () => {
   const cases: { name: string; chunk: ScoredChunk; expected: string }[] = [
@@ -25,56 +32,98 @@ describe("chunkKey", () => {
   })
 })
 
-describe("mergeScoreMaps", () => {
+describe("toRankMap", () => {
   const cases: {
     name: string
-    maps: Map<string, number>[]
-    expected: Map<string, number>
+    rows: ScoredChunk[]
+    expected: [string, number][]
   }[] = [
     {
-      name: "single map passes through",
-      maps: [new Map([["h1", 0.5]])],
-      expected: new Map([["h1", 0.5]]),
+      name: "assigns 1-based ranks in order",
+      rows: [
+        { file: "a.md", hash: "h1", score: 0.9 },
+        { file: "b.md", hash: "h2", score: 0.7 },
+      ],
+      expected: [
+        ["h1", 1],
+        ["h2", 2],
+      ],
     },
     {
-      name: "keeps max value across maps",
-      maps: [
-        new Map([
-          ["h1", 0.4],
-          ["h2", 0.3],
-        ]),
-        new Map([
-          ["h1", 0.2],
-          ["h3", 0.6],
-        ]),
+      name: "keeps first occurrence for duplicates",
+      rows: [
+        { file: "a.md", hash: "h1", score: 0.9 },
+        { file: "a.md", hash: "h1", score: 0.5 },
       ],
-      expected: new Map([
-        ["h1", 0.4],
-        ["h2", 0.3],
-        ["h3", 0.6],
-      ]),
+      expected: [["h1", 1]],
     },
     {
       name: "empty input returns empty map",
-      maps: [],
-      expected: new Map(),
-    },
-    {
-      name: "disjoint maps preserved independently",
-      maps: [new Map([["h1", 0.8]]), new Map([["h2", 0.5]])],
-      expected: new Map([
-        ["h1", 0.8],
-        ["h2", 0.5],
-      ]),
+      rows: [],
+      expected: [],
     },
   ]
 
-  it.each(cases)("$name", ({ maps, expected }) => {
-    const result = mergeScoreMaps(maps)
+  it.each(cases)("$name", ({ rows, expected }) => {
+    const result = toRankMap(rows)
+    expect([...result.entries()].sort()).toEqual([...expected].sort())
+  })
+})
+
+describe("rrfScores", () => {
+  const cases: {
+    name: string
+    rankMaps: Map<string, number>[]
+    expected: [string, number][]
+  }[] = [
+    {
+      name: "single ranker",
+      rankMaps: [
+        new Map([
+          ["h1", 1],
+          ["h2", 2],
+        ]),
+      ],
+      expected: [
+        ["h1", 1 / (RRF_K + 1)],
+        ["h2", 1 / (RRF_K + 2)],
+      ],
+    },
+    {
+      name: "two rankers sum contributions",
+      rankMaps: [
+        new Map([["h1", 1]]),
+        new Map([
+          ["h1", 3],
+          ["h2", 1],
+        ]),
+      ],
+      expected: [
+        ["h1", 1 / (RRF_K + 1) + 1 / (RRF_K + 3)],
+        ["h2", 1 / (RRF_K + 1)],
+      ],
+    },
+    {
+      name: "disjoint rankers",
+      rankMaps: [new Map([["h1", 1]]), new Map([["h2", 1]])],
+      expected: [
+        ["h1", 1 / (RRF_K + 1)],
+        ["h2", 1 / (RRF_K + 1)],
+      ],
+    },
+    {
+      name: "empty input returns empty",
+      rankMaps: [],
+      expected: [],
+    },
+  ]
+
+  it.each(cases)("$name", ({ rankMaps, expected }) => {
+    const result = rrfScores(rankMaps)
+    expect(result.size).toBe(expected.length)
     for (const [key, value] of expected) {
       expect(result.get(key)).toBeCloseTo(value, 10)
     }
-    expect(result.size).toBe(expected.size)
   })
 })
 
@@ -93,7 +142,7 @@ describe("fuseCosineResults", () => {
     expectedFiles: string[]
   }[] = [
     {
-      name: "single hyde group sorted by score",
+      name: "single hyde group sorted by rank",
       cosinePerHyde: [[chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.4)]],
       limit: 50,
       expectedFiles: ["a.md", "b.md"],
@@ -113,28 +162,25 @@ describe("fuseCosineResults", () => {
       expectedFiles: [],
     },
     {
-      name: "multi-hyde overlapping chunks keep max score",
+      name: "disjoint hydes contribute independently via RRF",
       cosinePerHyde: [
-        [chunk("a.md", "h1", 0.8)],
-        [chunk("a.md", "h1", 0.7), chunk("b.md", "h2", 0.9)],
+        [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.8)],
+        [chunk("c.md", "h3", 0.7), chunk("a.md", "h1", 0.6)],
       ],
       limit: 50,
-      expectedFiles: ["b.md", "a.md"],
+      expectedFiles: ["a.md", "c.md", "b.md"],
     },
     {
-      name: "multi-hyde disjoint chunks merged and ranked",
-      cosinePerHyde: [
-        [chunk("a.md", "h1", 0.35)],
-        [chunk("b.md", "h2", 0.5)],
-        [chunk("c.md", "h3", 0.4)],
-      ],
+      name: "low-score chunks still included (no cosine threshold)",
+      cosinePerHyde: [[chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.1)]],
       limit: 50,
-      expectedFiles: ["b.md", "c.md", "a.md"],
+      expectedFiles: ["a.md", "b.md"],
     },
     {
-      name: "filters out chunks below 0.3",
+      name: "multi-hyde overlapping chunks accumulate RRF",
       cosinePerHyde: [
-        [chunk("a.md", "h1", 0.9), chunk("b.md", "h2", 0.3), chunk("c.md", "h3", 0.1)],
+        [chunk("a.md", "h1", 0.8), chunk("b.md", "h2", 0.7)],
+        [chunk("b.md", "h2", 0.9), chunk("a.md", "h1", 0.6)],
       ],
       limit: 50,
       expectedFiles: ["a.md", "b.md"],

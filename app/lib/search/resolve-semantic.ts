@@ -5,7 +5,7 @@ import type { HydesCache } from "~/domain/search"
 import type { CorpusDescription } from "~/domain/corpus/types"
 import { ok, err } from "~/lib/fp/result"
 import { fetchEmbeddingBatch } from "~/lib/embeddings/client"
-import { generateHydesForDescription } from "~/lib/corpus/generate-hydes"
+import { generateHydesForDescription, generateGenericHydes } from "~/lib/corpus/generate-hydes"
 import { processPool } from "~/lib/utils/pool"
 import { extractSemanticTokens, hasSemanticTokens, validateSql, buildHybridPlan } from "./semantic"
 
@@ -113,6 +113,18 @@ const resolveHydesForLanguages = async (
     async (item) => {
       const texts = await generateHydesForDescription(item.description, item.query)
       return texts.map((t) => ({ language: item.description.language, texts: [t] }))
+    },
+    (results: HydeResult[]) => {
+      for (const r of results) cache[r.language].push(...r.texts)
+    },
+    { warmup: 1 }
+  )
+
+  await processPool(
+    languages,
+    async (language) => {
+      const texts = await generateGenericHydes(language, query)
+      return texts.map((t) => ({ language, texts: [t] }))
     },
     (results: HydeResult[]) => {
       for (const r of results) cache[r.language].push(...r.texts)
