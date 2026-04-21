@@ -2,7 +2,7 @@ import type { Block, ToolCall } from "./blocks"
 import { isToolCallBlock } from "~/lib/agent/derived"
 import { isDraft } from "./store"
 
-export type NabuStatus = "idle" | "busy" | "waiting-for-ask"
+export type NabuStatus = "idle" | "busy" | "planning" | "waiting-for-ask"
 
 const isAskToolCall = (block: Block): boolean =>
   isToolCallBlock(block) && block.calls.some((c) => c.name === "ask")
@@ -27,8 +27,9 @@ export const isWaitingForAsk = (history: Block[]): boolean => {
   return false
 }
 
-export const getNabuStatus = (loading: boolean, history: Block[]): NabuStatus => {
+export const getNabuStatus = (loading: boolean, history: Block[], inPlan = false): NabuStatus => {
   if (isWaitingForAsk(history)) return "waiting-for-ask"
   if (loading) return "busy"
+  if (inPlan) return "planning"
   return "idle"
 }

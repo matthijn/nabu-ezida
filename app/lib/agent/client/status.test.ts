@@ -22,6 +22,7 @@ describe("getNabuStatus", () => {
     name: string
     loading: boolean
     history: Block[]
+    inPlan?: boolean
     expected: ReturnType<typeof getNabuStatus>
   }[] = [
     {
@@ -67,6 +68,27 @@ describe("getNabuStatus", () => {
       expected: "idle",
     },
     {
+      name: "in plan, not loading → planning",
+      loading: false,
+      history: [],
+      inPlan: true,
+      expected: "planning",
+    },
+    {
+      name: "in plan + loading → busy takes priority",
+      loading: true,
+      history: [],
+      inPlan: true,
+      expected: "busy",
+    },
+    {
+      name: "in plan + waiting-for-ask → ask takes priority",
+      loading: false,
+      history: [askToolCall("c1")],
+      inPlan: true,
+      expected: "waiting-for-ask",
+    },
+    {
       name: "draft block is skipped — ask is still pending",
       loading: true,
       history: [askToolCall("c1"), draft("thinking...")],
@@ -80,7 +102,7 @@ describe("getNabuStatus", () => {
     },
   ]
 
-  it.each(cases)("$name", ({ loading, history, expected }) => {
-    expect(getNabuStatus(loading, history)).toBe(expected)
+  it.each(cases)("$name", ({ loading, history, expected, inPlan }) => {
+    expect(getNabuStatus(loading, history, inPlan)).toBe(expected)
   })
 })

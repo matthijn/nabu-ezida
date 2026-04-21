@@ -14,6 +14,7 @@ export type {
 export type { ToolDeps, ToolResult, RawFiles, Operation, HandlerResult, Handler } from "./types"
 export {
   derive,
+  hasActivePlan,
   isToolCallBlock,
   isDebugPauseBlock,
   isErrorResult,
