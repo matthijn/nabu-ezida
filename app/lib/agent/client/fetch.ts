@@ -10,6 +10,16 @@ import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
 
 const RETRYABLE_STATUS = [429, 502, 503]
 const MAX_RETRIES = 3
+const STALL_TIMEOUT_MS = 30_000
+
+export class StallError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "StallError"
+  }
+}
+
+const isStallError = (err: unknown): err is StallError => err instanceof StallError
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -43,6 +53,17 @@ const fetchWithRetry = async ({ url, body, signal }: FetchOptions): Promise<Resp
   throw new Error("LLM request failed: max retries exceeded")
 }
 
+const readWithTimeout = <T>(
+  reader: ReadableStreamDefaultReader<T>,
+  timeoutMs: number
+): Promise<ReadableStreamReadResult<T>> => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new StallError(`no data for ${timeoutMs}ms`)), timeoutMs)
+  })
+  return Promise.race([reader.read(), timeout]).finally(() => clearTimeout(timer))
+}
+
 const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Promise<Block[]> => {
   if (!response.body) {
     throw new Error("No response body")
@@ -56,7 +77,7 @@ const streamToBlocks = async (response: Response, callbacks: ParseCallbacks): Pr
 
   try {
     while (true) {
-      const { done, value } = await reader.read()
+      const { done, value } = await readWithTimeout(reader, STALL_TIMEOUT_MS)
       if (done) break
 
       if (!firstBytesLogged) {
@@ -174,6 +195,15 @@ const isCacheable = (options: CallLlmOptions): boolean =>
 
 const hasErrorBlock = (blocks: Block[]): boolean => blocks.some((b) => b.type === "error")
 
+const executeLlmCall = async (options: CallLlmOptions, body: string): Promise<Block[]> => {
+  const response = await fetchWithRetry({
+    url: buildUrl(options.endpoint, options.temperature),
+    body,
+    signal: options.signal,
+  })
+  return streamToBlocks(response, options.callbacks ?? {})
+}
+
 export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   const body = buildRequestBody(options)
   const cacheable = isCacheable(options)
@@ -188,12 +218,16 @@ export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   }
 
   const t0 = performance.now()
-  const response = await fetchWithRetry({
-    url: buildUrl(options.endpoint, options.temperature),
-    body,
-    signal: options.signal,
-  })
-  const blocks = await streamToBlocks(response, options.callbacks ?? {})
+  let blocks: Block[]
+
+  try {
+    blocks = await executeLlmCall(options, body)
+  } catch (err) {
+    if (!isStallError(err)) throw err
+    console.warn(`[LLM ${options.endpoint}] stall detected, retrying once`)
+    blocks = await executeLlmCall(options, body)
+  }
+
   const duration = Math.round(performance.now() - t0)
   pushRawCall({
     endpoint: options.endpoint,
