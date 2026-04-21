@@ -10,17 +10,9 @@ import { getFile } from "~/lib/files"
 import { pushBlocks, getAllBlocks } from "../../client"
 import { modeSystemBlocks } from "../../executors/modes"
 import { processPool } from "~/lib/utils/pool"
-import { filterSections } from "../scout-filter"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { getFiles } from "~/lib/files/store"
-import {
-  indexSections,
-  formatIndexedSections,
-  mergeSourceContent,
-  formatFilteredTarget,
-  collectMatches,
-  buildPlanInstruction,
-} from "./format"
+import { formatTarget, collectSections, buildPlanInstruction } from "./format"
 
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
@@ -65,7 +57,6 @@ registerTool(
         return { status: "error", output: `Files not found: ${missing.join(", ")}`, mutations: [] }
 
       const sourceFailed: string[] = []
-      const sourceContents: { path: string; content: string }[] = []
 
       await processPool(
         source_files,
@@ -75,7 +66,6 @@ registerTool(
             sourceFailed.push(result.path)
             return []
           }
-          sourceContents.push({ path: result.path, content: formatScoutEntry(result.entry) })
           return [toSystemBlock(formatScoutEntry(result.entry))]
         },
         (blocks) => pushBlocks(blocks),
@@ -107,24 +97,11 @@ registerTool(
         { concurrency: 3 }
       )
 
-      const indexed = indexSections(targetEntries)
-      const sectionsText = formatIndexedSections(indexed)
-
-      const preferences = getFiles()[PREFERENCES_FILE] ?? null
-      const merged = mergeSourceContent(sourceContents, preferences)
-
-      const matchingIndices =
-        indexed.length > 0 ? new Set(await filterSections(merged, sectionsText)) : new Set<number>()
-
-      let globalOffset = 0
       for (const { path, entry } of targetEntries) {
-        const block = toSystemBlock(
-          formatFilteredTarget(path, entry, matchingIndices, globalOffset)
-        )
-        pushBlocks([block])
-        if (entry.kind === "mapped") globalOffset += entry.map.sections.length
+        pushBlocks([toSystemBlock(formatTarget(path, entry))])
       }
 
+      const preferences = getFiles()[PREFERENCES_FILE] ?? null
       const blocks = getAllBlocks()
       if (!isMemoryRecent(blocks) && preferences) {
         pushBlocks([
@@ -134,7 +111,7 @@ registerTool(
         ])
       }
 
-      const matches = collectMatches(targetEntries, matchingIndices)
+      const matches = collectSections(targetEntries)
       if (matches.length > 0) {
         const instruction = buildPlanInstruction(
           matches,

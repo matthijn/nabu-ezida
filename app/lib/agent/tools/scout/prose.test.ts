@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { block } from "~/lib/data-blocks/test-helpers"
-import type { ScoutMap, ScoutSection } from "../scout-map"
-import {
-  buildProseWithLineMap,
-  formatScoutMap,
-  translateSections,
-  type CodeblockMarker,
-} from "./prose"
+import type { ScoutSection } from "../scout-map"
+import { presentContent, extractLines, formatScoutMap, formatSection } from "./prose"
 
 const section = (overrides: Partial<ScoutSection>): ScoutSection => ({
   label: "s",
@@ -16,166 +11,107 @@ const section = (overrides: Partial<ScoutSection>): ScoutSection => ({
   ...overrides,
 })
 
-describe("buildProseWithLineMap", () => {
+describe("presentContent", () => {
   interface Case {
     name: string
     input: string
-    prose: string
-    proseToOrig: number[]
-    codeblocks: { language: string; line: number }[]
+    expected: string
   }
 
   const cases: Case[] = [
     {
-      name: "no codeblocks",
+      name: "no codeblocks — identity",
       input: "one\ntwo\nthree",
-      prose: "one\ntwo\nthree",
-      proseToOrig: [1, 2, 3],
-      codeblocks: [],
+      expected: "one\ntwo\nthree",
     },
     {
-      name: "codeblock in the middle",
+      name: "non-singleton block shows embedded marker",
+      input: `intro\n${block("json-callout", '{"id":"c1","title":"Week 1"}')}\noutro`,
+      expected: `intro\n[embedded callout: "Week 1"]\noutro`,
+    },
+    {
+      name: "chart block with nested label",
+      input: `head\n${block("json-chart", '{"id":"ch1","caption":{"label":"Growth"}}')}`,
+      expected: `head\n[embedded chart: "Growth"]`,
+    },
+    {
+      name: "chart block without label",
+      input: `head\n${block("json-chart", '{"id":"ch1"}')}`,
+      expected: "head\n[embedded chart]",
+    },
+    {
+      name: "unknown block type uses raw language",
       input: `intro\n${block("bash", 'echo "hi"')}\noutro`,
-      prose: "intro\n#SPLIT\noutro",
-      proseToOrig: [1, 2, 5],
-      codeblocks: [{ language: "bash", line: 2 }],
+      expected: "intro\n[embedded bash]\noutro",
     },
     {
-      name: "codeblock at the start",
-      input: `${block("bash", "x=1")}\nafter`,
-      prose: "#SPLIT\nafter",
-      proseToOrig: [1, 4],
-      codeblocks: [{ language: "bash", line: 1 }],
+      name: "singleton block stripped entirely",
+      input: `intro\n${block("json-attributes", '{"type":"t","subject":"s"}')}\noutro`,
+      expected: "intro\noutro",
     },
     {
-      name: "codeblock at the end",
-      input: `head\n${block("bash", "x=1")}`,
-      prose: "head\n#SPLIT",
-      proseToOrig: [1, 2],
-      codeblocks: [{ language: "bash", line: 2 }],
+      name: "annotations singleton stripped",
+      input: `intro\n${block("json-annotations", '[{"id":"a1","text":"note"}]')}\noutro`,
+      expected: "intro\noutro",
     },
     {
-      name: "two codeblocks with prose between",
-      input: `a\n${block("bash", "one")}\nmiddle\n${block("bash", "two")}\nz`,
-      prose: "a\n#SPLIT\nmiddle\n#SPLIT\nz",
-      proseToOrig: [1, 2, 5, 6, 9],
-      codeblocks: [
-        { language: "bash", line: 2 },
-        { language: "bash", line: 6 },
-      ],
+      name: "settings singleton stripped",
+      input: `intro\n${block("json-settings", '{"tags":[]}')}\noutro`,
+      expected: "intro\noutro",
+    },
+    {
+      name: "mixed: singleton stripped, non-singleton gets marker",
+      input: `a\n${block("json-attributes", '{"type":"t"}')}\nmiddle\n${block("json-callout", '{"id":"c1","title":"Note"}')}\nz`,
+      expected: `a\nmiddle\n[embedded callout: "Note"]\nz`,
     },
   ]
 
   it.each(cases)("$name", (c) => {
-    const result = buildProseWithLineMap(c.input)
-    expect(result.prose).toBe(c.prose)
-    expect(result.proseToOrig).toEqual(c.proseToOrig)
-    expect(result.codeblocks.map((b) => ({ language: b.language, line: b.line }))).toEqual(
-      c.codeblocks
-    )
-  })
-
-  interface IdentityCase {
-    name: string
-    language: string
-    content: string
-    id: string | null
-    label: string | null
-  }
-
-  const identityCases: IdentityCase[] = [
-    {
-      name: "callout: root id + title label",
-      language: "json-callout",
-      content: '{"id":"callout_1","title":"Week 1"}',
-      id: "callout_1",
-      label: "Week 1",
-    },
-    {
-      name: "chart: root id + nested caption.label",
-      language: "json-chart",
-      content: '{"id":"chart_x","caption":{"label":"Growth"}}',
-      id: "chart_x",
-      label: "Growth",
-    },
-    {
-      name: "chart: root id, no caption",
-      language: "json-chart",
-      content: '{"id":"chart_y"}',
-      id: "chart_y",
-      label: null,
-    },
-    {
-      name: "bash: no registry entry",
-      language: "bash",
-      content: "echo hi",
-      id: null,
-      label: null,
-    },
-  ]
-
-  it.each(identityCases)("$name", (c) => {
-    const input = `intro\n${block(c.language, c.content)}\nouter`
-    const { codeblocks } = buildProseWithLineMap(input)
-    expect(codeblocks[0].id).toBe(c.id)
-    expect(codeblocks[0].label).toBe(c.label)
+    expect(presentContent(c.input)).toBe(c.expected)
   })
 })
 
-describe("translateSections", () => {
+describe("extractLines", () => {
   interface Case {
     name: string
-    sections: ScoutSection[]
-    proseToOrig: number[]
-    totalOrigLines: number
-    expected: { start_line: number; end_line: number }[]
+    content: string
+    startLine: number
+    endLine: number
+    expected: string
   }
 
   const cases: Case[] = [
     {
-      name: "no codeblocks — identity translation",
-      sections: [section({ start_line: 1, end_line: 2 }), section({ start_line: 3, end_line: 5 })],
-      proseToOrig: [1, 2, 3, 4, 5],
-      totalOrigLines: 5,
-      expected: [
-        { start_line: 1, end_line: 2 },
-        { start_line: 3, end_line: 5 },
-      ],
+      name: "single line",
+      content: "a\nb\nc\nd",
+      startLine: 2,
+      endLine: 2,
+      expected: "b",
     },
     {
-      name: "gap between sections expands end_line to cover codeblock",
-      sections: [section({ start_line: 1, end_line: 1 }), section({ start_line: 2, end_line: 2 })],
-      proseToOrig: [1, 5],
-      totalOrigLines: 5,
-      expected: [
-        { start_line: 1, end_line: 4 },
-        { start_line: 5, end_line: 5 },
-      ],
+      name: "range",
+      content: "a\nb\nc\nd\ne",
+      startLine: 2,
+      endLine: 4,
+      expected: "b\nc\nd",
     },
     {
-      name: "trailing codeblock extends last section to total",
-      sections: [section({ start_line: 1, end_line: 1 })],
-      proseToOrig: [1],
-      totalOrigLines: 4,
-      expected: [{ start_line: 1, end_line: 4 }],
+      name: "full file",
+      content: "a\nb\nc",
+      startLine: 1,
+      endLine: 3,
+      expected: "a\nb\nc",
     },
   ]
 
   it.each(cases)("$name", (c) => {
-    const out = translateSections(c.sections, c.proseToOrig, c.totalOrigLines)
-    expect(out.map((s) => ({ start_line: s.start_line, end_line: s.end_line }))).toEqual(c.expected)
+    expect(extractLines(c.content, c.startLine, c.endLine)).toBe(c.expected)
   })
 })
 
 describe("formatScoutMap", () => {
-  const baseMap = (overrides: Partial<ScoutMap> = {}): ScoutMap => ({
-    file_context: "ctx",
-    sections: [],
-    ...overrides,
-  })
-
   it("renders sections with keywords and desc", () => {
-    const map = baseMap({
+    const map = {
       sections: [
         section({
           label: "Opening",
@@ -185,47 +121,59 @@ describe("formatScoutMap", () => {
           desc: "intro",
         }),
       ],
-    })
-    expect(formatScoutMap("f.md", map, [])).toBe(
-      `File: f.md\nctx\n\n[1-10] Opening\n  keywords: a, b\n  desc: intro`
+    }
+    expect(formatScoutMap("f.md", map)).toBe(
+      `File: f.md\n\n[1-10] Opening\n  keywords: a, b\n  desc: intro`
     )
   })
 
   it("omits desc when undefined", () => {
-    const map = baseMap({
+    const map = {
       sections: [section({ label: "A", start_line: 1, end_line: 2, keywords: ["k"] })],
-    })
-    expect(formatScoutMap("f.md", map, [])).toBe(`File: f.md\nctx\n\n[1-2] A\n  keywords: k`)
+    }
+    expect(formatScoutMap("f.md", map)).toBe(`File: f.md\n\n[1-2] A\n  keywords: k`)
   })
 
-  it("appends all codeblock markers at the bottom with id and label when present", () => {
-    const map = baseMap({
+  it("renders multiple sections separated by blank line", () => {
+    const map = {
       sections: [
         section({ label: "A", start_line: 1, end_line: 5, keywords: ["x"] }),
         section({ label: "B", start_line: 6, end_line: 15, keywords: ["y"] }),
       ],
-    })
-    const markers: CodeblockMarker[] = [
-      { language: "json-callout", id: "callout_1", label: "Week 1", line: 3 },
-      { language: "json-chart", id: "chart_x", label: null, line: 7 },
-      { language: "bash", id: null, label: null, line: 12 },
-    ]
-    expect(formatScoutMap("f.md", map, markers)).toBe(
-      [
-        `File: f.md`,
-        `ctx`,
-        ``,
-        `[1-5] A`,
-        `  keywords: x`,
-        ``,
-        `[6-15] B`,
-        `  keywords: y`,
-        ``,
-        `----`,
-        `codeblock json-callout callout_1: "Week 1" on line 3`,
-        `codeblock json-chart chart_x on line 7`,
-        `codeblock bash on line 12`,
-      ].join("\n")
+    }
+    expect(formatScoutMap("f.md", map)).toBe(
+      [`File: f.md`, ``, `[1-5] A`, `  keywords: x`, ``, `[6-15] B`, `  keywords: y`].join("\n")
     )
+  })
+})
+
+describe("formatSection", () => {
+  interface Case {
+    name: string
+    section: ScoutSection
+    expected: string
+  }
+
+  const cases: Case[] = [
+    {
+      name: "with desc",
+      section: section({
+        label: "Intro",
+        start_line: 1,
+        end_line: 10,
+        keywords: ["a"],
+        desc: "opening",
+      }),
+      expected: "[1-10] Intro\n  keywords: a\n  desc: opening",
+    },
+    {
+      name: "without desc",
+      section: section({ label: "Intro", start_line: 1, end_line: 10, keywords: ["a", "b"] }),
+      expected: "[1-10] Intro\n  keywords: a, b",
+    },
+  ]
+
+  it.each(cases)("$name", (c) => {
+    expect(formatSection(c.section)).toBe(c.expected)
   })
 })
