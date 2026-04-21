@@ -1,13 +1,21 @@
 import { z } from "zod"
 import type { HandlerResult } from "../../types"
-import { ApplyDeepAnalysisArgs, applyDeepAnalysisTool, type PostAction } from "./def"
+import {
+  ApplyDeepAnalysisArgs,
+  applyDeepAnalysisTool,
+  type PostAction,
+  type SourceFile,
+} from "./def"
 import { registerTool, tool } from "../../executors/tool"
 import { callLlm, extractText, toResponseFormat } from "../../client"
 import { getFileView, getViewableFiles } from "../file-view"
 import { getFile } from "~/lib/files"
 import { getToolHandlers } from "../../executors/tool"
+import { processPool } from "~/lib/utils/pool"
 import {
+  CONTEXT_OVERLAP_RATIO,
   extractSection,
+  extractLeadingContext,
   numberSection,
   mapResults,
   toAnnotationOps,
@@ -45,22 +53,54 @@ const REVIEW_GUIDANCE = [
   "Don't force-fit a wrong code, but also don't flag every imperfect fit. Apply the best-fitting code confidently when it's the right call; flag only when the fit itself raises a methodological question.",
 ].join("\n")
 
-const buildSourceMessage = (paths: string[]): string => {
-  const sections = paths.flatMap((p) => {
-    const content = getFileView(p)
-    if (content === undefined) return []
-    return [`<source path="${p}">\n${content}\n</source>`]
-  })
-  return sections.join("\n\n")
+interface ScopedSources {
+  framework: string[]
+  dimension: string[]
+}
+
+const partitionSources = (files: SourceFile[]): ScopedSources => ({
+  framework: files.filter((f) => f.scope === "framework").map((f) => f.path),
+  dimension: files.filter((f) => f.scope === "dimension").map((f) => f.path),
+})
+
+const buildCallList = ({ framework, dimension }: ScopedSources): ScopedSources[] =>
+  dimension.length === 0
+    ? [{ framework, dimension: [] }]
+    : dimension.map((p) => ({ framework, dimension: [p] }))
+
+const formatSourceTag = (path: string, scope: string): string | undefined => {
+  const content = getFileView(path)
+  if (content === undefined) return undefined
+  return `<source type="${scope}" path="${path}">\n${content}\n</source>`
+}
+
+const buildSourceMessage = ({ framework, dimension }: ScopedSources): string => {
+  const frameworkTags = framework.flatMap((p) => formatSourceTag(p, "framework") ?? [])
+  const dimensionTags = dimension.flatMap((p) => formatSourceTag(p, "dimension") ?? [])
+  const parts = [...frameworkTags]
+  if (frameworkTags.length > 0 && dimensionTags.length > 0) parts.push("---")
+  parts.push(...dimensionTags)
+  return parts.join("\n\n")
 }
 
 const buildSectionMessage = (numbered: string): string => `<section>\n${numbered}\n</section>`
 
-const buildMessages = (numbered: string, sourcePaths: string[], postAction: PostAction) => {
+const buildContextMessage = (context: string): string =>
+  `<context type="preceding">\n${context}\n</context>`
+
+const buildMessages = (
+  numbered: string,
+  sources: ScopedSources,
+  postAction: PostAction,
+  leadingContext: string
+) => {
   const messages: { type: "message"; role: "system" | "user"; content: string }[] = [
-    { type: "message", role: "system", content: buildSourceMessage(sourcePaths) },
-    { type: "message", role: "system", content: buildSectionMessage(numbered) },
+    { type: "message", role: "system", content: buildSourceMessage(sources) },
   ]
+  if (leadingContext) {
+    messages.push({ type: "message", role: "system", content: buildContextMessage(leadingContext) })
+  }
+  messages.push({ type: "message", role: "system", content: buildSectionMessage(numbered) })
   if (postAction === "annotate_as_code") {
     messages.push({ type: "message", role: "system", content: REVIEW_GUIDANCE })
   }
@@ -106,12 +146,13 @@ const RawResultsWrapper = z.object({ results: z.array(z.unknown()) })
 
 const runAnalysis = async (
   numbered: string,
-  sourcePaths: string[],
-  postAction: PostAction
+  sources: ScopedSources,
+  postAction: PostAction,
+  leadingContext: string
 ): Promise<AnalysisParseResult> => {
   const blocks = await callLlm({
     endpoint: DEEP_ANALYSIS_ENDPOINT,
-    messages: buildMessages(numbered, sourcePaths, postAction),
+    messages: buildMessages(numbered, sources, postAction, leadingContext),
     responseFormat: toResponseFormat(buildResponseSchema(postAction)),
   })
 
@@ -169,11 +210,13 @@ registerTool(
       if (getFile(path) === undefined)
         return { status: "error", output: `File not found: ${path}`, mutations: [] }
 
-      const missing = source_files.filter((p) => getFile(p) === undefined)
-      if (missing.length > 0)
+      const missingPaths = source_files
+        .filter((f) => getFile(f.path) === undefined)
+        .map((f) => f.path)
+      if (missingPaths.length > 0)
         return {
           status: "error",
-          output: `Source files not found: ${missing.join(", ")}`,
+          output: `Source files not found: ${missingPaths.join(", ")}`,
           mutations: [],
         }
 
@@ -181,16 +224,59 @@ registerTool(
       if (content === undefined)
         return { status: "error", output: `Cannot read file: ${path}`, mutations: [] }
 
+      const contentLines = content.split("\n")
+      const findNonBlank = (from: number, dir: 1 | -1): string => {
+        for (let j = from; j >= 0 && j < contentLines.length; j += dir) {
+          if (contentLines[j].trim()) return contentLines[j]
+        }
+        return ""
+      }
+      const firstLine = contentLines[start_line - 1] ?? ""
+      const lastLine = contentLines[end_line - 1] ?? ""
+      const first = firstLine.trim()
+        ? firstLine
+        : `(blank, first after: ${findNonBlank(start_line, 1)})`
+      const last = lastLine.trim()
+        ? lastLine
+        : `(blank, last before: ${findNonBlank(end_line - 2, -1)})`
+      console.debug(`[deep-analysis] ${path} [${start_line}-${end_line}]`)
+      console.debug(`[deep-analysis]   first: ${first}`)
+      console.debug(`[deep-analysis]   last:  ${last}`)
       const section = extractSection(content, start_line, end_line)
+      const leadingContext = extractLeadingContext(content, start_line, CONTEXT_OVERLAP_RATIO)
       const { sentences, numbered } = numberSection(section)
 
       if (sentences.length === 0)
         return { status: "ok", output: "Section contains no sentences.", mutations: [] }
 
-      const outcome = await runAnalysis(numbered, source_files, post_action)
-      if (!outcome.ok) return { status: "error", output: outcome.error, mutations: [] }
+      const scoped = partitionSources(source_files)
+      const calls = buildCallList(scoped)
+      const callErrors: string[] = []
 
-      const { results: validResults, failed: parseFailures } = outcome
+      interface CallOutcome {
+        results: AnalysisResult[]
+        parseFailures: number
+      }
+
+      const { results: outcomes } = await processPool<ScopedSources, CallOutcome>(
+        calls,
+        async (sources) => {
+          const outcome = await runAnalysis(numbered, sources, post_action, leadingContext)
+          if (!outcome.ok) {
+            callErrors.push(outcome.error)
+            return []
+          }
+          return [{ results: outcome.results, parseFailures: outcome.failed }]
+        },
+        () => undefined,
+        { concurrency: 5 }
+      )
+
+      if (outcomes.length === 0 && calls.length > 0)
+        return { status: "error", output: callErrors.join("; "), mutations: [] }
+
+      const validResults = outcomes.flatMap((o) => o.results)
+      const parseFailures = outcomes.reduce((sum, o) => sum + o.parseFailures, 0)
       const mapped = mapResults(sentences, validResults)
 
       if (post_action === "return") {

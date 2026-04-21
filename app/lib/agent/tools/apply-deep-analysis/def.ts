@@ -5,6 +5,13 @@ export const PostAction = z.enum(["return", "annotate_as_code", "annotate_as_com
 
 export type PostAction = z.infer<typeof PostAction>
 
+export const SourceFile = z.object({
+  path: z.string().describe("File path"),
+  scope: z.enum(["framework", "dimension"]),
+})
+
+export type SourceFile = z.infer<typeof SourceFile>
+
 export const ApplyDeepAnalysisArgs = z.object({
   path: z.string().describe("File to analyze"),
   start_line: z
@@ -14,9 +21,11 @@ export const ApplyDeepAnalysisArgs = z.object({
     .describe("First line of the section (1-based, from scout map)"),
   end_line: z.number().int().min(1).describe("Last line of the section (1-based, from scout map)"),
   source_files: z
-    .array(z.string())
+    .array(SourceFile)
     .min(1)
-    .describe("Paths to files containing analysis definitions / criteria"),
+    .describe(
+      "Files with criteria to apply. `framework` = general rules/protocol applied as common context to every evaluation. `dimension` = discrete angle of the framework, evaluated on its own. Mark as `framework` anything that applies across dimensions; mark as `dimension` only the actual items being judged. Misclassifying framework rules as dimensions causes redundant evaluations without improving quality."
+    ),
   post_action: PostAction.describe(
     "return: get results. annotate_as_code: write code annotations (analysis_source_id = code id). annotate_as_comment: write comment annotations."
   ),

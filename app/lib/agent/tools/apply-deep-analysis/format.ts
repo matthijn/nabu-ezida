@@ -16,9 +16,31 @@ export interface MappedResult {
   review?: string
 }
 
+export const CONTEXT_OVERLAP_RATIO = 0.2
+
 export const extractSection = (content: string, startLine: number, endLine: number): string => {
   const lines = content.split("\n")
   return lines.slice(startLine - 1, endLine).join("\n")
+}
+
+export const extractLeadingContext = (
+  content: string,
+  startLine: number,
+  ratio: number
+): string => {
+  if (startLine <= 1) return ""
+  const lines = content.split("\n")
+  const preceding = lines.slice(0, startLine - 1)
+  const totalChars = preceding.reduce((sum, l) => sum + l.length + 1, -1)
+  const targetChars = Math.floor(totalChars * ratio)
+  if (targetChars === 0) return ""
+
+  let chars = 0
+  for (let i = preceding.length - 1; i >= 0; i--) {
+    chars += preceding[i].length + 1
+    if (chars >= targetChars) return preceding.slice(i).join("\n").trim()
+  }
+  return preceding.join("\n").trim()
 }
 
 export const numberSection = (text: string): { sentences: string[]; numbered: string } => {
