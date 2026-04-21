@@ -1,4 +1,4 @@
-const DEFAULT_CONCURRENCY = 5
+const DEFAULT_CONCURRENCY = 4
 
 interface PoolOptions {
   concurrency?: number
