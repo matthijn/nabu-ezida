@@ -11,6 +11,7 @@ import {
   findPendingRefs,
   findDefinitionIds,
 } from "./pending-refs"
+import { resolveHiddenFile } from "./hidden-blocks"
 import { countLines } from "~/lib/text/stats"
 import { debounce, createScopedDebounce } from "~/lib/utils/debounce"
 import { sendCommand } from "~/lib/server/sync/commands"
@@ -94,7 +95,8 @@ export const getFilesStripped = (): FileStore =>
 
 export const getCodebook = () => memoizedCodebook(files)
 
-export const getFile = (filename: string): string | undefined => files[filename]
+export const getFile = (filename: string): string | undefined =>
+  files[filename] ?? resolveHiddenFile(filename)
 
 export const getFileRaw = (filename: string): string => files[filename] ?? ""
 

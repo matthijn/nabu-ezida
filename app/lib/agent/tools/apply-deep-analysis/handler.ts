@@ -44,13 +44,17 @@ const buildResponseSchema = (postAction: PostAction) =>
   })
 
 const REVIEW_GUIDANCE = [
-  "When applying codes, flag an annotation for review if:",
-  "- The passage fits but uneasily (stretched definition, partial match)",
-  "- The passage is relevant to the codebook's themes but no existing code fits cleanly",
+  "Review flag reminder:",
   "",
-  'Flag sparingly. A flag means "this is a genuine codebook question worth the researcher\'s attention." Within any 20-60 line section, most annotations should not be flagged. If several are, the bar is too low — reconsider before flagging.',
+  "Include a review note only if this match fits uneasily — the definition was stretched to include this passage, or the span required an interpretive call another researcher might make differently.",
   "",
-  "Don't force-fit a wrong code, but also don't flag every imperfect fit. Apply the best-fitting code confidently when it's the right call; flag only when the fit itself raises a methodological question.",
+  'The bar is high. A flag means "this raises a question about how the definition handles borderline cases" — not "I\'m slightly unsure about this match." If you\'re slightly unsure, code confidently or drop; don\'t flag. Most matches should not have a review note.',
+  "",
+  "When flagging, the note is one sentence and actionable: tighten inclusion criterion X, clarify whether Y counts, this case sits between inclusion and exclusion criteria.",
+  "",
+  "Apply the best-fitting code confidently when it's the right call. Flag only when the fit itself raises a definition-boundary question.",
+  "",
+  "Span check: your reason must cover the whole span. If the reason only describes part of it, the span is too wide — tighten it.",
 ].join("\n")
 
 interface ScopedSources {

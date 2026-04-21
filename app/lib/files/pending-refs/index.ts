@@ -73,6 +73,13 @@ export const renameInDefinitionIndex = (oldName: string, newName: string): void 
   if (defs) definitionIndex.set(newName, defs)
 }
 
+export const findFileForId = (id: string): string | undefined => {
+  for (const [filename, ids] of definitionIndex) {
+    if (ids.has(id)) return filename
+  }
+  return undefined
+}
+
 export const getAllDefinitions = (): Set<string> => {
   const all = new Set<string>()
   for (const ids of definitionIndex.values()) {

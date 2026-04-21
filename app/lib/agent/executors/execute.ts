@@ -10,6 +10,7 @@ import {
   finalizeContent,
   formatGeneratedIds,
 } from "~/lib/files"
+import { isHiddenFile, SETTINGS_FILE } from "~/lib/files/filename"
 import { replaceUuidPlaceholders } from "~/lib/data-blocks/uuid"
 import { validateBlocksAsync, formatValidationErrors } from "~/lib/data-blocks/validate"
 import type { ToolExecutor } from "../turn"
@@ -73,10 +74,22 @@ const applyPatchAndStore = async (
   return { ids, warnings }
 }
 
+const isWritableByAi = (path: string): boolean => !isHiddenFile(path) || path === SETTINGS_FILE
+
+const mutationPaths = (op: Operation): string[] =>
+  op.type === "rename_file" ? [op.path, op.newPath] : [op.path]
+
+const checkHiddenFileGuard = (op: Operation): MutationErr | null => {
+  const blocked = mutationPaths(op).find((p) => !isWritableByAi(p))
+  return blocked ? { error: `${blocked}: hidden file, cannot be modified by the assistant` } : null
+}
+
 const applyMutation = async (
   op: Operation,
   placeholderIds: Record<string, string>
 ): Promise<MutationResult> => {
+  const hiddenErr = checkHiddenFileGuard(op)
+  if (hiddenErr) return hiddenErr
   const ts = Date.now()
   switch (op.type) {
     case "create_file": {
