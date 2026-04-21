@@ -15,8 +15,9 @@ import { countLines } from "~/lib/text/stats"
 import { debounce, createScopedDebounce } from "~/lib/utils/debounce"
 import { sendCommand } from "~/lib/server/sync/commands"
 import { normalizeContent as normalize } from "~/lib/patch/diff/normalize"
+import { normalizeSingletonOrder } from "~/lib/data-blocks/normalize"
 
-const normalizeFile = (text: string): string => normalize(text) + "\n"
+const normalizeFile = (text: string): string => normalizeSingletonOrder(normalize(text)) + "\n"
 import { memoByRef } from "~/lib/utils/memo"
 
 export type FileStore = Record<string, string>

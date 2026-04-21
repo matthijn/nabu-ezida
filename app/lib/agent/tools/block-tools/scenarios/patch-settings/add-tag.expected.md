@@ -2,6 +2,8 @@
 
 Some text.
 
+More text.
+
 ```json-settings
 {
 	"tags": [
@@ -22,5 +24,3 @@ Some text.
 	]
 }
 ```
-
-More text.

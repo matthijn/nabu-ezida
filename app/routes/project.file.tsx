@@ -11,7 +11,7 @@ import { ScrollGutter } from "~/ui/components/editor/ScrollGutter"
 import { FileHeader, EditorToolbar } from "~/ui/components/editor"
 import { StatusBar } from "~/ui/components/StatusBar"
 import { computeTextStats, countLines, formatStatsLabel, formatStatsDetail } from "~/lib/text/stats"
-import { stripAttributesBlock } from "~/lib/markdown/strip-attributes"
+import { stripSingletonBlocks } from "~/lib/data-blocks/registry"
 import {
   getDocumentType,
   getDocumentSubject,
@@ -47,9 +47,15 @@ const formatClassificationLine = (
 }
 
 const documentStatusTooltip = (content: string): string => {
-  const lines = countLines(content)
-  const stats = computeTextStats(stripAttributesBlock(content))
-  const detail = `${lines.toLocaleString()} lines · ${formatStatsDetail(stats)}`
+  const stripped = stripSingletonBlocks(content)
+  const totalLines = countLines(content)
+  const proseLines = countLines(stripped)
+  const stats = computeTextStats(stripped)
+  const linesLabel =
+    totalLines === proseLines
+      ? `${totalLines.toLocaleString()} lines`
+      : `${proseLines.toLocaleString()} lines (${totalLines.toLocaleString()} with data blocks)`
+  const detail = `${linesLabel} · ${formatStatsDetail(stats)}`
   const classification = formatClassificationLine(
     getDocumentType(content),
     getDocumentSubject(content)
@@ -58,7 +64,7 @@ const documentStatusTooltip = (content: string): string => {
 }
 
 const documentStatusText = (content: string): string =>
-  formatStatsLabel(computeTextStats(stripAttributesBlock(content)))
+  formatStatsLabel(computeTextStats(stripSingletonBlocks(content)))
 
 const sortTagsByDisplay = (tags: TagDefinition[]): TagDefinition[] =>
   [...tags].sort((a, b) => a.display.localeCompare(b.display))

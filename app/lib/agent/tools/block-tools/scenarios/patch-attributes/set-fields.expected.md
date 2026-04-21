@@ -2,6 +2,8 @@
 
 Some text.
 
+More text.
+
 ```json-attributes
 {
 	"tags": [
@@ -10,5 +12,3 @@ Some text.
 	"date": "2025-01-01"
 }
 ```
-
-More text.

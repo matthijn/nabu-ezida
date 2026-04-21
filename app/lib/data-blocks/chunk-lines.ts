@@ -1,0 +1,69 @@
+import { parseCodeBlocks, type CodeBlock } from "./parse"
+
+export interface LineChunk {
+  startLine: number
+  endLine: number
+}
+
+const isInsideBlock = (blocks: CodeBlock[], lineStart: number, lineEnd: number): boolean =>
+  blocks.some((b) => b.start <= lineStart && lineEnd <= b.end)
+
+const isHeading = (line: string): boolean => line.startsWith("#")
+
+interface Acc {
+  chunks: LineChunk[]
+  start: number
+  size: number
+}
+
+const flush = (acc: Acc, endLine: number): Acc => ({
+  chunks: [...acc.chunks, { startLine: acc.start, endLine }],
+  start: endLine + 1,
+  size: 0,
+})
+
+export const chunkLines = (content: string, targetSize: number): LineChunk[] => {
+  if (!content.trim()) return []
+
+  const blocks = parseCodeBlocks(content)
+  const lines = content.split("\n")
+
+  let acc: Acc = { chunks: [], start: 1, size: 0 }
+  let offset = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const lineNum = i + 1
+    const lineStart = offset
+    const lineEnd = offset + line.length
+    const inBlock = isInsideBlock(blocks, lineStart, lineEnd)
+
+    if (!inBlock) {
+      if (isHeading(line) && acc.size > 0) {
+        acc = flush(acc, lineNum - 1)
+      }
+      acc = { ...acc, size: acc.size + line.length }
+    }
+
+    if (acc.size >= targetSize && lineNum < lines.length) {
+      acc = flush(acc, lineNum)
+    }
+
+    offset = lineEnd + 1
+  }
+
+  if (acc.start <= lines.length) {
+    const isTinyTail = acc.chunks.length > 0 && acc.size < targetSize / 2
+    if (isTinyTail) {
+      const prev = acc.chunks[acc.chunks.length - 1]
+      acc = {
+        ...acc,
+        chunks: [...acc.chunks.slice(0, -1), { startLine: prev.startLine, endLine: lines.length }],
+      }
+    } else {
+      acc = flush(acc, lines.length)
+    }
+  }
+
+  return acc.chunks
+}

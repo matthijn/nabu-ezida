@@ -1,6 +1,7 @@
 import type { BlockTypeConfig, ActorPathConfig, IdPathConfig } from "./definition"
 import { toBlockSchema, type BlockSchemaDefinition } from "./json-schema"
 import { getByPath } from "./json"
+import { stripBlocksByLanguage } from "./parse"
 import { jsonAttributes } from "~/domain/data-blocks/attributes/definition"
 import { jsonSettings } from "~/domain/data-blocks/settings/definition"
 import { jsonCallout } from "~/domain/data-blocks/callout/definition"
@@ -30,6 +31,12 @@ export const isChartRenderer = (language: string): boolean =>
   blockTypes[language]?.renderer === "chart"
 
 export const isSingleton = (language: string): boolean => blockTypes[language]?.singleton ?? false
+
+export const getSingletonLanguages = (): string[] =>
+  BLOCK_LANGUAGES.filter((lang) => blockTypes[lang]?.singleton)
+
+export const stripSingletonBlocks = (raw: string): string =>
+  getSingletonLanguages().reduce((text, lang) => stripBlocksByLanguage(text, lang), raw)
 
 export const getLabelKey = (language: string): string | undefined => blockTypes[language]?.labelKey
 

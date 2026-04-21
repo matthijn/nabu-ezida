@@ -6,6 +6,11 @@ import { contentHash, shouldReclassify } from "./selectors"
 const attrs = (meta: Record<string, unknown>): string =>
   block("json-attributes", JSON.stringify(meta))
 
+const annotations = (items: unknown[]): string => block("json-annotations", JSON.stringify(items))
+
+const settings = (data: Record<string, unknown>): string =>
+  block("json-settings", JSON.stringify(data))
+
 const withMeta = (prose: string, meta: Record<string, unknown>): string =>
   `${prose}\n\n${attrs(meta)}`
 
@@ -13,14 +18,45 @@ const PROSE = "# Doc\n\nSome words here."
 const PROSE_HASH = fnvHash(PROSE)
 
 describe("contentHash", () => {
-  it("matches across presence/absence of attributes block", () => {
-    const bare = PROSE
-    const withBlock = withMeta(PROSE, { type: "t", source: "s", subject: "x", hash: "stale" })
-    expect(contentHash(bare)).toBe(contentHash(withBlock))
-  })
+  const cases: { name: string; a: string; b: string; shouldMatch: boolean }[] = [
+    {
+      name: "matches across presence/absence of attributes block",
+      a: PROSE,
+      b: withMeta(PROSE, { type: "t", subject: "x", hash: "stale" }),
+      shouldMatch: true,
+    },
+    {
+      name: "matches across presence/absence of annotations block",
+      a: PROSE,
+      b: `${PROSE}\n\n${annotations([{ id: "a1", text: "note" }])}`,
+      shouldMatch: true,
+    },
+    {
+      name: "matches across presence/absence of settings block",
+      a: PROSE,
+      b: `${PROSE}\n\n${settings({ tags: [] })}`,
+      shouldMatch: true,
+    },
+    {
+      name: "matches when all singleton blocks present",
+      a: PROSE,
+      b: `${PROSE}\n\n${attrs({ type: "t" })}\n\n${annotations([])}\n\n${settings({})}`,
+      shouldMatch: true,
+    },
+    {
+      name: "changes when prose changes",
+      a: PROSE,
+      b: `${PROSE} more words`,
+      shouldMatch: false,
+    },
+  ]
 
-  it("changes when prose changes", () => {
-    expect(contentHash(PROSE)).not.toBe(contentHash(`${PROSE} more words`))
+  it.each(cases)("$name", ({ a, b, shouldMatch }) => {
+    if (shouldMatch) {
+      expect(contentHash(a)).toBe(contentHash(b))
+    } else {
+      expect(contentHash(a)).not.toBe(contentHash(b))
+    }
   })
 })
 

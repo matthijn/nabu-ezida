@@ -106,7 +106,7 @@ export const summarizeBlocks = (
     return [...acc, { id: parsed.data.id, label }]
   }, [])
 
-const formatBlock = (language: string, content: string): string =>
+export const formatBlock = (language: string, content: string): string =>
   `\`\`\`${language}\n${content}\n\`\`\``
 
 export const replaceBlock = (markdown: string, block: CodeBlock, newContent: string): string =>

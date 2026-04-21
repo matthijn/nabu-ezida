@@ -2,6 +2,8 @@
 
 Some text.
 
+More text.
+
 ```json-annotations
 {
 	"annotations": [
@@ -21,5 +23,3 @@ Some text.
 	]
 }
 ```
-
-More text.
