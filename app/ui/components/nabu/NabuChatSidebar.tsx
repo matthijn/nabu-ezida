@@ -18,6 +18,8 @@ import {
   Check,
   ChevronRight,
   Circle,
+  Eraser,
+  FileCode,
   Loader2,
   MessageCircle,
   MessageSquare,
@@ -32,7 +34,7 @@ import { AnimatePresence } from "framer-motion"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { AnimatedListItem } from "~/ui/components/AnimatedListItem"
 import { useChat } from "~/ui/hooks/useChat"
-import { derive } from "~/lib/agent"
+import { derive, hasActivePlan } from "~/lib/agent"
 import { pushBlocks } from "~/lib/agent/client"
 import {
   toGroupedMessages,
@@ -68,6 +70,9 @@ import { truncateLabel, useMutationHistory, presentEntry } from "~/lib/mutation-
 import type { HistoryEntry } from "~/lib/mutation-history"
 import { boldMissingFile } from "~/lib/files/filename"
 import { InlineMarkdown } from "~/ui/components/InlineMarkdown"
+import { dispatchTask } from "~/lib/agent/dispatch"
+import { buildFileContextBlocks } from "~/lib/agent/context-blocks"
+import { getAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { pickGreeting } from "./greetings"
 import { exhaustive } from "~/lib/utils/exhaustive"
 
@@ -951,8 +956,10 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
   const lastEntry = useMemo(() => findLastWriteEntry(mutationHistory), [mutationHistory])
   const { files, currentFile } = useFiles()
   const currentFileContent = currentFile ? (files[currentFile] ?? null) : null
+  const hasCodings = currentFileContent ? getAnnotationCount(currentFileContent) > 0 : false
 
   const derived = useMemo(() => derive(history, files), [history, files])
+  const busy = loading || hasActivePlan(derived.plans)
   const isStreamingText = draft?.type === "text" && preprocessStreaming(draft.content) !== null
   const messages = useMemo(() => toGroupedMessages(history, derived), [history, derived])
   const rawSegments = useMemo(() => toRenderSegments(messages), [messages])
@@ -977,6 +984,7 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
     if (history.length === 0 && !didAutoSend.current) {
       didAutoSend.current = true
       pushBlocks([
+        ...buildFileContextBlocks(files),
         { type: "user", content: pickGreeting() },
         {
           type: "system",
@@ -998,6 +1006,23 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
     send(inputValue.trim(), getDeps())
     setInputValue("")
   }, [loading, waitingForInput, inputValue, send, respond, getDeps])
+
+  const handleCodeFile = useCallback(() => {
+    dispatchTask(
+      {
+        approaches: [],
+        context:
+          "Use ls --show-tags to find codebooks, then use deep plan to start coding of file.",
+        userMessage: "Can you code this file",
+      },
+      getDeps()
+    )
+  }, [getDeps])
+
+  const handleRemoveCodings = useCallback(() => {
+    if (loading) return
+    send("Can you clear all codings of this file", getDeps())
+  }, [loading, send, getDeps])
 
   const markTyping = useCallback(() => {
     setIsTyping(true)
@@ -1119,6 +1144,29 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
           />
         )}
       </div>
+
+      {currentFile && (
+        <div className="flex gap-2 px-4 pb-3">
+          <Button
+            variant="neutral-secondary"
+            size="small"
+            icon={<FileCode />}
+            disabled={busy || hasCodings}
+            onClick={handleCodeFile}
+          >
+            Code File
+          </Button>
+          <Button
+            variant="neutral-secondary"
+            size="small"
+            icon={<Eraser />}
+            disabled={busy || !hasCodings}
+            onClick={handleRemoveCodings}
+          >
+            Remove Codings
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

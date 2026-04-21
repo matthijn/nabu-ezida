@@ -9,10 +9,12 @@ import {
   getNabuStatus,
   type NabuStatus,
 } from "~/lib/agent/client"
+import { derive, hasActivePlan } from "~/lib/agent/derived"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 
 const statusTooltip: Record<Exclude<NabuStatus, "idle">, string> = {
   busy: "Nabu is working...",
+  planning: "Nabu is executing a plan...",
   "waiting-for-ask": "Nabu is waiting for your answer",
 }
 
@@ -25,7 +27,11 @@ const subscribeAll = (listener: () => void): (() => void) => {
   }
 }
 
-const getStatus = (): NabuStatus => getNabuStatus(getLoading(), getAllBlocksWithDraft())
+const getStatus = (): NabuStatus => {
+  const history = getAllBlocksWithDraft()
+  const inPlan = hasActivePlan(derive(history).plans)
+  return getNabuStatus(getLoading(), history, inPlan)
+}
 
 export const useNabuStatus = (): NabuStatus =>
   useSyncExternalStore(subscribeAll, getStatus, getStatus)

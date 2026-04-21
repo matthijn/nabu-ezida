@@ -60,6 +60,7 @@ import { collectExhibits } from "~/domain/exhibits/selectors"
 import type { ExhibitItem } from "~/domain/exhibits/types"
 import { formatShortDate } from "~/lib/format/date"
 import { getSettings, setSetting } from "~/lib/storage"
+import { dispatchTask } from "~/lib/agent/dispatch"
 
 export type { DebugOptions } from "~/ui/components/editor/debug-config"
 
@@ -453,6 +454,15 @@ export default function ProjectLayout() {
     navigate(`/project/${params.projectId}/search/${id}`)
   }
 
+  const handleCodeFile = (code: Code) => {
+    const codeFile = `${code.id}.hidden.md`
+    dispatchTask({
+      approaches: [],
+      context: `Use ls --show-tags to find codebooks, then use deep plan to start coding of file. Use ONLY the generic codebook AND ${codeFile} for coding. Do not use any other codebooks. Note: ${codeFile} is a hidden file — it will not appear in ls output, but it exists and can be read directly with cat.`,
+      userMessage: `Can you code this file with only ${code.id}`,
+    })
+  }
+
   const sidebarPanels = {
     documents: (
       <DocumentsSidebar
@@ -495,6 +505,7 @@ export default function ProjectLayout() {
               globalAnnotationCounts={globalAnnotationCounts}
               reviewCount={reviewCount}
               onEditCode={handleEditCode}
+              onCodeFile={handleCodeFile}
               onFileSelect={handleDocumentSelect}
               onSearchCode={handleSearchCode}
               onReviewClick={handleReviewClick}

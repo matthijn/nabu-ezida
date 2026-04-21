@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Flag, Search } from "lucide-react"
+import { Flag, Play, Search } from "lucide-react"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { matchesAny } from "~/lib/utils/filter"
 import { solidBackground, elementBackground, hoveredElementBorder } from "~/ui/theme/radix"
-import { CheckableWrap } from "~/ui/components/CheckableWrap"
 import type { GlobalAnnotationCount } from "~/domain/data-blocks/attributes/annotations/selectors"
 import type { Codebook, Code, CodeCategory } from "./types"
 import { CodeItem } from "./CodeItem"
@@ -18,7 +17,9 @@ interface CodesSidebarProps {
   annotationCounts?: Record<string, number>
   globalAnnotationCounts?: Record<string, GlobalAnnotationCount>
   reviewCount?: number
+  busy?: boolean
   onEditCode?: (code: Code) => void
+  onCodeFile?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
   onSearchCode?: (code: Code) => void
   onReviewClick?: () => void
@@ -75,6 +76,28 @@ const SearchCodeButton = ({
   )
 }
 
+interface CodeFileButtonProps {
+  code: Code
+  disabled: boolean
+  onClick: () => void
+}
+
+const CodeFileButton = ({ code, disabled, onClick }: CodeFileButtonProps) => (
+  <TooltipWrap text="Code this file with only this code">
+    <button
+      disabled={disabled}
+      className="flex flex-none items-center justify-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 enabled:cursor-pointer enabled:hover:bg-neutral-100"
+      style={{ color: solidBackground(code.color) }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+    >
+      <Play className="h-3.5 w-3.5" />
+    </button>
+  </TooltipWrap>
+)
+
 const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => void }) => (
   <>
     <div
@@ -98,14 +121,15 @@ export const CodesSidebar = ({
   annotationCounts = {},
   globalAnnotationCounts = {},
   reviewCount = 0,
+  busy = false,
   onEditCode,
+  onCodeFile,
   onFileSelect,
   onSearchCode,
   onReviewClick,
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
-  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set())
 
   const filteredCategories = useMemo(
     () => filterCategories(codebook.categories, searchValue),
@@ -135,27 +159,18 @@ export const CodesSidebar = ({
               {category.name}
             </span>
             {category.codes.map((code) => (
-              <CheckableWrap
-                key={code.id}
-                color={code.color}
-                checked={selectedCodes.has(code.id)}
-                onToggle={() =>
-                  setSelectedCodes((prev) => {
-                    const next = new Set(prev)
-                    if (next.has(code.id)) next.delete(code.id)
-                    else next.add(code.id)
-                    return next
-                  })
-                }
-              >
-                <CodeItem
-                  code={code}
-                  count={annotationCounts[code.id]}
-                  highlighted={code.id === hoveredCode?.id}
-                  onMouseEnter={() => setHoveredCode(code)}
-                  onClick={() => onEditCode?.(code)}
-                />
-              </CheckableWrap>
+              <div key={code.id} className="flex w-full items-center gap-1">
+                <CodeFileButton code={code} disabled={busy} onClick={() => onCodeFile?.(code)} />
+                <div className="min-w-0 grow">
+                  <CodeItem
+                    code={code}
+                    count={annotationCounts[code.id]}
+                    highlighted={code.id === hoveredCode?.id}
+                    onMouseEnter={() => setHoveredCode(code)}
+                    onClick={() => onEditCode?.(code)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         ))}
