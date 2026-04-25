@@ -1,4 +1,4 @@
-import { findMatchOffset } from "~/lib/patch/diff/search"
+import { findMatchOffset } from "~/lib/text/find"
 import { serializeSpotlight } from "~/lib/editor/spotlight"
 
 const QUOTE_PATTERN =

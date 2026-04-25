@@ -1,4 +1,5 @@
-import { splitSentences, formatNumberedPassage } from "~/lib/search/filter-hits"
+import { splitSentences } from "~/lib/search/filter-hits"
+import { formatNumberedPassage } from "~/lib/text/format"
 import type { PostAction } from "./def"
 
 export interface AnalysisResult {
@@ -113,14 +114,29 @@ const formatResult = (r: MappedResult): string => {
 
 const formatResults = (results: MappedResult[]): string => results.map(formatResult).join("\n")
 
-export const formatReturnOutput = (results: MappedResult[]): string =>
-  results.length === 0 ? "No matches found." : formatResults(results)
+export const ABSENCE_HINT = [
+  "\n-----",
+  "Absence is data. Report that nothing was found in this section.",
+  "Do not speculate about why — the analysis was exhaustive.",
+  "If the user asks why, re-examine the source definitions and section content.",
+].join("\n")
+
+const formatAbsence = (startLine: number, endLine: number, suffix: string): string =>
+  `Lines ${startLine}-${endLine} analyzed. No matches found.${suffix}${ABSENCE_HINT}`
+
+export const formatReturnOutput = (
+  results: MappedResult[],
+  startLine: number,
+  endLine: number
+): string => (results.length === 0 ? formatAbsence(startLine, endLine, "") : formatResults(results))
 
 export const formatAnnotateOutput = (
   results: MappedResult[],
-  action: "annotate_as_code" | "annotate_as_comment"
+  action: "annotate_as_code" | "annotate_as_comment",
+  startLine: number,
+  endLine: number
 ): string => {
-  if (results.length === 0) return "No matches found. No annotations written."
+  if (results.length === 0) return formatAbsence(startLine, endLine, " No annotations written.")
   const kind = action === "annotate_as_code" ? "code" : "comment"
   return `${results.length} ${kind} annotation(s) written. Do not re-apply these.\n\n${formatResults(results)}`
 }

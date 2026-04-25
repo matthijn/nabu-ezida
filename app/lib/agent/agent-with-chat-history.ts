@@ -9,13 +9,13 @@ import { runAgentLoop } from "./agent-loop"
 import { compactHistory, hasCompactedBlock } from "./compact"
 import { baselineNudge } from "./steering/nudges/baseline"
 import { getFiles } from "~/lib/files/store"
+import { CHARS_PER_TOKEN } from "~/lib/text/constants"
 
 const DONE_TOOL = "done"
 
 const WRITE_ANSWER_ENDPOINT = "/write-answer?chat=true"
 const MAX_TURNS = 10
 const TOKEN_BUDGET = 10_000
-const CHARS_PER_TOKEN = 4
 
 const doneDef = {
   name: DONE_TOOL,

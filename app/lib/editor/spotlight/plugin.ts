@@ -6,7 +6,7 @@ import { exhaustive } from "~/lib/utils/exhaustive"
 import { getBlockConfig } from "~/lib/data-blocks/registry"
 import { proseTextContent, textOffsetToPos } from "~/lib/editor/text"
 import type { TextRange } from "~/lib/editor/text"
-import { findMatchOffset } from "~/lib/patch/diff/search"
+import { findMatchOffset } from "~/lib/text/find"
 
 const pluginKey = new PluginKey("spotlight")
 

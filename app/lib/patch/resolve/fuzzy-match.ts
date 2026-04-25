@@ -1,4 +1,4 @@
-import { findMatchOffset } from "../diff/search"
+import { findMatchOffset } from "~/lib/text/find"
 
 const FUZZY_PATTERN = /FUZZY\[\[([^\]]+)\]\]/g
 

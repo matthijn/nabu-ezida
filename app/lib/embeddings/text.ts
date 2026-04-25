@@ -1,5 +1,5 @@
 import { parseCodeBlocks } from "~/lib/data-blocks/parse"
-import { stripMarkdownFormatting } from "./strip"
+import { stripMarkdown } from "~/lib/text/strip"
 
 type ToProseFn = (block: unknown) => string | null
 
@@ -31,7 +31,7 @@ const buildRegions = (markdown: string): Region[] => {
 }
 
 const processRegion = (region: Region, toProseFns: Record<string, ToProseFn>): string => {
-  if (region.type === "prose") return stripMarkdownFormatting(region.text)
+  if (region.type === "prose") return stripMarkdown(region.text)
 
   const fn = region.language ? toProseFns[region.language] : undefined
   if (!fn || !region.content) return ""

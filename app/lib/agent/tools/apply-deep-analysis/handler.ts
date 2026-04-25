@@ -285,7 +285,7 @@ registerTool(
 
       if (post_action === "return") {
         return withParseFailures(
-          { status: "ok", output: formatReturnOutput(mapped), mutations: [] },
+          { status: "ok", output: formatReturnOutput(mapped, start_line, end_line), mutations: [] },
           validResults.length,
           parseFailures
         )
@@ -303,7 +303,11 @@ registerTool(
             mutations: [],
           }
         return withParseFailures(
-          { status: "ok", output: formatAnnotateOutput(mapped, post_action), mutations: [] },
+          {
+            status: "ok",
+            output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
+            mutations: [],
+          },
           validResults.length,
           parseFailures
         )
@@ -316,7 +320,7 @@ registerTool(
       return withParseFailures(
         {
           status: "ok",
-          output: formatAnnotateOutput(mapped, post_action),
+          output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
           mutations: annotationResult.mutations,
         },
         validResults.length,

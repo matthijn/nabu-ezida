@@ -14,14 +14,21 @@ const parseErrorBody = async (response: Response): Promise<string> => {
   }
 }
 
+const gzipCompress = async (data: string): Promise<Blob> => {
+  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream("gzip"))
+  return new Response(stream).blob()
+}
+
 export const sendCommand = async (projectId: string, command: Command): Promise<CommandResult> => {
   const url = getApiUrl(`/commands/${projectId}`)
+  const json = JSON.stringify(command)
 
   try {
+    const body = await gzipCompress(json)
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(command),
+      headers: { "Content-Type": "application/json", "Content-Encoding": "gzip" },
+      body,
     })
 
     if (!response.ok) {

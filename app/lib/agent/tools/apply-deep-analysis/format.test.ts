@@ -8,6 +8,7 @@ import {
   formatReturnOutput,
   formatAnnotateOutput,
   isAnnotateAction,
+  ABSENCE_HINT,
   type MappedResult,
 } from "./format"
 
@@ -230,9 +231,11 @@ describe("toAnnotationOps", () => {
 describe("formatReturnOutput", () => {
   const cases = [
     {
-      name: "no results",
+      name: "no results includes line range and absence hint",
       results: [],
-      expected: "No matches found.",
+      startLine: 10,
+      endLine: 50,
+      expected: `Lines 10-50 analyzed. No matches found.${ABSENCE_HINT}`,
     },
     {
       name: "formats results as list",
@@ -240,6 +243,8 @@ describe("formatReturnOutput", () => {
         { text: "Some text", analysis_source_id: "code_1", reason: "because" },
         { text: "Other text", analysis_source_id: "code_2", reason: "also" },
       ],
+      startLine: 1,
+      endLine: 10,
       expected: '- [code_1] "Some text": because\n- [code_2] "Other text": also',
     },
     {
@@ -252,17 +257,21 @@ describe("formatReturnOutput", () => {
           review: "check this",
         },
       ],
+      startLine: 1,
+      endLine: 5,
       expected: '- [code_1] "Some text": because [REVIEW: check this]',
     },
     {
       name: "omits review tag when absent",
       results: [{ text: "Some text", analysis_source_id: "code_1", reason: "because" }],
+      startLine: 1,
+      endLine: 5,
       expected: '- [code_1] "Some text": because',
     },
   ]
 
-  cases.forEach(({ name, results, expected }) => {
-    it(name, () => expect(formatReturnOutput(results)).toBe(expected))
+  cases.forEach(({ name, results, startLine, endLine, expected }) => {
+    it(name, () => expect(formatReturnOutput(results, startLine, endLine)).toBe(expected))
   })
 })
 
@@ -274,39 +283,59 @@ describe("formatAnnotateOutput", () => {
 
   const cases = [
     {
-      name: "empty results for code",
+      name: "empty results for code includes absence hint",
       action: "annotate_as_code" as const,
       input: [],
-      contains: "No matches found. No annotations written.",
+      startLine: 5,
+      endLine: 20,
+      contains: "Lines 5-20 analyzed. No matches found. No annotations written.",
     },
     {
-      name: "empty results for comment",
+      name: "empty results for comment includes absence hint",
       action: "annotate_as_comment" as const,
       input: [],
-      contains: "No matches found. No annotations written.",
+      startLine: 5,
+      endLine: 20,
+      contains: "Lines 5-20 analyzed. No matches found. No annotations written.",
+    },
+    {
+      name: "empty results include absence hint text",
+      action: "annotate_as_code" as const,
+      input: [],
+      startLine: 5,
+      endLine: 20,
+      contains: "Absence is data.",
     },
     {
       name: "code annotations include count and results",
       action: "annotate_as_code" as const,
       input: results,
+      startLine: 1,
+      endLine: 10,
       contains: "2 code annotation(s) written. Do not re-apply these.",
     },
     {
       name: "comment annotations include count and results",
       action: "annotate_as_comment" as const,
       input: results,
+      startLine: 1,
+      endLine: 10,
       contains: "2 comment annotation(s) written. Do not re-apply these.",
     },
     {
       name: "includes result details",
       action: "annotate_as_code" as const,
       input: results,
+      startLine: 1,
+      endLine: 10,
       contains: '- [code_1] "Some text": because',
     },
   ]
 
-  cases.forEach(({ name, action, input, contains }) => {
-    it(name, () => expect(formatAnnotateOutput(input, action)).toContain(contains))
+  cases.forEach(({ name, action, input, startLine, endLine, contains }) => {
+    it(name, () =>
+      expect(formatAnnotateOutput(input, action, startLine, endLine)).toContain(contains)
+    )
   })
 })
 

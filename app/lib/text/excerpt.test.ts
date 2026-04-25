@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { buildExcerpt } from "./excerpt"
-import { CHARS_PER_TOKEN } from "~/lib/embeddings/constants"
+import { CHARS_PER_TOKEN } from "./constants"
 
 const tokensToChars = (tokens: number): number => tokens * CHARS_PER_TOKEN
 

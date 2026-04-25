@@ -1,8 +1,11 @@
+import { CHARS_PER_TOKEN } from "~/lib/text/constants"
+
+export { CHARS_PER_TOKEN } from "~/lib/text/constants"
+
 export const TARGET_CHUNK_SIZE = 1600
 export const MIN_CHUNK_SIZE = 800
 export const CHUNK_OVERLAP_RATIO = 0.2
 export const EMBEDDING_SYNC_DEBOUNCE = 5000
-export const CHARS_PER_TOKEN = 4
 export const MAX_BATCH_TOKENS = 200_000
 
 const estimatedTokensPerChunk = Math.ceil(

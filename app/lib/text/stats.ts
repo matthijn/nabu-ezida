@@ -1,4 +1,4 @@
-import { CHARS_PER_TOKEN } from "~/lib/embeddings/constants"
+import { CHARS_PER_TOKEN } from "./constants"
 
 interface TextStats {
   chars: number

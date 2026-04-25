@@ -3,12 +3,15 @@ import type { SearchHit } from "~/domain/search"
 import type { FileStore } from "~/lib/files/store"
 import { callLlm, extractText, toResponseFormat } from "~/lib/agent/client"
 import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
+import { splitBySentences } from "~/lib/text/split"
+import { formatNumberedPassage } from "~/lib/text/format"
 import { growHits } from "./slices"
+
+export { formatNumberedPassage } from "~/lib/text/format"
 
 export const FILTER_BATCH_SIZE = 10
 
 const SEMANTIC_FILTER_ENDPOINT = "/semantic-filter"
-const SENTENCE_SPLIT_RE = /(?<=[.!?])\s+|\n+/
 const MIN_WORD_COUNT = 3
 const WORD_SPLIT_RE = /\s+/
 
@@ -23,11 +26,10 @@ const toSystem = (content: string) => ({
 const FILTER_CALL_TO_ACTION =
   "Return the 1-based sentence numbers that match the intent, grouped into contiguous sequences."
 
-export const splitSentences = (text: string): string[] =>
-  text.split(SENTENCE_SPLIT_RE).filter((s) => s.length > 0)
+const splitSentenceTexts = splitBySentences()
 
-export const formatNumberedPassage = (sentences: string[]): string =>
-  sentences.map((s, i) => `${i + 1}: ${s}`).join("\n")
+export const splitSentences = (text: string): string[] =>
+  splitSentenceTexts(text).map((s) => s.text)
 
 export const toLetter = (index: number): string => {
   let result = ""
