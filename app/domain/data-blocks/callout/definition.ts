@@ -1,5 +1,11 @@
-import { CalloutSchema } from "./schema"
+import { CalloutSchema, type CalloutBlock } from "./schema"
 import type { BlockTypeConfig } from "~/lib/data-blocks/definition"
+
+export const calloutToDeepSource = (parsed: unknown): string | null => {
+  const c = parsed as Partial<CalloutBlock>
+  if (!c.id || !c.title || !c.content) return null
+  return `<analysis_source_id=${c.id}>\n# ${c.title}\n${c.content}\n</analysis>`
+}
 
 export const jsonCallout: BlockTypeConfig = {
   schema: () => CalloutSchema,

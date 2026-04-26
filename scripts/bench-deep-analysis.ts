@@ -6,12 +6,14 @@ import {
   CONTEXT_OVERLAP_RATIO,
   extractSection,
   extractLeadingContext,
+  extractTrailingContext,
+  prepareTargetContent,
   numberSection,
 } from "~/lib/agent/tools/apply-deep-analysis/format"
 import {
-  buildMessages,
+  buildFindMessages,
   buildCallList,
-  buildResponseSchema,
+  FindResultSchema,
   type ContentResolver,
 } from "~/lib/agent/tools/apply-deep-analysis/messages"
 import { toResponseFormat } from "~/lib/agent/client/convert"
@@ -94,7 +96,7 @@ const run = () => {
     framework: [args.framework],
     dimension: args.dimensions,
   })
-  const responseFormat = toResponseFormat(buildResponseSchema("return"))
+  const responseFormat = toResponseFormat(FindResultSchema)
 
   const targetStem = stem(args.target)
   const baseDir = join(args.output, targetStem)
@@ -114,8 +116,9 @@ const run = () => {
     const chunkDir = join(baseDir, dirName)
     mkdirSync(chunkDir, { recursive: true })
 
-    const section = extractSection(targetContent, chunk.startLine, chunk.endLine)
-    const leadingContext = extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_RATIO)
+    const section = prepareTargetContent(extractSection(targetContent, chunk.startLine, chunk.endLine))
+    const leadingContext = prepareTargetContent(extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_RATIO))
+    const trailingContext = prepareTargetContent(extractTrailingContext(targetContent, chunk.endLine, CONTEXT_OVERLAP_RATIO))
     const { numbered, sentences } = numberSection(section)
 
     console.log(`  ${dirName} (${sentences.length} sentences, ${calls.length} call(s))`)
@@ -123,7 +126,7 @@ const run = () => {
     for (const call of calls) {
       const dimensionPath = call.dimension.length > 0 ? call.dimension[0] : null
       const fileName = requestFileName(dimensionPath)
-      const messages = buildMessages(numbered, call, "return", leadingContext, resolve)
+      const messages = buildFindMessages(numbered, call, leadingContext, trailingContext, resolve)
       const body = { messages, response_format: responseFormat }
 
       const filePath = join(chunkDir, fileName)

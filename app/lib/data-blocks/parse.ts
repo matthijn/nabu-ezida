@@ -159,6 +159,39 @@ export const stripBlocksByLanguage = (raw: string, language: string): string => 
   return collapseBlankLines(result).trim()
 }
 
+export type ToDeepSourceFn = (parsed: unknown) => string | null
+
+const tryConvertBlock = (
+  language: string,
+  content: string,
+  converters: Record<string, ToDeepSourceFn>
+): string | null => {
+  const fn = converters[language]
+  if (!fn) return null
+  try {
+    return fn(JSON.parse(content))
+  } catch {
+    return null
+  }
+}
+
+export const toDeepSourceContent = (
+  markdown: string,
+  converters: Record<string, ToDeepSourceFn>
+): string => {
+  const blocks = parseCodeBlocks(markdown)
+  let result = markdown
+
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i]
+    const converted = tryConvertBlock(block.language, block.content, converters)
+    const replacement = converted ?? ""
+    result = result.slice(0, block.start) + replacement + result.slice(block.end)
+  }
+
+  return collapseBlankLines(result).trim()
+}
+
 export const extractProse = (markdown: string): string => {
   const blocks = parseCodeBlocks(markdown)
   let prose = markdown

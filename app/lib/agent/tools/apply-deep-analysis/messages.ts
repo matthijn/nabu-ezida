@@ -1,40 +1,46 @@
 import { z } from "zod"
-import type { PostAction, SourceFile } from "./def"
+import type { SourceFile } from "./def"
+import {
+  stripBlocksByLanguage,
+  toDeepSourceContent,
+  type ToDeepSourceFn,
+} from "~/lib/data-blocks/parse"
+import { calloutToDeepSource } from "~/domain/data-blocks/callout/definition"
+
+interface Message { type: "message"; role: "system" | "user"; content: string }
 
 export interface ScopedSources {
   framework: string[]
   dimension: string[]
 }
 
-export const BaseResultSchema = z.object({
-  start: z.number().int().min(1),
-  end: z.number().int().min(1),
-  analysis_source_id: z.string(),
-  reason: z.string(),
+export const FindResultSchema = z.object({
+  results: z.array(
+    z.object({
+      start: z.number().int().min(1),
+      end: z.number().int().min(1),
+      analysis_source_id: z.string(),
+    })
+  ),
 })
 
-export const ReviewableResultSchema = BaseResultSchema.extend({
-  review: z.string().nullish().describe("Flag for human review — explain what needs attention"),
+export const ReasonResultSchema = z.object({
+  results: z.array(
+    z.object({
+      item: z.number().int().min(1),
+      reason: z.string(),
+    })
+  ),
 })
 
-export const buildResponseSchema = (postAction: PostAction) =>
-  z.object({
-    results: z.array(postAction === "annotate_as_code" ? ReviewableResultSchema : BaseResultSchema),
-  })
-
-export const REVIEW_GUIDANCE = [
-  "Review flag reminder:",
-  "",
-  "Include a review note only if this match fits uneasily — the definition was stretched to include this passage, or the span required an interpretive call another researcher might make differently.",
-  "",
-  'The bar is high. A flag means "this raises a question about how the definition handles borderline cases" — not "I\'m slightly unsure about this match." If you\'re slightly unsure, code confidently or drop; don\'t flag. Most matches should not have a review note.',
-  "",
-  "When flagging, the note is one sentence and actionable: tighten inclusion criterion X, clarify whether Y counts, this case sits between inclusion and exclusion criteria.",
-  "",
-  "Apply the best-fitting code confidently when it's the right call. Flag only when the fit itself raises a definition-boundary question.",
-  "",
-  "Span check: your reason must cover the whole span. If the reason only describes part of it, the span is too wide — tighten it.",
-].join("\n")
+export const ReviewResultSchema = z.object({
+  results: z.array(
+    z.object({
+      item: z.number().int().min(1),
+      review: z.string(),
+    })
+  ),
+})
 
 export const partitionSources = (files: SourceFile[]): ScopedSources => ({
   framework: files.filter((f) => f.scope === "framework").map((f) => f.path),
@@ -48,52 +54,97 @@ export const buildCallList = ({ framework, dimension }: ScopedSources): ScopedSo
 
 export type ContentResolver = (path: string) => string | undefined
 
-const formatSourceTag = (content: string, path: string, scope: string): string =>
-  `<source type="${scope}" path="${path}">\n${content}\n</source>`
+const SINGLETON_LANGUAGES = ["json-attributes", "json-annotations", "json-settings"]
 
-export const buildSourceMessage = (
+const stripSingletons = (content: string): string =>
+  SINGLETON_LANGUAGES.reduce((acc, lang) => stripBlocksByLanguage(acc, lang), content)
+
+const deepSourceConverters: Record<string, ToDeepSourceFn> = {
+  "json-callout": calloutToDeepSource,
+}
+
+const prepareSourceContent = (raw: string): string =>
+  toDeepSourceContent(stripSingletons(raw), deepSourceConverters)
+
+const resolveSource = (path: string, resolve: ContentResolver): string | null => {
+  const raw = resolve(path)
+  if (raw === undefined) return null
+  const content = prepareSourceContent(raw)
+  return content || null
+}
+
+export const buildSourceMessages = (
   { framework, dimension }: ScopedSources,
   resolve: ContentResolver
-): string => {
-  const toTag = (path: string, scope: string): string[] => {
-    const content = resolve(path)
-    return content !== undefined ? [formatSourceTag(content, path, scope)] : []
-  }
-  const frameworkTags = framework.flatMap((p) => toTag(p, "framework"))
-  const dimensionTags = dimension.flatMap((p) => toTag(p, "dimension"))
-  const parts = [...frameworkTags]
-  if (frameworkTags.length > 0 && dimensionTags.length > 0) parts.push("---")
-  parts.push(...dimensionTags)
-  return parts.join("\n\n")
-}
+): Message[] =>
+  [...framework, ...dimension].reduce<Message[]>((msgs, path) => {
+    const content = resolveSource(path, resolve)
+    return content ? [...msgs, { type: "message", role: "system", content }] : msgs
+  }, [])
 
-const buildSectionMessage = (numbered: string): string => `<section>\n${numbered}\n</section>`
+const buildSectionMessage = (section: string): string => `<section>\n${section}\n</section>`
 
-const buildContextMessage = (context: string): string =>
+const buildLeadingContextMessage = (context: string): string =>
   `<context type="preceding">\n${context}\n</context>`
 
-export const buildMessages = (
-  numbered: string,
+const buildTrailingContextMessage = (context: string): string =>
+  `<context type="following">\n${context}\n</context>`
+
+const buildEnvelope = (
+  section: string,
   sources: ScopedSources,
-  postAction: PostAction,
-  leadingContext: string,
-  resolve: ContentResolver
-) => {
-  const messages: { type: "message"; role: "system" | "user"; content: string }[] = [
-    { type: "message", role: "system", content: buildSourceMessage(sources, resolve) },
-  ]
-  if (leadingContext) {
-    messages.push({ type: "message", role: "system", content: buildContextMessage(leadingContext) })
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver,
+  callToAction: string
+): Message[] => {
+  const messages: Message[] = [...buildSourceMessages(sources, resolve)]
+  if (leadingCtx) {
+    messages.push({
+      type: "message",
+      role: "system",
+      content: buildLeadingContextMessage(leadingCtx),
+    })
   }
-  messages.push({ type: "message", role: "system", content: buildSectionMessage(numbered) })
-  if (postAction === "annotate_as_code") {
-    messages.push({ type: "message", role: "system", content: REVIEW_GUIDANCE })
+  messages.push({ type: "message", role: "system", content: buildSectionMessage(section) })
+  if (trailingCtx) {
+    messages.push({
+      type: "message",
+      role: "system",
+      content: buildTrailingContextMessage(trailingCtx),
+    })
   }
-  messages.push({
-    type: "message",
-    role: "user",
-    content:
-      "Analyze the numbered sentences against the source definitions. Return matching spans as JSON.",
-  })
+  messages.push({ type: "message", role: "user", content: callToAction })
   return messages
 }
+
+const FIND_CTA =
+  "Analyze the numbered sentences against the source definitions. Return matching spans as JSON."
+
+const REASON_CTA = "Write a reason for each coded section. Return results as JSON."
+
+const REVIEW_CTA = "Write a review note for each flagged section. Return results as JSON."
+
+export const buildFindMessages = (
+  numbered: string,
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Message[] => buildEnvelope(numbered, sources, leadingCtx, trailingCtx, resolve, FIND_CTA)
+
+export const buildReasonMessages = (
+  presented: string,
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REASON_CTA)
+
+export const buildReviewMessages = (
+  presented: string,
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REVIEW_CTA)

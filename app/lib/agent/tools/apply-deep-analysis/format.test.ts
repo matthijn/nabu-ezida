@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   extractSection,
   extractLeadingContext,
+  extractTrailingContext,
   numberSection,
   mapResults,
   toAnnotationOps,
@@ -61,6 +62,43 @@ describe("extractLeadingContext", () => {
 
   cases.forEach(({ name, startLine, ratio, expected }) => {
     it(name, () => expect(extractLeadingContext(content, startLine, ratio)).toBe(expected))
+  })
+})
+
+describe("extractTrailingContext", () => {
+  const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1} has some content here.`)
+  const content = lines.join("\n")
+
+  const cases = [
+    { name: "returns empty for last line", endLine: 20, ratio: 0.2, expected: "" },
+    {
+      name: "returns head 20% of following lines",
+      endLine: 10,
+      ratio: 0.2,
+      expected: lines.slice(10, 12).join("\n"),
+    },
+    {
+      name: "returns all following when ratio is 1.0",
+      endLine: 15,
+      ratio: 1.0,
+      expected: lines.slice(15).join("\n"),
+    },
+    {
+      name: "returns empty when ratio is 0",
+      endLine: 10,
+      ratio: 0,
+      expected: "",
+    },
+    {
+      name: "returns following line when single line exists",
+      endLine: 19,
+      ratio: 0.2,
+      expected: lines[19],
+    },
+  ]
+
+  cases.forEach(({ name, endLine, ratio, expected }) => {
+    it(name, () => expect(extractTrailingContext(content, endLine, ratio)).toBe(expected))
   })
 })
 

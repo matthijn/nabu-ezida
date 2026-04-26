@@ -1,16 +1,17 @@
-import { z } from "zod"
+import type { z } from "zod"
 import type { HandlerResult } from "../../types"
-import { ApplyDeepAnalysisArgs, applyDeepAnalysisTool, type PostAction } from "./def"
+import { ApplyDeepAnalysisArgs, applyDeepAnalysisTool } from "./def"
 import { registerTool, tool } from "../../executors/tool"
 import { callLlm, extractText, toResponseFormat } from "../../client"
 import { getFileView, getViewableFiles } from "../file-view"
 import { getFile } from "~/lib/files"
 import { getToolHandlers } from "../../executors/tool"
-import { processPool } from "~/lib/utils/pool"
 import {
   CONTEXT_OVERLAP_RATIO,
   extractSection,
   extractLeadingContext,
+  extractTrailingContext,
+  prepareTargetContent,
   numberSection,
   mapResults,
   toAnnotationOps,
@@ -21,36 +22,24 @@ import {
 } from "./format"
 import {
   type ScopedSources,
+  type ContentResolver,
   partitionSources,
   buildCallList,
-  buildMessages,
-  buildResponseSchema,
-  BaseResultSchema,
-  ReviewableResultSchema,
+  buildFindMessages,
+  buildReasonMessages,
+  buildReviewMessages,
+  FindResultSchema,
+  ReasonResultSchema,
+  ReviewResultSchema,
 } from "./messages"
+import { dropOutlier, promoteSpans, type FindResult, type PromotedSpan } from "./consensus"
+import { formatCodedSection, type CodedItem } from "./present"
 
-const DEEP_ANALYSIS_ENDPOINT = "/deep-analysis"
-
-type AnalysisParseResult =
-  | { ok: true; results: AnalysisResult[]; failed: number }
-  | { ok: false; error: string }
-
-const parseResultItems = (
-  rawItems: unknown[],
-  itemSchema: z.ZodType
-): { results: AnalysisResult[]; failed: number } => {
-  let failed = 0
-  const results: AnalysisResult[] = []
-  for (const item of rawItems) {
-    const parsed = itemSchema.safeParse(item)
-    if (!parsed.success) {
-      failed++
-      continue
-    }
-    results.push(parsed.data as AnalysisResult)
-  }
-  return { results, failed }
-}
+const FIND_ENDPOINT = "/deep-analysis-find"
+const REASON_ENDPOINT = "/deep-analysis-reason"
+const REVIEW_ENDPOINT = "/deep-analysis-review"
+const FIND_RUNS = 5
+const VOTE_POOL = 4
 
 const tryParseJson = (text: string): unknown | undefined => {
   try {
@@ -60,18 +49,17 @@ const tryParseJson = (text: string): unknown | undefined => {
   }
 }
 
-const RawResultsWrapper = z.object({ results: z.array(z.unknown()) })
+type CallResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
-const runAnalysis = async (
-  numbered: string,
-  sources: ScopedSources,
-  postAction: PostAction,
-  leadingContext: string
-): Promise<AnalysisParseResult> => {
+const callAndParse = async <T>(
+  endpoint: string,
+  messages: { type: "message"; role: "system" | "user"; content: string }[],
+  schema: z.ZodType<T>
+): Promise<CallResult<T>> => {
   const blocks = await callLlm({
-    endpoint: DEEP_ANALYSIS_ENDPOINT,
-    messages: buildMessages(numbered, sources, postAction, leadingContext, getFileView),
-    responseFormat: toResponseFormat(buildResponseSchema(postAction)),
+    endpoint,
+    messages,
+    responseFormat: toResponseFormat(schema),
   })
 
   const text = extractText(blocks)
@@ -80,27 +68,143 @@ const runAnalysis = async (
   const raw = tryParseJson(text)
   if (raw === undefined) return { ok: false, error: "LLM returned invalid JSON" }
 
-  const wrapper = RawResultsWrapper.safeParse(raw)
-  if (!wrapper.success) return { ok: false, error: "LLM response missing results array" }
+  const parsed = schema.safeParse(raw)
+  if (!parsed.success)
+    return { ok: false, error: `Schema validation failed: ${parsed.error.message}` }
 
-  const itemSchema = postAction === "annotate_as_code" ? ReviewableResultSchema : BaseResultSchema
-  const { results, failed } = parseResultItems(wrapper.data.results, itemSchema)
-
-  return { ok: true, results, failed }
+  return { ok: true, data: parsed.data }
 }
 
-const withParseFailures = (
-  result: HandlerResult<string>,
-  valid: number,
-  failed: number
-): HandlerResult<string> => {
-  if (failed === 0) return result
-  if (result.status === "error") return result
-  return {
-    ...result,
-    status: "partial",
-    message: `${valid}/${valid + failed} results passed schema validation`,
+const toAnalysisResults = (
+  spans: PromotedSpan[],
+  reasons: Map<string, string>,
+  reviews: Map<string, string>
+): AnalysisResult[] =>
+  spans.map((s) => {
+    const key = `${s.start}-${s.end}-${s.analysis_source_id}`
+    const result: AnalysisResult = {
+      start: s.start,
+      end: s.end,
+      analysis_source_id: s.analysis_source_id,
+      reason: reasons.get(key) ?? "",
+    }
+    const review = reviews.get(key)
+    if (review) result.review = review
+    return result
+  })
+
+const spanKey = (start: number, end: number, code: string): string => `${start}-${end}-${code}`
+
+interface DimensionResult {
+  spans: PromotedSpan[]
+  reasons: Map<string, string>
+  reviews: Map<string, string>
+  errors: string[]
+}
+
+const runDimensionPipeline = async (
+  sources: ScopedSources,
+  numbered: string,
+  sentences: string[],
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver,
+  isCodeAction: boolean
+): Promise<DimensionResult> => {
+  const errors: string[] = []
+  const reasons = new Map<string, string>()
+  const reviews = new Map<string, string>()
+
+  const runFind = async (): Promise<FindResult[] | null> => {
+    const messages = buildFindMessages(numbered, sources, leadingCtx, trailingCtx, resolve)
+    const result = await callAndParse(FIND_ENDPOINT, messages, FindResultSchema)
+    if (!result.ok) {
+      errors.push(result.error)
+      return null
+    }
+    return result.data.results
   }
+
+  const primer = await runFind()
+  const findRuns: FindResult[][] = primer ? [primer] : []
+
+  const remaining = await Promise.all(Array.from({ length: FIND_RUNS - 1 }, () => runFind()))
+  for (const r of remaining) {
+    if (r) findRuns.push(r)
+  }
+
+  if (findRuns.length === 0) return { spans: [], reasons, reviews, errors }
+
+  const votingPool = dropOutlier(findRuns)
+  const consensus = promoteSpans(votingPool, sentences.length, VOTE_POOL)
+  const combinedSpans = [...consensus.certain, ...consensus.uncertain]
+  if (combinedSpans.length === 0) return { spans: [], reasons, reviews, errors }
+
+  const reasonItems: CodedItem[] = combinedSpans.map((s) => ({
+    start: s.start,
+    end: s.end,
+    analysis_source_id: s.analysis_source_id,
+  }))
+  const { text: reasonPresented, mapping: reasonMapping } = formatCodedSection(
+    sentences,
+    reasonItems
+  )
+
+  const reasonResult = await callAndParse(
+    REASON_ENDPOINT,
+    buildReasonMessages(reasonPresented, sources, leadingCtx, trailingCtx, resolve),
+    ReasonResultSchema
+  )
+  if (reasonResult.ok) {
+    for (const r of reasonResult.data.results) {
+      const m = reasonMapping.find((mm) => mm.index === r.item)
+      if (m) reasons.set(spanKey(m.start, m.end, m.analysis_source_id), r.reason)
+    }
+  }
+
+  const uncertainInDim = combinedSpans.filter((s) => s.tier === "uncertain")
+  if (isCodeAction && uncertainInDim.length > 0) {
+    const reviewItems: CodedItem[] = uncertainInDim.map((s) => ({
+      start: s.start,
+      end: s.end,
+      analysis_source_id: s.analysis_source_id,
+      reason: reasons.get(spanKey(s.start, s.end, s.analysis_source_id)),
+    }))
+    const { text: reviewPresented, mapping: reviewMapping } = formatCodedSection(
+      sentences,
+      reviewItems
+    )
+
+    const reviewResult = await callAndParse(
+      REVIEW_ENDPOINT,
+      buildReviewMessages(reviewPresented, sources, leadingCtx, trailingCtx, resolve),
+      ReviewResultSchema
+    )
+    if (reviewResult.ok) {
+      for (const r of reviewResult.data.results) {
+        const m = reviewMapping.find((mm) => mm.index === r.item)
+        if (m) reviews.set(spanKey(m.start, m.end, m.analysis_source_id), r.review)
+      }
+    }
+  }
+
+  return { spans: combinedSpans, reasons, reviews, errors }
+}
+
+const mergeDimensionResults = (results: DimensionResult[]) => {
+  const allSpans: PromotedSpan[] = []
+  const reasons = new Map<string, string>()
+  const reviews = new Map<string, string>()
+  const errors: string[] = []
+
+  for (const dr of results) {
+    allSpans.push(...dr.spans)
+    for (const [k, v] of dr.reasons) reasons.set(k, v)
+    for (const [k, v] of dr.reviews) reviews.set(k, v)
+    errors.push(...dr.errors)
+  }
+
+  return { allSpans, reasons, reviews, errors }
 }
 
 const applyAnnotations = async (
@@ -160,8 +264,15 @@ registerTool(
       console.debug(`[deep-analysis] ${path} [${start_line}-${end_line}]`)
       console.debug(`[deep-analysis]   first: ${first}`)
       console.debug(`[deep-analysis]   last:  ${last}`)
-      const section = extractSection(content, start_line, end_line)
-      const leadingContext = extractLeadingContext(content, start_line, CONTEXT_OVERLAP_RATIO)
+
+      const rawSection = extractSection(content, start_line, end_line)
+      const section = prepareTargetContent(rawSection)
+      const leadingCtx = prepareTargetContent(
+        extractLeadingContext(content, start_line, CONTEXT_OVERLAP_RATIO)
+      )
+      const trailingCtx = prepareTargetContent(
+        extractTrailingContext(content, end_line, CONTEXT_OVERLAP_RATIO)
+      )
       const { sentences, numbered } = numberSection(section)
 
       if (sentences.length === 0)
@@ -169,77 +280,61 @@ registerTool(
 
       const scoped = partitionSources(source_files)
       const calls = buildCallList(scoped)
-      const callErrors: string[] = []
+      const resolve: ContentResolver = getFileView
+      const isCodeAction = post_action === "annotate_as_code"
 
-      interface CallOutcome {
-        results: AnalysisResult[]
-        parseFailures: number
-      }
-
-      const { results: outcomes } = await processPool<ScopedSources, CallOutcome>(
-        calls,
-        async (sources) => {
-          const outcome = await runAnalysis(numbered, sources, post_action, leadingContext)
-          if (!outcome.ok) {
-            callErrors.push(outcome.error)
-            return []
-          }
-          return [{ results: outcome.results, parseFailures: outcome.failed }]
-        },
-        () => undefined,
-        { concurrency: 5 }
+      const dimensionResults = await Promise.all(
+        calls.map((sources) =>
+          runDimensionPipeline(
+            sources,
+            numbered,
+            sentences,
+            leadingCtx,
+            trailingCtx,
+            resolve,
+            isCodeAction
+          )
+        )
       )
 
-      if (outcomes.length === 0 && calls.length > 0)
-        return { status: "error", output: callErrors.join("; "), mutations: [] }
+      const {
+        allSpans,
+        reasons,
+        reviews,
+        errors: findErrors,
+      } = mergeDimensionResults(dimensionResults)
 
-      const validResults = outcomes.flatMap((o) => o.results)
-      const parseFailures = outcomes.reduce((sum, o) => sum + o.parseFailures, 0)
-      const mapped = mapResults(sentences, validResults)
+      if (allSpans.length === 0 && calls.length > 0 && findErrors.length > 0)
+        return { status: "error", output: findErrors.join("; "), mutations: [] }
 
-      if (post_action === "return") {
-        return withParseFailures(
-          { status: "ok", output: formatReturnOutput(mapped, start_line, end_line), mutations: [] },
-          validResults.length,
-          parseFailures
-        )
-      }
+      const analysisResults = toAnalysisResults(allSpans, reasons, reviews)
+      const mapped = mapResults(sentences, analysisResults)
 
-      if (!isAnnotateAction(post_action)) {
-        throw new Error(`unknown post_action: ${post_action}`)
-      }
+      if (post_action === "return")
+        return {
+          status: "ok",
+          output: formatReturnOutput(mapped, start_line, end_line),
+          mutations: [],
+        }
 
-      if (mapped.length === 0) {
-        if (parseFailures > 0 && validResults.length === 0)
-          return {
-            status: "error",
-            output: `All ${parseFailures} results failed schema validation`,
-            mutations: [],
-          }
-        return withParseFailures(
-          {
-            status: "ok",
-            output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
-            mutations: [],
-          },
-          validResults.length,
-          parseFailures
-        )
-      }
+      if (!isAnnotateAction(post_action)) throw new Error(`unknown post_action: ${post_action}`)
+
+      if (mapped.length === 0)
+        return {
+          status: "ok",
+          output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
+          mutations: [],
+        }
 
       const ops = toAnnotationOps(mapped, post_action)
       const annotationResult = await applyAnnotations(path, ops)
       if (annotationResult.status === "error") return annotationResult
 
-      return withParseFailures(
-        {
-          status: "ok",
-          output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
-          mutations: annotationResult.mutations,
-        },
-        validResults.length,
-        parseFailures
-      )
+      return {
+        status: "ok",
+        output: formatAnnotateOutput(mapped, post_action, start_line, end_line),
+        mutations: annotationResult.mutations,
+      }
     },
   })
 )

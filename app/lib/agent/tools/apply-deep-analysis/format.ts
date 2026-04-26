@@ -1,5 +1,7 @@
 import { splitBySentences } from "~/lib/text/split"
 import { formatNumberedPassage } from "~/lib/text/format"
+import { extractProse } from "~/lib/data-blocks/parse"
+import { stripMarkdown } from "~/lib/text/strip"
 import type { PostAction } from "./def"
 
 export interface AnalysisResult {
@@ -43,6 +45,29 @@ export const extractLeadingContext = (
   }
   return preceding.join("\n").trim()
 }
+
+export const extractTrailingContext = (content: string, endLine: number, ratio: number): string => {
+  const lines = content.split("\n")
+  if (endLine >= lines.length) return ""
+  const following = lines.slice(endLine)
+  const totalChars = following.reduce((sum, l) => sum + l.length + 1, -1)
+  const targetChars = Math.floor(totalChars * ratio)
+  if (targetChars === 0) return ""
+
+  let chars = 0
+  for (let i = 0; i < following.length; i++) {
+    chars += following[i].length + 1
+    if (chars >= targetChars)
+      return following
+        .slice(0, i + 1)
+        .join("\n")
+        .trim()
+  }
+  return following.join("\n").trim()
+}
+
+export const prepareTargetContent = (raw: string): string =>
+  stripMarkdown(extractProse(raw), { keepHeadings: true })
 
 const splitSentenceTexts = splitBySentences()
 

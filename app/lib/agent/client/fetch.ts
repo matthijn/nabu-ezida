@@ -186,7 +186,12 @@ const previewText = (blocks: Block[]): string | undefined => {
 
 const LLM_CACHE_PREFIX = "llm"
 const LLM_CACHE_CAP = 10_000
-const UNCACHEABLE_ENDPOINTS = ["/qual-coder", "/semantic-filter", "/write-answer"]
+const UNCACHEABLE_ENDPOINTS = [
+  "/qual-coder",
+  "/semantic-filter",
+  "/write-answer",
+  "/deep-analysis-find",
+]
 
 const isCacheable = (options: CallLlmOptions): boolean =>
   !options.callbacks &&
