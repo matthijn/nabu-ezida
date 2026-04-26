@@ -1,4 +1,4 @@
-import { splitSentences } from "~/lib/search/filter-hits"
+import { splitBySentences } from "~/lib/text/split"
 import { formatNumberedPassage } from "~/lib/text/format"
 import type { PostAction } from "./def"
 
@@ -44,8 +44,10 @@ export const extractLeadingContext = (
   return preceding.join("\n").trim()
 }
 
+const splitSentenceTexts = splitBySentences()
+
 export const numberSection = (text: string): { sentences: string[]; numbered: string } => {
-  const sentences = splitSentences(text)
+  const sentences = splitSentenceTexts(text).map((s) => s.text)
   return { sentences, numbered: formatNumberedPassage(sentences) }
 }
 

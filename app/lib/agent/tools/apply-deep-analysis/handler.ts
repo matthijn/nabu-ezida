@@ -1,11 +1,6 @@
 import { z } from "zod"
 import type { HandlerResult } from "../../types"
-import {
-  ApplyDeepAnalysisArgs,
-  applyDeepAnalysisTool,
-  type PostAction,
-  type SourceFile,
-} from "./def"
+import { ApplyDeepAnalysisArgs, applyDeepAnalysisTool, type PostAction } from "./def"
 import { registerTool, tool } from "../../executors/tool"
 import { callLlm, extractText, toResponseFormat } from "../../client"
 import { getFileView, getViewableFiles } from "../file-view"
@@ -24,98 +19,17 @@ import {
   isAnnotateAction,
   type AnalysisResult,
 } from "./format"
+import {
+  type ScopedSources,
+  partitionSources,
+  buildCallList,
+  buildMessages,
+  buildResponseSchema,
+  BaseResultSchema,
+  ReviewableResultSchema,
+} from "./messages"
 
 const DEEP_ANALYSIS_ENDPOINT = "/deep-analysis"
-
-const BaseResultSchema = z.object({
-  start: z.number().int().min(1),
-  end: z.number().int().min(1),
-  analysis_source_id: z.string(),
-  reason: z.string(),
-})
-
-const ReviewableResultSchema = BaseResultSchema.extend({
-  review: z.string().nullish().describe("Flag for human review — explain what needs attention"),
-})
-
-const buildResponseSchema = (postAction: PostAction) =>
-  z.object({
-    results: z.array(postAction === "annotate_as_code" ? ReviewableResultSchema : BaseResultSchema),
-  })
-
-const REVIEW_GUIDANCE = [
-  "Review flag reminder:",
-  "",
-  "Include a review note only if this match fits uneasily — the definition was stretched to include this passage, or the span required an interpretive call another researcher might make differently.",
-  "",
-  'The bar is high. A flag means "this raises a question about how the definition handles borderline cases" — not "I\'m slightly unsure about this match." If you\'re slightly unsure, code confidently or drop; don\'t flag. Most matches should not have a review note.',
-  "",
-  "When flagging, the note is one sentence and actionable: tighten inclusion criterion X, clarify whether Y counts, this case sits between inclusion and exclusion criteria.",
-  "",
-  "Apply the best-fitting code confidently when it's the right call. Flag only when the fit itself raises a definition-boundary question.",
-  "",
-  "Span check: your reason must cover the whole span. If the reason only describes part of it, the span is too wide — tighten it.",
-].join("\n")
-
-interface ScopedSources {
-  framework: string[]
-  dimension: string[]
-}
-
-const partitionSources = (files: SourceFile[]): ScopedSources => ({
-  framework: files.filter((f) => f.scope === "framework").map((f) => f.path),
-  dimension: files.filter((f) => f.scope === "dimension").map((f) => f.path),
-})
-
-const buildCallList = ({ framework, dimension }: ScopedSources): ScopedSources[] =>
-  dimension.length === 0
-    ? [{ framework, dimension: [] }]
-    : dimension.map((p) => ({ framework, dimension: [p] }))
-
-const formatSourceTag = (path: string, scope: string): string | undefined => {
-  const content = getFileView(path)
-  if (content === undefined) return undefined
-  return `<source type="${scope}" path="${path}">\n${content}\n</source>`
-}
-
-const buildSourceMessage = ({ framework, dimension }: ScopedSources): string => {
-  const frameworkTags = framework.flatMap((p) => formatSourceTag(p, "framework") ?? [])
-  const dimensionTags = dimension.flatMap((p) => formatSourceTag(p, "dimension") ?? [])
-  const parts = [...frameworkTags]
-  if (frameworkTags.length > 0 && dimensionTags.length > 0) parts.push("---")
-  parts.push(...dimensionTags)
-  return parts.join("\n\n")
-}
-
-const buildSectionMessage = (numbered: string): string => `<section>\n${numbered}\n</section>`
-
-const buildContextMessage = (context: string): string =>
-  `<context type="preceding">\n${context}\n</context>`
-
-const buildMessages = (
-  numbered: string,
-  sources: ScopedSources,
-  postAction: PostAction,
-  leadingContext: string
-) => {
-  const messages: { type: "message"; role: "system" | "user"; content: string }[] = [
-    { type: "message", role: "system", content: buildSourceMessage(sources) },
-  ]
-  if (leadingContext) {
-    messages.push({ type: "message", role: "system", content: buildContextMessage(leadingContext) })
-  }
-  messages.push({ type: "message", role: "system", content: buildSectionMessage(numbered) })
-  if (postAction === "annotate_as_code") {
-    messages.push({ type: "message", role: "system", content: REVIEW_GUIDANCE })
-  }
-  messages.push({
-    type: "message",
-    role: "user",
-    content:
-      "Analyze the numbered sentences against the source definitions. Return matching spans as JSON.",
-  })
-  return messages
-}
 
 type AnalysisParseResult =
   | { ok: true; results: AnalysisResult[]; failed: number }
@@ -156,7 +70,7 @@ const runAnalysis = async (
 ): Promise<AnalysisParseResult> => {
   const blocks = await callLlm({
     endpoint: DEEP_ANALYSIS_ENDPOINT,
-    messages: buildMessages(numbered, sources, postAction, leadingContext),
+    messages: buildMessages(numbered, sources, postAction, leadingContext, getFileView),
     responseFormat: toResponseFormat(buildResponseSchema(postAction)),
   })
 
