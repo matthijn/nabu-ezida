@@ -33,7 +33,7 @@ describe("toDeepSourceContent", () => {
         "Some context.",
       ].join("\n"),
       expected:
-        "# Codes\n\n<analysis_source_id=callout-abc123>\n# Norm-based justification\nShared norms invoked as justification.\n</analysis>\n\nSome context.",
+        '# Codes\n\n<analysis analysis_source_id="callout-abc123">\n# Norm-based justification\nShared norms invoked as justification.\n</analysis>\n\nSome context.',
     },
     {
       name: "strips json-annotations",
@@ -66,7 +66,7 @@ describe("toDeepSourceContent", () => {
         "```",
       ].join("\n"),
       expected:
-        "# Doc\n\nIntro text.\n\n<analysis_source_id=callout-x>\n# My Code\nDefinition here.\nSecond line.\n</analysis>",
+        '# Doc\n\nIntro text.\n\n<analysis analysis_source_id="callout-x">\n# My Code\nDefinition here.\nSecond line.\n</analysis>',
     },
     {
       name: "plain markdown passes through",
