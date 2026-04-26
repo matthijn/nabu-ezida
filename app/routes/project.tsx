@@ -147,7 +147,8 @@ const resolveSearchEntries = (
 const isSyncMetaCommand = (command: Command): command is Command & { fileCount: number } =>
   command.action === "SyncMeta" && typeof command.fileCount === "number"
 
-const isCreateFileCommand = (command: Command): boolean => command.action === "CreateFile"
+const isFileReceivedCommand = (command: Command): boolean =>
+  command.action === "CreateFile" || command.action === "WriteFile"
 
 const FILE_WEIGHT = 35
 const DB_WEIGHT = 40
@@ -248,7 +249,7 @@ export default function ProjectLayout() {
         setTotalFiles(command.fileCount)
       }
       applyCommand(command)
-      if (isCreateFileCommand(command)) {
+      if (isFileReceivedCommand(command)) {
         localFileCount++
         setFileCount(localFileCount)
         setStatusLabel("Loading files...")
