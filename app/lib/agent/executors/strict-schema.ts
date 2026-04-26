@@ -1,0 +1,63 @@
+const isObjectWithProperties = (s: Record<string, unknown>): boolean =>
+  s.type === "object" && typeof s.properties === "object" && s.properties !== null
+
+export const isStrictCompatible = (schema: unknown): boolean => {
+  if (typeof schema !== "object" || schema === null) return true
+  const s = schema as Record<string, unknown>
+  const keys = Object.keys(s).filter((k) => k !== "$schema")
+  if (keys.length === 0 || (keys.length === 1 && keys[0] === "description")) return false
+
+  if (s.type === "array" && s.items) return isStrictCompatible(s.items)
+
+  if (s.type === "object" && typeof s.properties === "object" && s.properties !== null) {
+    return Object.values(s.properties as Record<string, unknown>).every(isStrictCompatible)
+  }
+
+  for (const key of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(s[key])) return (s[key] as unknown[]).every(isStrictCompatible)
+  }
+
+  return true
+}
+
+export const toStrictSchema = (schema: unknown): unknown => {
+  if (typeof schema !== "object" || schema === null) return schema
+  const { $schema: _, ...s } = schema as Record<string, unknown>
+
+  if ("const" in s) {
+    const { const: value, ...rest } = s
+    return { ...rest, enum: [value] }
+  }
+
+  if (s.type === "array" && s.items) {
+    return { ...s, items: toStrictSchema(s.items) }
+  }
+
+  if (isObjectWithProperties(s)) {
+    const properties = s.properties as Record<string, unknown>
+    const originalRequired = new Set(Array.isArray(s.required) ? (s.required as string[]) : [])
+    const allKeys = Object.keys(properties)
+
+    const wrapOptional = (key: string, prop: unknown): unknown =>
+      originalRequired.has(key) ? prop : { anyOf: [prop, { type: "null" }] }
+
+    const strictProperties = Object.fromEntries(
+      allKeys.map((key) => [key, wrapOptional(key, toStrictSchema(properties[key]))])
+    )
+
+    return { ...s, properties: strictProperties, required: allKeys, additionalProperties: false }
+  }
+
+  if (Array.isArray(s.oneOf)) {
+    const { oneOf: _, ...rest } = s
+    return { ...rest, anyOf: (s.oneOf as unknown[]).map(toStrictSchema) }
+  }
+
+  for (const key of ["anyOf", "allOf"]) {
+    if (Array.isArray(s[key])) {
+      return { ...s, [key]: (s[key] as unknown[]).map(toStrictSchema) }
+    }
+  }
+
+  return s
+}

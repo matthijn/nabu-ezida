@@ -1,6 +1,6 @@
 import type { z } from "zod"
 import type { Block } from "./blocks"
-import { toStrictSchema } from "../executors/tool"
+import { toStrictSchema } from "../executors/strict-schema"
 
 type InputItem =
   | { type: "message"; role: "system" | "user" | "assistant"; content: string }
