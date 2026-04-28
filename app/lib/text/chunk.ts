@@ -42,7 +42,7 @@ const forceSplitSegment = (seg: Segment, target: number): Segment[] => {
     }
 
     const searchEnd = Math.min(offset + target, text.length)
-    const spaceIdx = text.lastIndexOf(" ", searchEnd)
+    const spaceIdx = text.lastIndexOf(" ", searchEnd - 1)
     const breakAt = spaceIdx > offset ? spaceIdx + 1 : searchEnd
 
     parts.push({

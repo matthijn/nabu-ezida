@@ -85,6 +85,18 @@ describe("chunk", () => {
       },
     },
     {
+      name: "force-split with space at exact target boundary does not recurse infinitely",
+      segments: buildSegments(["abcde fghij klmno"]),
+      config: { target: 5, min: 1 },
+      check: (r) => {
+        const reassembled = r.map((c) => c.text).join("")
+        expect(reassembled).toBe("abcde fghij klmno")
+        for (const c of r) {
+          expect(c.text.length).toBeLessThanOrEqual(6)
+        }
+      },
+    },
+    {
       name: "merge tiny tail into previous",
       segments: buildSegments(["a".repeat(80), "b".repeat(80), "xy"]),
       config: { target: 100, min: 50 },
