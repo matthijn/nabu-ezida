@@ -1013,7 +1013,7 @@ export const NabuChatSidebar = ({ appReady }: NabuChatSidebarProps) => {
       {
         approaches: [],
         context:
-          "Use ls --show-tags to find codebooks, then use deep plan to start coding of file. Include ALL codebooks. General Codebook is framework, other codebooks are dimensions",
+          "Use ls --show-tags to find codebooks, then use plan_deep_analysis to start coding of file. Do not use scout. Include ALL codebooks. General Codebook is framework, other codebooks are dimensions",
         userMessage: "Can you code this file",
       },
       getDeps()

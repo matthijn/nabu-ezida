@@ -459,7 +459,7 @@ export default function ProjectLayout() {
     const codeFile = `${code.id}.hidden.md`
     dispatchTask({
       approaches: [],
-      context: `Use ls --show-tags to find codebooks, then use deep plan to start coding of file. Use ONLY the generic codebook AND ${codeFile} for coding. Do not use any other codebooks. Note: ${codeFile} is a hidden file — it will not appear in ls output, but it exists and can be read directly with cat.`,
+      context: `Use ls --show-tags to find codebooks, then use plan_deep_analysis to start coding of file. Do not use scout. Use ONLY the generic codebook AND ${codeFile} for coding. Do not use any other codebooks. Note: ${codeFile} is a hidden file — it will not appear in ls output, but it exists and can be read directly with cat.`,
       userMessage: `Can you code this file with only ${code.id}`,
     })
   }
