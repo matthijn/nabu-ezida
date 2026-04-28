@@ -186,7 +186,7 @@ describe("processPool", () => {
       },
     },
     {
-      name: "continues past failed items",
+      name: "continues past failed items and collects failures",
       check: async () => {
         let call = 0
         const fn = async (n: number): Promise<number[]> => {
@@ -194,10 +194,33 @@ describe("processPool", () => {
           if (call === 2) throw new Error("boom")
           return [n]
         }
-        const { results } = await processPool([1, 2, 3], fn, noop as (results: number[]) => void, {
-          concurrency: 1,
-        })
+        const { results, failures } = await processPool(
+          [1, 2, 3],
+          fn,
+          noop as (results: number[]) => void,
+          { concurrency: 1 }
+        )
         expect(results).toEqual([1, 3])
+        expect(failures).toHaveLength(1)
+        expect(failures[0].item).toBe(2)
+        expect(failures[0].error).toBeInstanceOf(Error)
+      },
+    },
+    {
+      name: "all items fail — empty results, all failures collected",
+      check: async () => {
+        const fn = async (n: number): Promise<number[]> => {
+          throw new Error(`fail-${n}`)
+        }
+        const { results, failures } = await processPool(
+          [1, 2, 3],
+          fn,
+          noop as (results: number[]) => void,
+          { concurrency: 2 }
+        )
+        expect(results).toEqual([])
+        expect(failures).toHaveLength(3)
+        expect(failures.map((f) => f.item).sort()).toEqual([1, 2, 3])
       },
     },
   ]
