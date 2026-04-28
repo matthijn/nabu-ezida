@@ -1,0 +1,7 @@
+{
+  "sources": [
+    { "path": "framework.md", "scope": "framework" },
+    { "path": "governance.md", "scope": "dimension" }
+  ],
+  "target": "target.md"
+}

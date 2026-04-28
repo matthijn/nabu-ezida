@@ -6,11 +6,13 @@ import {
   numberSection,
   mapResults,
   toAnnotationOps,
+  buildRemovalOps,
   formatReturnOutput,
   formatAnnotateOutput,
   isAnnotateAction,
   ABSENCE_HINT,
   type MappedResult,
+  type AnnotationRef,
 } from "./format"
 
 describe("extractSection", () => {
@@ -388,5 +390,132 @@ describe("isAnnotateAction", () => {
 
   cases.forEach(({ name, action, expected }) => {
     it(name, () => expect(isAnnotateAction(action)).toBe(expected))
+  })
+})
+
+describe("buildRemovalOps", () => {
+  const content = [
+    "Preamble line one.",
+    "Preamble line two.",
+    "Section start here.",
+    "Middle of the section.",
+    "Section end here.",
+    "After the section.",
+    "Final line.",
+  ].join("\n")
+
+  const cases: {
+    name: string
+    annotations: AnnotationRef[]
+    codes: Set<string>
+    startLine: number
+    endLine: number
+    expected: { op: "remove_annotation"; match: { id: string } }[]
+  }[] = [
+    {
+      name: "removes annotation fully within section for matching code",
+      annotations: [{ id: "ann-1", code: "code-a", text: "Section start here." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [{ op: "remove_annotation", match: { id: "ann-1" } }],
+    },
+    {
+      name: "keeps annotation outside section for matching code",
+      annotations: [{ id: "ann-1", code: "code-a", text: "Preamble line one." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+    {
+      name: "keeps annotation within section for non-matching code",
+      annotations: [{ id: "ann-1", code: "code-b", text: "Section start here." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+    {
+      name: "removes annotation straddling section end boundary",
+      annotations: [{ id: "ann-1", code: "code-a", text: "Section end here.\nAfter the section." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [{ op: "remove_annotation", match: { id: "ann-1" } }],
+    },
+    {
+      name: "removes annotation straddling section start boundary",
+      annotations: [
+        { id: "ann-1", code: "code-a", text: "Preamble line two.\nSection start here." },
+      ],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [{ op: "remove_annotation", match: { id: "ann-1" } }],
+    },
+    {
+      name: "skips annotation without id",
+      annotations: [{ code: "code-a", text: "Section start here." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+    {
+      name: "skips annotation without code",
+      annotations: [{ id: "ann-1", text: "Section start here." }],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+    {
+      name: "removes multiple annotations for different matching codes",
+      annotations: [
+        { id: "ann-1", code: "code-a", text: "Section start here." },
+        { id: "ann-2", code: "code-b", text: "Middle of the section." },
+      ],
+      codes: new Set(["code-a", "code-b"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [
+        { op: "remove_annotation", match: { id: "ann-1" } },
+        { op: "remove_annotation", match: { id: "ann-2" } },
+      ],
+    },
+    {
+      name: "keeps annotation for matching code outside section among removals",
+      annotations: [
+        { id: "ann-1", code: "code-a", text: "Section start here." },
+        { id: "ann-2", code: "code-a", text: "Final line." },
+      ],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [{ op: "remove_annotation", match: { id: "ann-1" } }],
+    },
+    {
+      name: "returns empty for no annotations",
+      annotations: [],
+      codes: new Set(["code-a"]),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+    {
+      name: "returns empty when codes set is empty",
+      annotations: [{ id: "ann-1", code: "code-a", text: "Section start here." }],
+      codes: new Set<string>(),
+      startLine: 3,
+      endLine: 5,
+      expected: [],
+    },
+  ]
+
+  cases.forEach(({ name, annotations, codes, startLine, endLine, expected }) => {
+    it(name, () =>
+      expect(buildRemovalOps(annotations, content, codes, startLine, endLine)).toEqual(expected)
+    )
   })
 })
