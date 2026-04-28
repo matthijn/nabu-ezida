@@ -7,6 +7,7 @@ import {
 } from "~/lib/data-blocks/parse"
 import { stripBoundaryComments } from "~/lib/patch/resolve/json-boundary"
 import { calloutToDeepSource } from "~/domain/data-blocks/callout/definition"
+import { getCallouts } from "~/domain/data-blocks/callout/selectors"
 import { prepareTargetContent, numberSection } from "./format"
 
 interface Message {
@@ -20,15 +21,17 @@ export interface ScopedSources {
   dimension: string[]
 }
 
-export const FindResultSchema = z.object({
-  results: z.array(
-    z.object({
-      start: z.number().int().min(1),
-      end: z.number().int().min(1),
-      analysis_source_id: z.string(),
-    })
-  ),
-})
+export const buildFindResultSchema = (validIds: string[]) =>
+  z.object({
+    results: z.array(
+      z.object({
+        start: z.number().int().min(1),
+        end: z.number().int().min(1),
+        analysis_source_id:
+          validIds.length > 0 ? z.enum(validIds as [string, ...string[]]) : z.string(),
+      })
+    ),
+  })
 
 export const ReasonResultSchema = z.object({
   results: z.array(
@@ -78,6 +81,15 @@ const resolveSource = (path: string, resolve: ContentResolver): string | null =>
   const content = prepareSourceContent(raw)
   return content || null
 }
+
+export const extractSourceIds = (
+  { framework, dimension }: ScopedSources,
+  resolve: ContentResolver
+): string[] =>
+  [...framework, ...dimension].flatMap((path) => {
+    const raw = resolve(path)
+    return raw ? getCallouts(raw).map((c) => c.id) : []
+  })
 
 export const buildSourceMessages = (
   { framework, dimension }: ScopedSources,

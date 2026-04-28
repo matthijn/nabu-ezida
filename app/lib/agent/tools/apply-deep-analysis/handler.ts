@@ -16,11 +16,13 @@ import {
   numberSection,
   mapResults,
   toAnnotationOps,
+  buildRemovalOps,
   formatReturnOutput,
   formatAnnotateOutput,
   isAnnotateAction,
   type AnalysisResult,
 } from "./format"
+import { getStoredAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
 import {
   type ScopedSources,
   type ContentResolver,
@@ -29,7 +31,8 @@ import {
   buildFindCall,
   buildReasonMessages,
   buildReviewMessages,
-  FindResultSchema,
+  buildFindResultSchema,
+  extractSourceIds,
   ReasonResultSchema,
   ReviewResultSchema,
 } from "./messages"
@@ -123,11 +126,14 @@ const runDimensionPipeline = async (
     trailingCtx
   )
 
+  const validIds = extractSourceIds(sources, resolve)
+  const findSchema = buildFindResultSchema(validIds)
+
   const findSlots = Array.from({ length: FIND_RUNS }, (_, i) => i)
   const { results: findRuns } = await processPool<number, FindResult[]>(
     findSlots,
     async () => {
-      const result = await callAndParse(FIND_ENDPOINT, findMessages, FindResultSchema)
+      const result = await callAndParse(FIND_ENDPOINT, findMessages, findSchema)
       if (!result.ok) {
         errors.push(result.error)
         return []
@@ -214,10 +220,7 @@ const mergeDimensionResults = (results: DimensionResult[]) => {
   return { allSpans, reasons, reviews, errors }
 }
 
-const applyAnnotations = async (
-  path: string,
-  ops: { op: string; item: unknown }[]
-): Promise<HandlerResult<string>> => {
+const applyAnnotations = async (path: string, ops: unknown[]): Promise<HandlerResult<string>> => {
   const handler = getToolHandlers()["patch_annotations"]
   if (!handler)
     return { status: "error", output: "patch_annotations handler not registered", mutations: [] }
@@ -325,7 +328,12 @@ registerTool(
           mutations: [],
         }
 
-      const ops = toAnnotationOps(mapped, post_action)
+      const addOps = toAnnotationOps(mapped, post_action)
+      const newCodes = new Set(mapped.map((r) => r.analysis_source_id))
+      const removeOps = isCodeAction
+        ? buildRemovalOps(getStoredAnnotations(content), content, newCodes, start_line, end_line)
+        : []
+      const ops = [...removeOps, ...addOps]
       const annotationResult = await applyAnnotations(path, ops)
       if (annotationResult.status === "error") return annotationResult
 
