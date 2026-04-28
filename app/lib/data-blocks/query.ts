@@ -46,6 +46,14 @@ const isRecoverableObject = (json: unknown): json is Record<string, unknown> =>
 
 const cache = createCappedCache<string, unknown>(1000)
 
+const BOUNDARY_COMMENT = /^\/\/ (?:start|end) json-\S+.*$/
+
+const stripBoundaryLines = (content: string): string =>
+  content
+    .split("\n")
+    .filter((line) => !BOUNDARY_COMMENT.test(line.trim()))
+    .join("\n")
+
 const cacheKey = (language: string, content: string): string => `${language}:${content}`
 
 const parseWithCache = <T>(language: string, content: string, schema: z.ZodType<T>): T | null => {
@@ -54,7 +62,7 @@ const parseWithCache = <T>(language: string, content: string, schema: z.ZodType<
   if (cache.has(key)) return cache.get(key) as T | null
 
   try {
-    const json = JSON.parse(content)
+    const json = JSON.parse(stripBoundaryLines(content))
     const result = schema.safeParse(json)
     if (result.success) {
       cache.set(key, result.data)
