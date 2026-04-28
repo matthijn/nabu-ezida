@@ -464,7 +464,8 @@ const groupScoutFiles = (files: ScoutFileStatus[]): ScoutFileGroup[] => {
     if (existing) {
       existing.files.push(f)
     } else {
-      const group: ScoutFileGroup = { label: f.group, files: [f] }
+      const label = f.group.charAt(0).toUpperCase() + f.group.slice(1)
+      const group: ScoutFileGroup = { label, files: [f] }
       seen.set(f.group, group)
       groups.push(group)
     }

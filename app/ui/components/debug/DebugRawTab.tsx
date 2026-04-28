@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useSyncExternalStore } from "react"
+import { useState, useEffect, useSyncExternalStore } from "react"
 import { ChevronRight, ChevronDown, Copy, Check, ListX } from "lucide-react"
 import { AutoScroll } from "~/ui/components/AutoScroll"
 import { getRawCalls, subscribeRawCalls } from "~/lib/agent/client"
@@ -153,12 +153,38 @@ const RawCallEntry = ({ call, selected, onToggleSelect }: RawCallEntryProps) => 
   )
 }
 
+const FILTER_MIN_LENGTH = 5
+const FILTER_DEBOUNCE_MS = 300
+
+const callMatchesFilter = (call: RawLlmCall, filter: string): boolean => {
+  const lower = filter.toLowerCase()
+  return (
+    call.requestBody.toLowerCase().includes(lower) || call.rawResponse.toLowerCase().includes(lower)
+  )
+}
+
+const filterCalls = (calls: RawLlmCall[], filter: string): RawLlmCall[] =>
+  filter.length < FILTER_MIN_LENGTH ? calls : calls.filter((c) => callMatchesFilter(c, filter))
+
+const useDebouncedValue = (value: string, delay: number): string => {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return debounced
+}
+
 const useRawCalls = () => useSyncExternalStore(subscribeRawCalls, getRawCalls, getRawCalls)
 
 export const DebugRawTab = () => {
   const calls = useRawCalls()
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [copiedAll, setCopiedAll] = useState(false)
+  const [filterText, setFilterText] = useState("")
+  const debouncedFilter = useDebouncedValue(filterText, FILTER_DEBOUNCE_MS)
+  const filteredCalls = filterCalls(calls, debouncedFilter)
+  const isFiltering = debouncedFilter.length >= FILTER_MIN_LENGTH
 
   const hasSelection = selectedIds.size > 0
 
@@ -184,6 +210,20 @@ export const DebugRawTab = () => {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="border-b border-neutral-100 px-3 py-1.5">
+        <input
+          type="text"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          placeholder={`Filter raw calls (min ${FILTER_MIN_LENGTH} chars)…`}
+          className="w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs font-mono text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
+        />
+        {isFiltering && (
+          <span className="mt-1 block text-xs text-neutral-400">
+            {filteredCalls.length} / {calls.length}
+          </span>
+        )}
+      </div>
       {hasSelection && (
         <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5">
           <span className="text-xs text-neutral-500">{selectedIds.size} selected</span>
@@ -210,7 +250,7 @@ export const DebugRawTab = () => {
         </div>
       )}
       <AutoScroll className="flex-1 overflow-y-auto flex flex-col gap-2 px-3 py-3">
-        {calls.map((call) => (
+        {filteredCalls.map((call) => (
           <RawCallEntry
             key={call.id}
             call={call}

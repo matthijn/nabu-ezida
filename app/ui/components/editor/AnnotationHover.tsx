@@ -18,6 +18,7 @@ import { patchBlock } from "~/lib/data-blocks/patch"
 interface HoverState {
   text: string
   element: HTMLElement
+  clientX: number
 }
 
 interface AnnotationHoverProps {
@@ -122,12 +123,30 @@ const getFirstLineRect = (el: HTMLElement): DOMRect => {
   return rects.length > 0 ? rects[0] : el.getBoundingClientRect()
 }
 
+const clampLeft = (mouseX: number, width: number): number =>
+  Math.min(Math.max(VIEWPORT_MARGIN, mouseX), window.innerWidth - width - VIEWPORT_MARGIN)
+
 export const AnnotationHover = ({ annotations, filePath, children }: AnnotationHoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const bridgeRef = useRef<HTMLDivElement>(null)
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
 
   const dismiss = useCallback(() => setHover(null), [])
+
+  const cancelDismiss = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current)
+      dismissTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleDismiss = useCallback(() => {
+    cancelDismiss()
+    dismissTimerRef.current = setTimeout(dismiss, 50)
+  }, [dismiss, cancelDismiss])
+
+  useEffect(() => () => cancelDismiss(), [cancelDismiss])
 
   const isOnBridge = useCallback((e: MouseEvent) => {
     const bridge = bridgeRef.current
@@ -138,22 +157,29 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
     )
   }, [])
 
-  const handleMouseEnter = useCallback((e: MouseEvent) => {
-    const target = e.target as HTMLElement
-    if (!isDecoration(target)) return
-    const text = target.textContent ?? ""
-    if (!text) return
-    setHover({ text, element: target })
-  }, [])
+  const handleMouseEnter = useCallback(
+    (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!isDecoration(target)) return
+      const text = target.textContent ?? ""
+      if (!text) return
+      cancelDismiss()
+      setHover((prev) => {
+        const isSameAnnotation = prev !== null && prev.text === text
+        return { text, element: target, clientX: isSameAnnotation ? prev.clientX : e.clientX }
+      })
+    },
+    [cancelDismiss]
+  )
 
   const handleMouseLeave = useCallback(
     (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (!isDecoration(target)) return
       if (isOnBridge(e)) return
-      dismiss()
+      scheduleDismiss()
     },
-    [isOnBridge, dismiss]
+    [isOnBridge, scheduleDismiss]
   )
 
   useEffect(() => {
@@ -174,12 +200,12 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
       const target = e.target as HTMLElement
       if (isDecoration(target)) return
       if (isOnBridge(e)) return
-      dismiss()
+      scheduleDismiss()
     }
 
     document.addEventListener("mousemove", handleMouseMove)
     return () => document.removeEventListener("mousemove", handleMouseMove)
-  }, [hover, isOnBridge, dismiss])
+  }, [hover, isOnBridge, scheduleDismiss])
 
   const matchingAnnotations = hover ? findMatchingAnnotations(annotations, hover.text) : []
   const files = getFiles()
@@ -208,9 +234,11 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
 
     if (tooltipRoot) tooltipRoot.style.maxHeight = `${maxHeight}px`
 
+    const left = clampLeft(hover.clientX, contentWidth)
+
     if (showBelow) {
       const bridgeTop = lastRect.bottom - BRIDGE_UPWARD
-      bridge.style.left = `${lastRect.left}px`
+      bridge.style.left = `${left}px`
       bridge.style.width = `${contentWidth}px`
       bridge.style.top = `${bridgeTop}px`
       bridge.style.paddingTop = `${lastRect.bottom - bridgeTop + TOOLTIP_GAP}px`
@@ -218,7 +246,7 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
       inner.style.marginLeft = "0"
     } else {
       const tooltipTop = firstRect.top - TOOLTIP_GAP - effectiveHeight
-      bridge.style.left = `${firstRect.left}px`
+      bridge.style.left = `${left}px`
       bridge.style.width = `${contentWidth}px`
       bridge.style.top = `${tooltipTop}px`
       bridge.style.paddingTop = "0"
