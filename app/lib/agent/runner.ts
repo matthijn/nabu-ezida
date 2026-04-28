@@ -1,6 +1,6 @@
 import type { ToolDeps } from "~/lib/agent"
 import { createToolExecutor } from "~/lib/agent"
-import { setDraft, getDraft, clearDraft, pushBlocks, setLoading } from "~/lib/agent/client"
+import { setDraft, getDraft, clearStreaming, pushBlocks, setLoading } from "~/lib/agent/client"
 import { agentLoop } from "~/lib/agent/agent-loop"
 import { waitForUser } from "~/lib/agent/executors/delegation"
 import { modeSystemBlocks, DEFAULT_MODE } from "~/lib/agent/executors/modes"
@@ -11,7 +11,7 @@ export type RunnerDeps = ToolDeps
 
 const stop = () => {
   setLoading(false)
-  clearDraft()
+  clearStreaming()
 }
 
 let active = false

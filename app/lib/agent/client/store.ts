@@ -2,6 +2,8 @@ import type { Block } from "./blocks"
 
 export const isDraft = (block: Block): boolean => "draft" in block && block.draft === true
 
+const isStreaming = (block: Block): boolean => block.streaming === true
+
 let blocks: Block[] = []
 let listeners: (() => void)[] = []
 let loading = false
@@ -12,13 +14,12 @@ const notifyLoading = (): void => loadingListeners.forEach((l) => l())
 
 const lastIsDraft = (): boolean => blocks.length > 0 && isDraft(blocks[blocks.length - 1])
 
-const stripDraft = (bs: Block[]): Block[] =>
-  bs.length > 0 && isDraft(bs[bs.length - 1]) ? bs.slice(0, -1) : bs
+const stripStreaming = (bs: Block[]): Block[] => bs.filter((b) => !isStreaming(b))
 
 const stamp = (block: Block, source: string): Block => ({ ...block, timestamp: Date.now(), source })
 
 export const pushBlocks = (newBlocks: Block[], source = "base"): void => {
-  blocks = [...stripDraft(blocks), ...newBlocks.map((b) => stamp(b, source))]
+  blocks = [...stripStreaming(blocks), ...newBlocks.map((b) => stamp(b, source))]
   notify()
 }
 
@@ -27,9 +28,24 @@ export const getSource = (block: Block): string => block.source ?? "base"
 export const filterBySource = (blocks: Block[], source: string): Block[] =>
   blocks.filter((b) => getSource(b) === source)
 
+const solidifyDraft = (block: Block): Block => {
+  const { draft: _draft, ...rest } = block as Block & { draft?: true }
+  return rest as Block
+}
+
 export const setDraft = (block: Block): void => {
-  const tagged = { ...stamp(block, "base"), draft: true as const }
-  blocks = lastIsDraft() ? [...blocks.slice(0, -1), tagged] : [...blocks, tagged]
+  const tagged = { ...stamp(block, "base"), draft: true as const, streaming: true as const }
+  if (lastIsDraft()) {
+    const current = blocks[blocks.length - 1]
+    const isTypeChange = current.type !== block.type
+    if (isTypeChange) {
+      blocks = [...blocks.slice(0, -1), solidifyDraft(current), tagged]
+    } else {
+      blocks = [...blocks.slice(0, -1), tagged]
+    }
+  } else {
+    blocks = [...blocks, tagged]
+  }
   notify()
 }
 
@@ -38,9 +54,10 @@ export const getDraft = (): Block | null => {
   return last && isDraft(last) ? last : null
 }
 
-export const clearDraft = (): void => {
-  if (!lastIsDraft()) return
-  blocks = blocks.slice(0, -1)
+export const clearStreaming = (): void => {
+  const filtered = stripStreaming(blocks)
+  if (filtered.length === blocks.length) return
+  blocks = filtered
   notify()
 }
 

@@ -19,7 +19,7 @@ export {
   filterBySource,
   setDraft,
   getDraft,
-  clearDraft,
+  clearStreaming,
   setLoading,
   getLoading,
   subscribeLoading,

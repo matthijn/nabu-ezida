@@ -66,4 +66,4 @@ export type Block = (
   | EmptyNudgeBlock
   | ErrorBlock
   | DebugPauseBlock
-) & { timestamp?: number; source?: string }
+) & { timestamp?: number; source?: string; streaming?: true }
