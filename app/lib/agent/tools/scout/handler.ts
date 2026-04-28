@@ -54,7 +54,7 @@ registerTool(
 
       const failed: string[] = []
 
-      await processPool(
+      const { failures } = await processPool(
         files,
         async (f: ScoutFileEntry) => {
           const result = await tryScoutEntry(f.path)
@@ -67,6 +67,8 @@ registerTool(
         (blocks) => pushBlocks(blocks),
         { concurrency: 3 }
       )
+
+      for (const f of failures) failed.push((f.item as ScoutFileEntry).path)
 
       return toResult(files.length, failed)
     },

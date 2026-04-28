@@ -66,12 +66,17 @@ export const scoutFile = async (
   )
   console.debug(`[scout] ${path} chunked in tokens [${chunkLengths.join(", ")}]`)
 
-  const { results } = await processPool(
+  const { results, failures } = await processPool(
     indexed,
     async ({ index, chunk }) => [{ index, section: await labelChunk(content, chunk) }],
     () => undefined,
     { concurrency: 10, warmup: 1 }
   )
+
+  if (failures.length > 0) {
+    const failed = failures.map((f) => f.item.chunk.startLine + "-" + f.item.chunk.endLine)
+    throw new Error(`scout: ${failures.length} chunk(s) failed for ${path}: [${failed.join(", ")}]`)
+  }
 
   const sections = (results as IndexedSection[]).sort(byIndex).map((r) => r.section)
 

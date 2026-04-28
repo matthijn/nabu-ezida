@@ -58,7 +58,7 @@ registerTool(
 
       const sourceFailed: string[] = []
 
-      await processPool(
+      const { failures: sourceFailures } = await processPool(
         source_files,
         async (f) => {
           const result = await tryScout(f, false)
@@ -72,6 +72,8 @@ registerTool(
         { concurrency: 3 }
       )
 
+      for (const f of sourceFailures) sourceFailed.push(f.item.path)
+
       if (sourceFailed.length === source_files.length)
         return {
           status: "error",
@@ -82,7 +84,7 @@ registerTool(
       const targetEntries: { path: string; entry: ScoutEntry }[] = []
       const targetFailed: string[] = []
 
-      await processPool(
+      const { failures: targetFailures } = await processPool(
         target_files,
         async (f) => {
           const result = await tryScout(f, true)
@@ -96,6 +98,8 @@ registerTool(
         () => undefined,
         { concurrency: 3 }
       )
+
+      for (const f of targetFailures) targetFailed.push(f.item.path)
 
       for (const { path, entry } of targetEntries) {
         pushBlocks([toSystemBlock(formatTarget(path, entry))])
