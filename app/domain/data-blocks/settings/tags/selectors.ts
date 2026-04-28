@@ -13,3 +13,6 @@ export const findTagDefinitionByLabel = (
   files: FileStore,
   label: string
 ): TagDefinition | undefined => getTagDefinitions(files).find((t) => t.label === label)
+
+export const getTagDisplayById = (settingsRaw: string, id: string): string | undefined =>
+  (getSettings(settingsRaw)?.tags ?? []).find((t) => t.id === id)?.display

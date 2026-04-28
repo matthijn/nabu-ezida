@@ -1,6 +1,7 @@
 import { command, ok, err, resolveFiles, normalizePath, isGlob } from "./command"
 import { getFileDate } from "~/domain/data-blocks/attributes/date/selectors"
 import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
+import { getTagDisplayById } from "~/domain/data-blocks/settings/tags/selectors"
 
 const sortByName = (names: string[]): string[] => [...names].sort()
 
@@ -29,9 +30,15 @@ const resolvePatterns = (files: Map<string, string>, paths: string[]): string[] 
   return [...new Set(resolved)]
 }
 
-const formatTags = (raw: string): string => {
+const formatTagId = (settingsRaw: string, id: string): string => {
+  const display = getTagDisplayById(settingsRaw, id)
+  return display ? `${display} (${id})` : id
+}
+
+const formatTags = (raw: string, settingsRaw: string): string => {
   const tags = getTags(raw)
-  return tags.length > 0 ? `  [${tags.join(", ")}]` : ""
+  if (tags.length === 0) return ""
+  return `  [${tags.map((id) => formatTagId(settingsRaw, id)).join(", ")}]`
 }
 
 const formatDate = (raw: string): string => {
@@ -39,13 +46,13 @@ const formatDate = (raw: string): string => {
   return date ? `  ${date}` : ""
 }
 
-const formatLong = (files: Map<string, string>, names: string[]): string =>
+const formatLong = (files: Map<string, string>, names: string[], settingsRaw: string): string =>
   names
     .map((name) => {
       const raw = files.get(name) ?? ""
       const size = raw.length
       const date = getFileDate(raw) ?? ""
-      const tags = formatTags(raw)
+      const tags = formatTags(raw, settingsRaw)
       return `${String(size).padStart(8)}  ${date.padEnd(10)}  ${name}${tags}`
     })
     .join("\n")
@@ -55,15 +62,22 @@ interface ShowFlags {
   date: boolean
 }
 
-const formatSuffix = (raw: string, show: ShowFlags): string => {
+const formatSuffix = (raw: string, show: ShowFlags, settingsRaw: string): string => {
   const date = show.date ? formatDate(raw) : ""
-  const tags = show.tags ? formatTags(raw) : ""
+  const tags = show.tags ? formatTags(raw, settingsRaw) : ""
   return `${date}${tags}`
 }
 
-const formatShort = (files: Map<string, string>, names: string[], show: ShowFlags): string => {
+const formatShort = (
+  files: Map<string, string>,
+  names: string[],
+  show: ShowFlags,
+  settingsRaw: string
+): string => {
   if (!show.tags && !show.date) return names.join("\n")
-  return names.map((name) => `${name}${formatSuffix(files.get(name) ?? "", show)}`).join("\n")
+  return names
+    .map((name) => `${name}${formatSuffix(files.get(name) ?? "", show, settingsRaw)}`)
+    .join("\n")
 }
 
 export const ls = command({
@@ -92,7 +106,12 @@ export const ls = command({
     const sortByTime = flags.has("-t")
     const names = sortByTime ? sortByDate(files, unsorted) : sortByName(unsorted)
     const show: ShowFlags = { tags: flags.has("-show-tags"), date: flags.has("-show-date") }
+    const settingsRaw = files.get("settings.hidden.md") ?? ""
 
-    return ok(flags.has("-l") ? formatLong(files, names) : formatShort(files, names, show))
+    return ok(
+      flags.has("-l")
+        ? formatLong(files, names, settingsRaw)
+        : formatShort(files, names, show, settingsRaw)
+    )
   },
 })
