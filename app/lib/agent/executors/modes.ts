@@ -12,7 +12,7 @@ import {
   removeFile,
   runLocalShell,
   cancel,
-  scoutTool,
+  // scoutTool, // temporary — re-enable later
   planDeepAnalysisTool,
   applyDeepAnalysisTool,
   startPlanTool,
@@ -64,7 +64,7 @@ const raw: Record<ModeName, ModeConfig> = {
       copyFile,
       renameFile,
       removeFile,
-      scoutTool,
+      // scoutTool, // temporary — re-enable later
       planDeepAnalysisTool,
       applyDeepAnalysisTool,
       startPlanTool,
@@ -79,7 +79,7 @@ const raw: Record<ModeName, ModeConfig> = {
       runLocalShell,
       queryTool,
       searchTool,
-      scoutTool,
+      // scoutTool, // temporary — re-enable later
       submitPlanTool,
       cancel,
       askTool,
