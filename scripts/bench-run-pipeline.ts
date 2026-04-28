@@ -1,10 +1,9 @@
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { basename, join, resolve, dirname } from "node:path"
 import { parseArgs } from "node:util"
-import { spawnSync } from "node:child_process"
-import { chunkLines } from "~/lib/data-blocks/chunk-lines"
+import { spawn } from "node:child_process"
+import { chunkLines, CHUNK_TARGET_CHARS, CONTEXT_OVERLAP_CHARS } from "~/lib/data-blocks/chunk-lines"
 import {
-  CONTEXT_OVERLAP_RATIO,
   extractSection,
   extractLeadingContext,
   extractTrailingContext,
@@ -24,11 +23,11 @@ import {
   type ContentResolver,
 } from "~/lib/agent/tools/apply-deep-analysis/messages"
 import { toResponseFormat } from "~/lib/agent/client/convert"
+import { processPool } from "~/lib/utils/pool"
 import { CHARS_PER_TOKEN } from "~/lib/text/constants"
 import { dropOutlier, promoteSpans, type FindResult, type PromotedSpan } from "~/lib/agent/tools/apply-deep-analysis/consensus"
 import { formatCodedSection, type CodedItem } from "~/lib/agent/tools/apply-deep-analysis/present"
 
-const CHUNK_TARGET = 8000
 const FIND_RUNS = 5
 const VOTE_POOL = 4
 
@@ -157,24 +156,31 @@ const parseMeta = (stderr: string): CallMeta | null => {
   }
 }
 
-const callGo = ({ logosDir, agent, requestFile, modelFlags }: GoCallOpts): GoCallResult => {
-  const start = performance.now()
-  const proc = spawnSync(
-    "go",
-    ["run", "./cmd/test", ...modelFlags, agent, requestFile],
-    { cwd: logosDir, encoding: "utf-8", maxBuffer: 10 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] }
-  )
-  const durationMs = Math.round(performance.now() - start)
+const callGo = ({ logosDir, agent, requestFile, modelFlags }: GoCallOpts): Promise<GoCallResult> =>
+  new Promise((resolve) => {
+    const start = performance.now()
+    const proc = spawn("go", ["run", "./cmd/test", ...modelFlags, agent, requestFile], {
+      cwd: logosDir,
+      stdio: ["pipe", "pipe", "pipe"],
+    })
 
-  const stdout = (proc.stdout ?? "") as string
-  const stderr = (proc.stderr ?? "") as string
-  const ok = proc.status === 0 || stdout.length > 0
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+    proc.stdout.on("data", (d: Buffer) => stdoutChunks.push(d))
+    proc.stderr.on("data", (d: Buffer) => stderrChunks.push(d))
 
-  const meta = parseMeta(stderr)
-  if (meta) meta.durationMs = durationMs
+    proc.on("close", (code) => {
+      const durationMs = Math.round(performance.now() - start)
+      const stdout = Buffer.concat(stdoutChunks).toString("utf-8")
+      const stderr = Buffer.concat(stderrChunks).toString("utf-8")
+      const ok = code === 0 || stdout.length > 0
 
-  return { ok, text: stdout, stderr, meta }
-}
+      const meta = parseMeta(stderr)
+      if (meta) meta.durationMs = durationMs
+
+      resolve({ ok, text: stdout, stderr, meta })
+    })
+  })
 
 const tryParseJson = (text: string): unknown | undefined => {
   try {
@@ -211,7 +217,7 @@ interface RunStats {
   callMetas: CallMeta[]
 }
 
-const runPipeline = (
+const runPipeline = async (
   runDir: string,
   numbered: string,
   sentences: string[],
@@ -222,7 +228,7 @@ const runPipeline = (
   resolve: ContentResolver,
   logosDir: string,
   modelFlags: string[]
-): RunStats => {
+): Promise<RunStats> => {
   const stats: RunStats = { totalCalls: 0, successCalls: 0, failCalls: 0, callMetas: [] }
   const dimDir = join(runDir, dimLabel)
   mkdirSync(dimDir, { recursive: true })
@@ -235,35 +241,39 @@ const runPipeline = (
   const reasonFormat = toResponseFormat(ReasonResultSchema)
   const reviewFormat = toResponseFormat(ReviewResultSchema)
 
+  const findSlots = Array.from({ length: FIND_RUNS }, (_, i) => i)
   const findRuns: FindResult[][] = []
 
-  for (let r = 0; r < FIND_RUNS; r++) {
-    stats.totalCalls++
-    const messages = buildFindMessages(numbered, call, leadingCtx, trailingCtx, resolve)
-    const body = { messages, response_format: findFormat }
-    const reqPath = writeRequest(dimDir, `find-${r + 1}-request.json`, body)
+  await processPool<number, FindResult[]>(
+    findSlots,
+    async (r) => {
+      stats.totalCalls++
+      const messages = buildFindMessages(numbered, call, leadingCtx, trailingCtx, resolve)
+      const body = { messages, response_format: findFormat }
+      const reqPath = writeRequest(dimDir, `find-${r + 1}-request.json`, body)
 
-    process.stdout.write(`      find ${r + 1}/${FIND_RUNS} ... `)
-    const result = callGo({ logosDir, agent: "deep-analysis-find", requestFile: reqPath, modelFlags })
-    collectMeta(result)
+      const result = await callGo({ logosDir, agent: "deep-analysis-find", requestFile: reqPath, modelFlags })
+      collectMeta(result)
 
-    writeFileSync(join(dimDir, `find-${r + 1}-response.txt`), result.text)
-    if (result.stderr) writeFileSync(join(dimDir, `find-${r + 1}-meta.txt`), result.stderr)
+      writeFileSync(join(dimDir, `find-${r + 1}-response.txt`), result.text)
+      if (result.stderr) writeFileSync(join(dimDir, `find-${r + 1}-meta.txt`), result.stderr)
 
-    const parsed = tryParseJson(result.text)
-    const validated = parsed !== undefined ? FindResultSchema.safeParse(parsed) : undefined
+      const parsed = tryParseJson(result.text)
+      const validated = parsed !== undefined ? FindResultSchema.safeParse(parsed) : undefined
 
-    if (validated?.success) {
-      findRuns.push(validated.data.results)
-      writeJson(join(dimDir, `find-${r + 1}-parsed.json`), validated.data.results)
-      stats.successCalls++
-      console.log(`ok (${validated.data.results.length} spans)`)
-    } else {
-      findRuns.push([])
+      if (validated?.success) {
+        writeJson(join(dimDir, `find-${r + 1}-parsed.json`), validated.data.results)
+        stats.successCalls++
+        console.log(`      find ${r + 1}/${FIND_RUNS}: ok (${validated.data.results.length} spans)`)
+        return [validated.data.results]
+      }
       stats.failCalls++
-      console.log("FAIL")
-    }
-  }
+      console.log(`      find ${r + 1}/${FIND_RUNS}: FAIL`)
+      return []
+    },
+    (runs) => findRuns.push(...runs),
+    { concurrency: 5, warmup: 1 }
+  )
 
   const votingPool = dropOutlier(findRuns)
   writeJson(join(dimDir, "outlier-drop.json"), {
@@ -296,7 +306,7 @@ const runPipeline = (
   const reasonReqPath = writeRequest(dimDir, "reason-request.json", reasonBody)
 
   process.stdout.write(`      reason ... `)
-  const reasonResult = callGo({ logosDir, agent: "deep-analysis-reason", requestFile: reasonReqPath, modelFlags })
+  const reasonResult = await callGo({ logosDir, agent: "deep-analysis-reason", requestFile: reasonReqPath, modelFlags })
   collectMeta(reasonResult)
 
   writeFileSync(join(dimDir, "reason-response.txt"), reasonResult.text)
@@ -339,7 +349,7 @@ const runPipeline = (
     const reviewReqPath = writeRequest(dimDir, "review-request.json", reviewBody)
 
     process.stdout.write(`      review (${uncertainSpans.length} uncertain) ... `)
-    const reviewResult = callGo({ logosDir, agent: "deep-analysis-review", requestFile: reviewReqPath, modelFlags })
+    const reviewResult = await callGo({ logosDir, agent: "deep-analysis-review", requestFile: reviewReqPath, modelFlags })
     collectMeta(reviewResult)
 
     writeFileSync(join(dimDir, "review-response.txt"), reviewResult.text)
@@ -393,14 +403,14 @@ const summarizeMetas = (metas: CallMeta[]) => ({
   perCall: metas,
 })
 
-const run = () => {
+const run = async () => {
   const args = parseCli()
   const logosDir = findLogosDir()
   loadEnvFile(logosDir)
   const modelFlags = buildModelFlags(args)
 
   const targetContent = readFileSync(args.target, "utf-8")
-  const chunks = chunkLines(targetContent, CHUNK_TARGET)
+  const chunks = chunkLines(targetContent, CHUNK_TARGET_CHARS)
   const contentMap = new Map<string, string>([
     [args.framework, readFileSync(args.framework, "utf-8")],
     ...args.dimensions.map((d): [string, string] => [d, readFileSync(d, "utf-8")]),
@@ -446,8 +456,8 @@ const run = () => {
 
       const rawSection = extractSection(targetContent, chunk.startLine, chunk.endLine)
       const section = prepareTargetContent(rawSection)
-      const leadingCtx = prepareTargetContent(extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_RATIO))
-      const trailingCtx = prepareTargetContent(extractTrailingContext(targetContent, chunk.endLine, CONTEXT_OVERLAP_RATIO))
+      const leadingCtx = prepareTargetContent(extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_CHARS))
+      const trailingCtx = prepareTargetContent(extractTrailingContext(targetContent, chunk.endLine, CONTEXT_OVERLAP_CHARS))
       const { sentences, numbered } = numberSection(section)
 
       if (sentences.length === 0) {
@@ -468,7 +478,7 @@ const run = () => {
 
         console.log(`    ${dimLabel}:`)
 
-        const stats = runPipeline(
+        const stats = await runPipeline(
           runDir, numbered, sentences, leadingCtx, trailingCtx,
           call, dimLabel, resolve, logosDir, modelFlags
         )

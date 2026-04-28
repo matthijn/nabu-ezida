@@ -3,7 +3,7 @@ import { expandRangeRefs, type FileReader } from "./resolve/range-expand"
 import { resolveFuzzyPatterns } from "./resolve/fuzzy-match"
 import { injectBoundaryComments, stripBoundaryComments } from "./resolve/json-boundary"
 import { stripPendingRefs } from "~/lib/files/pending-refs"
-import { parseCodeBlocks, extractProse } from "~/lib/data-blocks/parse"
+import { parseCodeBlocks, extractProse, ensureFencesOnOwnLines } from "~/lib/data-blocks/parse"
 import { fillMissingIds, buildGeneratedIdsList, type GeneratedId } from "~/lib/data-blocks/uuid"
 import { validateMarkdownBlocks, type ValidationError } from "~/lib/data-blocks/validate"
 import { stampActors } from "~/lib/data-blocks/actor"
@@ -11,6 +11,10 @@ import type { ValidationContext } from "~/lib/data-blocks/validate"
 import { getFiles } from "~/lib/files/store"
 import { getAllCodes } from "~/domain/data-blocks/callout/codes/selectors"
 import { getTagDefinitions } from "~/domain/data-blocks/settings/tags/selectors"
+import { getTags } from "~/domain/data-blocks/attributes/tags/selectors"
+import { getSettings } from "~/domain/data-blocks/settings/selectors"
+import { SETTINGS_FILE } from "~/lib/files/filename"
+import { detectDanglingReferences } from "~/lib/data-blocks/refs"
 
 export type FileResult =
   | { path: string; status: "ok"; content: string; generatedIds?: GeneratedId[] }
@@ -92,6 +96,20 @@ const formatBlockErrors = (errors: ValidationError[]): string =>
     })
     .join("\n")
 
+const buildTagReferenceMap = (
+  files: Record<string, string>,
+  excludePath: string
+): Map<string, string[]> => {
+  const refs = new Map<string, string[]>()
+  for (const [path, content] of Object.entries(files)) {
+    if (path === excludePath) continue
+    for (const tagId of getTags(content)) {
+      refs.set(tagId, [...(refs.get(tagId) ?? []), path])
+    }
+  }
+  return refs
+}
+
 interface ApplyMdPatchOptions {
   skipImmutableCheck?: boolean
   skipCodeValidation?: boolean
@@ -128,9 +146,10 @@ export const finalizeContent = (
   const stampedContent = options.actor
     ? stampActors(options.original, filledContent, options.actor)
     : filledContent
+  const sanitizedContent = ensureFencesOnOwnLines(stampedContent)
 
-  const context = buildValidationContext(stampedContent)
-  const validation = validateMarkdownBlocks(stampedContent, {
+  const context = buildValidationContext(sanitizedContent)
+  const validation = validateMarkdownBlocks(sanitizedContent, {
     path,
     context,
     original: options.original,
@@ -153,7 +172,18 @@ export const finalizeContent = (
     }
   }
 
-  const finalContent = validation.recoveredMarkdown ?? stampedContent
+  const finalContent = validation.recoveredMarkdown ?? sanitizedContent
+
+  if (options.original && path === SETTINGS_FILE) {
+    const files = getFiles()
+    const oldTagIds = getTagDefinitions(files).map((t) => t.id)
+    const newTagIds = (getSettings(finalContent)?.tags ?? []).map((t) => t.id)
+    const refs = buildTagReferenceMap(files, path)
+    const refErrors = detectDanglingReferences(oldTagIds, newTagIds, refs)
+    if (refErrors.length > 0) {
+      return { path, status: "error", error: formatBlockErrors(refErrors), blockErrors: refErrors }
+    }
+  }
 
   const generatedIds = buildGeneratedIdsList(
     options.placeholderIds ?? {},

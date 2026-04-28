@@ -4,6 +4,14 @@ import { isAbortError } from "~/lib/utils/error"
 
 export type ToolExecutor = (call: ToolCall) => Promise<ToolResult<unknown>>
 
+const MAX_ERROR_OUTPUT = 600
+
+export const trimErrorOutput = (output: string): string =>
+  output.length <= MAX_ERROR_OUTPUT ? output : output.slice(0, MAX_ERROR_OUTPUT) + "…"
+
+const trimResult = (res: ToolResult<unknown>): ToolResult<unknown> =>
+  res.status === "error" ? { ...res, output: trimErrorOutput(res.output) } : res
+
 const logToolResult = (call: ToolCall, res: ToolResult<unknown>): void => {
   const log = res.status === "ok" ? console.debug : console.warn
   log(`[TOOL ${call.name}]`, { call, ...res })
@@ -18,7 +26,7 @@ export const executeTool = async (
   call: ToolCall,
   execute: ToolExecutor
 ): Promise<ToolResultBlock> => {
-  const res = await execute(call).catch(toErrorResult)
+  const res = trimResult(await execute(call).catch(toErrorResult))
   logToolResult(call, res)
   return { type: "tool_result", callId: call.id, toolName: call.name, result: res }
 }

@@ -19,8 +19,6 @@ export interface MappedResult {
   review?: string
 }
 
-export const CONTEXT_OVERLAP_RATIO = 0.2
-
 export const extractSection = (content: string, startLine: number, endLine: number): string => {
   const lines = content.split("\n")
   return lines.slice(startLine - 1, endLine).join("\n")
@@ -29,35 +27,33 @@ export const extractSection = (content: string, startLine: number, endLine: numb
 export const extractLeadingContext = (
   content: string,
   startLine: number,
-  ratio: number
+  maxChars: number
 ): string => {
-  if (startLine <= 1) return ""
+  if (startLine <= 1 || maxChars <= 0) return ""
   const lines = content.split("\n")
   const preceding = lines.slice(0, startLine - 1)
-  const totalChars = preceding.reduce((sum, l) => sum + l.length + 1, -1)
-  const targetChars = Math.floor(totalChars * ratio)
-  if (targetChars === 0) return ""
 
   let chars = 0
   for (let i = preceding.length - 1; i >= 0; i--) {
     chars += preceding[i].length + 1
-    if (chars >= targetChars) return preceding.slice(i).join("\n").trim()
+    if (chars >= maxChars) return preceding.slice(i).join("\n").trim()
   }
   return preceding.join("\n").trim()
 }
 
-export const extractTrailingContext = (content: string, endLine: number, ratio: number): string => {
+export const extractTrailingContext = (
+  content: string,
+  endLine: number,
+  maxChars: number
+): string => {
   const lines = content.split("\n")
-  if (endLine >= lines.length) return ""
+  if (endLine >= lines.length || maxChars <= 0) return ""
   const following = lines.slice(endLine)
-  const totalChars = following.reduce((sum, l) => sum + l.length + 1, -1)
-  const targetChars = Math.floor(totalChars * ratio)
-  if (targetChars === 0) return ""
 
   let chars = 0
   for (let i = 0; i < following.length; i++) {
     chars += following[i].length + 1
-    if (chars >= targetChars)
+    if (chars >= maxChars)
       return following
         .slice(0, i + 1)
         .join("\n")

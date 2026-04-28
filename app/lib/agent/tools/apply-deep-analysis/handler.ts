@@ -5,9 +5,10 @@ import { registerTool, tool } from "../../executors/tool"
 import { callLlm, extractText, toResponseFormat } from "../../client"
 import { getFileView, getViewableFiles } from "../file-view"
 import { getFile } from "~/lib/files"
+import { processPool } from "~/lib/utils/pool"
 import { getToolHandlers } from "../../executors/tool"
+import { CONTEXT_OVERLAP_CHARS } from "~/lib/data-blocks/chunk-lines"
 import {
-  CONTEXT_OVERLAP_RATIO,
   extractSection,
   extractLeadingContext,
   extractTrailingContext,
@@ -25,7 +26,7 @@ import {
   type ContentResolver,
   partitionSources,
   buildCallList,
-  buildFindMessages,
+  buildFindCall,
   buildReasonMessages,
   buildReviewMessages,
   FindResultSchema,
@@ -104,8 +105,7 @@ interface DimensionResult {
 
 const runDimensionPipeline = async (
   sources: ScopedSources,
-  numbered: string,
-  sentences: string[],
+  rawTarget: string,
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver,
@@ -115,25 +115,32 @@ const runDimensionPipeline = async (
   const reasons = new Map<string, string>()
   const reviews = new Map<string, string>()
 
-  const runFind = async (): Promise<FindResult[] | null> => {
-    const messages = buildFindMessages(numbered, sources, leadingCtx, trailingCtx, resolve)
-    const result = await callAndParse(FIND_ENDPOINT, messages, FindResultSchema)
-    if (!result.ok) {
-      errors.push(result.error)
-      return null
-    }
-    return result.data.results
-  }
+  const { messages: findMessages, sentences } = buildFindCall(
+    rawTarget,
+    sources,
+    resolve,
+    leadingCtx,
+    trailingCtx
+  )
 
-  const primer = await runFind()
-  const findRuns: FindResult[][] = primer ? [primer] : []
+  const findSlots = Array.from({ length: FIND_RUNS }, (_, i) => i)
+  const { results: findRuns } = await processPool<number, FindResult[]>(
+    findSlots,
+    async () => {
+      const result = await callAndParse(FIND_ENDPOINT, findMessages, FindResultSchema)
+      if (!result.ok) {
+        errors.push(result.error)
+        return []
+      }
+      return [result.data.results]
+    },
+    () => {
+      /* no-op: processPool requires onResult */
+    },
+    { concurrency: 5, warmup: 1 }
+  )
 
-  const remaining = await Promise.all(Array.from({ length: FIND_RUNS - 1 }, () => runFind()))
-  for (const r of remaining) {
-    if (r) findRuns.push(r)
-  }
-
-  if (findRuns.length === 0) return { spans: [], reasons, reviews, errors }
+  if (findRuns.length < FIND_RUNS) return { spans: [], reasons, reviews, errors }
 
   const votingPool = dropOutlier(findRuns)
   const consensus = promoteSpans(votingPool, sentences.length, VOTE_POOL)
@@ -266,14 +273,14 @@ registerTool(
       console.debug(`[deep-analysis]   last:  ${last}`)
 
       const rawSection = extractSection(content, start_line, end_line)
-      const section = prepareTargetContent(rawSection)
       const leadingCtx = prepareTargetContent(
-        extractLeadingContext(content, start_line, CONTEXT_OVERLAP_RATIO)
+        extractLeadingContext(content, start_line, CONTEXT_OVERLAP_CHARS)
       )
       const trailingCtx = prepareTargetContent(
-        extractTrailingContext(content, end_line, CONTEXT_OVERLAP_RATIO)
+        extractTrailingContext(content, end_line, CONTEXT_OVERLAP_CHARS)
       )
-      const { sentences, numbered } = numberSection(section)
+      const section = prepareTargetContent(rawSection)
+      const { sentences } = numberSection(section)
 
       if (sentences.length === 0)
         return { status: "ok", output: "Section contains no sentences.", mutations: [] }
@@ -285,15 +292,7 @@ registerTool(
 
       const dimensionResults = await Promise.all(
         calls.map((sources) =>
-          runDimensionPipeline(
-            sources,
-            numbered,
-            sentences,
-            leadingCtx,
-            trailingCtx,
-            resolve,
-            isCodeAction
-          )
+          runDimensionPipeline(sources, rawSection, leadingCtx, trailingCtx, resolve, isCodeAction)
         )
       )
 

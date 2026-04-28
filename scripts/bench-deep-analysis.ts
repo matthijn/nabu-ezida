@@ -1,24 +1,21 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs"
 import { basename, join, resolve } from "node:path"
 import { parseArgs } from "node:util"
-import { chunkLines } from "~/lib/data-blocks/chunk-lines"
+import { chunkLines, CHUNK_TARGET_CHARS, CONTEXT_OVERLAP_CHARS } from "~/lib/data-blocks/chunk-lines"
 import {
-  CONTEXT_OVERLAP_RATIO,
   extractSection,
   extractLeadingContext,
   extractTrailingContext,
   prepareTargetContent,
-  numberSection,
 } from "~/lib/agent/tools/apply-deep-analysis/format"
 import {
-  buildFindMessages,
+  buildFindCall,
   buildCallList,
   FindResultSchema,
   type ContentResolver,
 } from "~/lib/agent/tools/apply-deep-analysis/messages"
 import { toResponseFormat } from "~/lib/agent/client/convert"
 
-const CHUNK_TARGET = 8000
 
 const callerCwd = process.env.BENCH_CWD ?? process.cwd()
 const toAbsolute = (p: string): string => resolve(callerCwd, p)
@@ -89,7 +86,7 @@ const requestFileName = (dimensionPath: string | null): string =>
 const run = () => {
   const args = parseCli()
   const targetContent = readFileSync(args.target, "utf-8")
-  const chunks = chunkLines(targetContent, CHUNK_TARGET)
+  const chunks = chunkLines(targetContent, CHUNK_TARGET_CHARS)
   const contentMap = buildContentMap(args.framework, args.dimensions)
   const resolve = buildResolver(contentMap)
   const calls = buildCallList({
@@ -116,17 +113,19 @@ const run = () => {
     const chunkDir = join(baseDir, dirName)
     mkdirSync(chunkDir, { recursive: true })
 
-    const section = prepareTargetContent(extractSection(targetContent, chunk.startLine, chunk.endLine))
-    const leadingContext = prepareTargetContent(extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_RATIO))
-    const trailingContext = prepareTargetContent(extractTrailingContext(targetContent, chunk.endLine, CONTEXT_OVERLAP_RATIO))
-    const { numbered, sentences } = numberSection(section)
+    const rawSection = extractSection(targetContent, chunk.startLine, chunk.endLine)
+    const leadingContext = prepareTargetContent(extractLeadingContext(targetContent, chunk.startLine, CONTEXT_OVERLAP_CHARS))
+    const trailingContext = prepareTargetContent(extractTrailingContext(targetContent, chunk.endLine, CONTEXT_OVERLAP_CHARS))
 
-    console.log(`  ${dirName} (${sentences.length} sentences, ${calls.length} call(s))`)
-
+    let chunkLogged = false
     for (const call of calls) {
+      const { messages, sentences } = buildFindCall(rawSection, call, resolve, leadingContext, trailingContext)
+      if (!chunkLogged) {
+        console.log(`  ${dirName} (${sentences.length} sentences, ${calls.length} call(s))`)
+        chunkLogged = true
+      }
       const dimensionPath = call.dimension.length > 0 ? call.dimension[0] : null
       const fileName = requestFileName(dimensionPath)
-      const messages = buildFindMessages(numbered, call, leadingContext, trailingContext, resolve)
       const body = { messages, response_format: responseFormat }
 
       const filePath = join(chunkDir, fileName)
@@ -150,7 +149,7 @@ const run = () => {
     target: args.target,
     framework: args.framework,
     dimensions: args.dimensions,
-    chunkTarget: CHUNK_TARGET,
+    chunkTarget: CHUNK_TARGET_CHARS,
     totalChunks: chunks.length,
     totalRequests: entries.length,
     entries,

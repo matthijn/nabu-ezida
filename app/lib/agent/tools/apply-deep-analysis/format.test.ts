@@ -29,76 +29,78 @@ describe("extractSection", () => {
 })
 
 describe("extractLeadingContext", () => {
-  const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1} has some content here.`)
+  const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1} content.`)
   const content = lines.join("\n")
+  const lineLen = lines[0].length + 1
 
   const cases = [
-    { name: "returns empty for first line", startLine: 1, ratio: 0.2, expected: "" },
+    { name: "returns empty for first line", startLine: 1, maxChars: 1600, expected: "" },
     {
-      name: "returns tail 20% of preceding lines",
+      name: "returns empty when maxChars is 0",
       startLine: 11,
-      ratio: 0.2,
-      expected: lines.slice(8, 10).join("\n"),
-    },
-    {
-      name: "returns all preceding when ratio is 1.0",
-      startLine: 6,
-      ratio: 1.0,
-      expected: lines.slice(0, 5).join("\n"),
-    },
-    {
-      name: "returns empty when ratio is 0",
-      startLine: 11,
-      ratio: 0,
+      maxChars: 0,
       expected: "",
     },
     {
-      name: "returns preceding line when single line exists",
+      name: "returns last N lines that fit within maxChars",
+      startLine: 11,
+      maxChars: lineLen * 2,
+      expected: lines.slice(8, 10).join("\n"),
+    },
+    {
+      name: "returns all preceding when budget exceeds content",
+      startLine: 6,
+      maxChars: 100000,
+      expected: lines.slice(0, 5).join("\n"),
+    },
+    {
+      name: "returns single preceding line when only one exists",
       startLine: 2,
-      ratio: 0.2,
+      maxChars: 1600,
       expected: lines[0],
     },
   ]
 
-  cases.forEach(({ name, startLine, ratio, expected }) => {
-    it(name, () => expect(extractLeadingContext(content, startLine, ratio)).toBe(expected))
+  cases.forEach(({ name, startLine, maxChars, expected }) => {
+    it(name, () => expect(extractLeadingContext(content, startLine, maxChars)).toBe(expected))
   })
 })
 
 describe("extractTrailingContext", () => {
-  const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1} has some content here.`)
+  const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1} content.`)
   const content = lines.join("\n")
+  const lineLen = lines[0].length + 1
 
   const cases = [
-    { name: "returns empty for last line", endLine: 20, ratio: 0.2, expected: "" },
+    { name: "returns empty for last line", endLine: 20, maxChars: 1600, expected: "" },
     {
-      name: "returns head 20% of following lines",
+      name: "returns empty when maxChars is 0",
       endLine: 10,
-      ratio: 0.2,
-      expected: lines.slice(10, 12).join("\n"),
-    },
-    {
-      name: "returns all following when ratio is 1.0",
-      endLine: 15,
-      ratio: 1.0,
-      expected: lines.slice(15).join("\n"),
-    },
-    {
-      name: "returns empty when ratio is 0",
-      endLine: 10,
-      ratio: 0,
+      maxChars: 0,
       expected: "",
     },
     {
-      name: "returns following line when single line exists",
+      name: "returns first N lines that fit within maxChars",
+      endLine: 10,
+      maxChars: lineLen * 2,
+      expected: lines.slice(10, 12).join("\n"),
+    },
+    {
+      name: "returns all following when budget exceeds content",
+      endLine: 15,
+      maxChars: 100000,
+      expected: lines.slice(15).join("\n"),
+    },
+    {
+      name: "returns single following line when only one exists",
       endLine: 19,
-      ratio: 0.2,
+      maxChars: 1600,
       expected: lines[19],
     },
   ]
 
-  cases.forEach(({ name, endLine, ratio, expected }) => {
-    it(name, () => expect(extractTrailingContext(content, endLine, ratio)).toBe(expected))
+  cases.forEach(({ name, endLine, maxChars, expected }) => {
+    it(name, () => expect(extractTrailingContext(content, endLine, maxChars)).toBe(expected))
   })
 })
 

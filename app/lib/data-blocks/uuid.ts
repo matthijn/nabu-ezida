@@ -39,6 +39,9 @@ export const replaceUuidPlaceholders = (
   return { result, generated }
 }
 
+export const fillDocIds = (doc: Record<string, unknown>, language: string): GeneratedId[] =>
+  getIdPaths(language).flatMap((config) => fillIdPath(doc, config, language))
+
 export const fillMissingIds = (markdown: string, originalContent?: string): FillIdsResult => {
   const updates = collectBlockUpdates(markdown, originalContent)
   if (updates.length === 0) {

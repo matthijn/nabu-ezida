@@ -7,6 +7,7 @@ import {
   findBlockById,
   summarizeBlocks,
   replaceBlockContents,
+  ensureFencesOnOwnLines,
 } from "./parse"
 import { block } from "./test-helpers"
 
@@ -247,5 +248,54 @@ describe("replaceBlockContents", () => {
     expect(result).toContain(newContent)
     expect(result).toContain("```json-settings")
     expect(result).toContain("```\n\nMore text.")
+  })
+})
+
+describe("ensureFencesOnOwnLines", () => {
+  const cases: { name: string; input: string; expected: string }[] = [
+    {
+      name: "already valid — no change",
+      input: "# Doc\n\n```json-callout\n{}\n```\n",
+      expected: "# Doc\n\n```json-callout\n{}\n```\n",
+    },
+    {
+      name: "strips leading whitespace from fence",
+      input: "# Doc\n\n  ```json-callout\n{}\n  ```\n",
+      expected: "# Doc\n\n```json-callout\n{}\n```\n",
+    },
+    {
+      name: "strips tab indentation from fence",
+      input: "# Doc\n\n\t```json-callout\n{}\n\t```\n",
+      expected: "# Doc\n\n```json-callout\n{}\n```\n",
+    },
+    {
+      name: "splits fence after non-whitespace content",
+      input: "some text```json-callout\n{}\n```\n",
+      expected: "some text\n```json-callout\n{}\n```\n",
+    },
+    {
+      name: "splits closing fence after content",
+      input: "```json-callout\n{}\n}```\n",
+      expected: "```json-callout\n{}\n}\n```\n",
+    },
+    {
+      name: "trims trailing whitespace on split before",
+      input: "some text  ```json-callout\n{}\n```\n",
+      expected: "some text\n```json-callout\n{}\n```\n",
+    },
+    {
+      name: "no fences — identity",
+      input: "# Just prose\n\nNo blocks here.",
+      expected: "# Just prose\n\nNo blocks here.",
+    },
+    {
+      name: "multiple blocks all valid — no change",
+      input: "```json-a\n{}\n```\n\n```json-b\n{}\n```\n",
+      expected: "```json-a\n{}\n```\n\n```json-b\n{}\n```\n",
+    },
+  ]
+
+  it.each(cases)("$name", ({ input, expected }) => {
+    expect(ensureFencesOnOwnLines(input)).toBe(expected)
   })
 })

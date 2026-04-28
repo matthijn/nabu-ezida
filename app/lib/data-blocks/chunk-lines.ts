@@ -1,5 +1,8 @@
 import { parseCodeBlocks, type CodeBlock } from "./parse"
 
+export const CHUNK_TARGET_CHARS = 12000
+export const CONTEXT_OVERLAP_CHARS = 1000
+
 export interface LineChunk {
   startLine: number
   endLine: number
@@ -7,8 +10,6 @@ export interface LineChunk {
 
 const isInsideBlock = (blocks: CodeBlock[], lineStart: number, lineEnd: number): boolean =>
   blocks.some((b) => b.start <= lineStart && lineEnd <= b.end)
-
-const isHeading = (line: string): boolean => line.startsWith("#")
 
 interface Acc {
   chunks: LineChunk[]
@@ -39,9 +40,6 @@ export const chunkLines = (content: string, targetSize: number): LineChunk[] => 
     const inBlock = isInsideBlock(blocks, lineStart, lineEnd)
 
     if (!inBlock) {
-      if (isHeading(line) && acc.size > 0) {
-        acc = flush(acc, lineNum - 1)
-      }
       acc = { ...acc, size: acc.size + line.length }
     }
 

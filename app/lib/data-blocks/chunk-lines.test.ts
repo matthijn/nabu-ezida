@@ -52,28 +52,24 @@ describe("chunkLines", () => {
       ],
     },
     {
-      name: "heading flushes current chunk",
+      name: "heading does not cause early flush",
       content: "intro\nsome text\n# Section B\nmore text",
       targetSize: 20,
-      expected: [
-        { startLine: 1, endLine: 2 },
-        { startLine: 3, endLine: 4 },
-      ],
+      expected: [{ startLine: 1, endLine: 4 }],
     },
     {
-      name: "heading at start does not flush",
+      name: "heading included in chunk under target",
       content: "# Title\nsome text\nmore",
       targetSize: 1000,
       expected: [{ startLine: 1, endLine: 3 }],
     },
     {
-      name: "consecutive headings create separate chunks",
+      name: "headings do not split — only target size does",
       content: "# A\ntext a\n# B\ntext b\n# C\ntext c",
       targetSize: 10,
       expected: [
-        { startLine: 1, endLine: 2 },
-        { startLine: 3, endLine: 4 },
-        { startLine: 5, endLine: 6 },
+        { startLine: 1, endLine: 3 },
+        { startLine: 4, endLine: 6 },
       ],
     },
     {
@@ -92,13 +88,10 @@ describe("chunkLines", () => {
       ],
     },
     {
-      name: "heading after code block flushes",
+      name: "heading after code block does not flush",
       content: `intro\n${block("json-callout", '{"id":"c1","title":"X"}')}\n# Next\nbody`,
       targetSize: 20,
-      expected: [
-        { startLine: 1, endLine: 4 },
-        { startLine: 5, endLine: 6 },
-      ],
+      expected: [{ startLine: 1, endLine: 6 }],
     },
     {
       name: "entire file is a code block — one chunk",

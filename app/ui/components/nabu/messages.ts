@@ -28,6 +28,11 @@ export interface Indexed<T> {
 
 const hasContent = (s: string): boolean => s.trim().length > 0
 
+const NOISE_PATTERNS = ["malformed function call"] as const
+
+const isLlmNoise = (content: string): boolean =>
+  NOISE_PATTERNS.some((p) => content.toLowerCase().includes(p))
+
 const isContentBlock = (b: Block): b is { type: "user" | "text" | "error"; content: string } =>
   b.type === "user" || b.type === "text" || b.type === "error"
 
@@ -40,7 +45,9 @@ export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
       (
         item
       ): item is { block: { type: "user" | "text" | "error"; content: string }; index: number } =>
-        isContentBlock(item.block) && hasContent(item.block.content)
+        isContentBlock(item.block) &&
+        hasContent(item.block.content) &&
+        !isLlmNoise(item.block.content)
     )
     .map(({ block, index }) => ({
       index,

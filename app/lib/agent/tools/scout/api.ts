@@ -1,14 +1,12 @@
 import type { ScoutMap, ScoutSection, SectionLabel } from "../scout-map"
 import { labelSection } from "../scout-map"
-import { chunkLines, type LineChunk } from "~/lib/data-blocks/chunk-lines"
+import { chunkLines, CHUNK_TARGET_CHARS, type LineChunk } from "~/lib/data-blocks/chunk-lines"
 import { processPool } from "~/lib/utils/pool"
 import { presentContent, extractLines, formatScoutMap } from "./prose"
 
 export type ScoutEntry =
   | { kind: "inline"; path: string; content: string }
   | { kind: "mapped"; path: string; map: ScoutMap }
-
-const TARGET_CHUNK_SIZE = 8000
 
 const PROSE_LINE_THRESHOLD = 50
 
@@ -56,7 +54,7 @@ export const scoutFile = async (
     return { kind: "inline", path, content }
   }
 
-  const chunks = chunkLines(content, TARGET_CHUNK_SIZE)
+  const chunks = chunkLines(content, CHUNK_TARGET_CHARS)
 
   if (chunks.length === 0) {
     return { kind: "inline", path, content }

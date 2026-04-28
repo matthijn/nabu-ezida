@@ -1,10 +1,9 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs"
-import { chunkLines } from "~/lib/data-blocks/chunk-lines"
+import { chunkLines, CHUNK_TARGET_CHARS } from "~/lib/data-blocks/chunk-lines"
 import { parseCodeBlocks, parseBlockJson, type CodeBlock } from "~/lib/data-blocks/parse"
 import { splitBySentences } from "~/lib/text/split"
 import { formatNumberedPassage } from "~/lib/text/format"
 
-const TARGET = 8000
 const SINGLETONS = new Set(["json-attributes", "json-settings"])
 const LABEL_KEYS: Record<string, string> = { "json-chart": "title", "json-callout": "title" }
 
@@ -77,7 +76,7 @@ mkdirSync(outDir, { recursive: true })
 
 const content = readFileSync(inputPath, "utf-8")
 
-const chunks = chunkLines(content, TARGET)
+const chunks = chunkLines(content, CHUNK_TARGET_CHARS)
 
 for (let i = 0; i < chunks.length; i++) {
   const chunk = chunks[i]
@@ -105,7 +104,7 @@ for (let i = 0; i < chunks.length; i++) {
 }
 
 const summary = [
-  `${chunks.length} chunks from ${content.split("\n").length} lines (target: ${TARGET} chars)`,
+  `${chunks.length} chunks from ${content.split("\n").length} lines (target: ${CHUNK_TARGET_CHARS} chars)`,
   "",
   ...chunks.map((c, i) => {
     const slice = extractLines(content, c.startLine, c.endLine)

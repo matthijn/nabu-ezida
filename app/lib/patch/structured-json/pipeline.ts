@@ -42,6 +42,14 @@ export const applyEnrichedOps = (
 
 const isIdempotentRemove = (op: JsonPatchOp): boolean => op.op === "remove"
 
+const isAppendToArray = (op: JsonPatchOp): boolean => op.op === "add" && op.path.endsWith("/-")
+
+const toArrayCreateOps = (ops: JsonPatchOp[]): JsonPatchOp[] | null => {
+  if (ops.length !== 1 || !isAppendToArray(ops[0])) return null
+  const op = ops[0] as { op: "add"; path: string; value: unknown }
+  return [{ op: "add", path: op.path.slice(0, -2), value: [op.value] }]
+}
+
 const applyOpsIndividually = (
   ops: JsonPatchOp[],
   doc: unknown,
@@ -68,6 +76,17 @@ const applyOpsIndividually = (
     const result = applyJsonPatchOps(currentDoc, fuzzyResult.ops)
     if (!result.ok) {
       if (isIdempotentRemove(op)) continue
+
+      const retryOps = toArrayCreateOps(fuzzyResult.ops)
+      if (retryOps) {
+        const retryResult = applyJsonPatchOps(currentDoc, retryOps)
+        if (retryResult.ok) {
+          currentDoc = retryResult.result
+          applied++
+          continue
+        }
+      }
+
       failures.push(`${op.path}: ${result.error}`)
       continue
     }

@@ -203,3 +203,32 @@ export const extractProse = (markdown: string): string => {
 
   return prose
 }
+
+const FENCE = "```"
+
+const isWhitespaceOnly = (s: string): boolean => s.trim().length === 0
+
+export const ensureFencesOnOwnLines = (markdown: string): string => {
+  const lines = markdown.split("\n")
+  const result: string[] = []
+
+  for (const line of lines) {
+    const fenceIdx = line.indexOf(FENCE)
+    if (fenceIdx === -1) {
+      result.push(line)
+      continue
+    }
+
+    const before = line.slice(0, fenceIdx)
+    const fenceAndAfter = line.slice(fenceIdx)
+
+    if (isWhitespaceOnly(before)) {
+      result.push(fenceAndAfter)
+    } else {
+      result.push(before.trimEnd())
+      result.push(fenceAndAfter)
+    }
+  }
+
+  return result.join("\n")
+}

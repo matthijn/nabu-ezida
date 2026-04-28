@@ -61,6 +61,37 @@ describe("tallyVotes", () => {
     expect((tally.get("B") as Map<number, number>).get(2)).toBe(1)
   })
 
+  it("deduplicates overlapping spans within a single run", () => {
+    const runs: FindResult[][] = [
+      [
+        { start: 1, end: 4, analysis_source_id: "X" },
+        { start: 3, end: 6, analysis_source_id: "X" },
+      ],
+    ]
+    const tally = tallyVotes(runs, 6)
+    const x = tally.get("X") as Map<number, number>
+    for (let s = 1; s <= 6; s++) {
+      expect(x.get(s)).toBe(1)
+    }
+  })
+
+  it("deduplicates same code but not across codes", () => {
+    const runs: FindResult[][] = [
+      [
+        { start: 1, end: 3, analysis_source_id: "A" },
+        { start: 2, end: 4, analysis_source_id: "A" },
+        { start: 2, end: 4, analysis_source_id: "B" },
+      ],
+    ]
+    const tally = tallyVotes(runs, 4)
+    const a = tally.get("A") as Map<number, number>
+    const b = tally.get("B") as Map<number, number>
+    expect(a.get(2)).toBe(1)
+    expect(a.get(3)).toBe(1)
+    expect(b.get(2)).toBe(1)
+    expect(b.get(3)).toBe(1)
+  })
+
   it("clamps to sentenceCount", () => {
     const runs: FindResult[][] = [[{ start: 1, end: 10, analysis_source_id: "X" }]]
     const tally = tallyVotes(runs, 3)

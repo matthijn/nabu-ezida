@@ -108,6 +108,8 @@ export const validateMarkdownBlocks = (
             error.currentBlock = currentBlock
           }
         }
+      } else if (isNewSingleton(block.language, originalBlocksByLanguage)) {
+        // no-op: new singleton creation — skip immutable check, let schema errors through
       } else if (blockErrors.length > 0 && !options.skipImmutableCheck) {
         errors.push(findResult.error)
         continue
@@ -288,6 +290,9 @@ const validateSingletons = (markdown: string): ValidationError[] => {
 }
 
 type BlocksByLanguage = Record<string, CodeBlock[]>
+
+const isNewSingleton = (language: string, originalBlocksByLanguage: BlocksByLanguage): boolean =>
+  isSingleton(language) && (originalBlocksByLanguage[language] ?? []).length === 0
 
 const groupBlocksByLanguage = (blocks: CodeBlock[]): BlocksByLanguage =>
   blocks.reduce<BlocksByLanguage>((acc, block) => {

@@ -99,12 +99,15 @@ export const HighlightTooltip = ({ entries }: HighlightTooltipProps) => {
   const colors = entries.map((e) => e.color)
 
   return (
-    <div className="flex w-96 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg">
+    <div
+      data-tooltip-root
+      className="flex w-96 flex-none flex-col items-start overflow-hidden rounded-lg border border-solid border-neutral-border bg-default-background shadow-lg"
+    >
       <div
         className="flex h-1 w-full flex-none"
         style={{ background: createHeaderBackground(colors) }}
       />
-      <div className="flex w-full flex-col items-start gap-3 px-3 py-3">
+      <div className="flex w-full min-h-0 flex-col items-start gap-3 overflow-y-auto px-3 py-3">
         {entries.map((entry, i) => (
           <div key={entry.id} className="flex w-full flex-col items-start gap-3">
             {i > 0 && <Divider />}

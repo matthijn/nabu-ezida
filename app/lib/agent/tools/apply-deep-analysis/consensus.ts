@@ -26,10 +26,14 @@ export const tallyVotes = (
 ): Map<string, Map<number, number>> => {
   const tally = new Map<string, Map<number, number>>()
   for (const run of runs) {
+    const seen = new Set<string>()
     for (const r of run) {
-      if (!tally.has(r.analysis_source_id)) tally.set(r.analysis_source_id, new Map())
-      const codeMap = tally.get(r.analysis_source_id) as Map<number, number>
       for (let s = r.start; s <= Math.min(r.end, sentenceCount); s++) {
+        const key = `${r.analysis_source_id}:${s}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        if (!tally.has(r.analysis_source_id)) tally.set(r.analysis_source_id, new Map())
+        const codeMap = tally.get(r.analysis_source_id) as Map<number, number>
         codeMap.set(s, (codeMap.get(s) ?? 0) + 1)
       }
     }

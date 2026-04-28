@@ -5,10 +5,12 @@ import type { ResponseFormat } from "./convert"
 import { callLlm } from "./fetch"
 import { blocksToMessages } from "./convert"
 import { pushBlocks } from "./store"
-import { executeTool, type ToolExecutor } from "../turn"
+import { executeTool, trimErrorOutput, type ToolExecutor } from "../turn"
 import { formatZodError, type ToolDefinition } from "../executors/tool"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 import { isToolCallBlock } from "../derived"
+import { yieldToBrowser } from "~/lib/utils/async"
+import { setPendingRefsSuppressed, resolvePendingRefsInBulk } from "~/lib/files/store"
 
 interface CallerConfig {
   endpoint: string
@@ -30,11 +32,18 @@ const executeToolCalls = async (
   calls: ToolCall[],
   execute: ToolExecutor
 ): Promise<ToolResultBlock[]> => {
-  const results: ToolResultBlock[] = []
-  for (const call of calls) {
-    results.push(await executeTool(call, execute))
+  setPendingRefsSuppressed(true)
+  try {
+    const results: ToolResultBlock[] = []
+    for (const call of calls) {
+      results.push(await executeTool(call, execute))
+      await yieldToBrowser()
+    }
+    return results
+  } finally {
+    setPendingRefsSuppressed(false)
+    resolvePendingRefsInBulk()
   }
-  return results
 }
 
 const stripNullArgs = (args: Record<string, unknown>): Record<string, unknown> =>
@@ -51,7 +60,7 @@ const toValidationError = (call: ToolCall, message: string): ToolResultBlock => 
   type: "tool_result",
   callId: call.id,
   toolName: call.name,
-  result: { status: "error", output: `Invalid arguments: ${message}` },
+  result: { status: "error", output: trimErrorOutput(`Invalid arguments: ${message}`) },
 })
 
 interface PartitionedCalls {

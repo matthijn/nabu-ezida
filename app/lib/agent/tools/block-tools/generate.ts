@@ -11,6 +11,7 @@ import {
   type TypedOpsSpec,
 } from "~/lib/data-blocks/typed-ops/derive"
 import { translateOps } from "~/lib/data-blocks/typed-ops/translate"
+import { fillDocIds } from "~/lib/data-blocks/uuid"
 import { applyFieldDiff } from "~/lib/patch/diff/field-diff"
 import { insertBlockAtAnchor, moveBlockToAnchor } from "~/lib/data-blocks/anchor"
 import {
@@ -283,6 +284,8 @@ export const generatePatchTool = (
               : [rejectedMessage, ...failures].filter(Boolean).join("\n")
           )
         }
+
+        fillDocIds(patchedDoc as Record<string, unknown>, language)
 
         const schemaError = validatePatchedDoc(language, patchedDoc)
         if (schemaError) return err(`Patch produces invalid \`${language}\` block: ${schemaError}`)

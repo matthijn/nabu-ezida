@@ -1,13 +1,12 @@
 interface BackoffConfig {
   baseDelay?: number
   maxDelay: number
-  jitter?: number
 }
 
 export const calculateBackoff = (
   attempt: number,
-  { baseDelay = 1000, maxDelay, jitter = 1000 }: BackoffConfig
+  { baseDelay = 1000, maxDelay }: BackoffConfig
 ): number => {
-  const exponential = Math.min(baseDelay * Math.pow(2, attempt), maxDelay)
-  return exponential + Math.random() * jitter
+  const ceiling = Math.min(baseDelay * Math.pow(2, attempt), maxDelay)
+  return Math.random() * ceiling
 }

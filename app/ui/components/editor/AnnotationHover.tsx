@@ -28,6 +28,7 @@ interface AnnotationHoverProps {
 
 const TOOLTIP_GAP = 4
 const BRIDGE_UPWARD = 30
+const VIEWPORT_MARGIN = 24
 const ANNOTATIONS_LANGUAGE = "json-annotations"
 
 const isDecoration = (el: HTMLElement): boolean =>
@@ -194,13 +195,20 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
 
     const inner = bridge.firstElementChild as HTMLElement
     if (!inner) return
+    const tooltipRoot = inner.querySelector("[data-tooltip-root]") as HTMLElement | null
+    if (tooltipRoot) tooltipRoot.style.maxHeight = ""
     const contentHeight = inner.offsetHeight
     const contentWidth = inner.offsetWidth
 
-    const belowTop = lastRect.bottom + TOOLTIP_GAP
-    const fitsBelow = belowTop + contentHeight <= window.innerHeight
+    const spaceBelow = window.innerHeight - lastRect.bottom - TOOLTIP_GAP - VIEWPORT_MARGIN
+    const spaceAbove = firstRect.top - TOOLTIP_GAP - VIEWPORT_MARGIN
+    const showBelow = spaceBelow >= spaceAbove
+    const maxHeight = Math.max(0, showBelow ? spaceBelow : spaceAbove)
+    const effectiveHeight = Math.min(contentHeight, maxHeight)
 
-    if (fitsBelow) {
+    if (tooltipRoot) tooltipRoot.style.maxHeight = `${maxHeight}px`
+
+    if (showBelow) {
       const bridgeTop = lastRect.bottom - BRIDGE_UPWARD
       bridge.style.left = `${lastRect.left}px`
       bridge.style.width = `${contentWidth}px`
@@ -209,12 +217,12 @@ export const AnnotationHover = ({ annotations, filePath, children }: AnnotationH
       bridge.style.paddingBottom = "0"
       inner.style.marginLeft = "0"
     } else {
-      const tooltipTop = firstRect.top - TOOLTIP_GAP - contentHeight
+      const tooltipTop = firstRect.top - TOOLTIP_GAP - effectiveHeight
       bridge.style.left = `${firstRect.left}px`
       bridge.style.width = `${contentWidth}px`
       bridge.style.top = `${tooltipTop}px`
       bridge.style.paddingTop = "0"
-      bridge.style.paddingBottom = `${firstRect.top + BRIDGE_UPWARD - tooltipTop - contentHeight}px`
+      bridge.style.paddingBottom = `${firstRect.top + BRIDGE_UPWARD - tooltipTop - effectiveHeight}px`
       inner.style.marginLeft = "0"
     }
 

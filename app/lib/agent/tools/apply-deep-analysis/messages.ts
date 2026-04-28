@@ -5,9 +5,15 @@ import {
   toDeepSourceContent,
   type ToDeepSourceFn,
 } from "~/lib/data-blocks/parse"
+import { stripBoundaryComments } from "~/lib/patch/resolve/json-boundary"
 import { calloutToDeepSource } from "~/domain/data-blocks/callout/definition"
+import { prepareTargetContent, numberSection } from "./format"
 
-interface Message { type: "message"; role: "system" | "user"; content: string }
+interface Message {
+  type: "message"
+  role: "system" | "user"
+  content: string
+}
 
 export interface ScopedSources {
   framework: string[]
@@ -64,7 +70,7 @@ const deepSourceConverters: Record<string, ToDeepSourceFn> = {
 }
 
 const prepareSourceContent = (raw: string): string =>
-  toDeepSourceContent(stripSingletons(raw), deepSourceConverters)
+  toDeepSourceContent(stripSingletons(stripBoundaryComments(raw)), deepSourceConverters)
 
 const resolveSource = (path: string, resolve: ContentResolver): string | null => {
   const raw = resolve(path)
@@ -82,7 +88,7 @@ export const buildSourceMessages = (
     return content ? [...msgs, { type: "message", role: "system", content }] : msgs
   }, [])
 
-const buildSectionMessage = (section: string): string => `<section>\n${section}\n</section>`
+const buildSectionMessage = (section: string): string => `<target>\n${section}\n</target>`
 
 const buildLeadingContextMessage = (context: string): string =>
   `<context type="preceding">\n${context}\n</context>`
@@ -148,3 +154,21 @@ export const buildReviewMessages = (
   trailingCtx: string,
   resolve: ContentResolver
 ): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REVIEW_CTA)
+
+export interface FindCallResult {
+  messages: Message[]
+  sentences: string[]
+}
+
+export const buildFindCall = (
+  rawTarget: string,
+  sources: ScopedSources,
+  resolve: ContentResolver,
+  leadingCtx = "",
+  trailingCtx = ""
+): FindCallResult => {
+  const section = prepareTargetContent(rawTarget)
+  const { sentences, numbered } = numberSection(section)
+  const messages = buildFindMessages(numbered, sources, leadingCtx, trailingCtx, resolve)
+  return { messages, sentences }
+}
