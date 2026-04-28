@@ -3,13 +3,23 @@ import type { AnyTool } from "../../executors/tool"
 import { FileEntry, TOO_MANY_FILES_NUDGE } from "../file-entry"
 import { PostAction } from "../apply-deep-analysis/def"
 
+const SourceFileEntry = FileEntry.extend({
+  group: z
+    .enum(["framework", "dimension"])
+    .describe(
+      "framework = general rules applied to every evaluation. dimension = discrete angle evaluated on its own."
+    ),
+})
+
+export type SourceFileEntry = z.infer<typeof SourceFileEntry>
+
 export const PlanDeepAnalysisArgs = z.object({
   target_files: z
     .array(FileEntry)
     .max(5, TOO_MANY_FILES_NUDGE)
     .describe("Files to analyze — content that will be examined against the source criteria."),
   source_files: z
-    .array(FileEntry)
+    .array(SourceFileEntry)
     .max(40, TOO_MANY_FILES_NUDGE)
     .describe("Files containing analysis definitions, frameworks, or criteria to apply."),
   post_action: PostAction.describe(
