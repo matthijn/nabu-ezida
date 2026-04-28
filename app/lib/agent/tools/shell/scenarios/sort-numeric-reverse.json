@@ -1,0 +1,20 @@
+{
+  "files": {
+    "nums.txt": "10\n2\n1\n20\n3"
+  },
+  "args": {
+    "commands": ["sort -n -r nums.txt"]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "20\n10\n3\n2\n1",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

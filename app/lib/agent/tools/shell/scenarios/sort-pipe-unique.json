@@ -1,0 +1,20 @@
+{
+  "files": {
+    "f.txt": "banana\napple\ncherry\napple"
+  },
+  "args": {
+    "commands": ["cat f.txt | sort -u"]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "apple\nbanana\ncherry",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}

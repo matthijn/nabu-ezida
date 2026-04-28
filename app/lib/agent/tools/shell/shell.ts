@@ -24,7 +24,7 @@ interface CommandCategory {
 
 const categories: CommandCategory[] = [
   { name: "Read", commands: ["cat", "head", "tail", "ls", "grep", "find", "wc"] },
-  { name: "Utility", commands: ["echo"] },
+  { name: "Utility", commands: ["echo", "sort"] },
 ]
 
 const getCommandNames = (): string[] => categories.flatMap((c) => c.commands)

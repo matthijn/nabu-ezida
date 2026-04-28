@@ -1,0 +1,20 @@
+{
+  "files": {
+    "f.txt": "banana\napple\ncherry\napple"
+  },
+  "args": {
+    "commands": ["sort f.txt"]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "apple\napple\nbanana\ncherry",
+        "stderr": "",
+        "outcome": { "type": "exit", "exit_code": 0 }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}
