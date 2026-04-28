@@ -105,6 +105,11 @@ const buildMriConfig = (flagDefs: Record<string, FlagDef>): MriConfig => {
   return { options: { boolean, string, alias }, knownFlags, multiCharFlags, stringFlags }
 }
 
+const findDefaultNumericFlag = (stringFlags: Set<string>): string | undefined => {
+  const singleChar = [...stringFlags].filter((f) => f.length === 1)
+  return singleChar.length === 1 ? singleChar[0] : undefined
+}
+
 const normalizeArgs = (
   args: string[],
   multiCharFlags: Set<string>,
@@ -116,6 +121,11 @@ const normalizeArgs = (
     const rest = arg.slice(1)
 
     if (multiCharFlags.has(rest)) return [`--${rest}`]
+
+    if (/^\d+$/.test(rest)) {
+      const flag = findDefaultNumericFlag(stringFlags)
+      if (flag) return [`-${flag}`, rest]
+    }
 
     if (rest.length > 1 && stringFlags.has(rest[0])) {
       return [`-${rest[0]}`, rest.slice(1)]

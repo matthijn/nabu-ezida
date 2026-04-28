@@ -1,0 +1,23 @@
+{
+  "files": {
+    "f.txt": "alpha\nbeta\ngamma\ndelta\nepsilon"
+  },
+  "args": {
+    "commands": ["cat f.txt | head -2"]
+  },
+  "expected": {
+    "status": "ok",
+    "output": [
+      {
+        "stdout": "alpha\nbeta",
+        "stderr": "",
+        "outcome": {
+          "type": "exit",
+          "exit_code": 0
+        }
+      }
+    ],
+    "message": "All commands completed successfully.",
+    "mutations": []
+  }
+}
