@@ -34,15 +34,6 @@ export const buildFindResultSchema = (validIds: string[]) =>
     ),
   })
 
-export const ReasonResultSchema = z.object({
-  results: z.array(
-    z.object({
-      item: z.number().int().min(1),
-      reason: z.string(),
-    })
-  ),
-})
-
 export const partitionSources = (files: SourceFile[]): ScopedSources => ({
   framework: files.filter((f) => f.scope === "framework").map((f) => f.path),
   dimension: files.filter((f) => f.scope === "dimension").map((f) => f.path),
@@ -104,6 +95,24 @@ export const buildSourceMessages = (
     return content ? [...msgs, { type: "message", role: "system", content }] : msgs
   }, [])
 
+export const buildCodeSourceMessages = (
+  codeIds: ReadonlySet<string>,
+  { framework, dimension }: ScopedSources,
+  resolve: ContentResolver
+): Message[] => {
+  const messages: Message[] = []
+  for (const path of [...framework, ...dimension]) {
+    const raw = resolve(path)
+    if (!raw) continue
+    for (const callout of getCallouts(raw)) {
+      if (!codeIds.has(callout.id)) continue
+      const content = calloutToDeepSource(callout)
+      if (content) messages.push({ type: "message", role: "system", content })
+    }
+  }
+  return messages
+}
+
 const buildSectionMessage = (section: string): string => `<target>\n${section}\n</target>`
 
 const buildLeadingContextMessage = (context: string): string =>
@@ -113,14 +122,13 @@ const buildTrailingContextMessage = (context: string): string =>
   `<context type="following">\n${context}\n</context>`
 
 const buildEnvelope = (
+  sourceMessages: Message[],
   section: string,
-  sources: ScopedSources,
   leadingCtx: string,
   trailingCtx: string,
-  resolve: ContentResolver,
   callToAction: string
 ): Message[] => {
-  const messages: Message[] = [...buildSourceMessages(sources, resolve)]
+  const messages: Message[] = [...sourceMessages]
   if (leadingCtx) {
     messages.push({
       type: "message",
@@ -143,7 +151,7 @@ const buildEnvelope = (
 const FIND_CTA =
   "Analyze the numbered sentences against the source definitions. Return matching spans as JSON."
 
-const REASON_CTA = "Write a reason for each coded section. Return results as JSON."
+const REVIEW_CTA = "Review the coded sections. Return results as JSON."
 
 export const buildFindMessages = (
   numbered: string,
@@ -151,15 +159,24 @@ export const buildFindMessages = (
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver
-): Message[] => buildEnvelope(numbered, sources, leadingCtx, trailingCtx, resolve, FIND_CTA)
+): Message[] =>
+  buildEnvelope(buildSourceMessages(sources, resolve), numbered, leadingCtx, trailingCtx, FIND_CTA)
 
-export const buildReasonMessages = (
+export const buildReviewMessages = (
   presented: string,
+  codeIds: ReadonlySet<string>,
   sources: ScopedSources,
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver
-): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REASON_CTA)
+): Message[] =>
+  buildEnvelope(
+    buildCodeSourceMessages(codeIds, sources, resolve),
+    presented,
+    leadingCtx,
+    trailingCtx,
+    REVIEW_CTA
+  )
 
 export interface FindCallResult {
   messages: Message[]

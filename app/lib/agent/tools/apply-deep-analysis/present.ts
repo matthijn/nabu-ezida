@@ -17,6 +17,38 @@ export interface PresentedSection {
   mapping: ItemMapping[]
 }
 
+export type VisibleRange = [start: number, end: number]
+
+export const buildVisibleRanges = (
+  items: CodedItem[],
+  sentenceCount: number,
+  context: number
+): VisibleRange[] => {
+  if (items.length === 0) return [[1, sentenceCount]]
+
+  const expanded: VisibleRange[] = items
+    .map(
+      (item): VisibleRange => [
+        Math.max(1, item.start - context),
+        Math.min(sentenceCount, item.end + context),
+      ]
+    )
+    .sort((a, b) => a[0] - b[0])
+
+  const merged: VisibleRange[] = [expanded[0]]
+  for (let i = 1; i < expanded.length; i++) {
+    const last = merged[merged.length - 1]
+    if (expanded[i][0] <= last[1] + 1) {
+      last[1] = Math.max(last[1], expanded[i][1])
+    } else {
+      merged.push(expanded[i])
+    }
+  }
+  return merged
+}
+
+const ELLIPSIS = "..."
+
 const formatCodings = (codings: string[]): string => codings.join(", ")
 
 const formatItemLine = (
@@ -29,7 +61,19 @@ const formatItemLine = (
   return reason !== undefined ? `${base}\n   Reason: ${reason}` : base
 }
 
-export const formatCodedSection = (sentences: string[], items: CodedItem[]): PresentedSection => {
+const buildVisibleSet = (ranges: VisibleRange[]): Set<number> => {
+  const visible = new Set<number>()
+  for (const [start, end] of ranges) {
+    for (let s = start; s <= end; s++) visible.add(s)
+  }
+  return visible
+}
+
+export const formatCodedSection = (
+  sentences: string[],
+  items: CodedItem[],
+  context?: number
+): PresentedSection => {
   const itemBySentence = new Map<number, { item: CodedItem; itemIndex: number }[]>()
   const mapping: ItemMapping[] = []
 
@@ -49,10 +93,25 @@ export const formatCodedSection = (sentences: string[], items: CodedItem[]): Pre
     }
   }
 
+  const visible =
+    context !== undefined
+      ? buildVisibleSet(buildVisibleRanges(items, sentences.length, context))
+      : undefined
+
   const lines: string[] = []
   const emittedItems = new Set<number>()
+  let inGap = false
 
   for (let s = 1; s <= sentences.length; s++) {
+    if (visible && !visible.has(s)) {
+      if (!inGap) {
+        lines.push(ELLIPSIS)
+        inGap = true
+      }
+      continue
+    }
+    inGap = false
+
     const entries = itemBySentence.get(s)
     if (!entries || entries.length === 0) {
       lines.push(sentences[s - 1])

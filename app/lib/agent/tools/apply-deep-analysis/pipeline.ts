@@ -1,4 +1,4 @@
-import type { z } from "zod"
+import { z } from "zod"
 import { callLlm, extractText, toResponseFormat } from "../../client"
 import { processPool } from "~/lib/utils/pool"
 import { noop } from "~/lib/utils/noop"
@@ -7,11 +7,19 @@ import {
   type ContentResolver,
   buildFindCall,
   buildFindResultSchema,
+  buildReviewMessages,
   extractSourceIds,
   buildSourceTitleMap,
 } from "./messages"
-import { tallyVotes, filterByTally, groupBySpan, type FindResult } from "./consensus"
+import {
+  tallyVotes,
+  filterByTally,
+  groupBySpan,
+  type FindResult,
+  type CodedSpan,
+} from "./consensus"
 import { spanKey } from "./format"
+import { formatCodedSection, type CodedItem } from "./present"
 
 export type CallResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -30,9 +38,10 @@ const countUniqueSentences = (spans: FindResult[]): number => {
 }
 
 const FIND_ENDPOINT = "/deep-analysis-find"
-// const REASON_ENDPOINT = "/deep-analysis-reason"
+const REVIEW_ENDPOINT = "/deep-analysis-review"
 const FIND_RUNS = 4
 const FIND_THRESHOLD = 3
+const REVIEW_CONTEXT_SENTENCES = 6
 
 const tryParseJson = (text: string): unknown | undefined => {
   try {
@@ -105,6 +114,82 @@ const collectRunReasons = (spans: FindResult[], runs: FindResult[][]): Map<strin
     if (collected.length > 0) reasons.set(key, collected.join("\n"))
   }
   return reasons
+}
+
+const isMultiCoded = (span: CodedSpan): boolean => span.codings.length > 1
+
+const collectCodeIds = (spans: CodedSpan[]): Set<string> => {
+  const ids = new Set<string>()
+  for (const s of spans) for (const c of s.codings) ids.add(c)
+  return ids
+}
+
+const toCodedItems = (spans: CodedSpan[]): CodedItem[] =>
+  spans.map((s) => ({ start: s.start, end: s.end, codings: s.codings }))
+
+const buildReviewResultSchema = (validCodes: string[]) =>
+  z.object({
+    results: z.array(
+      z.object({
+        id: z.number().int().min(1),
+        code: validCodes.length > 0 ? z.enum(validCodes as [string, ...string[]]) : z.string(),
+        review: z.string(),
+      })
+    ),
+  })
+
+export const runReviewStep = async (
+  allSpans: FindResult[],
+  sentences: string[],
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Promise<{ reviews: Map<string, string>; error?: string }> => {
+  const grouped = groupBySpan(allSpans)
+  const multiCoded = grouped.filter(isMultiCoded)
+
+  if (multiCoded.length === 0) return { reviews: new Map() }
+
+  const codeIds = collectCodeIds(multiCoded)
+  const items = toCodedItems(multiCoded)
+  const { text: presented, mapping } = formatCodedSection(
+    sentences,
+    items,
+    REVIEW_CONTEXT_SENTENCES
+  )
+
+  const messages = buildReviewMessages(
+    presented,
+    codeIds,
+    sources,
+    leadingCtx,
+    trailingCtx,
+    resolve
+  )
+
+  const validCodes = [...codeIds]
+  const schema = buildReviewResultSchema(validCodes)
+  const result = await callAndParse(REVIEW_ENDPOINT, messages, schema)
+
+  if (!result.ok) {
+    console.debug(`[deep-analysis] review failed: ${result.error}`)
+    return { reviews: new Map(), error: result.error }
+  }
+
+  const reviews = new Map<string, string>()
+  for (const r of result.data.results) {
+    const m = mapping.find((entry) => entry.index === r.id)
+    if (!m) continue
+    const key = spanKey(m.start, m.end, r.code)
+    reviews.set(key, r.review)
+  }
+
+  if (reviews.size > 0) {
+    console.debug(`[deep-analysis] review: flagged ${reviews.size} span(s)`)
+  }
+
+  return { reviews }
 }
 
 export const runDimensionPipeline = async (

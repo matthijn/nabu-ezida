@@ -22,7 +22,7 @@ import {
 } from "./format"
 import { getStoredAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { type ContentResolver, partitionSources, buildCallList } from "./messages"
-import { runDimensionPipeline, mergeDimensionResults } from "./pipeline"
+import { runDimensionPipeline, mergeDimensionResults, runReviewStep } from "./pipeline"
 
 interface PostActionCtx {
   mapped: MappedResult[]
@@ -198,7 +198,16 @@ registerTool(
       if (allSpans.length === 0 && calls.length > 0 && findErrors.length > 0)
         return { status: "error", output: findErrors.join("; "), mutations: [] }
 
-      const analysisResults = toAnalysisResults(allSpans, reasons)
+      const { reviews } = await runReviewStep(
+        allSpans,
+        sentences,
+        scoped,
+        leadingCtx,
+        trailingCtx,
+        resolve
+      )
+
+      const analysisResults = toAnalysisResults(allSpans, reasons, reviews)
       const mapped = mapResults(sentences, analysisResults)
 
       return postActions[post_action]({

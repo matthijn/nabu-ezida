@@ -69,7 +69,7 @@ const buildRefineCallback = (
     dispatchTask({
       approaches: ["qual-coding/codebook/review"],
       context: buildCodeReviewContext(code.title, code.content, flagged),
-      userMessage: `${annotation.id} is flagged on ${code.id} — is this a pattern worth refining, or a one-off?`,
+      userMessage: `${annotation.id} is flagged on ${code.id} — is this overlap a codebook definition issue, or are both codes capturing something distinct here?`,
     })
   }
 }
