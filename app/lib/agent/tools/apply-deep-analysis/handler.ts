@@ -1,5 +1,5 @@
 import type { z } from "zod"
-import type { HandlerResult } from "../../types"
+import type { HandlerResult, Operation } from "../../types"
 import { ApplyDeepAnalysisArgs, applyDeepAnalysisTool } from "./def"
 import { registerTool, tool } from "../../executors/tool"
 import { callLlm, extractText, toResponseFormat } from "../../client"
@@ -30,20 +30,18 @@ import {
   buildCallList,
   buildFindCall,
   buildReasonMessages,
-  buildReviewMessages,
   buildFindResultSchema,
   extractSourceIds,
   ReasonResultSchema,
-  ReviewResultSchema,
 } from "./messages"
-import { dropOutlier, promoteSpans, type FindResult, type PromotedSpan } from "./consensus"
+import { consensus, type FindResult, type ConsensusSpan } from "./consensus"
 import { formatCodedSection, type CodedItem } from "./present"
 
 const FIND_ENDPOINT = "/deep-analysis-find"
 const REASON_ENDPOINT = "/deep-analysis-reason"
-const REVIEW_ENDPOINT = "/deep-analysis-review"
-const FIND_RUNS = 5
-const VOTE_POOL = 4
+// Byzantine general guarding 3f +1
+const FIND_RUNS = 4
+const FIND_THRESHOLD = 3
 
 const tryParseJson = (text: string): unknown | undefined => {
   try {
@@ -80,29 +78,21 @@ const callAndParse = async <T>(
 }
 
 const toAnalysisResults = (
-  spans: PromotedSpan[],
-  reasons: Map<string, string>,
-  reviews: Map<string, string>
+  spans: ConsensusSpan[],
+  reasons: Map<string, string>
 ): AnalysisResult[] =>
-  spans.map((s) => {
-    const key = `${s.start}-${s.end}-${s.analysis_source_id}`
-    const result: AnalysisResult = {
-      start: s.start,
-      end: s.end,
-      analysis_source_id: s.analysis_source_id,
-      reason: reasons.get(key) ?? "",
-    }
-    const review = reviews.get(key)
-    if (review) result.review = review
-    return result
-  })
+  spans.map((s) => ({
+    start: s.start,
+    end: s.end,
+    analysis_source_id: s.analysis_source_id,
+    reason: reasons.get(spanKey(s.start, s.end, s.analysis_source_id)) ?? "",
+  }))
 
 const spanKey = (start: number, end: number, code: string): string => `${start}-${end}-${code}`
 
 interface DimensionResult {
-  spans: PromotedSpan[]
+  spans: ConsensusSpan[]
   reasons: Map<string, string>
-  reviews: Map<string, string>
   errors: string[]
 }
 
@@ -111,12 +101,10 @@ const runDimensionPipeline = async (
   rawTarget: string,
   leadingCtx: string,
   trailingCtx: string,
-  resolve: ContentResolver,
-  isCodeAction: boolean
+  resolve: ContentResolver
 ): Promise<DimensionResult> => {
   const errors: string[] = []
   const reasons = new Map<string, string>()
-  const reviews = new Map<string, string>()
 
   const { messages: findMessages, sentences } = buildFindCall(
     rawTarget,
@@ -143,17 +131,15 @@ const runDimensionPipeline = async (
     () => {
       /* no-op: processPool requires onResult */
     },
-    { concurrency: 5, warmup: 1 }
+    { concurrency: 3, warmup: 1 }
   )
 
-  if (findRuns.length < FIND_RUNS) return { spans: [], reasons, reviews, errors }
+  if (findRuns.length < FIND_RUNS) return { spans: [], reasons, errors }
 
-  const votingPool = dropOutlier(findRuns)
-  const consensus = promoteSpans(votingPool, sentences.length, VOTE_POOL)
-  const combinedSpans = [...consensus.certain, ...consensus.uncertain]
-  if (combinedSpans.length === 0) return { spans: [], reasons, reviews, errors }
+  const spans = consensus(findRuns, sentences.length, FIND_THRESHOLD)
+  if (spans.length === 0) return { spans: [], reasons, errors }
 
-  const reasonItems: CodedItem[] = combinedSpans.map((s) => ({
+  const reasonItems: CodedItem[] = spans.map((s) => ({
     start: s.start,
     end: s.end,
     analysis_source_id: s.analysis_source_id,
@@ -175,50 +161,25 @@ const runDimensionPipeline = async (
     }
   }
 
-  const uncertainInDim = combinedSpans.filter((s) => s.tier === "uncertain")
-  if (isCodeAction && uncertainInDim.length > 0) {
-    const reviewItems: CodedItem[] = uncertainInDim.map((s) => ({
-      start: s.start,
-      end: s.end,
-      analysis_source_id: s.analysis_source_id,
-      reason: reasons.get(spanKey(s.start, s.end, s.analysis_source_id)),
-    }))
-    const { text: reviewPresented, mapping: reviewMapping } = formatCodedSection(
-      sentences,
-      reviewItems
-    )
-
-    const reviewResult = await callAndParse(
-      REVIEW_ENDPOINT,
-      buildReviewMessages(reviewPresented, sources, leadingCtx, trailingCtx, resolve),
-      ReviewResultSchema
-    )
-    if (reviewResult.ok) {
-      for (const r of reviewResult.data.results) {
-        const m = reviewMapping.find((mm) => mm.index === r.item)
-        if (m) reviews.set(spanKey(m.start, m.end, m.analysis_source_id), r.review)
-      }
-    }
-  }
-
-  return { spans: combinedSpans, reasons, reviews, errors }
+  return { spans, reasons, errors }
 }
 
 const mergeDimensionResults = (results: DimensionResult[]) => {
-  const allSpans: PromotedSpan[] = []
+  const allSpans: ConsensusSpan[] = []
   const reasons = new Map<string, string>()
-  const reviews = new Map<string, string>()
   const errors: string[] = []
 
   for (const dr of results) {
     allSpans.push(...dr.spans)
     for (const [k, v] of dr.reasons) reasons.set(k, v)
-    for (const [k, v] of dr.reviews) reviews.set(k, v)
     errors.push(...dr.errors)
   }
 
-  return { allSpans, reasons, reviews, errors }
+  return { allSpans, reasons, errors }
 }
+
+const skipValidation = (mutations: Operation[]): Operation[] =>
+  mutations.map((m) => (m.type === "write_file" ? { ...m, skipBlockValidation: true } : m))
 
 const applyAnnotations = async (path: string, ops: unknown[]): Promise<HandlerResult<string>> => {
   const handler = getToolHandlers()["patch_annotations"]
@@ -231,7 +192,11 @@ const applyAnnotations = async (path: string, ops: unknown[]): Promise<HandlerRe
   if (result.status === "error")
     return { status: "error", output: String(result.output), mutations: [] }
 
-  return { status: result.status, output: String(result.output), mutations: result.mutations }
+  return {
+    status: result.status,
+    output: String(result.output),
+    mutations: skipValidation(result.mutations),
+  }
 }
 
 registerTool(
@@ -291,25 +256,19 @@ registerTool(
       const scoped = partitionSources(source_files)
       const calls = buildCallList(scoped)
       const resolve: ContentResolver = getFileView
-      const isCodeAction = post_action === "annotate_as_code"
 
       const dimensionResults = await Promise.all(
         calls.map((sources) =>
-          runDimensionPipeline(sources, rawSection, leadingCtx, trailingCtx, resolve, isCodeAction)
+          runDimensionPipeline(sources, rawSection, leadingCtx, trailingCtx, resolve)
         )
       )
 
-      const {
-        allSpans,
-        reasons,
-        reviews,
-        errors: findErrors,
-      } = mergeDimensionResults(dimensionResults)
+      const { allSpans, reasons, errors: findErrors } = mergeDimensionResults(dimensionResults)
 
       if (allSpans.length === 0 && calls.length > 0 && findErrors.length > 0)
         return { status: "error", output: findErrors.join("; "), mutations: [] }
 
-      const analysisResults = toAnalysisResults(allSpans, reasons, reviews)
+      const analysisResults = toAnalysisResults(allSpans, reasons)
       const mapped = mapResults(sentences, analysisResults)
 
       if (post_action === "return")
@@ -330,9 +289,10 @@ registerTool(
 
       const addOps = toAnnotationOps(mapped, post_action)
       const newCodes = new Set(mapped.map((r) => r.analysis_source_id))
-      const removeOps = isCodeAction
-        ? buildRemovalOps(getStoredAnnotations(content), content, newCodes, start_line, end_line)
-        : []
+      const removeOps =
+        post_action === "annotate_as_code"
+          ? buildRemovalOps(getStoredAnnotations(content), content, newCodes, start_line, end_line)
+          : []
       const ops = [...removeOps, ...addOps]
       const annotationResult = await applyAnnotations(path, ops)
       if (annotationResult.status === "error") return annotationResult
