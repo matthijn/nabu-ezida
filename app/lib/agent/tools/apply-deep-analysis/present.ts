@@ -1,7 +1,7 @@
 export interface CodedItem {
   start: number
   end: number
-  analysis_source_id: string
+  codings: string[]
   reason?: string
 }
 
@@ -9,7 +9,7 @@ export interface ItemMapping {
   index: number
   start: number
   end: number
-  analysis_source_id: string
+  codings: string[]
 }
 
 export interface PresentedSection {
@@ -17,8 +17,15 @@ export interface PresentedSection {
   mapping: ItemMapping[]
 }
 
-const formatItemLine = (index: number, code: string, sentence: string, reason?: string): string => {
-  const base = `${index}: [${code}] ${sentence}`
+const formatCodings = (codings: string[]): string => codings.join(", ")
+
+const formatItemLine = (
+  index: number,
+  codings: string[],
+  sentence: string,
+  reason?: string
+): string => {
+  const base = `${index}: [${formatCodings(codings)}] ${sentence}`
   return reason !== undefined ? `${base}\n   Reason: ${reason}` : base
 }
 
@@ -33,7 +40,7 @@ export const formatCodedSection = (sentences: string[], items: CodedItem[]): Pre
       index: idx,
       start: item.start,
       end: item.end,
-      analysis_source_id: item.analysis_source_id,
+      codings: item.codings,
     })
     for (let s = item.start; s <= item.end; s++) {
       if (!itemBySentence.has(s)) itemBySentence.set(s, [])
@@ -57,7 +64,7 @@ export const formatCodedSection = (sentences: string[], items: CodedItem[]): Pre
       emittedItems.add(itemIndex)
 
       const spanText = sentences.slice(item.start - 1, item.end).join(" ")
-      lines.push(formatItemLine(itemIndex, item.analysis_source_id, spanText, item.reason))
+      lines.push(formatItemLine(itemIndex, item.codings, spanText, item.reason))
     }
   }
 

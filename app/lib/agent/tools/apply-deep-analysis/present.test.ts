@@ -18,10 +18,10 @@ describe("formatCodedSection", () => {
     expectedMappingCount: number
   }[] = [
     {
-      name: "reason step: code only, no reason",
+      name: "single code per item",
       items: [
-        { start: 2, end: 2, analysis_source_id: "rhetorical-authority" },
-        { start: 4, end: 5, analysis_source_id: "crisis-framing" },
+        { start: 2, end: 2, codings: ["rhetorical-authority"] },
+        { start: 4, end: 5, codings: ["crisis-framing"] },
       ],
       expectedLines: [
         "The prime minister opened the press conference.",
@@ -33,12 +33,24 @@ describe("formatCodedSection", () => {
       expectedMappingCount: 2,
     },
     {
-      name: "review step: code + reason",
+      name: "multiple codes per item",
+      items: [{ start: 2, end: 3, codings: ["crisis-framing", "rhetorical-authority"] }],
+      expectedLines: [
+        "The prime minister opened the press conference.",
+        "1: [crisis-framing, rhetorical-authority] He stated that measures would be extended. This was met with mixed reactions.",
+        "De Jonge presented the figures.",
+        "The system was under pressure.",
+        "The prime minister concluded by urging patience.",
+      ],
+      expectedMappingCount: 1,
+    },
+    {
+      name: "code + reason",
       items: [
         {
           start: 2,
           end: 2,
-          analysis_source_id: "crisis-framing",
+          codings: ["crisis-framing"],
           reason: "Satisfies the 'worsening metrics' criterion.",
         },
       ],
@@ -61,7 +73,7 @@ describe("formatCodedSection", () => {
     },
     {
       name: "all sentences coded",
-      items: [{ start: 1, end: 6, analysis_source_id: "full-span" }],
+      items: [{ start: 1, end: 6, codings: ["full-span"] }],
       expectedLines: [
         "1: [full-span] The prime minister opened the press conference. He stated that measures would be extended. This was met with mixed reactions. De Jonge presented the figures. The system was under pressure. The prime minister concluded by urging patience.",
       ],
@@ -70,8 +82,8 @@ describe("formatCodedSection", () => {
     {
       name: "mapping preserves original span info",
       items: [
-        { start: 3, end: 5, analysis_source_id: "X" },
-        { start: 1, end: 1, analysis_source_id: "Y" },
+        { start: 3, end: 5, codings: ["X"] },
+        { start: 1, end: 1, codings: ["Y"] },
       ],
       expectedLines: [
         "2: [Y] The prime minister opened the press conference.",
@@ -93,11 +105,11 @@ describe("formatCodedSection", () => {
 
   it("mapping links index to original span", () => {
     const items: CodedItem[] = [
-      { start: 2, end: 3, analysis_source_id: "A" },
-      { start: 5, end: 5, analysis_source_id: "B" },
+      { start: 2, end: 3, codings: ["A"] },
+      { start: 5, end: 5, codings: ["B"] },
     ]
     const { mapping } = formatCodedSection(sentences, items)
-    expect(mapping[0]).toEqual({ index: 1, start: 2, end: 3, analysis_source_id: "A" })
-    expect(mapping[1]).toEqual({ index: 2, start: 5, end: 5, analysis_source_id: "B" })
+    expect(mapping[0]).toEqual({ index: 1, start: 2, end: 3, codings: ["A"] })
+    expect(mapping[1]).toEqual({ index: 2, start: 5, end: 5, codings: ["B"] })
   })
 })

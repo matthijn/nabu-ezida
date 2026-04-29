@@ -2,12 +2,7 @@ export interface FindResult {
   start: number
   end: number
   analysis_source_id: string
-}
-
-export interface ConsensusSpan {
-  start: number
-  end: number
-  analysis_source_id: string
+  reason: string
 }
 
 export const tallyVotes = (
@@ -31,10 +26,10 @@ export const tallyVotes = (
   return tally
 }
 
-export const groupConsecutive = (sentences: number[], code: string): ConsensusSpan[] => {
+export const groupConsecutive = (sentences: number[], code: string): FindResult[] => {
   if (sentences.length === 0) return []
   const sorted = [...sentences].sort((a, b) => a - b)
-  const spans: ConsensusSpan[] = []
+  const spans: FindResult[] = []
   let start = sorted[0]
   let end = sorted[0]
 
@@ -42,27 +37,51 @@ export const groupConsecutive = (sentences: number[], code: string): ConsensusSp
     if (sorted[i] === end + 1) {
       end = sorted[i]
     } else {
-      spans.push({ start, end, analysis_source_id: code })
+      spans.push({ start, end, analysis_source_id: code, reason: "" })
       start = sorted[i]
       end = sorted[i]
     }
   }
-  spans.push({ start, end, analysis_source_id: code })
+  spans.push({ start, end, analysis_source_id: code, reason: "" })
   return spans
+}
+
+export const filterByTally = (
+  tally: Map<string, Map<number, number>>,
+  threshold: number
+): FindResult[] => {
+  const spans: FindResult[] = []
+  for (const [code, votesMap] of tally) {
+    const matched = [...votesMap.entries()].filter(([, v]) => v >= threshold).map(([s]) => s)
+    spans.push(...groupConsecutive(matched, code))
+  }
+  return spans
+}
+
+export interface CodedSpan {
+  start: number
+  end: number
+  codings: string[]
+}
+
+export const groupBySpan = (spans: FindResult[]): CodedSpan[] => {
+  const map = new Map<string, CodedSpan>()
+  for (const s of spans) {
+    const key = `${s.start}-${s.end}`
+    const existing = map.get(key)
+    if (existing) {
+      if (!existing.codings.includes(s.analysis_source_id)) {
+        existing.codings.push(s.analysis_source_id)
+      }
+    } else {
+      map.set(key, { start: s.start, end: s.end, codings: [s.analysis_source_id] })
+    }
+  }
+  return [...map.values()]
 }
 
 export const consensus = (
   runs: FindResult[][],
   sentenceCount: number,
   threshold: number
-): ConsensusSpan[] => {
-  const tally = tallyVotes(runs, sentenceCount)
-  const spans: ConsensusSpan[] = []
-
-  for (const [code, votesMap] of tally) {
-    const matched = [...votesMap.entries()].filter(([, v]) => v >= threshold).map(([s]) => s)
-    spans.push(...groupConsecutive(matched, code))
-  }
-
-  return spans
-}
+): FindResult[] => filterByTally(tallyVotes(runs, sentenceCount), threshold)

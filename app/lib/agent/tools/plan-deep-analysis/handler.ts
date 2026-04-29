@@ -117,11 +117,8 @@ registerTool(
 
       const matches = collectSections(targetEntries)
       if (matches.length > 0) {
-        const instruction = buildPlanInstruction(
-          matches,
-          source_files.map((f) => f.path),
-          post_action
-        )
+        const sourceEntries = source_files.map((f) => ({ path: f.path, scope: f.group }))
+        const instruction = buildPlanInstruction(matches, sourceEntries, post_action)
         pushBlocks([toSystemBlock(instruction)])
       }
 

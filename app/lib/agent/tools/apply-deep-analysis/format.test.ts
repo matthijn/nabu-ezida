@@ -173,31 +173,6 @@ describe("mapResults", () => {
       results: [],
       expected: [],
     },
-    {
-      name: "passes review through when present",
-      results: [
-        {
-          start: 1,
-          end: 1,
-          analysis_source_id: "code_1",
-          reason: "r1",
-          review: "check definition",
-        },
-      ],
-      expected: [
-        {
-          text: "First sentence.",
-          analysis_source_id: "code_1",
-          reason: "r1",
-          review: "check definition",
-        },
-      ],
-    },
-    {
-      name: "omits review when absent",
-      results: [{ start: 1, end: 1, analysis_source_id: "code_1", reason: "r1" }],
-      expected: [{ text: "First sentence.", analysis_source_id: "code_1", reason: "r1" }],
-    },
   ]
 
   cases.forEach(({ name, results, expected }) => {
@@ -229,40 +204,6 @@ describe("toAnnotationOps", () => {
         },
       ],
     },
-    {
-      name: "annotate_as_code includes review when present",
-      mapped: [
-        {
-          text: "Some text",
-          analysis_source_id: "code_abc",
-          reason: "fits",
-          review: "stretched definition",
-        },
-      ],
-      action: "annotate_as_code" as const,
-      expected: [
-        {
-          op: "add_annotation",
-          item: {
-            text: "Some text",
-            reason: "fits",
-            code: "code_abc",
-            review: "stretched definition",
-          },
-        },
-      ],
-    },
-    {
-      name: "annotate_as_code omits review when absent",
-      mapped: [{ text: "Some text", analysis_source_id: "code_abc", reason: "fits" }],
-      action: "annotate_as_code" as const,
-      expected: [
-        {
-          op: "add_annotation",
-          item: { text: "Some text", reason: "fits", code: "code_abc" },
-        },
-      ],
-    },
   ]
 
   cases.forEach(({ name, mapped, action, expected }) => {
@@ -288,27 +229,6 @@ describe("formatReturnOutput", () => {
       startLine: 1,
       endLine: 10,
       expected: '- [code_1] "Some text": because\n- [code_2] "Other text": also',
-    },
-    {
-      name: "includes review tag when present",
-      results: [
-        {
-          text: "Some text",
-          analysis_source_id: "code_1",
-          reason: "because",
-          review: "check this",
-        },
-      ],
-      startLine: 1,
-      endLine: 5,
-      expected: '- [code_1] "Some text": because [REVIEW: check this]',
-    },
-    {
-      name: "omits review tag when absent",
-      results: [{ text: "Some text", analysis_source_id: "code_1", reason: "because" }],
-      startLine: 1,
-      endLine: 5,
-      expected: '- [code_1] "Some text": because',
     },
   ]
 

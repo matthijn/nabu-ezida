@@ -29,6 +29,7 @@ export const buildFindResultSchema = (validIds: string[]) =>
         end: z.number().int().min(1),
         analysis_source_id:
           validIds.length > 0 ? z.enum(validIds as [string, ...string[]]) : z.string(),
+        reason: z.string(),
       })
     ),
   })
@@ -38,15 +39,6 @@ export const ReasonResultSchema = z.object({
     z.object({
       item: z.number().int().min(1),
       reason: z.string(),
-    })
-  ),
-})
-
-export const ReviewResultSchema = z.object({
-  results: z.array(
-    z.object({
-      item: z.number().int().min(1),
-      review: z.string(),
     })
   ),
 })
@@ -90,6 +82,18 @@ export const extractSourceIds = (
     const raw = resolve(path)
     return raw ? getCallouts(raw).map((c) => c.id) : []
   })
+
+export const buildSourceTitleMap = (
+  { framework, dimension }: ScopedSources,
+  resolve: ContentResolver
+): Map<string, string> => {
+  const map = new Map<string, string>()
+  for (const path of [...framework, ...dimension]) {
+    const raw = resolve(path)
+    if (raw) for (const c of getCallouts(raw)) map.set(c.id, c.title)
+  }
+  return map
+}
 
 export const buildSourceMessages = (
   { framework, dimension }: ScopedSources,
@@ -141,8 +145,6 @@ const FIND_CTA =
 
 const REASON_CTA = "Write a reason for each coded section. Return results as JSON."
 
-const REVIEW_CTA = "Write a review note for each flagged section. Return results as JSON."
-
 export const buildFindMessages = (
   numbered: string,
   sources: ScopedSources,
@@ -158,14 +160,6 @@ export const buildReasonMessages = (
   trailingCtx: string,
   resolve: ContentResolver
 ): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REASON_CTA)
-
-export const buildReviewMessages = (
-  presented: string,
-  sources: ScopedSources,
-  leadingCtx: string,
-  trailingCtx: string,
-  resolve: ContentResolver
-): Message[] => buildEnvelope(presented, sources, leadingCtx, trailingCtx, resolve, REVIEW_CTA)
 
 export interface FindCallResult {
   messages: Message[]

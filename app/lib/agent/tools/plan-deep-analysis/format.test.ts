@@ -106,37 +106,47 @@ describe("buildPlanInstruction", () => {
     { path: "a.md", label: "Intro", startLine: 1, endLine: 10 },
     { path: "b.md", label: "Methods", startLine: 5, endLine: 15 },
   ]
-  const sourcePaths = ["source1.md", "source2.md"]
+  const sources = [
+    { path: "source1.md", scope: "framework" },
+    { path: "source2.md", scope: "dimension" },
+  ]
+  const sourceArg =
+    '[{path: "source1.md", scope: "framework"}, {path: "source2.md", scope: "dimension"}]'
 
   const cases = [
     {
-      name: "includes post_action in match lines",
+      name: "numbered steps with explicit apply_deep_analysis calls",
       postAction: "annotate_as_code",
       containsLines: [
-        '- apply_deep_analysis: "Intro" in a.md [1-10] post_action=annotate_as_code',
-        '- apply_deep_analysis: "Methods" in b.md [5-15] post_action=annotate_as_code',
+        'Step 1: "Intro"',
+        `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="annotate_as_code")`,
+        'Step 2: "Methods"',
+        `apply_deep_analysis(path="b.md", start_line=5, end_line=15, source_files=${sourceArg}, post_action="annotate_as_code")`,
       ],
     },
     {
       name: "return post_action",
       postAction: "return",
-      containsLines: ['- apply_deep_analysis: "Intro" in a.md [1-10] post_action=return'],
+      containsLines: [
+        `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="return")`,
+      ],
     },
     {
       name: "annotate_as_comment post_action",
       postAction: "annotate_as_comment",
       containsLines: [
-        '- apply_deep_analysis: "Intro" in a.md [1-10] post_action=annotate_as_comment',
+        `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="annotate_as_comment")`,
       ],
     },
   ]
 
   cases.forEach(({ name, postAction, containsLines }) => {
     it(name, () => {
-      const result = buildPlanInstruction(matches, sourcePaths, postAction)
+      const result = buildPlanInstruction(matches, sources, postAction)
       containsLines.forEach((line) => expect(result).toContain(line))
-      expect(result).toContain("- source1.md")
-      expect(result).toContain("- source2.md")
+      expect(result).toContain("- source1.md (framework)")
+      expect(result).toContain("- source2.md (dimension)")
+      expect(result).toContain("## Steps")
     })
   })
 })

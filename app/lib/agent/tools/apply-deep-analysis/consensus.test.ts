@@ -1,45 +1,16 @@
 import { describe, it, expect } from "vitest"
-import {
-  tallyVotes,
-  classifyTier,
-  expandAnchors,
-  groupConsecutiveSpans,
-  promoteSpans,
-  median,
-  selectOutlier,
-  dropOutlier,
-  type FindResult,
-  type Tier,
-} from "./consensus"
+import { tallyVotes, groupConsecutive, groupBySpan, consensus, type FindResult } from "./consensus"
 
-describe("classifyTier", () => {
-  const cases = [
-    { name: "4/4 → anchor", votes: 4, n: 4, expected: "anchor" },
-    { name: "3/4 → anchor", votes: 3, n: 4, expected: "anchor" },
-    { name: "2/4 → promotable", votes: 2, n: 4, expected: "promotable" },
-    { name: "1/4 → noise", votes: 1, n: 4, expected: "noise" },
-    { name: "0/4 → noise", votes: 0, n: 4, expected: "noise" },
-    {
-      name: "2/3 → anchor (ceil 0.75*3=3? no, ceil(2.25)=3 → promotable)",
-      votes: 2,
-      n: 3,
-      expected: "promotable",
-    },
-    { name: "3/3 → anchor", votes: 3, n: 3, expected: "anchor" },
-  ]
-
-  cases.forEach(({ name, votes, n, expected }) => {
-    it(name, () => expect(classifyTier(votes, n)).toBe(expected))
-  })
+const r = (start: number, end: number, analysis_source_id: string): FindResult => ({
+  start,
+  end,
+  analysis_source_id,
+  reason: "",
 })
 
 describe("tallyVotes", () => {
   it("counts per (sentence, code) pair across runs", () => {
-    const runs: FindResult[][] = [
-      [{ start: 1, end: 3, analysis_source_id: "X" }],
-      [{ start: 2, end: 4, analysis_source_id: "X" }],
-      [{ start: 1, end: 2, analysis_source_id: "X" }],
-    ]
+    const runs: FindResult[][] = [[r(1, 3, "X")], [r(2, 4, "X")], [r(1, 2, "X")]]
     const tally = tallyVotes(runs, 5)
     const x = tally.get("X") as Map<number, number>
     expect(x.get(1)).toBe(2)
@@ -50,24 +21,14 @@ describe("tallyVotes", () => {
   })
 
   it("handles multiple codes", () => {
-    const runs: FindResult[][] = [
-      [
-        { start: 1, end: 1, analysis_source_id: "A" },
-        { start: 2, end: 2, analysis_source_id: "B" },
-      ],
-    ]
+    const runs: FindResult[][] = [[r(1, 1, "A"), r(2, 2, "B")]]
     const tally = tallyVotes(runs, 3)
     expect((tally.get("A") as Map<number, number>).get(1)).toBe(1)
     expect((tally.get("B") as Map<number, number>).get(2)).toBe(1)
   })
 
   it("deduplicates overlapping spans within a single run", () => {
-    const runs: FindResult[][] = [
-      [
-        { start: 1, end: 4, analysis_source_id: "X" },
-        { start: 3, end: 6, analysis_source_id: "X" },
-      ],
-    ]
+    const runs: FindResult[][] = [[r(1, 4, "X"), r(3, 6, "X")]]
     const tally = tallyVotes(runs, 6)
     const x = tally.get("X") as Map<number, number>
     for (let s = 1; s <= 6; s++) {
@@ -76,13 +37,7 @@ describe("tallyVotes", () => {
   })
 
   it("deduplicates same code but not across codes", () => {
-    const runs: FindResult[][] = [
-      [
-        { start: 1, end: 3, analysis_source_id: "A" },
-        { start: 2, end: 4, analysis_source_id: "A" },
-        { start: 2, end: 4, analysis_source_id: "B" },
-      ],
-    ]
+    const runs: FindResult[][] = [[r(1, 3, "A"), r(2, 4, "A"), r(2, 4, "B")]]
     const tally = tallyVotes(runs, 4)
     const a = tally.get("A") as Map<number, number>
     const b = tally.get("B") as Map<number, number>
@@ -93,267 +48,170 @@ describe("tallyVotes", () => {
   })
 
   it("clamps to sentenceCount", () => {
-    const runs: FindResult[][] = [[{ start: 1, end: 10, analysis_source_id: "X" }]]
+    const runs: FindResult[][] = [[r(1, 10, "X")]]
     const tally = tallyVotes(runs, 3)
     expect((tally.get("X") as Map<number, number>).has(4)).toBe(false)
   })
 })
 
-describe("expandAnchors", () => {
-  it("promotes adjacent promotable from anchor", () => {
-    const cls = new Map<number, "anchor" | "promotable" | "noise">([
-      [1, "promotable"],
-      [2, "anchor"],
-      [3, "promotable"],
-    ])
-    const result = expandAnchors(cls, 3)
-    expect(result.get(1)).toBe("certain")
-    expect(result.get(2)).toBe("certain")
-    expect(result.get(3)).toBe("certain")
-  })
-
-  it("stops at noise gap", () => {
-    const cls = new Map<number, "anchor" | "promotable" | "noise">([
-      [1, "anchor"],
-      [2, "noise"],
-      [3, "promotable"],
-    ])
-    const result = expandAnchors(cls, 3)
-    expect(result.get(1)).toBe("certain")
-    expect(result.has(2)).toBe(false)
-    expect(result.get(3)).toBe("uncertain")
-  })
-
-  it("unreached promotable becomes uncertain", () => {
-    const cls = new Map<number, "anchor" | "promotable" | "noise">([
-      [1, "promotable"],
-      [3, "anchor"],
-    ])
-    const result = expandAnchors(cls, 3)
-    expect(result.get(1)).toBe("uncertain")
-    expect(result.get(3)).toBe("certain")
-  })
-})
-
-describe("groupConsecutiveSpans", () => {
-  it("groups consecutive sentences into spans", () => {
-    const tiers = new Map<number, Tier>([
-      [1, "certain"],
-      [2, "certain"],
-      [4, "certain"],
-    ])
-    const spans = groupConsecutiveSpans(tiers, "X", "certain")
-    expect(spans).toEqual([
-      { start: 1, end: 2, analysis_source_id: "X", tier: "certain" },
-      { start: 4, end: 4, analysis_source_id: "X", tier: "certain" },
-    ])
-  })
-
-  it("returns empty for no matching tier", () => {
-    const tiers = new Map<number, Tier>([[1, "certain"]])
-    expect(groupConsecutiveSpans(tiers, "X", "uncertain")).toEqual([])
-  })
-})
-
-describe("promoteSpans", () => {
-  const makeRuns = (votesPerSentence: number[], n: number, code = "X"): FindResult[][] => {
-    const runs: FindResult[][] = Array.from({ length: n }, () => [])
-    for (let s = 0; s < votesPerSentence.length; s++) {
-      const v = votesPerSentence[s]
-      for (let r = 0; r < v; r++) {
-        runs[r].push({ start: s + 1, end: s + 1, analysis_source_id: code })
-      }
-    }
-    return runs
-  }
-
+describe("groupConsecutive", () => {
   const cases: {
     name: string
-    votes: number[]
-    n: number
-    expectedCertain: [number, number][]
-    expectedUncertain: [number, number][]
+    sentences: number[]
+    code: string
+    expected: FindResult[]
   }[] = [
     {
-      name: "a:3,b:2,c:2,d:2 → all certain",
-      votes: [3, 2, 2, 2],
-      n: 4,
-      expectedCertain: [[1, 4]],
-      expectedUncertain: [],
+      name: "empty input → empty result",
+      sentences: [],
+      code: "X",
+      expected: [],
     },
     {
-      name: "a:3,b:2,c:1,d:2,e:3 → (a,b) certain, (d,e) certain",
-      votes: [3, 2, 1, 2, 3],
-      n: 4,
-      expectedCertain: [
-        [1, 2],
-        [4, 5],
-      ],
-      expectedUncertain: [],
+      name: "single sentence → single span",
+      sentences: [3],
+      code: "X",
+      expected: [r(3, 3, "X")],
     },
     {
-      name: "a:3,b:2,c:2,d:1,e:2 → (a,b,c) certain, (e) uncertain",
-      votes: [3, 2, 2, 1, 2],
-      n: 4,
-      expectedCertain: [[1, 3]],
-      expectedUncertain: [[5, 5]],
+      name: "consecutive sentences → one span",
+      sentences: [1, 2, 3],
+      code: "A",
+      expected: [r(1, 3, "A")],
     },
     {
-      name: "a:3,b:2,c:0,d:2 → (a,b) certain, (d) uncertain",
-      votes: [3, 2, 0, 2],
-      n: 4,
-      expectedCertain: [[1, 2]],
-      expectedUncertain: [[4, 4]],
+      name: "gap produces two spans",
+      sentences: [1, 2, 5, 6],
+      code: "B",
+      expected: [r(1, 2, "B"), r(5, 6, "B")],
     },
     {
-      name: "a:2,b:2,c:2 → all uncertain",
-      votes: [2, 2, 2],
-      n: 4,
-      expectedCertain: [],
-      expectedUncertain: [[1, 3]],
+      name: "unsorted input is sorted before grouping",
+      sentences: [5, 3, 4, 1],
+      code: "C",
+      expected: [r(1, 1, "C"), r(3, 5, "C")],
     },
     {
-      name: "a:3,b:3,c:2,d:2 → all certain",
-      votes: [3, 3, 2, 2],
-      n: 4,
-      expectedCertain: [[1, 4]],
-      expectedUncertain: [],
-    },
-    {
-      name: "a:4,b:0,c:2 → (a) certain, (c) uncertain",
-      votes: [4, 0, 2],
-      n: 4,
-      expectedCertain: [[1, 1]],
-      expectedUncertain: [[3, 3]],
+      name: "multiple gaps produce multiple spans",
+      sentences: [1, 3, 5],
+      code: "D",
+      expected: [r(1, 1, "D"), r(3, 3, "D"), r(5, 5, "D")],
     },
   ]
 
-  cases.forEach(({ name, votes, n, expectedCertain, expectedUncertain }) => {
-    it(name, () => {
-      const runs = makeRuns(votes, n)
-      const result = promoteSpans(runs, votes.length, n)
-      const toRanges = (spans: { start: number; end: number }[]): [number, number][] =>
-        spans.map((s) => [s.start, s.end])
-      expect(toRanges(result.certain)).toEqual(expectedCertain)
-      expect(toRanges(result.uncertain)).toEqual(expectedUncertain)
-    })
-  })
-
-  it("handles zero runs", () => {
-    const result = promoteSpans([], 5, 4)
-    expect(result.certain).toEqual([])
-    expect(result.uncertain).toEqual([])
-  })
-
-  it("handles multiple codes", () => {
-    const runs: FindResult[][] = [
-      [
-        { start: 1, end: 2, analysis_source_id: "A" },
-        { start: 1, end: 1, analysis_source_id: "B" },
-      ],
-      [
-        { start: 1, end: 2, analysis_source_id: "A" },
-        { start: 1, end: 1, analysis_source_id: "B" },
-      ],
-      [
-        { start: 1, end: 2, analysis_source_id: "A" },
-        { start: 1, end: 1, analysis_source_id: "B" },
-      ],
-      [{ start: 1, end: 1, analysis_source_id: "A" }],
-    ]
-    const result = promoteSpans(runs, 2, 4)
-    const aCertain = result.certain.filter((s) => s.analysis_source_id === "A")
-    const bCertain = result.certain.filter((s) => s.analysis_source_id === "B")
-    expect(aCertain).toEqual([{ start: 1, end: 2, analysis_source_id: "A", tier: "certain" }])
-    expect(bCertain).toEqual([{ start: 1, end: 1, analysis_source_id: "B", tier: "certain" }])
+  cases.forEach(({ name, sentences, code, expected }) => {
+    it(name, () => expect(groupConsecutive(sentences, code)).toEqual(expected))
   })
 })
 
-describe("median", () => {
-  const cases = [
-    { name: "odd count", values: [3, 1, 2], expected: 2 },
-    { name: "even count", values: [1, 3, 2, 4], expected: 2.5 },
-    { name: "single", values: [5], expected: 5 },
-    { name: "two equal", values: [3, 3], expected: 3 },
-    { name: "already sorted", values: [1, 2, 3, 4, 5], expected: 3 },
-  ]
-
-  cases.forEach(({ name, values, expected }) => {
-    it(name, () => expect(median(values)).toBe(expected))
-  })
-})
-
-describe("selectOutlier", () => {
-  const s = (start: number, end: number, code = "X"): FindResult => ({
-    start,
-    end,
-    analysis_source_id: code,
-  })
-
+describe("consensus", () => {
   const cases: {
     name: string
     runs: FindResult[][]
-    expected: number
+    sentenceCount: number
+    threshold: number
+    expected: FindResult[]
   }[] = [
     {
-      name: "drops the run with most distant span count",
-      runs: [
-        [s(1, 2), s(3, 4)],
-        [s(1, 2), s(3, 4)],
-        [s(1, 2), s(3, 4)],
-        [s(1, 2), s(3, 4)],
-        [s(1, 2), s(3, 4), s(5, 6), s(7, 8), s(9, 10)],
-      ],
-      expected: 4,
+      name: "all runs agree → all sentences pass",
+      runs: [[r(1, 3, "X")], [r(1, 3, "X")], [r(1, 3, "X")]],
+      sentenceCount: 3,
+      threshold: 3,
+      expected: [r(1, 3, "X")],
     },
     {
-      name: "drops low outlier",
-      runs: [[s(1, 3)], [s(1, 3), s(4, 5)], [s(1, 3), s(4, 5)], [s(1, 3), s(4, 5)], []],
-      expected: 4,
+      name: "below threshold → no spans",
+      runs: [[r(1, 2, "X")], [], []],
+      sentenceCount: 2,
+      threshold: 2,
+      expected: [],
     },
     {
-      name: "tie-breaks by orphan count — run 4 has 2 orphans vs 1",
-      runs: [
-        [s(1, 2), s(3, 4), s(5, 6)],
-        [s(1, 2), s(3, 4), s(5, 6)],
-        [s(1, 2), s(3, 4), s(5, 6)],
-        [s(1, 2), s(3, 4), s(99, 100)],
-        [s(1, 2), s(50, 60), s(70, 80)],
-      ],
-      expected: 4,
+      name: "partial overlap filters to threshold-passing sentences",
+      runs: [[r(1, 3, "X")], [r(2, 4, "X")], [r(2, 3, "X")]],
+      sentenceCount: 5,
+      threshold: 3,
+      expected: [r(2, 3, "X")],
     },
     {
-      name: "tie-break: more orphans loses",
+      name: "multiple codes tallied separately",
       runs: [
-        [s(1, 1), s(2, 2), s(3, 3)],
-        [s(1, 1), s(2, 2), s(3, 3)],
-        [s(1, 1), s(2, 2), s(3, 3)],
-        [s(1, 1), s(90, 90), s(91, 91)],
-        [s(1, 1), s(2, 2), s(80, 80)],
+        [r(1, 1, "A"), r(2, 2, "B")],
+        [r(1, 1, "A"), r(2, 2, "B")],
       ],
-      expected: 3,
+      sentenceCount: 3,
+      threshold: 2,
+      expected: [r(1, 1, "A"), r(2, 2, "B")],
+    },
+    {
+      name: "empty runs → empty result",
+      runs: [],
+      sentenceCount: 5,
+      threshold: 3,
+      expected: [],
+    },
+    {
+      name: "gap in consensus produces separate spans",
+      runs: [[r(1, 4, "X")], [r(1, 2, "X")], [r(1, 2, "X"), r(4, 4, "X")]],
+      sentenceCount: 4,
+      threshold: 3,
+      expected: [r(1, 2, "X")],
+    },
+    {
+      name: "threshold 1 passes everything",
+      runs: [[r(1, 5, "X")]],
+      sentenceCount: 5,
+      threshold: 1,
+      expected: [r(1, 5, "X")],
     },
   ]
 
-  cases.forEach(({ name, runs, expected }) => {
-    it(name, () => expect(selectOutlier(runs)).toBe(expected))
+  cases.forEach(({ name, runs, sentenceCount, threshold, expected }) => {
+    it(name, () => expect(consensus(runs, sentenceCount, threshold)).toEqual(expected))
   })
 })
 
-describe("dropOutlier", () => {
-  it("returns 4 runs from 5", () => {
-    const runs: FindResult[][] = [[], [], [], [], [{ start: 1, end: 10, analysis_source_id: "X" }]]
-    const result = dropOutlier(runs)
-    expect(result).toHaveLength(4)
-    expect(result.every((r) => r.length === 0)).toBe(true)
-  })
+describe("groupBySpan", () => {
+  const cases = [
+    {
+      name: "empty input → empty result",
+      spans: [],
+      expected: [],
+    },
+    {
+      name: "single span stays as-is",
+      spans: [r(1, 3, "X")],
+      expected: [{ start: 1, end: 3, codings: ["X"] }],
+    },
+    {
+      name: "same bounds different codes → merged",
+      spans: [r(1, 3, "A"), r(1, 3, "B")],
+      expected: [{ start: 1, end: 3, codings: ["A", "B"] }],
+    },
+    {
+      name: "different bounds → separate entries",
+      spans: [r(1, 2, "A"), r(3, 4, "A")],
+      expected: [
+        { start: 1, end: 2, codings: ["A"] },
+        { start: 3, end: 4, codings: ["A"] },
+      ],
+    },
+    {
+      name: "duplicate code on same span → deduplicated",
+      spans: [r(1, 3, "X"), r(1, 3, "X")],
+      expected: [{ start: 1, end: 3, codings: ["X"] }],
+    },
+    {
+      name: "mixed: some merge, some separate",
+      spans: [r(1, 3, "A"), r(1, 3, "B"), r(5, 7, "A")],
+      expected: [
+        { start: 1, end: 3, codings: ["A", "B"] },
+        { start: 5, end: 7, codings: ["A"] },
+      ],
+    },
+  ]
 
-  it("returns single run unchanged", () => {
-    const runs: FindResult[][] = [[{ start: 1, end: 1, analysis_source_id: "X" }]]
-    expect(dropOutlier(runs)).toEqual(runs)
-  })
-
-  it("returns empty unchanged", () => {
-    expect(dropOutlier([])).toEqual([])
+  cases.forEach(({ name, spans, expected }) => {
+    it(name, () => expect(groupBySpan(spans)).toEqual(expected))
   })
 })
