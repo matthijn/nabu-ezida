@@ -66,6 +66,7 @@ export const buildPlanInstruction = (
     "",
     "Create a plan with one step per matching section. Each step applies the source criteria to that section.",
     "Feedback cadence is required before submitting — check preferences and the user's message first; if unresolved, ask. Otherwise just submit.",
-    "You MUST use apply_deep_analysis in each step",
+    "You MUST use apply_deep_analysis in each step, you MUST include at least every step given",
+    "Do NOT read the given files again to plan",
   ].join("\n")
 }
