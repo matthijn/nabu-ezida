@@ -29,7 +29,6 @@ export const buildFindResultSchema = (validIds: string[]) =>
         end: z.number().int().min(1),
         analysis_source_id:
           validIds.length > 0 ? z.enum(validIds as [string, ...string[]]) : z.string(),
-        reason: z.string(),
       })
     ),
   })
@@ -151,7 +150,10 @@ const buildEnvelope = (
 const FIND_CTA =
   "Analyze the numbered sentences against the source definitions. Return matching spans as JSON."
 
-const REVIEW_CTA = "Review the coded sections. Return results as JSON."
+export const REASON_CTA =
+  "For each coded section, provide a one-sentence reason why it matches the assigned code. Return results as JSON."
+
+export const REVIEW_CTA = "Review the coded sections. Return results as JSON."
 
 export const buildFindMessages = (
   numbered: string,
@@ -162,20 +164,21 @@ export const buildFindMessages = (
 ): Message[] =>
   buildEnvelope(buildSourceMessages(sources, resolve), numbered, leadingCtx, trailingCtx, FIND_CTA)
 
-export const buildReviewMessages = (
+export const buildSpanStepMessages = (
   presented: string,
   codeIds: ReadonlySet<string>,
   sources: ScopedSources,
   leadingCtx: string,
   trailingCtx: string,
-  resolve: ContentResolver
+  resolve: ContentResolver,
+  callToAction: string
 ): Message[] =>
   buildEnvelope(
     buildCodeSourceMessages(codeIds, sources, resolve),
     presented,
     leadingCtx,
     trailingCtx,
-    REVIEW_CTA
+    callToAction
   )
 
 export interface FindCallResult {

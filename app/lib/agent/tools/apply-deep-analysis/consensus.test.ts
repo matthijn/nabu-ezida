@@ -5,7 +5,6 @@ const r = (start: number, end: number, analysis_source_id: string): FindResult =
   start,
   end,
   analysis_source_id,
-  reason: "",
 })
 
 describe("tallyVotes", () => {

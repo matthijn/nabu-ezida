@@ -7,9 +7,11 @@ import {
   type ContentResolver,
   buildFindCall,
   buildFindResultSchema,
-  buildReviewMessages,
+  buildSpanStepMessages,
   extractSourceIds,
   buildSourceTitleMap,
+  REASON_CTA,
+  REVIEW_CTA,
 } from "./messages"
 import {
   tallyVotes,
@@ -25,7 +27,6 @@ export type CallResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export interface DimensionResult {
   spans: FindResult[]
-  reasons: Map<string, string>
   errors: string[]
 }
 
@@ -38,10 +39,11 @@ const countUniqueSentences = (spans: FindResult[]): number => {
 }
 
 const FIND_ENDPOINT = "/deep-analysis-find"
+const REASON_ENDPOINT = "/deep-analysis-reason"
 const REVIEW_ENDPOINT = "/deep-analysis-review"
 const FIND_RUNS = 4
 const FIND_THRESHOLD = 3
-const REVIEW_CONTEXT_SENTENCES = 6
+const SPAN_STEP_CONTEXT_SENTENCES = 6
 
 const tryParseJson = (text: string): unknown | undefined => {
   try {
@@ -97,25 +99,6 @@ const runFindRuns = async (
   return { runs: results, errors }
 }
 
-const spansOverlap = (a: FindResult, b: FindResult): boolean =>
-  a.analysis_source_id === b.analysis_source_id && a.start <= b.end && b.start <= a.end
-
-const collectRunReasons = (spans: FindResult[], runs: FindResult[][]): Map<string, string> => {
-  const reasons = new Map<string, string>()
-  for (const span of spans) {
-    const key = spanKey(span.start, span.end, span.analysis_source_id)
-    const collected: string[] = []
-    for (const run of runs) {
-      for (const r of run) {
-        if (!spansOverlap(span, r)) continue
-        if (r.reason && !collected.includes(r.reason)) collected.push(r.reason)
-      }
-    }
-    if (collected.length > 0) reasons.set(key, collected.join("\n"))
-  }
-  return reasons
-}
-
 const isMultiCoded = (span: CodedSpan): boolean => span.codings.length > 1
 
 const collectCodeIds = (spans: CodedSpan[]): Set<string> => {
@@ -127,16 +110,93 @@ const collectCodeIds = (spans: CodedSpan[]): Set<string> => {
 const toCodedItems = (spans: CodedSpan[]): CodedItem[] =>
   spans.map((s) => ({ start: s.start, end: s.end, codings: s.codings }))
 
-const buildReviewResultSchema = (validCodes: string[]) =>
+const buildSpanStepSchema = (validCodes: string[]) =>
   z.object({
     results: z.array(
       z.object({
         id: z.number().int().min(1),
         code: validCodes.length > 0 ? z.enum(validCodes as [string, ...string[]]) : z.string(),
-        review: z.string(),
+        text: z.string(),
       })
     ),
   })
+
+const runSpanStep = async (
+  label: string,
+  items: CodedSpan[],
+  endpoint: string,
+  cta: string,
+  sentences: string[],
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Promise<{ values: Map<string, string>; error?: string }> => {
+  if (items.length === 0) return { values: new Map() }
+
+  const codeIds = collectCodeIds(items)
+  const codedItems = toCodedItems(items)
+  const { text: presented, mapping } = formatCodedSection(
+    sentences,
+    codedItems,
+    SPAN_STEP_CONTEXT_SENTENCES
+  )
+
+  const messages = buildSpanStepMessages(
+    presented,
+    codeIds,
+    sources,
+    leadingCtx,
+    trailingCtx,
+    resolve,
+    cta
+  )
+
+  const validCodes = [...codeIds]
+  const schema = buildSpanStepSchema(validCodes)
+  const result = await callAndParse(endpoint, messages, schema)
+
+  if (!result.ok) {
+    console.debug(`[deep-analysis] ${label} failed: ${result.error}`)
+    return { values: new Map(), error: result.error }
+  }
+
+  const values = new Map<string, string>()
+  for (const r of result.data.results) {
+    const m = mapping.find((entry) => entry.index === r.id)
+    if (!m) continue
+    const key = spanKey(m.start, m.end, r.code)
+    values.set(key, r.text)
+  }
+
+  if (values.size > 0) {
+    console.debug(`[deep-analysis] ${label}: ${values.size} span(s)`)
+  }
+
+  return { values }
+}
+
+export const runReasonStep = async (
+  allSpans: FindResult[],
+  sentences: string[],
+  sources: ScopedSources,
+  leadingCtx: string,
+  trailingCtx: string,
+  resolve: ContentResolver
+): Promise<{ values: Map<string, string>; error?: string }> => {
+  const grouped = groupBySpan(allSpans)
+  return runSpanStep(
+    "reason",
+    grouped,
+    REASON_ENDPOINT,
+    REASON_CTA,
+    sentences,
+    sources,
+    leadingCtx,
+    trailingCtx,
+    resolve
+  )
+}
 
 export const runReviewStep = async (
   allSpans: FindResult[],
@@ -145,51 +205,21 @@ export const runReviewStep = async (
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver
-): Promise<{ reviews: Map<string, string>; error?: string }> => {
+): Promise<{ values: Map<string, string>; error?: string }> => {
   const grouped = groupBySpan(allSpans)
   const multiCoded = grouped.filter(isMultiCoded)
-
-  if (multiCoded.length === 0) return { reviews: new Map() }
-
-  const codeIds = collectCodeIds(multiCoded)
-  const items = toCodedItems(multiCoded)
-  const { text: presented, mapping } = formatCodedSection(
+  if (multiCoded.length === 0) return { values: new Map() }
+  return runSpanStep(
+    "review",
+    multiCoded,
+    REVIEW_ENDPOINT,
+    REVIEW_CTA,
     sentences,
-    items,
-    REVIEW_CONTEXT_SENTENCES
-  )
-
-  const messages = buildReviewMessages(
-    presented,
-    codeIds,
     sources,
     leadingCtx,
     trailingCtx,
     resolve
   )
-
-  const validCodes = [...codeIds]
-  const schema = buildReviewResultSchema(validCodes)
-  const result = await callAndParse(REVIEW_ENDPOINT, messages, schema)
-
-  if (!result.ok) {
-    console.debug(`[deep-analysis] review failed: ${result.error}`)
-    return { reviews: new Map(), error: result.error }
-  }
-
-  const reviews = new Map<string, string>()
-  for (const r of result.data.results) {
-    const m = mapping.find((entry) => entry.index === r.id)
-    if (!m) continue
-    const key = spanKey(m.start, m.end, r.code)
-    reviews.set(key, r.review)
-  }
-
-  if (reviews.size > 0) {
-    console.debug(`[deep-analysis] review: flagged ${reviews.size} span(s)`)
-  }
-
-  return { reviews }
 }
 
 export const runDimensionPipeline = async (
@@ -214,7 +244,7 @@ export const runDimensionPipeline = async (
 
   if (findRuns.length < FIND_RUNS) {
     console.debug(`[deep-analysis] consensus: ${findRuns.length}/${FIND_RUNS} runs (insufficient)`)
-    return { spans: [], reasons: new Map(), errors }
+    return { spans: [], errors }
   }
 
   const tally = tallyVotes(findRuns, sentences.length)
@@ -231,28 +261,24 @@ export const runDimensionPipeline = async (
     `[deep-analysis] consensus (${FIND_THRESHOLD}/${FIND_RUNS}): ${perCode.join(", ") || "no votes"}`
   )
 
-  if (spans.length === 0) return { spans: [], reasons: new Map(), errors }
+  if (spans.length === 0) return { spans: [], errors }
 
   const codedSpans = groupBySpan(spans)
   for (const cs of codedSpans) {
     console.debug(`[deep-analysis]   [${cs.start}-${cs.end}] ${cs.codings.join(", ")}`)
   }
 
-  const reasons = collectRunReasons(spans, findRuns)
-
-  return { spans, reasons, errors }
+  return { spans, errors }
 }
 
 export const mergeDimensionResults = (results: DimensionResult[]) => {
   const allSpans: FindResult[] = []
-  const reasons = new Map<string, string>()
   const errors: string[] = []
 
   for (const dr of results) {
     allSpans.push(...dr.spans)
-    for (const [k, v] of dr.reasons) reasons.set(k, v)
     errors.push(...dr.errors)
   }
 
-  return { allSpans, reasons, errors }
+  return { allSpans, errors }
 }

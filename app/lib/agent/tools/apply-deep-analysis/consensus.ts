@@ -2,7 +2,6 @@ export interface FindResult {
   start: number
   end: number
   analysis_source_id: string
-  reason: string
 }
 
 export const tallyVotes = (
@@ -37,12 +36,12 @@ export const groupConsecutive = (sentences: number[], code: string): FindResult[
     if (sorted[i] === end + 1) {
       end = sorted[i]
     } else {
-      spans.push({ start, end, analysis_source_id: code, reason: "" })
+      spans.push({ start, end, analysis_source_id: code })
       start = sorted[i]
       end = sorted[i]
     }
   }
-  spans.push({ start, end, analysis_source_id: code, reason: "" })
+  spans.push({ start, end, analysis_source_id: code })
   return spans
 }
 

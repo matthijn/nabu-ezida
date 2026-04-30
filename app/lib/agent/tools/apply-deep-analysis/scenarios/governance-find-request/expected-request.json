@@ -3,7 +3,7 @@
     {
       "type": "message",
       "role": "system",
-      "content": "# General Codebook\n\n## Scope\n\n- Code only government speakers (ministers, officials). Treat\n\tjournalist questions as context unless the answer can't be\n\tunderstood without them.\n- When a passage is clearly off-topic from COVID governance,\n\tleave it uncoded.\n\n## Threshold\n\n- Prefer the narrower, defensible reading. When a passage doesn't\n\tclearly meet a code's inclusion criteria, leave it uncoded."
+      "content": "# General Codebook\n\n## Scope\n\n- Code only government speakers (ministers, officials). Treat\n  journalist questions as context unless the answer can't be\n  understood without them.\n- When a passage is clearly off-topic from COVID governance,\n  leave it uncoded.\n\n## Threshold\n\n- Prefer the narrower, defensible reading. When a passage doesn't\n  clearly meet a code's inclusion criteria, leave it uncoded."
     },
     {
       "type": "message",
