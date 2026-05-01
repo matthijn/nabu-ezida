@@ -4,12 +4,9 @@ const CompleteStepArgs = z.object({
   summary: z
     .string()
     .describe(
-      "What the user can't see from the document: hesitations, judgment calls, emerging patterns. Not a narration of what you wrote."
-    ),
-  internal: z
-    .string()
-    .describe(
-      "Everything the next step needs to continue: IDs, counts, decisions, context. This is the only memory from this step that carries forward — tool calls and results within the step are dropped."
+      "Brief factual debrief on the step's output: what was found, how many, what was flagged. " +
+        "Do NOT interpret, theorize, or editorialize. " +
+        "This is your main communication way do NOT talk after this, after this you WORK on next step if plan is not complete."
     ),
 })
 

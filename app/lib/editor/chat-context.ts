@@ -2,7 +2,8 @@ import type { Block, SystemBlock } from "~/lib/agent"
 
 export type GetContextFn = () => string | null
 
-export const CONTEXT_PREFIX = "User is looking at:"
+export const CONTEXT_PREFIX =
+  "User is NOW looking at any 'this file' reference refers to the file named here:"
 
 let baseContextFn: GetContextFn | undefined
 let overrideContextFn: GetContextFn | undefined
