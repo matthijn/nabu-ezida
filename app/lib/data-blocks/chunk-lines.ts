@@ -1,7 +1,7 @@
 import { parseCodeBlocks, type CodeBlock } from "./parse"
 
-export const CHUNK_TARGET_CHARS = 12000
-export const CONTEXT_OVERLAP_CHARS = 1000
+export const CHUNK_TARGET_CHARS = 10000
+export const CONTEXT_OVERLAP_CHARS = 700
 
 export interface LineChunk {
   startLine: number

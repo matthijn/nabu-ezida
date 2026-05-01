@@ -41,8 +41,8 @@ const countUniqueSentences = (spans: FindResult[]): number => {
 const FIND_ENDPOINT = "/deep-analysis-find"
 const REASON_ENDPOINT = "/deep-analysis-reason"
 const REVIEW_ENDPOINT = "/deep-analysis-review"
-const FIND_RUNS = 4
-const FIND_THRESHOLD = 3
+const FIND_RUNS = 3
+const FIND_THRESHOLD = 2
 const SPAN_STEP_CONTEXT_SENTENCES = 6
 
 const tryParseJson = (text: string): unknown | undefined => {
