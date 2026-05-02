@@ -8,7 +8,7 @@ import {
   textMessagesIndexed,
   extractAskMessages,
   extractScoutMessages,
-  findCreationIndices,
+  findPlanBlockIndices,
   byIndex,
 } from "./messages"
 
@@ -90,7 +90,7 @@ const findTerminationIndex = (
 }
 
 const buildPlanRanges = (history: Block[], plans: DerivedPlan[]): PlanRange[] => {
-  const indices = findCreationIndices(history, "submit_plan")
+  const indices = findPlanBlockIndices(history)
   return plans.map((plan, i) => {
     const startIndex = indices[i] ?? 0
     const rawEnd = indices[i + 1] ?? history.length
@@ -148,6 +148,27 @@ const buildPlanHeader = (plan: DerivedPlan): PlanHeader => ({
   aborted: plan.aborted,
 })
 
+const stepIndexAtBlock = (blockIndex: number, transitions: StepTransition[]): number => {
+  let stepIndex = 0
+  for (const t of transitions) {
+    if (blockIndex >= t.blockIndex) stepIndex = t.newStep
+  }
+  return stepIndex
+}
+
+const isSilentStep = (stepIndex: number, plan: DerivedPlan): boolean => {
+  const step = plan.steps[stepIndex]
+  if (!step) return false
+  return !step.checkpoint
+}
+
+const isSilentAssistantLeaf = (
+  leaf: Indexed<LeafMessage>,
+  plan: DerivedPlan,
+  transitions: StepTransition[]
+): boolean =>
+  leaf.message.role === "assistant" && isSilentStep(stepIndexAtBlock(leaf.index, transitions), plan)
+
 const buildPlanEntries = (
   range: PlanRange,
   leaves: Indexed<LeafMessage>[],
@@ -184,7 +205,13 @@ const buildPlanEntries = (
     }
   })
 
-  const leafEntries: FlatEntry[] = leaves.map((l) => ({
+  const visibleLeaves = leaves.filter((l) => {
+    if (!isSilentAssistantLeaf(l, plan, transitions)) return true
+    console.log("[plan] hiding assistant text in silent step:", l.message.content.slice(0, 80))
+    return false
+  })
+
+  const leafEntries: FlatEntry[] = visibleLeaves.map((l) => ({
     blockIndex: l.index,
     item: toItem(l.message, false),
   }))

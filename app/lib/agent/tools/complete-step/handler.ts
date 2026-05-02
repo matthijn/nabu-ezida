@@ -18,8 +18,7 @@ const classifyStep = (): StepKind => {
 }
 
 const STEP_INSTRUCTION: Record<StepKind, string> = {
-  final:
-    "Plan complete. If a research question exists, map what was found to what was asked — which parts of the question got evidence, which got none. Do not answer the research question. Report and stop. Make no tool calls.",
+  final: "Plan complete. Give short summary.",
   checkpoint:
     "Speak only — write one sentence that you are waiting for confirmation. Make no tool calls.",
   continue: "Do not write — make your next tool call immediately.",

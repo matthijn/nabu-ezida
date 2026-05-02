@@ -1,6 +1,7 @@
 import type { Block, ToolCall } from "~/lib/agent/client"
 import type { FileStore } from "~/lib/files"
 import { derive, findCall, type DerivedPlan } from "~/lib/agent"
+import { isPlanMarker } from "~/lib/agent/derived/plan"
 import { AskArgs, type AskScope } from "~/lib/agent/tools/ask/def"
 import { ScoutArgs } from "~/lib/agent/tools/scout/def"
 import { PlanDeepAnalysisArgs } from "~/lib/agent/tools/plan-deep-analysis/def"
@@ -59,14 +60,14 @@ export const textMessagesIndexed = (history: Block[]): Indexed<TextMessage>[] =>
       },
     }))
 
-export const findCreationIndices = (history: Block[], toolName: string): number[] =>
+export const findPlanBlockIndices = (history: Block[]): number[] =>
   history
     .map((b, i) => ({ block: b, index: i }))
-    .filter(({ block }) => findCall(block, toolName) !== undefined)
+    .filter(({ block }) => block.type === "system" && isPlanMarker(block.content))
     .map(({ index }) => index)
 
 const planMessagesIndexed = (history: Block[], plans: DerivedPlan[]): Indexed<PlanMessage>[] => {
-  const indices = findCreationIndices(history, "submit_plan")
+  const indices = findPlanBlockIndices(history)
   return plans.map((plan, i) => ({
     index: indices[i] ?? 0,
     message: { type: "plan", plan, currentStep: plan.currentStep, aborted: plan.aborted },

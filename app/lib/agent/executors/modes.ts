@@ -1,6 +1,9 @@
 import type { AnyTool } from "./tool"
 import type { Nudger } from "../steering/nudge-tools"
 import type { Block } from "../client"
+import { pushBlocks } from "../client"
+import type { StepDef } from "../derived"
+import { serializePlanBlock } from "../derived"
 import {
   blockPatchTools,
   blockDeleteTools,
@@ -158,3 +161,43 @@ export const modeSystemBlocks = (mode: ModeName): Block[] => {
   if (!config.prompt) return []
   return [{ type: "system", content: `<!-- prompt: ${config.prompt} -->` }]
 }
+
+export const activatePlan = (task: string, steps: StepDef[], decisions: string[]): void => {
+  pushBlocks([{ type: "system", content: serializePlanBlock(task, steps, decisions) }])
+  pushBlocks(modeSystemBlocks("exec"))
+}
+
+const buildAvailableToolNames = (mode: ModeName): Set<string> => {
+  const names = new Set(modes[mode].tools.map((t) => t.name))
+  names.add("cancel")
+  return names
+}
+
+const isAvailableCall = (name: string, available: Set<string>): boolean => available.has(name)
+
+const rejectBlock = (rejected: string[], mode: ModeName): Block => ({
+  type: "system",
+  content: `Ignored hallucinated tool call: ${rejected.join(", ")}. Not available in ${mode} mode. Continue with the current plan step.`,
+})
+
+export const rejectUnavailableTools =
+  (mode: ModeName) =>
+  (blocks: Block[]): Block[] => {
+    const available = buildAvailableToolNames(mode)
+    return blocks.flatMap((block) => {
+      if (block.type !== "tool_call") return [block]
+      const kept = block.calls.filter((c) => isAvailableCall(c.name, available))
+      const rejected = block.calls.filter((c) => !isAvailableCall(c.name, available))
+      if (rejected.length === 0) return [block]
+      console.log(
+        "[mode] rejecting hallucinated tools:",
+        rejected.map((c) => c.name)
+      )
+      const redirect = rejectBlock(
+        rejected.map((c) => c.name),
+        mode
+      )
+      if (kept.length === 0) return [redirect]
+      return [{ ...block, calls: kept }, redirect]
+    })
+  }

@@ -2,7 +2,8 @@ import type { Block, ToolCall, ToolCallBlock } from "../client"
 import type { FileStore } from "~/lib/files"
 import {
   type DerivedPlan,
-  planFromCall,
+  isPlanMarker,
+  parsePlanBlock,
   processCompleteStep,
   updateLastPlan,
   hasActivePlan,
@@ -66,21 +67,16 @@ export const findCall = (block: Block, name: string): ToolCall | undefined =>
 
 const hasCall = (block: Block, name: string): boolean => findCall(block, name) !== undefined
 
-const isSubmitPlan = (call: EnrichedToolCall): boolean => call.name === "submit_plan"
 const isCompleteStep = (call: EnrichedToolCall): boolean => call.name === "complete_step"
 const isCancel = (call: EnrichedToolCall): boolean => call.name === "cancel"
 
-const processToolCall = (derived: Derived, call: EnrichedToolCall, files: FileStore): Derived => {
+const processToolCall = (derived: Derived, call: EnrichedToolCall): Derived => {
   if (!call.succeeded) return derived
 
   if (isCancel(call)) {
     return {
       plans: updateLastPlan(derived.plans, (p) => ({ ...p, aborted: true })),
     }
-  }
-
-  if (isSubmitPlan(call)) {
-    return { plans: [...derived.plans, planFromCall(call, files)] }
   }
 
   if (isCompleteStep(call)) {
@@ -97,23 +93,29 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall, files: FileSt
   return derived
 }
 
-const processBlock =
-  (files: FileStore) =>
-  (derived: Derived, block: EnrichedBlock): Derived => {
-    if (!isEnrichedToolCallBlock(block)) return derived
-    return block.calls.reduce((d, call) => processToolCall(d, call, files), derived)
+const processBlock = (derived: Derived, block: EnrichedBlock): Derived => {
+  if (block.type === "system") {
+    const plan = parsePlanBlock(block.content)
+    if (plan) return { ...derived, plans: [...derived.plans, plan] }
+    return derived
   }
+  if (!isEnrichedToolCallBlock(block)) return derived
+  return block.calls.reduce((d, call) => processToolCall(d, call), derived)
+}
 
-export const derive = (history: Block[], files: FileStore = {}): Derived =>
-  enrichWithResults(history).reduce(processBlock(files), { plans: [] })
+export const derive = (history: Block[], _files: FileStore = {}): Derived =>
+  enrichWithResults(history).reduce(processBlock, { plans: [] })
 
 export const getMode = (d: Derived): Mode => {
   if (hasActivePlan(d.plans)) return "exec"
   return "chat"
 }
 
+const isBlockPlanMarker = (block: Block): boolean =>
+  block.type === "system" && isPlanMarker(block.content)
+
 const isStepBoundary = (block: Block): boolean =>
-  hasCall(block, "submit_plan") || hasCall(block, "complete_step")
+  hasCall(block, "submit_plan") || hasCall(block, "complete_step") || isBlockPlanMarker(block)
 
 const isAgentAction = (block: Block): boolean => block.type === "text" || block.type === "tool_call"
 
@@ -151,9 +153,10 @@ const isSuccessfulWrite = (block: Block): boolean =>
   !isErrorResult(block.result)
 
 const isCompletedBoundary = (block: Block): boolean =>
-  block.type === "tool_result" &&
-  block.toolName !== undefined &&
-  (block.toolName === "submit_plan" || block.toolName === "complete_step")
+  isBlockPlanMarker(block) ||
+  (block.type === "tool_result" &&
+    block.toolName !== undefined &&
+    (block.toolName === "submit_plan" || block.toolName === "complete_step"))
 
 export const hasDeliverable = (history: Block[]): boolean => {
   for (let i = history.length - 1; i >= 0; i--) {
@@ -190,6 +193,7 @@ export {
   type Step,
   type StepDef,
   type StepDefObject,
+  serializePlanBlock,
   lastPlan,
   hasActivePlan,
   guardCompleteStep,

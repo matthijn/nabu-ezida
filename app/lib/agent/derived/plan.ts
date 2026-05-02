@@ -1,6 +1,3 @@
-import type { ToolCall } from "../client"
-import type { FileStore } from "~/lib/files"
-
 export interface StepDefObject {
   title: string
   expected: string
@@ -77,16 +74,34 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
   return steps
 }
 
-export const planFromCall = (call: ToolCall, _files: FileStore): DerivedPlan => {
-  const stepDefs = call.args.steps as StepDef[]
-  const steps = flattenSteps(stepDefs)
+const PLAN_MARKER = "<!-- plan: "
+const PLAN_MARKER_END = " -->"
 
-  return {
-    task: call.args.task as string,
-    steps,
-    currentStep: 0,
-    aborted: false,
-    decisions: (call.args.decisions as string[] | undefined) ?? [],
+export const isPlanMarker = (content: string): boolean => content.startsWith(PLAN_MARKER)
+
+interface PlanPayload {
+  task: string
+  steps: StepDef[]
+  decisions: string[]
+}
+
+export const serializePlanBlock = (task: string, steps: StepDef[], decisions: string[]): string =>
+  `${PLAN_MARKER}${JSON.stringify({ task, steps, decisions })}${PLAN_MARKER_END}`
+
+export const parsePlanBlock = (content: string): DerivedPlan | null => {
+  if (!isPlanMarker(content)) return null
+  const json = content.slice(PLAN_MARKER.length, content.lastIndexOf(PLAN_MARKER_END))
+  try {
+    const { task, steps, decisions } = JSON.parse(json) as PlanPayload
+    return {
+      task,
+      steps: flattenSteps(steps),
+      currentStep: 0,
+      aborted: false,
+      decisions: decisions ?? [],
+    }
+  } catch {
+    return null
   }
 }
 

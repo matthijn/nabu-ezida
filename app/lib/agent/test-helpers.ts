@@ -1,5 +1,6 @@
 import type { Block } from "./client"
 import type { StepDef, StepDefObject } from "./derived"
+import { serializePlanBlock } from "./derived"
 import type { AskScope } from "./tools/ask/def"
 
 let callIdCounter = 0
@@ -34,12 +35,15 @@ const withResult = (callId: string, call: Block): Block[] => [
 
 export const submitPlanCall = (task: string, steps: StepInput[]): Block[] => {
   const id = nextCallId()
-  const args: Record<string, unknown> = { task, steps: steps.map(toStepDef) }
-
-  return withResult(id, {
-    type: "tool_call",
-    calls: [{ id, name: "submit_plan", args }],
-  })
+  const stepDefs = steps.map(toStepDef)
+  return [
+    {
+      type: "tool_call",
+      calls: [{ id, name: "submit_plan", args: { task, steps: stepDefs } }],
+    },
+    { type: "system", content: serializePlanBlock(task, stepDefs, []) },
+    { type: "tool_result", callId: id, toolName: "submit_plan", result: { status: "ok" } },
+  ]
 }
 
 export const completeStepCall = (summary = "Done", internal?: string): Block[] => {

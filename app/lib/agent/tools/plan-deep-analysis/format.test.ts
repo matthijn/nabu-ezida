@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import type { ScoutEntry } from "../scout/api"
 import type { ScoutSection } from "../scout-map"
-import { formatTarget, collectSections, buildPlanInstruction } from "./format"
+import { formatTarget, collectSections, buildAutoSteps } from "./format"
 
 const section = (overrides: Partial<ScoutSection> = {}): ScoutSection => ({
   label: "Section A",
@@ -101,7 +101,7 @@ describe("collectSections", () => {
   })
 })
 
-describe("buildPlanInstruction", () => {
+describe("buildAutoSteps", () => {
   const matches = [
     { path: "a.md", label: "Intro", startLine: 1, endLine: 10 },
     { path: "b.md", label: "Methods", startLine: 5, endLine: 15 },
@@ -115,38 +115,36 @@ describe("buildPlanInstruction", () => {
 
   const cases = [
     {
-      name: "numbered steps with explicit apply_deep_analysis calls",
+      name: "one step per section plus synthesis",
       postAction: "annotate_as_code",
-      containsLines: [
-        'Step 1: "Intro"',
+      expectedLength: 3,
+      expectedTitles: ["Intro", "Methods", "Synthesize findings"],
+    },
+    {
+      name: "expected contains apply_deep_analysis call",
+      postAction: "annotate_as_code",
+      expectedExpected: [
         `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="annotate_as_code")`,
-        'Step 2: "Methods"',
         `apply_deep_analysis(path="b.md", start_line=5, end_line=15, source_files=${sourceArg}, post_action="annotate_as_code")`,
       ],
     },
     {
-      name: "return post_action",
+      name: "return post_action propagates",
       postAction: "return",
-      containsLines: [
+      expectedExpected: [
         `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="return")`,
-      ],
-    },
-    {
-      name: "annotate_as_comment post_action",
-      postAction: "annotate_as_comment",
-      containsLines: [
-        `apply_deep_analysis(path="a.md", start_line=1, end_line=10, source_files=${sourceArg}, post_action="annotate_as_comment")`,
       ],
     },
   ]
 
-  cases.forEach(({ name, postAction, containsLines }) => {
+  cases.forEach(({ name, postAction, expectedLength, expectedTitles, expectedExpected }) => {
     it(name, () => {
-      const result = buildPlanInstruction(matches, sources, postAction)
-      containsLines.forEach((line) => expect(result).toContain(line))
-      expect(result).toContain("- source1.md (framework)")
-      expect(result).toContain("- source2.md (dimension)")
-      expect(result).toContain("## Steps")
+      const steps = buildAutoSteps(matches, sources, postAction)
+      if (expectedLength !== undefined) expect(steps).toHaveLength(expectedLength)
+      if (expectedTitles !== undefined) expect(steps.map((s) => s.title)).toEqual(expectedTitles)
+      if (expectedExpected !== undefined)
+        expectedExpected.forEach((exp, i) => expect(steps[i].expected).toBe(exp))
+      steps.forEach((s) => expect(s.checkpoint).toBe(false))
     })
   })
 })

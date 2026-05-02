@@ -32,6 +32,6 @@ export type PlanDeepAnalysisArgs = z.infer<typeof PlanDeepAnalysisArgs>
 export const planDeepAnalysisTool: AnyTool = {
   name: "plan_deep_analysis",
   description:
-    "Load source criteria and target files, filter target sections by relevance, then transition to plan mode. Use when applying analytical criteria from source files across target content.\n\nparallel: no — batches internally, wait for results before acting",
+    "Load source criteria and target files, filter target sections by relevance. Auto generates and starts a structured plan to follow. Use when applying analytical criteria from source files across target content.\n\nparallel: no — batches internally, wait for results before acting",
   schema: PlanDeepAnalysisArgs,
 }

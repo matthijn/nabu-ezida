@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { compactHistory, stepCompactHistory, stepCompactedIndices } from "./compact"
 import type { Block } from "./client"
+import { serializePlanBlock } from "./derived"
 import { userBlock, textBlock, systemBlock, reasoningBlock } from "./test-helpers"
 
 const compactedToolCall = (summary: string): Block => ({
@@ -22,17 +23,19 @@ const toolResult = (callId: string, name: string, result: unknown): Block => ({
   result,
 })
 
-const submitPlanCall = (task: string, steps: { title: string; expected: string }[]): Block => ({
-  type: "tool_call",
-  calls: [{ id: "plan_0", name: "submit_plan", args: { task, steps } }],
-})
-
-const planResult = (): Block => ({
-  type: "tool_result",
-  callId: "plan_0",
-  toolName: "submit_plan",
-  result: { status: "ok", output: "ok" },
-})
+const submitPlanBlocks = (task: string, steps: { title: string; expected: string }[]): Block[] => [
+  {
+    type: "tool_call",
+    calls: [{ id: "plan_0", name: "submit_plan", args: { task, steps } }],
+  },
+  { type: "system", content: serializePlanBlock(task, steps, []) },
+  {
+    type: "tool_result",
+    callId: "plan_0",
+    toolName: "submit_plan",
+    result: { status: "ok", output: "ok" },
+  },
+]
 
 const completeStepCall = (summary: string, internal: string, id = "cs_0"): Block => ({
   type: "tool_call",
@@ -107,11 +110,10 @@ describe("compactHistory", () => {
     {
       name: "compacted at end, active plan — preserves pending + plan context",
       blocks: [
-        submitPlanCall("Analyze data", [
+        ...submitPlanBlocks("Analyze data", [
           { title: "Read files", expected: "Files loaded" },
           { title: "Process data", expected: "Data processed" },
         ]),
-        planResult(),
         userBlock("go"),
         textBlock("working on it"),
         compactedToolCall("We are analyzing data"),
@@ -208,6 +210,17 @@ describe("compactHistory", () => {
 })
 
 describe("stepCompactHistory", () => {
+  const planA = submitPlanBlocks("Task", [{ title: "A", expected: "done" }])
+  const planAB = submitPlanBlocks("Task", [
+    { title: "A", expected: "done" },
+    { title: "B", expected: "done" },
+  ])
+  const planABC = submitPlanBlocks("Task", [
+    { title: "A", expected: "done" },
+    { title: "B", expected: "done" },
+    { title: "C", expected: "done" },
+  ])
+
   const cases = [
     {
       name: "no plan — blocks unchanged",
@@ -217,15 +230,13 @@ describe("stepCompactHistory", () => {
     {
       name: "plan with no completed steps — blocks unchanged",
       blocks: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         textBlock("working"),
         workCall("run_local_shell", "w1"),
         workResult("run_local_shell", "w1"),
       ],
       expected: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         textBlock("working"),
         workCall("run_local_shell", "w1"),
         workResult("run_local_shell", "w1"),
@@ -234,11 +245,7 @@ describe("stepCompactHistory", () => {
     {
       name: "one completed step — filters work blocks, keeps boundaries",
       blocks: [
-        submitPlanCall("Task", [
-          { title: "A", expected: "done" },
-          { title: "B", expected: "done" },
-        ]),
-        planResult(),
+        ...planAB,
         systemBlock("mode: exec"),
         textBlock("working on A"),
         workCall("run_local_shell", "w1"),
@@ -249,11 +256,7 @@ describe("stepCompactHistory", () => {
         textBlock("now B"),
       ],
       expected: [
-        submitPlanCall("Task", [
-          { title: "A", expected: "done" },
-          { title: "B", expected: "done" },
-        ]),
-        planResult(),
+        ...planAB,
         systemBlock("mode: exec"),
         completeStepCall("Did A", "found 3 items"),
         completeStepResult(),
@@ -263,16 +266,14 @@ describe("stepCompactHistory", () => {
     {
       name: "user block within completed step survives",
       blocks: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         textBlock("working"),
         userBlock("checkpoint"),
         completeStepCall("Done", "ctx"),
         completeStepResult(),
       ],
       expected: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         userBlock("checkpoint"),
         completeStepCall("Done", "ctx"),
         completeStepResult(),
@@ -281,8 +282,7 @@ describe("stepCompactHistory", () => {
     {
       name: "compacted tool_call/result within step survives",
       blocks: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         textBlock("working"),
         compactedToolCall("Mid-step summary"),
         compactedResult(),
@@ -292,8 +292,7 @@ describe("stepCompactHistory", () => {
         completeStepResult(),
       ],
       expected: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         compactedToolCall("Mid-step summary"),
         compactedResult(),
         completeStepCall("Done", "ctx"),
@@ -303,12 +302,7 @@ describe("stepCompactHistory", () => {
     {
       name: "two completed steps — both compacted, in-progress untouched",
       blocks: [
-        submitPlanCall("Task", [
-          { title: "A", expected: "done" },
-          { title: "B", expected: "done" },
-          { title: "C", expected: "done" },
-        ]),
-        planResult(),
+        ...planABC,
         textBlock("step A"),
         workCall("run_local_shell", "w1"),
         workResult("run_local_shell", "w1"),
@@ -324,12 +318,7 @@ describe("stepCompactHistory", () => {
         workResult("run_local_shell", "w3"),
       ],
       expected: [
-        submitPlanCall("Task", [
-          { title: "A", expected: "done" },
-          { title: "B", expected: "done" },
-          { title: "C", expected: "done" },
-        ]),
-        planResult(),
+        ...planABC,
         completeStepCall("Did A", "ctx-a", "cs1"),
         completeStepResult("cs1"),
         completeStepCall("Did B", "ctx-b", "cs2"),
@@ -344,8 +333,7 @@ describe("stepCompactHistory", () => {
       blocks: [
         userBlock("hi"),
         textBlock("planning..."),
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         textBlock("working"),
         completeStepCall("Done", "ctx"),
         completeStepResult(),
@@ -353,8 +341,7 @@ describe("stepCompactHistory", () => {
       expected: [
         userBlock("hi"),
         textBlock("planning..."),
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...planA,
         completeStepCall("Done", "ctx"),
         completeStepResult(),
       ],
@@ -376,28 +363,26 @@ describe("stepCompactedIndices", () => {
     {
       name: "one completed step — returns work block indices",
       blocks: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...submitPlanBlocks("Task", [{ title: "A", expected: "done" }]),
         textBlock("working"),
         workCall("run_local_shell", "w1"),
         workResult("run_local_shell", "w1"),
         completeStepCall("Done", "ctx"),
         completeStepResult(),
       ],
-      expected: new Set([2, 3, 4]),
+      expected: new Set([3, 4, 5]),
     },
     {
       name: "system and user blocks not in compacted set",
       blocks: [
-        submitPlanCall("Task", [{ title: "A", expected: "done" }]),
-        planResult(),
+        ...submitPlanBlocks("Task", [{ title: "A", expected: "done" }]),
         systemBlock("mode"),
         userBlock("checkpoint"),
         textBlock("working"),
         completeStepCall("Done", "ctx"),
         completeStepResult(),
       ],
-      expected: new Set([4]),
+      expected: new Set([5]),
     },
   ]
 

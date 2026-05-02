@@ -8,11 +8,12 @@ import { scoutFile, formatScoutEntry } from "../scout/api"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
 import { pushBlocks, getAllBlocks } from "../../client"
-import { modeSystemBlocks } from "../../executors/modes"
+import { activatePlan } from "../../executors/modes"
 import { processPool } from "~/lib/utils/pool"
 import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { getFiles } from "~/lib/files/store"
-import { formatTarget, collectSections, buildPlanInstruction } from "./format"
+import { formatTarget, collectSections, buildAutoSteps, EXEC_RULES } from "./format"
+import type { SourceEntry } from "./format"
 
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
@@ -117,12 +118,15 @@ registerTool(
 
       const matches = collectSections(targetEntries)
       if (matches.length > 0) {
-        const sourceEntries = source_files.map((f) => ({ path: f.path, scope: f.group }))
-        const instruction = buildPlanInstruction(matches, sourceEntries, post_action)
-        pushBlocks([toSystemBlock(instruction)])
+        const sourceEntries: SourceEntry[] = source_files.map((f) => ({
+          path: f.path,
+          scope: f.group,
+        }))
+        const steps = buildAutoSteps(matches, sourceEntries, post_action)
+        const task = `Deep analysis: ${targetEntries.map((e) => e.path).join(", ")}`
+        activatePlan(task, steps, [])
+        pushBlocks([toSystemBlock(EXEC_RULES)])
       }
-
-      pushBlocks(modeSystemBlocks("plan"))
 
       const total = target_files.length + source_files.length
       const failed = [...sourceFailed, ...targetFailed]

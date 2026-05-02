@@ -1,4 +1,5 @@
 import type { ScoutEntry } from "../scout/api"
+import type { StepDefObject } from "../../derived"
 import { formatSection } from "../scout/prose"
 
 export const formatTarget = (path: string, entry: ScoutEntry): string => {
@@ -32,47 +33,34 @@ export const collectSections = (entries: { path: string; entry: ScoutEntry }[]):
     }))
   })
 
-const formatSourceArg = (sources: SourceEntry[]): string =>
-  `[${sources.map((s) => `{path: "${s.path}", scope: "${s.scope}"}`).join(", ")}]`
-
-const formatStep = (
-  index: number,
-  m: SectionMatch,
-  sources: SourceEntry[],
-  postAction: string
-): string =>
-  [
-    `Step ${index}: "${m.label}"`,
-    `Actions: \`apply_deep_analysis(path="${m.path}", start_line=${m.startLine}, end_line=${m.endLine}, source_files=${formatSourceArg(sources)}, post_action="${postAction}")\``,
-  ].join("\n")
-
-const formatSourceLine = (s: SourceEntry): string => `- ${s.path} (${s.scope})`
-
-export const buildPlanInstruction = (
+export const buildAutoSteps = (
   matches: SectionMatch[],
   sources: SourceEntry[],
   postAction: string
-): string => {
-  const sourceList = sources.map(formatSourceLine).join("\n")
-  const steps = matches.map((m, i) => formatStep(i + 1, m, sources, postAction)).join("\n\n")
-  return [
-    "# Deep analysis plan",
-    "",
-    "## Sources",
-    sourceList,
-    "",
-    "## Steps",
-    steps,
-    "",
-    "## Final step",
-    "Synthesize findings against the user's research question — what was found, what was ambiguous, what was absent.",
-    "",
-    "---",
-    "",
-    "## Execution rules",
-    "- One step per matching section. Each step applies the source criteria to that section.",
-    "- Every step MUST call apply_deep_analysis. Do not skip or merge steps.",
-    "- Do NOT re-read source files — work from the plan above.",
-    "- Check user preferences and message for feedback cadence before submitting. If unspecified, ask before starting. If specified, just run.",
-  ].join("\n")
+): StepDefObject[] => [
+  ...matches.map((m) => toAnalysisStep(m, sources, postAction)),
+  SYNTHESIS_STEP,
+]
+
+export const EXEC_RULES =
+  "Do NOT re-read source files. Do NOT skip or merge steps. Check user preferences for feedback cadence before starting."
+
+const formatSourceArg = (sources: SourceEntry[]): string =>
+  `[${sources.map((s) => `{path: "${s.path}", scope: "${s.scope}"}`).join(", ")}]`
+
+const toAnalysisStep = (
+  m: SectionMatch,
+  sources: SourceEntry[],
+  postAction: string
+): StepDefObject => ({
+  title: m.label,
+  expected: `apply_deep_analysis(path="${m.path}", start_line=${m.startLine}, end_line=${m.endLine}, source_files=${formatSourceArg(sources)}, post_action="${postAction}")`,
+  checkpoint: false,
+})
+
+const SYNTHESIS_STEP: StepDefObject = {
+  title: "Synthesize findings",
+  expected:
+    "Plan complete. Report: codes found with counts, key passages cited, co-occurrences, distribution across the document, speaker attribution if applicable, review flags, and codes with zero matches. Map to sub-questions where possible. Do not interpret what findings mean or theorize about connections. Report and stop. Make no tool calls.",
+  checkpoint: false,
 }

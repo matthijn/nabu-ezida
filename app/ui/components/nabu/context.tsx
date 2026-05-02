@@ -12,11 +12,7 @@ interface NabuProviderProps {
 const buildFileContextMessage = (): string | null => {
   const file = getCurrentFile()
   if (!file || isHiddenFile(file)) return null
-  return [
-    CONTEXT_PREFIX,
-    `Document: ${file} (${file})`,
-    "See <cursor-context> how to interpret",
-  ].join("\n")
+  return [CONTEXT_PREFIX, `Document: ${file} (${file})`].join("\n")
 }
 
 export const NabuProvider = ({ children }: NabuProviderProps) => {
