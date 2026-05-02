@@ -1,4 +1,4 @@
-import type { Block } from "./blocks"
+import type { Block, ErrorBlock } from "./blocks"
 import type { ToolDefinition } from "../executors/tool"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 import { getLlmHost, getLlmHeaders } from "~/lib/agent/env"
@@ -10,7 +10,15 @@ import { buildKey, tryGet, tryPut } from "~/lib/utils/storage-cache"
 
 const RETRYABLE_STATUS = [429, 502, 503]
 const MAX_RETRIES = 3
+const MAX_FILTER_RETRIES = 2
 const STALL_TIMEOUT_MS = 30_000
+
+const RETRYABLE_ERROR_TYPES = new Set(["SAFETY", "RECITATION", "content_filter"])
+
+const findRetryableError = (blocks: Block[]): ErrorBlock | undefined =>
+  blocks.find(
+    (b): b is ErrorBlock => b.type === "error" && RETRYABLE_ERROR_TYPES.has(b.errorType ?? "")
+  )
 
 export class StallError extends Error {
   constructor(message: string) {
@@ -223,14 +231,22 @@ export const callLlm = async (options: CallLlmOptions): Promise<Block[]> => {
   }
 
   const t0 = performance.now()
-  let blocks: Block[]
+  let blocks!: Block[]
 
-  try {
-    blocks = await executeLlmCall(options, body)
-  } catch (err) {
-    if (!isStallError(err)) throw err
-    console.warn(`[LLM ${options.endpoint}] stall detected, retrying once`)
-    blocks = await executeLlmCall(options, body)
+  for (let attempt = 0; attempt <= MAX_FILTER_RETRIES; attempt++) {
+    try {
+      blocks = await executeLlmCall(options, body)
+    } catch (err) {
+      if (!isStallError(err) || attempt === MAX_FILTER_RETRIES) throw err
+      console.warn(`[LLM ${options.endpoint}] stall detected, retry ${attempt + 1}`)
+      continue
+    }
+
+    const retryable = findRetryableError(blocks)
+    if (!retryable || attempt === MAX_FILTER_RETRIES) break
+    console.warn(
+      `[LLM ${options.endpoint}] content filter (${retryable.errorType}), retry ${attempt + 1}`
+    )
   }
 
   const duration = Math.round(performance.now() - t0)

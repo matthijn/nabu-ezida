@@ -133,10 +133,16 @@ export const processLine = (
     }
 
     if (state.currentEvent === "response.failed") {
-      const message = parsed?.response?.error?.message
-      if (message) {
+      const error = parsed?.response?.error
+      if (error?.message) {
         const flushed = flushReasoning(flushText(flushToolCalls(state)))
-        return { ...flushed, blocks: [...flushed.blocks, { type: "error", content: message }] }
+        return {
+          ...flushed,
+          blocks: [
+            ...flushed.blocks,
+            { type: "error", content: error.message, errorType: error.type },
+          ],
+        }
       }
       return state
     }

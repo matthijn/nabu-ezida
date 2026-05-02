@@ -116,7 +116,7 @@ const buildSpanStepSchema = (validCodes: string[]) =>
       z.object({
         id: z.number().int().min(1),
         code: validCodes.length > 0 ? z.enum(validCodes as [string, ...string[]]) : z.string(),
-        text: z.string(),
+        justification: z.string(),
       })
     ),
   })
@@ -166,7 +166,7 @@ const runSpanStep = async (
     const m = mapping.find((entry) => entry.index === r.id)
     if (!m) continue
     const key = spanKey(m.start, m.end, r.code)
-    values.set(key, r.text)
+    values.set(key, r.justification)
   }
 
   if (values.size > 0) {

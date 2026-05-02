@@ -150,7 +150,7 @@ describe("toGroupedMessages", () => {
   describe("messages before and after plan", () => {
     const cases = [
       {
-        name: "assistant text in silent steps is hidden",
+        name: "assistant text in silent steps is visible as plan items",
         history: [
           userBlock("Before plan"),
           textBlock("Response before"),
@@ -162,7 +162,7 @@ describe("toGroupedMessages", () => {
           expect(result[1].type).toBe("text")
           expect(result[2].type).toBe("plan-header")
           const textItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
-          expect(textItems).toHaveLength(0)
+          expect(textItems).toHaveLength(1)
         },
       },
       {
@@ -200,7 +200,7 @@ describe("toGroupedMessages", () => {
         ],
         check: (result: GroupedMessage[]) => {
           const planItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
-          expect(planItems).toHaveLength(0)
+          expect(planItems).toHaveLength(1)
           const leaves = result.filter((m) => m.type === "text")
           expect(leaves).toHaveLength(2)
           expect(leaves[0]).toEqual({ type: "text", role: "user", content: "After completion" })
@@ -271,13 +271,13 @@ describe("toGroupedMessages", () => {
   describe("streaming not in message list", () => {
     const cases = [
       {
-        name: "assistant text in silent step is hidden from grouped output",
+        name: "assistant text in silent step is visible in grouped output",
         history: [...submitPlanCall("Task", ["Step 1"]), textBlock("Working")],
         check: (result: GroupedMessage[]) => {
           const textItems = result.filter(
             (m) => (m.type === "plan-item" && m.child.type === "text") || m.type === "text"
           )
-          expect(textItems).toHaveLength(0)
+          expect(textItems).toHaveLength(1)
         },
       },
     ]

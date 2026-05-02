@@ -266,7 +266,7 @@ describe("parser", () => {
 
       expect(blocks).toEqual([
         { type: "text", content: "partial" },
-        { type: "error", content: "output blocked by safety filter" },
+        { type: "error", content: "output blocked by safety filter", errorType: "SAFETY" },
       ])
     })
 
@@ -276,7 +276,41 @@ describe("parser", () => {
         'data: {"response":{"status":"failed","error":{"type":"stream_error","message":"connection reset"}}}',
       ])
 
-      expect(blocks).toEqual([{ type: "error", content: "connection reset" }])
+      expect(blocks).toEqual([
+        { type: "error", content: "connection reset", errorType: "stream_error" },
+      ])
+    })
+
+    const errorTypeCases = [
+      {
+        name: "captures content_filter errorType",
+        errorPayload: '{"type":"content_filter","message":"output blocked by content filter"}',
+        expectedErrorType: "content_filter",
+        expectedMessage: "output blocked by content filter",
+      },
+      {
+        name: "captures RECITATION errorType",
+        errorPayload: '{"type":"RECITATION","message":"output blocked by recitation filter"}',
+        expectedErrorType: "RECITATION",
+        expectedMessage: "output blocked by recitation filter",
+      },
+      {
+        name: "handles missing error type gracefully",
+        errorPayload: '{"message":"something went wrong"}',
+        expectedErrorType: undefined,
+        expectedMessage: "something went wrong",
+      },
+    ]
+
+    it.each(errorTypeCases)("$name", ({ errorPayload, expectedErrorType, expectedMessage }) => {
+      const blocks = flushBlocks([
+        "event: response.failed",
+        `data: {"response":{"status":"failed","error":${errorPayload}}}`,
+      ])
+
+      expect(blocks).toEqual([
+        { type: "error", content: expectedMessage, errorType: expectedErrorType },
+      ])
     })
   })
 

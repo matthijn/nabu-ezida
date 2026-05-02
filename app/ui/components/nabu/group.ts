@@ -148,27 +148,6 @@ const buildPlanHeader = (plan: DerivedPlan): PlanHeader => ({
   aborted: plan.aborted,
 })
 
-const stepIndexAtBlock = (blockIndex: number, transitions: StepTransition[]): number => {
-  let stepIndex = 0
-  for (const t of transitions) {
-    if (blockIndex >= t.blockIndex) stepIndex = t.newStep
-  }
-  return stepIndex
-}
-
-const isSilentStep = (stepIndex: number, plan: DerivedPlan): boolean => {
-  const step = plan.steps[stepIndex]
-  if (!step) return false
-  return !step.checkpoint
-}
-
-const isSilentAssistantLeaf = (
-  leaf: Indexed<LeafMessage>,
-  plan: DerivedPlan,
-  transitions: StepTransition[]
-): boolean =>
-  leaf.message.role === "assistant" && isSilentStep(stepIndexAtBlock(leaf.index, transitions), plan)
-
 const buildPlanEntries = (
   range: PlanRange,
   leaves: Indexed<LeafMessage>[],
@@ -205,11 +184,7 @@ const buildPlanEntries = (
     }
   })
 
-  const visibleLeaves = leaves.filter((l) => {
-    if (!isSilentAssistantLeaf(l, plan, transitions)) return true
-    console.log("[plan] hiding assistant text in silent step:", l.message.content.slice(0, 80))
-    return false
-  })
+  const visibleLeaves = leaves
 
   const leafEntries: FlatEntry[] = visibleLeaves.map((l) => ({
     blockIndex: l.index,

@@ -3,7 +3,7 @@ import type { HandlerResult } from "../../types"
 import type { FileEntry } from "../file-entry"
 import type { ScoutEntry } from "../scout/api"
 import { planDeepAnalysisTool, PlanDeepAnalysisArgs } from "./def"
-import { registerTool, tool } from "../../executors/tool"
+import { registerTool, tool, type SyntheticCall } from "../../executors/tool"
 import { scoutFile, formatScoutEntry } from "../scout/api"
 import { getFileView } from "../file-view"
 import { getFile } from "~/lib/files"
@@ -14,6 +14,7 @@ import { PREFERENCES_FILE } from "~/lib/files/filename"
 import { getFiles } from "~/lib/files/store"
 import { formatTarget, collectSections, buildAutoSteps, EXEC_RULES } from "./format"
 import type { SourceEntry } from "./format"
+import { derive, lastPlan } from "../../derived"
 
 const toSystemBlock = (content: string): Block => ({ type: "system", content })
 
@@ -47,10 +48,18 @@ const isMemoryRecent = (blocks: Block[]): boolean => {
   return false
 }
 
+const planPostHook = (blocks: Block[]): SyntheticCall | null => {
+  const plan = lastPlan(derive(blocks).plans)
+  if (!plan || plan.currentStep === null) return null
+  const step = plan.steps[plan.currentStep]
+  return step?.call ?? null
+}
+
 registerTool(
   tool({
     ...planDeepAnalysisTool,
     schema: PlanDeepAnalysisArgs,
+    post: planPostHook,
     handler: async (_files, { source_files, target_files, post_action }) => {
       const allFiles = [...source_files, ...target_files]
       const missing = findMissingFiles(allFiles)

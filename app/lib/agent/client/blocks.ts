@@ -50,6 +50,7 @@ export interface EmptyNudgeBlock {
 export interface ErrorBlock {
   type: "error"
   content: string
+  errorType?: string
 }
 
 export interface DebugPauseBlock {

@@ -56,6 +56,16 @@ const toAnalysisStep = (
   title: m.label,
   expected: `apply_deep_analysis(path="${m.path}", start_line=${m.startLine}, end_line=${m.endLine}, source_files=${formatSourceArg(sources)}, post_action="${postAction}")`,
   checkpoint: false,
+  call: {
+    name: "apply_deep_analysis",
+    args: {
+      path: m.path,
+      start_line: m.startLine,
+      end_line: m.endLine,
+      source_files: sources.map((s) => ({ path: s.path, scope: s.scope })),
+      post_action: postAction,
+    },
+  },
 })
 
 const SYNTHESIS_STEP: StepDefObject = {
