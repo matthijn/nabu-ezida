@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { jsonSchemaToTableProjection, tableSchemaToDdl } from "./ddl"
+import { jsonSchemaToTableProjection, tableSchemaToDdl, tableSchemaToDescribe } from "./ddl"
 import type { JsonSchema } from "./types"
 
 describe("jsonSchemaToTableProjection", () => {
@@ -255,5 +255,42 @@ describe("tableSchemaToDdl", () => {
 
   it.each(cases)("$name", ({ schema, expected }) => {
     expect(tableSchemaToDdl(schema)).toBe(expected)
+  })
+})
+
+describe("tableSchemaToDescribe", () => {
+  const cases = [
+    {
+      name: "simple table with mixed nullability",
+      schema: {
+        name: "items",
+        columns: [
+          { name: "file", type: "VARCHAR" as const, nullable: false },
+          { name: "name", type: "VARCHAR" as const, nullable: false },
+          { name: "count", type: "INTEGER" as const, nullable: true },
+        ],
+      },
+      expected: [
+        "items",
+        "  file VARCHAR NOT NULL",
+        "  name VARCHAR NOT NULL",
+        "  count INTEGER",
+      ].join("\n"),
+    },
+    {
+      name: "table with LIST column",
+      schema: {
+        name: "doc",
+        columns: [
+          { name: "file", type: "VARCHAR" as const, nullable: false },
+          { name: "tags", type: "VARCHAR[]" as const, nullable: true },
+        ],
+      },
+      expected: ["doc", "  file VARCHAR NOT NULL", "  tags VARCHAR[]"].join("\n"),
+    },
+  ]
+
+  it.each(cases)("$name", ({ schema, expected }) => {
+    expect(tableSchemaToDescribe(schema)).toBe(expected)
   })
 })

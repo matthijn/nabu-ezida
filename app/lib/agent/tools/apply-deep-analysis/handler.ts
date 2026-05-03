@@ -26,7 +26,7 @@ import {
   runDimensionPipeline,
   mergeDimensionResults,
   runReasonStep,
-  runReviewStep,
+  runReviewFilter,
 } from "./pipeline"
 
 interface PostActionCtx {
@@ -203,17 +203,32 @@ registerTool(
       if (allSpans.length === 0 && calls.length > 0 && findErrors.length > 0)
         return { status: "error", output: findErrors.join("; "), mutations: [] }
 
-      const [reasonResult, reviewResult] = await Promise.allSettled([
-        runReasonStep(allSpans, sentences, scoped, leadingCtx, trailingCtx, resolve),
-        runReviewStep(allSpans, sentences, scoped, leadingCtx, trailingCtx, resolve),
-      ])
+      const { surviving, dropped } = await runReviewFilter(
+        allSpans,
+        sentences,
+        scoped,
+        leadingCtx,
+        trailingCtx,
+        resolve
+      )
 
-      const reasons =
-        reasonResult.status === "fulfilled" ? reasonResult.value.values : new Map<string, string>()
-      const reviews =
-        reviewResult.status === "fulfilled" ? reviewResult.value.values : new Map<string, string>()
+      for (const d of dropped) {
+        const text = sentences.slice(d.start - 1, d.end).join(" ")
+        console.debug(
+          `[deep-review] dropped [${d.start}-${d.end}] ${d.analysis_source_id}: ${text}`
+        )
+      }
 
-      const analysisResults = toAnalysisResults(allSpans, reasons, reviews)
+      const reasonResult = await runReasonStep(
+        surviving,
+        sentences,
+        scoped,
+        leadingCtx,
+        trailingCtx,
+        resolve
+      )
+
+      const analysisResults = toAnalysisResults(surviving, reasonResult.values)
       const mapped = mapResults(sentences, analysisResults)
 
       return postActions[post_action]({

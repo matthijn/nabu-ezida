@@ -81,6 +81,11 @@ export const tableSchemaToDdl = (schema: TableSchema): string => {
   return `CREATE OR REPLACE TABLE ${schema.name} (\n${columns}\n);`
 }
 
+export const tableSchemaToDescribe = (schema: TableSchema): string => {
+  const columns = schema.columns.map(columnDdl).join("\n")
+  return `${schema.name}\n${columns}`
+}
+
 export const projectionToDdl = (tableName: string, jsonSchema: JsonSchema): string => {
   const { schemas } = jsonSchemaToTableProjection(tableName, jsonSchema)
   return schemas.map(tableSchemaToDdl).join("\n\n")

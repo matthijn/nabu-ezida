@@ -1,14 +1,6 @@
 import { z } from "zod"
-import type { Block } from "../client"
 import type { Handler, HandlerResult, RawFiles, Operation } from "../types"
 import { checkGuidance } from "./guidance"
-
-export interface SyntheticCall {
-  name: string
-  args: Record<string, unknown>
-}
-
-export type PostHook = (blocks: Block[]) => SyntheticCall | null
 
 interface ToolDef<TSchema extends z.ZodType, TOutput> {
   name: string
@@ -16,7 +8,6 @@ interface ToolDef<TSchema extends z.ZodType, TOutput> {
   schema: TSchema
   handler: (files: RawFiles, args: z.infer<TSchema>) => Promise<HandlerResult<TOutput>>
   requiresGuidance?: (files: RawFiles, args: z.infer<TSchema>) => string[]
-  post?: PostHook
 }
 
 type Tool<TSchema extends z.ZodType, TOutput> = ToolDef<TSchema, TOutput> & {
@@ -125,17 +116,13 @@ export const toToolDefinition = (t: AnyTool): ToolDefinition => {
 }
 
 const registry: Tool<z.ZodType, unknown>[] = []
-const postHooks: Record<string, PostHook> = {}
 
 export const registerTool = <TSchema extends z.ZodType, TOutput>(
   t: Tool<TSchema, TOutput>
 ): Tool<TSchema, TOutput> => {
   registry.push(t as Tool<z.ZodType, unknown>)
-  if (t.post) postHooks[t.name] = t.post
   return t
 }
-
-export const getPostHook = (name: string): PostHook | undefined => postHooks[name]
 
 export const getToolHandlers = (): Record<string, Handler> =>
   Object.fromEntries(registry.map((t) => [t.name, t.handle]))

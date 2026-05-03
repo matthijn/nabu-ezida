@@ -123,7 +123,7 @@ describe("compactHistory", () => {
       expected: [
         systemBlock(
           "We are analyzing data\n\nActive plan: Analyze data\n" +
-            "[    ] Read files\n" +
+            "[now ] Read files\n" +
             "[    ] Process data"
         ),
         userBlock("go"),

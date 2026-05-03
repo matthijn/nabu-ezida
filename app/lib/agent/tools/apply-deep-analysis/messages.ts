@@ -153,7 +153,19 @@ const FIND_CTA =
 export const REASON_CTA =
   "For each coded section, provide a one-sentence reason why it matches the assigned code. Return results as JSON."
 
-export const REVIEW_CTA = "Review the coded sections. Return results as JSON."
+export const REVIEW_CTA =
+  "For each coded section, judge whether the passage satisfies the code definition. Return only items that fail. Return results as JSON."
+
+export const buildReviewFilterSchema = (validCodes: string[]) =>
+  z.object({
+    results: z.array(
+      z.object({
+        id: z.number().int().min(1),
+        code: validCodes.length > 0 ? z.enum(validCodes as [string, ...string[]]) : z.string(),
+        removalJustification: z.string(),
+      })
+    ),
+  })
 
 export const buildFindMessages = (
   numbered: string,

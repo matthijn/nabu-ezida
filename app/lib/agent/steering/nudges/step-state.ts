@@ -3,13 +3,20 @@ import type { FileStore } from "~/lib/files"
 import type { DerivedPlan, Step } from "../../derived"
 import { derive, lastPlan, hasActivePlan } from "../../derived"
 
-const formatStepLine = (step: Step): string =>
-  step.done ? `[done] ${step.description}` : `[    ] ${step.description}`
+const formatStepLine = (step: Step, isCurrent: boolean): string => {
+  const tag = step.done ? "[done]" : isCurrent ? "[now ]" : "[    ]"
+  return `${tag} ${step.description}`
+}
 
 export const formatStepProgress = (plan: DerivedPlan): string =>
-  plan.steps.map(formatStepLine).join("\n")
+  plan.steps.map((step, i) => formatStepLine(step, i === plan.currentStep)).join("\n")
 
-const stepMarker = (stepIndex: number): string => `[step:${stepIndex}]`
+const formatDirective = (plan: DerivedPlan, stepIndex: number): string => {
+  const step = plan.steps[stepIndex]
+  return `Current step (${stepIndex + 1}): "${step.description}" — call complete-step when done.`
+}
+
+const stepMarker = (stepIndex: number): string => `[step:${stepIndex + 1}]`
 
 export const createStepStateNudge =
   (getFiles: () => FileStore): Nudger =>
@@ -25,6 +32,7 @@ export const createStepStateNudge =
     const marker = stepMarker(plan.currentStep)
     if (alreadyFired(history, marker)) return null
 
+    const directive = formatDirective(plan, plan.currentStep)
     const progress = formatStepProgress(plan)
-    return systemNudge([marker, progress].join("\n"))
+    return systemNudge([marker, directive, "", progress].join("\n"))
   }

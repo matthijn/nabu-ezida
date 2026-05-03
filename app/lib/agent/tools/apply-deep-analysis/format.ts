@@ -11,14 +11,12 @@ export interface AnalysisResult {
   end: number
   analysis_source_id: string
   reason: string
-  review?: string
 }
 
 export interface MappedResult {
   text: string
   analysis_source_id: string
   reason: string
-  review?: string
 }
 
 export interface AnnotationRef {
@@ -89,13 +87,13 @@ export const mapResults = (sentences: string[], results: AnalysisResult[]): Mapp
   results.flatMap((r) => {
     const spans = sentences.slice(r.start - 1, r.end)
     if (spans.length === 0) return []
-    const mapped: MappedResult = {
-      text: spans.join(" "),
-      analysis_source_id: r.analysis_source_id,
-      reason: r.reason,
-    }
-    if (r.review) mapped.review = r.review
-    return [mapped]
+    return [
+      {
+        text: spans.join(" "),
+        analysis_source_id: r.analysis_source_id,
+        reason: r.reason,
+      },
+    ]
   })
 
 interface AddAnnotationOp {
@@ -105,31 +103,28 @@ interface AddAnnotationOp {
     reason: string
     code?: string
     color?: string
-    review?: string
   }
 }
 
 const DEFAULT_COMMENT_COLOR = "blue"
 
-const toCodeAnnotation = (result: MappedResult): AddAnnotationOp => {
-  const item: AddAnnotationOp["item"] = {
+const toCodeAnnotation = (result: MappedResult): AddAnnotationOp => ({
+  op: "add_annotation",
+  item: {
     text: result.text,
     reason: result.reason,
     code: result.analysis_source_id,
-  }
-  if (result.review) item.review = result.review
-  return { op: "add_annotation", item }
-}
+  },
+})
 
-const toCommentAnnotation = (result: MappedResult): AddAnnotationOp => {
-  const item: AddAnnotationOp["item"] = {
+const toCommentAnnotation = (result: MappedResult): AddAnnotationOp => ({
+  op: "add_annotation",
+  item: {
     text: result.text,
     reason: `[${result.analysis_source_id}] ${result.reason}`,
     color: DEFAULT_COMMENT_COLOR,
-  }
-  if (result.review) item.review = result.review
-  return { op: "add_annotation", item }
-}
+  },
+})
 
 const annotationBuilders: Record<
   "annotate_as_code" | "annotate_as_comment",
@@ -207,18 +202,11 @@ export const spanKey = (start: number, end: number, code: string): string =>
 
 export const toAnalysisResults = (
   spans: FindResult[],
-  reasons: Map<string, string>,
-  reviews: Map<string, string>
+  reasons: Map<string, string>
 ): AnalysisResult[] =>
-  spans.map((s) => {
-    const key = spanKey(s.start, s.end, s.analysis_source_id)
-    const result: AnalysisResult = {
-      start: s.start,
-      end: s.end,
-      analysis_source_id: s.analysis_source_id,
-      reason: reasons.get(key) ?? "",
-    }
-    const review = reviews.get(key)
-    if (review) result.review = review
-    return result
-  })
+  spans.map((s) => ({
+    start: s.start,
+    end: s.end,
+    analysis_source_id: s.analysis_source_id,
+    reason: reasons.get(spanKey(s.start, s.end, s.analysis_source_id)) ?? "",
+  }))

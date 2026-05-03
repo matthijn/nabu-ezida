@@ -3,9 +3,14 @@ import { debounce } from "~/lib/utils/debounce"
 import { initializeDatabase } from "~/lib/db/init"
 import { computeSyncPlan, syncFiles, batchSyncPlan, type ProjectionWithSchema } from "~/lib/db/sync"
 import { executeWithConnection } from "~/lib/db/query"
-import { jsonSchemaToTableProjection, tableSchemaToDdl, filterHiddenColumns } from "~/lib/db/ddl"
+import {
+  jsonSchemaToTableProjection,
+  tableSchemaToDdl,
+  tableSchemaToDescribe,
+  filterHiddenColumns,
+} from "~/lib/db/ddl"
 import { getProjections, toJsonSchema } from "./projections"
-import type { Database } from "~/lib/db/types"
+import type { Database, TableSchema } from "~/lib/db/types"
 
 const buildProjectionsWithSchemas = (): ProjectionWithSchema[] =>
   getProjections().map((config) => {
@@ -127,24 +132,19 @@ export const startBackgroundSync = (): void => {
 
 export const getDatabase = (): Database | null => database
 
-const stripCreateNoise = (ddl: string): string =>
-  ddl.replace(/CREATE OR REPLACE TABLE/g, "CREATE TABLE")
-
 const isExposed = (p: ProjectionWithSchema): boolean => p.config.expose !== false
 
-const generateExposedDdl = (withSchemas: ProjectionWithSchema[]): string => {
-  const schemas = withSchemas.flatMap((p) => {
+const collectExposedSchemas = (withSchemas: ProjectionWithSchema[]): TableSchema[] =>
+  withSchemas.flatMap((p) => {
     const hidden = p.config.hiddenColumns ?? []
     return hidden.length > 0 ? p.schemas.map((s) => filterHiddenColumns(s, hidden)) : p.schemas
   })
-  return schemas.map(tableSchemaToDdl).join("\n\n")
-}
 
-let cachedDdl: string | null = null
+let cachedSchema: string | null = null
 
-export const getDatabaseDdl = (): string => {
-  if (cachedDdl) return cachedDdl
+export const getDatabaseSchema = (): string => {
+  if (cachedSchema) return cachedSchema
   const exposed = buildProjectionsWithSchemas().filter(isExposed)
-  cachedDdl = stripCreateNoise(generateExposedDdl(exposed))
-  return cachedDdl
+  cachedSchema = collectExposedSchemas(exposed).map(tableSchemaToDescribe).join("\n\n")
+  return cachedSchema
 }

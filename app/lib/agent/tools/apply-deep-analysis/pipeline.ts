@@ -7,6 +7,7 @@ import {
   type ContentResolver,
   buildFindCall,
   buildFindResultSchema,
+  buildReviewFilterSchema,
   buildSpanStepMessages,
   extractSourceIds,
   buildSourceTitleMap,
@@ -15,6 +16,7 @@ import {
 } from "./messages"
 import {
   tallyVotes,
+  countKeys,
   filterByTally,
   groupBySpan,
   type FindResult,
@@ -98,8 +100,6 @@ const runFindRuns = async (
   )
   return { runs: results, errors }
 }
-
-const isMultiCoded = (span: CodedSpan): boolean => span.codings.length > 1
 
 const collectCodeIds = (spans: CodedSpan[]): Set<string> => {
   const ids = new Set<string>()
@@ -198,28 +198,97 @@ export const runReasonStep = async (
   )
 }
 
-export const runReviewStep = async (
+export interface ReviewFilterResult {
+  surviving: FindResult[]
+  dropped: FindResult[]
+}
+
+const REVIEW_RUNS = 3
+const REVIEW_THRESHOLD = 2
+
+const mapReviewResults = (
+  results: { id: number; code: string }[],
+  mapping: { index: number; start: number; end: number }[]
+): string[] =>
+  results.flatMap((r) => {
+    const m = mapping.find((entry) => entry.index === r.id)
+    return m ? [spanKey(m.start, m.end, r.code)] : []
+  })
+
+export const runReviewFilter = async (
   allSpans: FindResult[],
   sentences: string[],
   sources: ScopedSources,
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver
-): Promise<{ values: Map<string, string>; error?: string }> => {
+): Promise<ReviewFilterResult> => {
   const grouped = groupBySpan(allSpans)
-  const multiCoded = grouped.filter(isMultiCoded)
-  if (multiCoded.length === 0) return { values: new Map() }
-  return runSpanStep(
-    "review",
-    multiCoded,
-    REVIEW_ENDPOINT,
-    REVIEW_CTA,
+  if (grouped.length === 0) return { surviving: [], dropped: [] }
+
+  const codeIds = collectCodeIds(grouped)
+  const codedItems = toCodedItems(grouped)
+  const { text: presented, mapping } = formatCodedSection(
     sentences,
+    codedItems,
+    SPAN_STEP_CONTEXT_SENTENCES
+  )
+
+  const messages = buildSpanStepMessages(
+    presented,
+    codeIds,
     sources,
     leadingCtx,
     trailingCtx,
-    resolve
+    resolve,
+    REVIEW_CTA
   )
+
+  const validCodes = [...codeIds]
+  const schema = buildReviewFilterSchema(validCodes)
+  const errors: string[] = []
+  const slots = Array.from({ length: REVIEW_RUNS }, (_, i) => i)
+  const { results: runs } = await processPool<number, string[]>(
+    slots,
+    async () => {
+      const result = await callAndParse(REVIEW_ENDPOINT, messages, schema)
+      if (!result.ok) {
+        errors.push(result.error)
+        return []
+      }
+      return [mapReviewResults(result.data.results, mapping)]
+    },
+    noop,
+    { concurrency: 3, warmup: 1 }
+  )
+
+  if (runs.length < REVIEW_RUNS) {
+    console.debug(`[deep-review] ${runs.length}/${REVIEW_RUNS} runs (insufficient, keeping all)`)
+    return { surviving: allSpans, dropped: [] }
+  }
+
+  const votes = countKeys(runs)
+  const rejected = new Set(
+    [...votes.entries()].filter(([, v]) => v >= REVIEW_THRESHOLD).map(([k]) => k)
+  )
+
+  for (const [key, count] of votes) {
+    const verdict = rejected.has(key) ? "reject" : "keep"
+    console.debug(`[deep-review] ${key} ${count}/${REVIEW_RUNS} → ${verdict}`)
+  }
+
+  const surviving: FindResult[] = []
+  const dropped: FindResult[] = []
+  for (const span of allSpans) {
+    const key = spanKey(span.start, span.end, span.analysis_source_id)
+    if (rejected.has(key)) {
+      dropped.push(span)
+    } else {
+      surviving.push(span)
+    }
+  }
+
+  return { surviving, dropped }
 }
 
 export const runDimensionPipeline = async (

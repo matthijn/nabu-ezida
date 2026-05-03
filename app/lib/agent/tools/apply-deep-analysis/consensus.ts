@@ -84,3 +84,16 @@ export const consensus = (
   sentenceCount: number,
   threshold: number
 ): FindResult[] => filterByTally(tallyVotes(runs, sentenceCount), threshold)
+
+export const countKeys = (runs: string[][]): Map<string, number> => {
+  const counts = new Map<string, number>()
+  for (const run of runs) {
+    const seen = new Set<string>()
+    for (const key of run) {
+      if (seen.has(key)) continue
+      seen.add(key)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+  return counts
+}

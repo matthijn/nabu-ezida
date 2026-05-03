@@ -9,7 +9,12 @@ export {
   type Database,
 } from "./types"
 export { type ProjectionConfig } from "./projection"
-export { jsonSchemaToTableProjection, tableSchemaToDdl, projectionToDdl } from "./ddl"
+export {
+  jsonSchemaToTableProjection,
+  tableSchemaToDdl,
+  tableSchemaToDescribe,
+  projectionToDdl,
+} from "./ddl"
 export { extractRows } from "./extract"
 export { computeSyncPlan, syncFiles, type SyncPlan, type ProjectionWithSchema } from "./sync"
 export { executeQuery, executeWithConnection, type RunSql, type DbConnection } from "./query"

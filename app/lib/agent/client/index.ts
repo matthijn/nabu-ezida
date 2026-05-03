@@ -30,7 +30,7 @@ export {
   subscribeBlocks,
 } from "./store"
 
-export { callLlm, formatBlockSchemasContent, formatDatabaseDdlContent } from "./fetch"
+export { callLlm, formatBlockSchemasContent, formatDatabaseSchemaContent } from "./fetch"
 export { type RawLlmCall, getRawCalls, clearRawCalls, subscribeRawCalls } from "./raw-store"
 export type { ParseCallbacks } from "./parse"
 export { initialParseState, processLine, stateToBlocks } from "./parse"

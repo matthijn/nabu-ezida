@@ -9,7 +9,7 @@ import { useDraggable } from "~/ui/hooks/useDraggable"
 import { toToolDefinition } from "~/lib/agent/executors/tool"
 import { deriveMode, modes } from "~/lib/agent/executors/modes"
 import { getBlockSchemaDefinitions } from "~/lib/data-blocks/registry"
-import { getDatabaseDdl } from "~/domain/db/database"
+import { getDatabaseSchema } from "~/domain/db/database"
 import {
   getAllBlocksWithDraft,
   subscribeBlocks,
@@ -17,7 +17,7 @@ import {
   clearPauseBlocks,
   getSource,
   formatBlockSchemasContent,
-  formatDatabaseDdlContent,
+  formatDatabaseSchemaContent,
 } from "~/lib/agent/client"
 import { isErrorResult, isDebugPauseBlock } from "~/lib/agent"
 import type { Block, ToolCall } from "~/lib/agent/client"
@@ -87,7 +87,7 @@ const formatToolDefinitions = (mode: string): string =>
 const formatBlockSchemaDefinitions = (): string =>
   formatBlockSchemasContent(getBlockSchemaDefinitions())
 
-const formatDatabaseSchema = (): string => formatDatabaseDdlContent(getDatabaseDdl())
+const formatDatabaseSchema = (): string => formatDatabaseSchemaContent(getDatabaseSchema())
 
 const formatBlock = (block: Block): string => {
   switch (block.type) {

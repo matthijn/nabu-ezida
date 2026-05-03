@@ -6,7 +6,7 @@ import { callLlm } from "./fetch"
 import { blocksToMessages } from "./convert"
 import { pushBlocks } from "./store"
 import { executeTool, trimErrorOutput, type ToolExecutor } from "../turn"
-import { formatZodError, getPostHook, type ToolDefinition } from "../executors/tool"
+import { formatZodError, type ToolDefinition } from "../executors/tool"
 import type { BlockSchemaDefinition } from "~/lib/data-blocks/json-schema"
 import { isToolCallBlock } from "../derived"
 import { yieldToBrowser } from "~/lib/utils/async"
@@ -17,7 +17,7 @@ interface CallerConfig {
   tools?: ToolDefinition[]
   toolSchemas?: Record<string, z.ZodType>
   blockSchemas?: BlockSchemaDefinition[]
-  databaseDdl?: string
+  databaseSchema?: string
   execute?: ToolExecutor
   responseFormat?: ResponseFormat
   callbacks?: ParseCallbacks
@@ -84,40 +84,6 @@ const partitionCalls = (
   }
 }
 
-let syntheticSeq = 0
-const syntheticId = (): string => `call_syn_${++syntheticSeq}`
-
-const isErrorToolResult = (result: ToolResultBlock): boolean =>
-  (result.result as { status?: string })?.status === "error"
-
-const executePostHooks = async (
-  calls: ToolCall[],
-  results: ToolResultBlock[],
-  execute: ToolExecutor,
-  readBlocks: () => Block[],
-  source: string
-): Promise<Block[]> => {
-  const output: Block[] = []
-  for (let i = 0; i < calls.length; i++) {
-    if (isErrorToolResult(results[i])) continue
-    const hook = getPostHook(calls[i].name)
-    if (!hook) continue
-    const next = hook(readBlocks())
-    if (!next) continue
-
-    const id = syntheticId()
-    const toolCall: ToolCall = { id, name: next.name, args: next.args }
-    const callBlock: Block = { type: "tool_call" as const, calls: [toolCall] }
-    pushBlocks([callBlock], source)
-    output.push(callBlock)
-
-    const [synResult] = await executeToolCalls([toolCall], execute)
-    pushBlocks([synResult], source)
-    output.push(synResult)
-  }
-  return output
-}
-
 interface ValidatedBlocks {
   committed: Block[]
   validCalls: ToolCall[]
@@ -147,7 +113,7 @@ export const buildCaller =
       messages: blocksToMessages(history),
       tools: config.tools,
       blockSchemas: config.blockSchemas,
-      databaseDdl: config.databaseDdl,
+      databaseSchema: config.databaseSchema,
       responseFormat: config.responseFormat,
       callbacks: config.callbacks,
       signal,
@@ -164,14 +130,7 @@ export const buildCaller =
     if (validCalls.length > 0 && config.execute) {
       const results = await executeToolCalls(validCalls, config.execute)
       pushBlocks(results, source)
-      const postBlocks = await executePostHooks(
-        validCalls,
-        results,
-        config.execute,
-        config.readBlocks,
-        source
-      )
-      return [...blocks, ...validationErrors, ...results, ...postBlocks]
+      return [...blocks, ...validationErrors, ...results]
     }
 
     return [...blocks, ...validationErrors]

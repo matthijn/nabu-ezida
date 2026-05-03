@@ -193,7 +193,6 @@ export {
   type Step,
   type StepDef,
   type StepDefObject,
-  type StepCall,
   serializePlanBlock,
   lastPlan,
   hasActivePlan,

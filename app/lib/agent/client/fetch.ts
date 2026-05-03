@@ -130,7 +130,7 @@ interface CallLlmOptions {
   messages: InputItem[]
   tools?: ToolDefinition[]
   blockSchemas?: BlockSchemaDefinition[]
-  databaseDdl?: string
+  databaseSchema?: string
   responseFormat?: ResponseFormat
   temperature?: number
   callbacks?: ParseCallbacks
@@ -152,8 +152,8 @@ const formatBlockSchema = (s: BlockSchemaDefinition): string => {
 export const formatBlockSchemasContent = (schemas: BlockSchemaDefinition[]): string =>
   `Document block schemas:\n\n${schemas.map(formatBlockSchema).join("\n\n")}`
 
-export const formatDatabaseDdlContent = (ddl: string): string =>
-  `Database tables (DuckDB SQL):\n\n${ddl}`
+export const formatDatabaseSchemaContent = (schema: string): string =>
+  `Database schema (DuckDB):\n\n${schema}`
 
 const toSystemMessage = (content: string): InputItem => ({
   type: "message",
@@ -165,8 +165,8 @@ const buildRequestBody = (options: CallLlmOptions): string => {
   const extras: InputItem[] = []
   if (options.blockSchemas?.length)
     extras.push(toSystemMessage(formatBlockSchemasContent(options.blockSchemas)))
-  if (options.databaseDdl)
-    extras.push(toSystemMessage(formatDatabaseDdlContent(options.databaseDdl)))
+  if (options.databaseSchema)
+    extras.push(toSystemMessage(formatDatabaseSchemaContent(options.databaseSchema)))
   const messages = extras.length > 0 ? [...extras, ...options.messages] : options.messages
   const body: Record<string, unknown> = { messages }
   if (options.tools) body.tools = options.tools
@@ -199,6 +199,7 @@ const UNCACHEABLE_ENDPOINTS = [
   "/semantic-filter",
   "/write-answer",
   "/deep-analysis-find",
+  "/deep-analysis-review",
 ]
 
 const isCacheable = (options: CallLlmOptions): boolean =>

@@ -1,13 +1,7 @@
-export interface StepCall {
-  name: string
-  args: Record<string, unknown>
-}
-
 export interface StepDefObject {
   title: string
   expected: string
   checkpoint?: boolean
-  call?: StepCall
 }
 export interface StepDefNested {
   nested: StepDefObject[]
@@ -22,7 +16,6 @@ export interface Step {
   done: boolean
   internal: string | null
   summary: string | null
-  call?: StepCall
 }
 
 export interface DerivedPlan {
@@ -62,7 +55,6 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
           done: false,
           internal: null,
           summary: null,
-          call: innerDef.call,
         })
       })
     } else {
@@ -74,7 +66,6 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
         done: false,
         internal: null,
         summary: null,
-        call: def.call,
       })
     }
     topIndex++
