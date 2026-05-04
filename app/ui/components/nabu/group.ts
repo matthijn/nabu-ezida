@@ -162,26 +162,45 @@ const buildPlanEntries = (
     item: buildPlanHeader(plan),
   }
 
-  const stepActivations: FlatEntry[] = plan.steps.map((step, i) => {
-    const activation =
+  const makeStepEntry = (
+    step: Step,
+    i: number,
+    blockIndex: number,
+    summary: string | null
+  ): FlatEntry => ({
+    blockIndex,
+    item: toItem(
+      {
+        type: "plan-step" as const,
+        description: step.description,
+        summary,
+        status: getStepStatus(step, i, plan.currentStep, plan.aborted),
+        nested: step.id.includes("."),
+        checkpoint: step.checkpoint,
+      },
+      false
+    ),
+  })
+
+  const stepActivations: FlatEntry[] = plan.steps.flatMap((step, i) => {
+    const startPosition =
       i === 0
         ? startIndex
         : (transitions.find((t) => t.newStep === i)?.blockIndex ??
           endIndex - (totalSteps - i) * 0.001)
-    return {
-      blockIndex: activation,
+
+    const completionTransition = step.done ? transitions.find((t) => t.newStep === i + 1) : null
+
+    if (!completionTransition) return [makeStepEntry(step, i, startPosition, step.summary)]
+
+    const completionLeaf: FlatEntry = {
+      blockIndex: completionTransition.blockIndex - 1,
       item: toItem(
-        {
-          type: "plan-step" as const,
-          description: step.description,
-          summary: step.summary,
-          status: getStepStatus(step, i, plan.currentStep, plan.aborted),
-          nested: step.id.includes("."),
-          checkpoint: step.checkpoint,
-        },
+        { type: "text" as const, role: "assistant" as const, content: step.summary ?? "" },
         false
       ),
     }
+    return [makeStepEntry(step, i, startPosition, null), completionLeaf]
   })
 
   const visibleLeaves = leaves

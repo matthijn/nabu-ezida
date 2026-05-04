@@ -18,7 +18,7 @@ const classifyStep = (): StepKind => {
 }
 
 const STEP_INSTRUCTION: Record<StepKind, string> = {
-  final: "Plan complete. Give short summary.",
+  final: "Plan complete. Give 1 sentence summary. Do not restate what you already said.",
   checkpoint:
     "Speak only — write one sentence that you are waiting for confirmation. Make no tool calls.",
   continue: "Do not write — make your next tool call immediately.",

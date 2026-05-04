@@ -61,24 +61,27 @@ const toAnalysisStep = (
 })
 
 const SYNTHESIS_STEP: StepDefObject = {
-  title: "Synthesize findings",
+  title: "Relate to Research Questions",
   expected: `
-    You will receive annotations from blind coding, a codebook, and research questions.
-    Write a short synthesis of this document's coding. Do not list code frequencies or catalogue annotations — the researcher already has that view. Instead focus on:
+    You have received annotations from blind coding, a codebook, and research questions.
+
+    Write a short synthesis connecting this document's coding to the research questions. Do not summarize the coding itself — the researcher already has that view.
     
-    How codes interact: co-occurrences on the same passages, tensions between codes, clusters that form a pattern.
-    What's absent: codes or code categories from the codebook that are not applied, particularly where their absence is informative.
-    For each research question: a brief statement of what relevant material exists or that none does. Where a passage might seem relevant to a RQ but the coding tells a different story, say so.
+    For each research question: state what relevant coded material exists or that none does. Where a passage might seem relevant to a RQ but the coding tells a different story, say so. Note code co-occurrences or tensions only where they matter for a specific RQ.
     
-    Reference annotations by ID only to anchor specific observations — not to enumerate what was found. One or two references per point, not five.
+    Note any significant absences — codes or code categories from the codebook that were not applied, where that absence is informative for the research questions.
+    
+    Reference specific annotations by their ID to anchor observations. Do not describe passages in prose or quote source text — the IDs are clickable and expand to show the full content. One or two IDs per observation, not more.
+    
     Rules:
     
     Describe this document's coding only. Do not make claims about other documents or later periods.
-    Do not evaluate the document's importance relative to the corpus.
+    Do not evaluate the document's importance relative to the corpus. No superlatives — you have not seen other documents.
     If a RQ concerns a process spanning multiple documents, state what this document contains that is relevant — not what the process is or whether it occurred.
     No speculative interpretation. "These codes co-occur" is good. "This shows the birth of a constraint" is not.
-    A few paragraphs.
-
-    Report and stop. Make no tool calls. No markdown headings or tables. Only bold to highlight RQ questions`,
+    Do not narrate trajectory. This document is not the beginning, middle, or end of anything — you cannot see the sequence. No phrases like "early seeds," "already crystallizing," "at this stage," or "potential mechanisms."
+    Use plain descriptive language. No line numbers.
+    150-250 words. No markdown headings or tables. Bold to highlight RQ references. Use IDs to reference annotations and codes.
+  `,
   checkpoint: false,
 }

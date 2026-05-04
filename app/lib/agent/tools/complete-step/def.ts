@@ -4,7 +4,7 @@ const CompleteStepArgs = z.object({
   summary: z
     .string()
     .describe(
-      "Brief factual debrief on the step's output 2-4 sentences." +
+      "Brief factual debrief on the step's output. No counting or numbers." +
         "This is your main communication way do NOT talk after this, after this you WORK on next step if plan is not complete."
     ),
 })

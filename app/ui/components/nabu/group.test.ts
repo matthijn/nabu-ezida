@@ -81,8 +81,13 @@ describe("toGroupedMessages", () => {
           const steps = planSteps(result)
           expect(steps).toHaveLength(2)
           expect(steps[0].status).toBe("completed")
-          expect(steps[0].summary).toBe("Designed")
+          expect(steps[0].summary).toBeNull()
           expect(steps[1].status).toBe("active")
+          const summaryBubble = result.find(
+            (m) =>
+              m.type === "plan-item" && m.child.type === "text" && m.child.content === "Designed"
+          )
+          expect(summaryBubble).toBeDefined()
         },
       },
       {
@@ -200,7 +205,7 @@ describe("toGroupedMessages", () => {
         ],
         check: (result: GroupedMessage[]) => {
           const planItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
-          expect(planItems).toHaveLength(1)
+          expect(planItems).toHaveLength(2)
           const leaves = result.filter((m) => m.type === "text")
           expect(leaves).toHaveLength(2)
           expect(leaves[0]).toEqual({ type: "text", role: "user", content: "After completion" })

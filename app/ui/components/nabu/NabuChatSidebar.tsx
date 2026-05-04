@@ -157,7 +157,7 @@ const MessageContent = memo(
 const UserBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-end justify-end">
     <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-4 py-2 shadow-sm max-w-[95%]">
-      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:no-underline">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:text-brand-700 [&_a]:no-underline [&_h1]:!text-sm [&_h2]:!text-sm [&_h3]:!text-sm [&_h4]:!text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold">
         {children}
       </div>
     </div>
@@ -167,7 +167,7 @@ const UserBubble = ({ children }: { children: React.ReactNode }) => (
 const AssistantBubble = ({ children }: { children: React.ReactNode }) => (
   <div className="flex w-full items-start">
     <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-4 py-2 max-w-[95%]">
-      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline">
+      <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-2 [&>*:last-child]:mb-0 [&_a]:no-underline [&_h1]:!text-sm [&_h2]:!text-sm [&_h3]:!text-sm [&_h4]:!text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold">
         {children}
       </div>
     </div>
@@ -542,7 +542,7 @@ const PlanLeafInline = ({
     return (
       <div className="flex w-full items-end justify-end">
         <div className="flex flex-col items-start rounded-2xl bg-brand-200 px-3 py-1.5 shadow-sm max-w-[90%]">
-          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
+          <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline [&_h1]:!text-sm [&_h2]:!text-sm [&_h3]:!text-sm [&_h4]:!text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold">
             <MessageContent
               content={content}
               files={files}
@@ -559,7 +559,7 @@ const PlanLeafInline = ({
   return (
     <div className="flex w-full items-start mt-1">
       <div className="flex flex-col items-start rounded-2xl bg-neutral-100 px-3 py-1.5 max-w-[90%]">
-        <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline">
+        <div className="prose prose-sm text-body font-body text-default-font [&>*]:mb-0 [&_a]:no-underline [&_h1]:!text-sm [&_h2]:!text-sm [&_h3]:!text-sm [&_h4]:!text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold">
           <MessageContent
             content={content}
             files={files}
