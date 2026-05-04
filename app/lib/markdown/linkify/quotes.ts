@@ -5,6 +5,7 @@ const QUOTE_PATTERN =
   /\[([^\]]*)\]\([^)]*\)|[\u201C\u201D""]([^"\u201C\u201D""]+?)[\u201C\u201D""]/g
 
 const isFilename = (text: string): boolean => /^[\w][\w-]*\.md$/.test(text)
+const isSingleWord = (text: string): boolean => !text.trim().includes(" ")
 
 const encodeSpotlightText = (text: string): string =>
   encodeURIComponent(serializeSpotlight({ type: "single", text }))
@@ -15,6 +16,7 @@ const buildSpotlightLink = (quoted: string, documentId: string): string =>
 const shouldSkip = (match: RegExpExecArray): boolean => {
   if (match[1] !== undefined) return true
   if (isFilename(match[2])) return true
+  if (isSingleWord(match[2])) return true
   return false
 }
 

@@ -22,12 +22,7 @@ import {
 } from "./format"
 import { getStoredAnnotations } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { type ContentResolver, partitionSources, buildCallList } from "./messages"
-import {
-  runDimensionPipeline,
-  mergeDimensionResults,
-  runReasonStep,
-  runReviewFilter,
-} from "./pipeline"
+import { runDimensionPipeline, mergeDimensionResults, runReasonStep, runFilter } from "./pipeline"
 
 interface PostActionCtx {
   mapped: MappedResult[]
@@ -203,7 +198,7 @@ registerTool(
       if (allSpans.length === 0 && calls.length > 0 && findErrors.length > 0)
         return { status: "error", output: findErrors.join("; "), mutations: [] }
 
-      const { surviving, dropped } = await runReviewFilter(
+      const { surviving, dropped } = await runFilter(
         allSpans,
         sentences,
         scoped,
@@ -215,7 +210,7 @@ registerTool(
       for (const d of dropped) {
         const text = sentences.slice(d.start - 1, d.end).join(" ")
         console.debug(
-          `[deep-review] dropped [${d.start}-${d.end}] ${d.analysis_source_id}: ${text}`
+          `[deep-filter] dropped [${d.start}-${d.end}] ${d.analysis_source_id}: ${text}`
         )
       }
 

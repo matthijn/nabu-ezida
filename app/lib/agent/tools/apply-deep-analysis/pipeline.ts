@@ -7,12 +7,12 @@ import {
   type ContentResolver,
   buildFindCall,
   buildFindResultSchema,
-  buildReviewFilterSchema,
+  buildFilterSchema,
   buildSpanStepMessages,
   extractSourceIds,
   buildSourceTitleMap,
   REASON_CTA,
-  REVIEW_CTA,
+  FILTER_CTA,
 } from "./messages"
 import {
   tallyVotes,
@@ -42,7 +42,7 @@ const countUniqueSentences = (spans: FindResult[]): number => {
 
 const FIND_ENDPOINT = "/deep-analysis-find"
 const REASON_ENDPOINT = "/deep-analysis-reason"
-const REVIEW_ENDPOINT = "/deep-analysis-review"
+const FILTER_ENDPOINT = "/deep-analysis-filter"
 const FIND_RUNS = 3
 const FIND_THRESHOLD = 2
 const SPAN_STEP_CONTEXT_SENTENCES = 6
@@ -198,15 +198,15 @@ export const runReasonStep = async (
   )
 }
 
-export interface ReviewFilterResult {
+export interface FilterResult {
   surviving: FindResult[]
   dropped: FindResult[]
 }
 
-const REVIEW_RUNS = 3
-const REVIEW_THRESHOLD = 2
+const FILTER_RUNS = 3
+const FILTER_THRESHOLD = 2
 
-const mapReviewResults = (
+const mapFilterResults = (
   results: { id: number; code: string }[],
   mapping: { index: number; start: number; end: number }[]
 ): string[] =>
@@ -215,14 +215,14 @@ const mapReviewResults = (
     return m ? [spanKey(m.start, m.end, r.code)] : []
   })
 
-export const runReviewFilter = async (
+export const runFilter = async (
   allSpans: FindResult[],
   sentences: string[],
   sources: ScopedSources,
   leadingCtx: string,
   trailingCtx: string,
   resolve: ContentResolver
-): Promise<ReviewFilterResult> => {
+): Promise<FilterResult> => {
   const grouped = groupBySpan(allSpans)
   if (grouped.length === 0) return { surviving: [], dropped: [] }
 
@@ -241,40 +241,40 @@ export const runReviewFilter = async (
     leadingCtx,
     trailingCtx,
     resolve,
-    REVIEW_CTA
+    FILTER_CTA
   )
 
   const validCodes = [...codeIds]
-  const schema = buildReviewFilterSchema(validCodes)
+  const schema = buildFilterSchema(validCodes)
   const errors: string[] = []
-  const slots = Array.from({ length: REVIEW_RUNS }, (_, i) => i)
+  const slots = Array.from({ length: FILTER_RUNS }, (_, i) => i)
   const { results: runs } = await processPool<number, string[]>(
     slots,
     async () => {
-      const result = await callAndParse(REVIEW_ENDPOINT, messages, schema)
+      const result = await callAndParse(FILTER_ENDPOINT, messages, schema)
       if (!result.ok) {
         errors.push(result.error)
         return []
       }
-      return [mapReviewResults(result.data.results, mapping)]
+      return [mapFilterResults(result.data.results, mapping)]
     },
     noop,
     { concurrency: 3, warmup: 1 }
   )
 
-  if (runs.length < REVIEW_RUNS) {
-    console.debug(`[deep-review] ${runs.length}/${REVIEW_RUNS} runs (insufficient, keeping all)`)
+  if (runs.length < FILTER_RUNS) {
+    console.debug(`[deep-filter] ${runs.length}/${FILTER_RUNS} runs (insufficient, keeping all)`)
     return { surviving: allSpans, dropped: [] }
   }
 
   const votes = countKeys(runs)
   const rejected = new Set(
-    [...votes.entries()].filter(([, v]) => v >= REVIEW_THRESHOLD).map(([k]) => k)
+    [...votes.entries()].filter(([, v]) => v >= FILTER_THRESHOLD).map(([k]) => k)
   )
 
   for (const [key, count] of votes) {
     const verdict = rejected.has(key) ? "reject" : "keep"
-    console.debug(`[deep-review] ${key} ${count}/${REVIEW_RUNS} → ${verdict}`)
+    console.debug(`[deep-filter] ${key} ${count}/${FILTER_RUNS} → ${verdict}`)
   }
 
   const surviving: FindResult[] = []

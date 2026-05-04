@@ -19,8 +19,11 @@ import { resolveIcon } from "~/ui/theme/icon-map"
 import {
   findAnnotationById,
   findDocumentForAnnotation,
+  getStoredAnnotations,
   resolveAnnotationColor,
 } from "~/domain/data-blocks/attributes/annotations/selectors"
+import { createBackground } from "~/lib/editor/annotations/gradient"
+import { findMatchOffset } from "~/lib/text/find"
 import { findCalloutById, findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { findChartById, findDocumentForChart } from "~/domain/data-blocks/chart/selectors"
 import { findTagDefinitionById } from "~/domain/data-blocks/settings/tags/selectors"
@@ -192,17 +195,59 @@ const resolveSearchRef = (
 
 const hasSpotlight = (ref: Extract<EntityRef, { kind: "text" }>): boolean => ref.spotlight !== null
 
+const spotlightText = (ref: Extract<EntityRef, { kind: "text" }>): string | null =>
+  ref.spotlight?.type === "single" ? ref.spotlight.text : null
+
+const hasMinWords = (text: string): boolean => text.trim().split(/\s+/).length >= 2
+
+const isContainedIn =
+  (needle: string) =>
+  (a: { text: string }): boolean =>
+    findMatchOffset(a.text, needle) !== null
+
+const findContainingAnnotationColors = (
+  files: FileStore,
+  documentId: string,
+  text: string
+): string[] => {
+  if (!hasMinWords(text)) return []
+  const raw = files[documentId]
+  if (!raw) return []
+  const colors = getStoredAnnotations(raw)
+    .filter(isContainedIn(text))
+    .map((a) => resolveAnnotationColor(files, a))
+  return [...new Set(colors)]
+}
+
+const barberPoleColors = (colors: string[]): ResolvedColors => ({
+  text: lowContrastText(colors[0]),
+  icon: solidBackground(colors[0]),
+  background: createBackground(colors.map(elementBackground)),
+  backgroundHover: createBackground(colors.map(hoveredElementBackground)),
+})
+
+const resolveSpotlightColors = (annotationColors: string[]): ResolvedColors => {
+  if (annotationColors.length === 0) return SPOTLIGHT_COLORS
+  if (annotationColors.length === 1) return radixColors(annotationColors[0])
+  return barberPoleColors(annotationColors)
+}
+
 const resolveTextRef = (
   ref: Extract<EntityRef, { kind: "text" }>,
+  files: FileStore,
   projectId: string,
   icons: EntityIcons
-): ResolvedLink => ({
-  kind: "text",
-  colors: hasSpotlight(ref) ? SPOTLIGHT_COLORS : FILE_COLORS,
-  icon: hasSpotlight(ref) ? icons.spotlight : icons.file,
-  url: buildTextUrl(projectId, ref.documentId, ref.spotlight),
-  label: ref.documentId,
-})
+): ResolvedLink => {
+  const text = spotlightText(ref)
+  const annotationColors = text ? findContainingAnnotationColors(files, ref.documentId, text) : []
+  return {
+    kind: "text",
+    colors: hasSpotlight(ref) ? resolveSpotlightColors(annotationColors) : FILE_COLORS,
+    icon: hasSpotlight(ref) ? icons.spotlight : icons.file,
+    url: buildTextUrl(projectId, ref.documentId, ref.spotlight),
+    label: ref.documentId,
+  }
+}
 
 export interface EntityIcons {
   file: ComponentType<{ className?: string }>
@@ -231,7 +276,7 @@ export const resolveEntityLink = (
     case "tag":
       return resolveTagRef(ref, files)
     case "text":
-      return resolveTextRef(ref, projectId, icons)
+      return resolveTextRef(ref, files, projectId, icons)
     default:
       return exhaustive(ref)
   }

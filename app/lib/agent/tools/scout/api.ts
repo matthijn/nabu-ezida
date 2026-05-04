@@ -8,9 +8,7 @@ export type ScoutEntry =
   | { kind: "inline"; path: string; content: string }
   | { kind: "mapped"; path: string; map: ScoutMap }
 
-const PROSE_LINE_THRESHOLD = 50
-
-const countLines = (text: string): number => text.split("\n").length
+const INLINE_CHAR_THRESHOLD = 8_000
 
 export interface ScoutOptions {
   forceScout?: boolean
@@ -50,7 +48,7 @@ export const scoutFile = async (
   content: string,
   options?: ScoutOptions
 ): Promise<ScoutEntry> => {
-  if (!options?.forceScout && countLines(content) <= PROSE_LINE_THRESHOLD) {
+  if (!options?.forceScout && content.length <= INLINE_CHAR_THRESHOLD) {
     return { kind: "inline", path, content }
   }
 

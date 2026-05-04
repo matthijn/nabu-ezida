@@ -18,13 +18,13 @@ export const EntityLink = ({ href, children, colors, icon: Icon, onClick }: Enti
     className="inline rounded px-1 py-0.5 no-underline font-normal cursor-pointer transition-colors"
     style={{
       color: colors.text,
-      backgroundColor: colors.background,
+      background: colors.background,
     }}
     onMouseEnter={(e) => {
-      e.currentTarget.style.backgroundColor = colors.backgroundHover
+      e.currentTarget.style.background = colors.backgroundHover
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.backgroundColor = colors.background
+      e.currentTarget.style.background = colors.background
     }}
   >
     <span className="inline-flex align-[-0.15em] mr-1" style={{ color: colors.icon }}>

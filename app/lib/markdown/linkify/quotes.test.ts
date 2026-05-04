@@ -67,11 +67,11 @@ describe("linkifyQuotes", () => {
       expected: 'They said "the signup process takes too long" here.',
     },
     {
-      name: "matches short exact substring",
+      name: "skips single-word quotes",
       text: 'The word "moderate" appears in the text.',
       documentId: "notes.md",
       fileContent: FILE_CONTENT,
-      expected: "The word [moderate](file://notes.md/moderate) appears in the text.",
+      expected: 'The word "moderate" appears in the text.',
     },
     {
       name: "returns empty string unchanged",

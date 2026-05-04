@@ -199,7 +199,7 @@ const UNCACHEABLE_ENDPOINTS = [
   "/semantic-filter",
   "/write-answer",
   "/deep-analysis-find",
-  "/deep-analysis-review",
+  "/deep-analysis-filter",
 ]
 
 const isCacheable = (options: CallLlmOptions): boolean =>
