@@ -69,7 +69,7 @@ describe("toGroupedMessages", () => {
           userBlock("Help me"),
           ...submitPlanCall("Build feature", ["Design", "Implement"]),
           textBlock("Starting design"),
-          ...completeStepCall("Designed"),
+          ...completeStepCall(),
           textBlock("Now implementing"),
         ],
         check: (result: GroupedMessage[]) => {
@@ -81,18 +81,19 @@ describe("toGroupedMessages", () => {
           const steps = planSteps(result)
           expect(steps).toHaveLength(2)
           expect(steps[0].status).toBe("completed")
-          expect(steps[0].summary).toBeNull()
           expect(steps[1].status).toBe("active")
-          const summaryBubble = result.find(
+          const textLeaf = result.find(
             (m) =>
-              m.type === "plan-item" && m.child.type === "text" && m.child.content === "Designed"
+              m.type === "plan-item" &&
+              m.child.type === "text" &&
+              m.child.content === "Starting design"
           )
-          expect(summaryBubble).toBeDefined()
+          expect(textLeaf).toBeDefined()
         },
       },
       {
         name: "completed plan has completed flag and all steps completed",
-        history: [...submitPlanCall("Task", ["Step 1"]), ...completeStepCall("Done")],
+        history: [...submitPlanCall("Task", ["Step 1"]), ...completeStepCall()],
         check: (result: GroupedMessage[]) => {
           const header = mustFind(result, isPlanHeader)
           expect(header.completed).toBe(true)
@@ -199,13 +200,13 @@ describe("toGroupedMessages", () => {
         history: [
           ...submitPlanCall("Task", ["Step 1"]),
           textBlock("Inside plan"),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
           userBlock("After completion"),
           textBlock("Back to chat"),
         ],
         check: (result: GroupedMessage[]) => {
           const planItems = result.filter((m) => m.type === "plan-item" && m.child.type === "text")
-          expect(planItems).toHaveLength(2)
+          expect(planItems).toHaveLength(1)
           const leaves = result.filter((m) => m.type === "text")
           expect(leaves).toHaveLength(2)
           expect(leaves[0]).toEqual({ type: "text", role: "user", content: "After completion" })
@@ -229,7 +230,7 @@ describe("toGroupedMessages", () => {
         name: "messages between two plans belong to the earlier plan",
         history: [
           ...submitPlanCall("First", ["Step 1"]),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
           textBlock("Between plans"),
           ...submitPlanCall("Second", ["Step 2"]),
         ],

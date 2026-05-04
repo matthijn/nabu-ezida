@@ -1,17 +1,10 @@
 import { z } from "zod"
 
-const CompleteStepArgs = z.object({
-  summary: z
-    .string()
-    .describe(
-      "Brief factual debrief on the step's output. No counting or numbers." +
-        "This is your main communication way do NOT talk after this, after this you WORK on next step if plan is not complete."
-    ),
-})
+const CompleteStepArgs = z.object({})
 
 export const completeStep = {
   name: "complete_step" as const,
   description:
-    "Mark the current plan step as done.\n\nparallel: yes — can fire alongside next step's work",
+    "Mark the current plan step as done. Speak before calling — this is a bare signal.\n\nparallel: yes — can fire alongside next step's work",
   schema: CompleteStepArgs,
 }

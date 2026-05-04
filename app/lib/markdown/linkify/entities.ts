@@ -7,12 +7,14 @@ const buildEntityIdPattern = (prefixes: string[]): RegExp => {
   const prefixAlt = prefixes.join("|")
   return new RegExp(
     `\\[[^\\]]*\\]\\([^)]+\\)|((?:${prefixAlt})-[a-z0-9]{8}|[\\w][\\w-]*\\.md)`,
-    "g"
+    "gi"
   )
 }
 
-const needsEntityScan = (text: string, prefixes: string[]): boolean =>
-  prefixes.some((p) => text.includes(p + "-")) || text.includes(".md")
+const needsEntityScan = (text: string, prefixes: string[]): boolean => {
+  const lower = text.toLowerCase()
+  return prefixes.some((p) => lower.includes(p + "-")) || lower.includes(".md")
+}
 
 const WRAPPERS = new Set(["(", ")", "`", "*", "_"])
 const QUOTES = new Set(['"', "'"])
@@ -77,8 +79,9 @@ export const resolveIdentifiers = (text: string, resolveName: NameResolver): str
   const prefixes = getEntityPrefixes()
   if (!needsEntityScan(text, prefixes)) return text
   const pattern = buildEntityIdPattern(prefixes)
-  return text.replace(pattern, (match, bareId: string | undefined) => {
-    if (!bareId) return match
+  return text.replace(pattern, (match, rawId: string | undefined) => {
+    if (!rawId) return match
+    const bareId = isFileEntity(rawId) ? rawId : rawId.toLowerCase()
     return resolveName(bareId) ?? match
   })
 }
@@ -99,12 +102,13 @@ export const linkifyEntityIds = (
     const match = pattern.exec(text)
     if (!match) break
 
-    const bareId = match[1]
-    if (!bareId) {
+    const rawId = match[1]
+    if (!rawId) {
       result += text.slice(lastIndex, match.index + match[0].length)
       lastIndex = match.index + match[0].length
       continue
     }
+    const bareId = isFileEntity(rawId) ? rawId : rawId.toLowerCase()
 
     const name = resolveName(bareId)
     if (!name) {

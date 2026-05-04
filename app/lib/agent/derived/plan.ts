@@ -15,7 +15,6 @@ export interface Step {
   checkpoint: boolean
   done: boolean
   internal: string | null
-  summary: string | null
 }
 
 export interface DerivedPlan {
@@ -33,12 +32,8 @@ const findCurrentStep = (steps: Step[]): number | null => {
   return index === -1 ? null : index
 }
 
-const markStepDone = (
-  steps: Step[],
-  index: number,
-  internal: string | null,
-  summary: string | null
-): Step[] => steps.map((s, i) => (i === index ? { ...s, done: true, internal, summary } : s))
+const markStepDone = (steps: Step[], index: number, internal: string | null): Step[] =>
+  steps.map((s, i) => (i === index ? { ...s, done: true, internal } : s))
 
 const flattenSteps = (stepDefs: StepDef[]): Step[] => {
   const steps: Step[] = []
@@ -54,7 +49,6 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
           checkpoint: innerDef.checkpoint === true,
           done: false,
           internal: null,
-          summary: null,
         })
       })
     } else {
@@ -65,7 +59,6 @@ const flattenSteps = (stepDefs: StepDef[]): Step[] => {
         checkpoint: def.checkpoint === true,
         done: false,
         internal: null,
-        summary: null,
       })
     }
     topIndex++
@@ -105,13 +98,9 @@ export const parsePlanBlock = (content: string): DerivedPlan | null => {
   }
 }
 
-export const processCompleteStep = (
-  plan: DerivedPlan,
-  internal: string | null,
-  summary: string | null
-): DerivedPlan => {
+export const processCompleteStep = (plan: DerivedPlan, internal: string | null): DerivedPlan => {
   if (plan.currentStep === null) return plan
-  const newSteps = markStepDone(plan.steps, plan.currentStep, internal, summary)
+  const newSteps = markStepDone(plan.steps, plan.currentStep, internal)
   return { ...plan, steps: newSteps, currentStep: findCurrentStep(newSteps) }
 }
 

@@ -229,18 +229,6 @@ const PlanStepRow = ({
             navigate={navigate}
           />
         </div>
-        {step.summary && (
-          <div className="prose prose-sm [&>*]:mb-0 [&_a]:no-underline text-caption font-caption text-subtext-color">
-            <MessageContent
-              content={step.summary}
-              files={files}
-              projectId={projectId}
-              currentFile={currentFile}
-              currentFileContent={currentFileContent}
-              navigate={navigate}
-            />
-          </div>
-        )}
       </div>
     </div>
   )
@@ -258,19 +246,36 @@ interface LeafRendererProps {
   navigate?: (url: string) => void
 }
 
-const LeafRenderer = ({
-  message,
-  files,
-  projectId,
-  currentFile,
-  currentFileContent,
-  navigate,
-}: LeafRendererProps) => {
-  const content = displayContent(message)
-  if (!content) return null
-  if (message.role === "user") {
+const leafPropsEqual = (prev: LeafRendererProps, next: LeafRendererProps): boolean =>
+  prev.message.content === next.message.content &&
+  prev.message.role === next.message.role &&
+  prev.message.draft === next.message.draft &&
+  prev.files === next.files &&
+  prev.projectId === next.projectId &&
+  prev.currentFile === next.currentFile &&
+  prev.currentFileContent === next.currentFileContent &&
+  prev.navigate === next.navigate
+
+const LeafRenderer = memo(
+  ({ message, files, projectId, currentFile, currentFileContent, navigate }: LeafRendererProps) => {
+    const content = displayContent(message)
+    if (!content) return null
+    if (message.role === "user") {
+      return (
+        <UserBubble>
+          <MessageContent
+            content={content}
+            files={files}
+            projectId={projectId}
+            currentFile={currentFile}
+            currentFileContent={currentFileContent}
+            navigate={navigate}
+          />
+        </UserBubble>
+      )
+    }
     return (
-      <UserBubble>
+      <AssistantBubble>
         <MessageContent
           content={content}
           files={files}
@@ -279,22 +284,11 @@ const LeafRenderer = ({
           currentFileContent={currentFileContent}
           navigate={navigate}
         />
-      </UserBubble>
+      </AssistantBubble>
     )
-  }
-  return (
-    <AssistantBubble>
-      <MessageContent
-        content={content}
-        files={files}
-        projectId={projectId}
-        currentFile={currentFile}
-        currentFileContent={currentFileContent}
-        navigate={navigate}
-      />
-    </AssistantBubble>
-  )
-}
+  },
+  leafPropsEqual
+)
 
 interface OptionCardProps {
   children: ReactNode
@@ -381,64 +375,79 @@ const ScopeBadge = ({ scope }: { scope: AskScope }) => {
 
 const hasOptions = (message: AskMessage): boolean => message.options.length > 0
 
-const AskRenderer = ({
-  message,
-  files,
-  projectId,
-  currentFile,
-  currentFileContent,
-  navigate,
-  onSelect,
-}: AskRendererProps) => (
-  <div className="flex w-full flex-col items-start gap-2 mb-3">
-    <AssistantBubble>
-      <MessageContent
-        content={message.question}
-        files={files}
-        projectId={projectId}
-        currentFile={currentFile}
-        currentFileContent={currentFileContent}
-        navigate={navigate}
-      />
-    </AssistantBubble>
-    {hasOptions(message) && (
-      <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
-        {message.options.map((option) => {
-          const selected = message.selected === option
-          return (
-            <OptionCard
-              key={option}
-              selected={selected}
-              dimmed={message.selected !== null && !selected}
-              onClick={message.selected === null ? () => onSelect(option) : undefined}
-            >
-              <InlineMarkdown
-                files={files}
-                projectId={projectId}
-                currentFile={currentFile}
-                currentFileContent={currentFileContent}
-              >
-                {option}
-              </InlineMarkdown>
-            </OptionCard>
-          )
-        })}
-      </div>
-    )}
-    {isTypedAnswer(message) && (
-      <UserBubble>
+const askPropsEqual = (prev: AskRendererProps, next: AskRendererProps): boolean =>
+  prev.message.question === next.message.question &&
+  prev.message.selected === next.message.selected &&
+  prev.message.scope === next.message.scope &&
+  prev.message.options.length === next.message.options.length &&
+  prev.files === next.files &&
+  prev.projectId === next.projectId &&
+  prev.currentFile === next.currentFile &&
+  prev.currentFileContent === next.currentFileContent &&
+  prev.navigate === next.navigate &&
+  prev.onSelect === next.onSelect
+
+const AskRenderer = memo(
+  ({
+    message,
+    files,
+    projectId,
+    currentFile,
+    currentFileContent,
+    navigate,
+    onSelect,
+  }: AskRendererProps) => (
+    <div className="flex w-full flex-col items-start gap-2 mb-3">
+      <AssistantBubble>
         <MessageContent
-          content={message.selected ?? ""}
+          content={message.question}
           files={files}
           projectId={projectId}
           currentFile={currentFile}
           currentFileContent={currentFileContent}
           navigate={navigate}
         />
-      </UserBubble>
-    )}
-    <ScopeBadge scope={message.scope} />
-  </div>
+      </AssistantBubble>
+      {hasOptions(message) && (
+        <div className="flex w-full flex-col gap-1.5 max-w-[95%]">
+          {message.options.map((option) => {
+            const selected = message.selected === option
+            return (
+              <OptionCard
+                key={option}
+                selected={selected}
+                dimmed={message.selected !== null && !selected}
+                onClick={message.selected === null ? () => onSelect(option) : undefined}
+              >
+                <InlineMarkdown
+                  files={files}
+                  projectId={projectId}
+                  currentFile={currentFile}
+                  currentFileContent={currentFileContent}
+                >
+                  {option}
+                </InlineMarkdown>
+              </OptionCard>
+            )
+          })}
+        </div>
+      )}
+      {isTypedAnswer(message) && (
+        <UserBubble>
+          <MessageContent
+            content={message.selected ?? ""}
+            files={files}
+            projectId={projectId}
+            currentFile={currentFile}
+            currentFileContent={currentFileContent}
+            navigate={navigate}
+          />
+        </UserBubble>
+      )}
+      <ScopeBadge scope={message.scope} />
+    </div>
+  ),
+  askPropsEqual
 )
 
 interface ScoutRendererProps {
@@ -446,6 +455,19 @@ interface ScoutRendererProps {
   files: Record<string, string>
   projectId: string | null
 }
+
+const scoutFilesEqual = (prev: ScoutFileStatus[], next: ScoutFileStatus[]): boolean => {
+  if (prev.length !== next.length) return false
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i].status !== next[i].status) return false
+  }
+  return true
+}
+
+const scoutPropsEqual = (prev: ScoutRendererProps, next: ScoutRendererProps): boolean =>
+  scoutFilesEqual(prev.message.files, next.message.files) &&
+  prev.files === next.files &&
+  prev.projectId === next.projectId
 
 interface ScoutFileGroup {
   label: string
@@ -501,7 +523,7 @@ const ScoutFileRow = ({ file, files, projectId }: ScoutFileRowProps) => (
   </div>
 )
 
-const ScoutRenderer = ({ message, files, projectId }: ScoutRendererProps) => {
+const ScoutRenderer = memo(({ message, files, projectId }: ScoutRendererProps) => {
   const groups = groupScoutFiles(message.files)
   return (
     <div className="flex w-full flex-col items-start gap-1.5 border-l-2 border-solid border-neutral-200 pl-3 pr-2 py-2 my-1">
@@ -516,7 +538,7 @@ const ScoutRenderer = ({ message, files, projectId }: ScoutRendererProps) => {
       ))}
     </div>
   )
-}
+}, scoutPropsEqual)
 
 const isPlanStep = (child: PlanChild): child is PlanStep => child.type === "plan-step"
 const isLeafMessage = (child: PlanChild): child is LeafMessage => child.type === "text"

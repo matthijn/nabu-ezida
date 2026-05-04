@@ -118,7 +118,7 @@ describe("buildAutoSteps", () => {
       name: "one step per section plus synthesis",
       postAction: "annotate_as_code",
       expectedLength: 3,
-      expectedTitles: ["Intro", "Methods", "Synthesize findings"],
+      expectedTitles: ["Intro", "Methods", "Relate to Research Questions"],
     },
     {
       name: "expected contains apply_deep_analysis call",

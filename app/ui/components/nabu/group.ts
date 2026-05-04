@@ -19,7 +19,6 @@ export type StepStatus = "completed" | "active" | "pending" | "cancelled"
 export interface PlanStep {
   type: "plan-step"
   description: string
-  summary: string | null
   status: StepStatus
   nested: boolean
   checkpoint: boolean
@@ -162,18 +161,12 @@ const buildPlanEntries = (
     item: buildPlanHeader(plan),
   }
 
-  const makeStepEntry = (
-    step: Step,
-    i: number,
-    blockIndex: number,
-    summary: string | null
-  ): FlatEntry => ({
+  const makeStepEntry = (step: Step, i: number, blockIndex: number): FlatEntry => ({
     blockIndex,
     item: toItem(
       {
         type: "plan-step" as const,
         description: step.description,
-        summary,
         status: getStepStatus(step, i, plan.currentStep, plan.aborted),
         nested: step.id.includes("."),
         checkpoint: step.checkpoint,
@@ -189,18 +182,7 @@ const buildPlanEntries = (
         : (transitions.find((t) => t.newStep === i)?.blockIndex ??
           endIndex - (totalSteps - i) * 0.001)
 
-    const completionTransition = step.done ? transitions.find((t) => t.newStep === i + 1) : null
-
-    if (!completionTransition) return [makeStepEntry(step, i, startPosition, step.summary)]
-
-    const completionLeaf: FlatEntry = {
-      blockIndex: completionTransition.blockIndex - 1,
-      item: toItem(
-        { type: "text" as const, role: "assistant" as const, content: step.summary ?? "" },
-        false
-      ),
-    }
-    return [makeStepEntry(step, i, startPosition, null), completionLeaf]
+    return [makeStepEntry(step, i, startPosition)]
   })
 
   const visibleLeaves = leaves

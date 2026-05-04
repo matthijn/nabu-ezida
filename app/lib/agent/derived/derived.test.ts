@@ -6,7 +6,6 @@ import {
   hasActivePlan,
   getMode,
   isPlanPaused,
-  hasDeliverable,
   guardCompleteStep,
   isLastStep,
 } from "."
@@ -16,8 +15,6 @@ import {
   cancelCall,
   textBlock,
   userBlock,
-  toolCallBlock,
-  terminalResult,
   resetCallIdCounter,
 } from "../test-helpers"
 
@@ -64,7 +61,7 @@ describe("derived", () => {
             { title: "Step 1", expected: "Done 1" },
             { title: "Step 2", expected: "Done 2" },
           ]),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -78,13 +75,12 @@ describe("derived", () => {
         name: "complete_step stores internal context",
         history: [
           ...submitPlanCall("Task", [{ title: "Step 1", expected: "Complete" }]),
-          ...completeStepCall("Done", "id:123, count:5"),
+          ...completeStepCall("id:123, count:5"),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
           const plan = lastPlan(d.plans)
           expect(plan?.steps[0].internal).toBe("id:123, count:5")
-          expect(plan?.steps[0].summary).toBe("Done")
         },
       },
       {
@@ -94,8 +90,8 @@ describe("derived", () => {
             { title: "Step 1", expected: "Done 1" },
             { title: "Step 2", expected: "Done 2" },
           ]),
-          ...completeStepCall("Done 1"),
-          ...completeStepCall("Done 2"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (history: Block[]) => {
           const d = derive(history)
@@ -192,7 +188,7 @@ describe("derived", () => {
           ...submitPlanCall("Task", ["Step 1", "Step 2"]),
           textBlock("Pausing here"),
           userBlock("Continue"),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
         ],
         expected: false,
       },
@@ -234,8 +230,8 @@ describe("derived", () => {
             { nested: ["Inner 1", "Inner 2"] },
             { title: "Post", expected: "Post done" },
           ]),
-          ...completeStepCall("Pre done"),
-          ...completeStepCall("Inner 1 done"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (history: Block[]) => {
           const plan = lastPlan(derive(history).plans)
@@ -251,8 +247,8 @@ describe("derived", () => {
             { nested: ["Analyze", "Code"] },
             { title: "Summary", expected: "Summarized" },
           ]),
-          ...completeStepCall("Analyzed"),
-          ...completeStepCall("Coded"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (history: Block[]) => {
           const plan = lastPlan(derive(history).plans)
@@ -269,8 +265,8 @@ describe("derived", () => {
             { nested: ["Process"] },
             { title: "Final", expected: "Final done" },
           ]),
-          ...completeStepCall("Processed"),
-          ...completeStepCall("Final done"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (history: Block[]) => {
           const plan = lastPlan(derive(history).plans)
@@ -281,80 +277,6 @@ describe("derived", () => {
     ]
 
     it.each(cases)("$name", ({ history, check }) => check(history()))
-  })
-
-  describe("hasDeliverable", () => {
-    const cases = [
-      {
-        name: "no work since step boundary = no deliverable",
-        history: [...submitPlanCall("Task", ["Step 1"])],
-        expected: false,
-      },
-      {
-        name: "read-only tool = no deliverable",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("run_local_shell", "99"),
-          terminalResult("run_local_shell", "99"),
-        ],
-        expected: false,
-      },
-      {
-        name: "user block = deliverable",
-        history: [...submitPlanCall("Task", ["Step 1"]), userBlock("yes")],
-        expected: true,
-      },
-      {
-        name: "apply_local_patch = deliverable",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("apply_local_patch", "99"),
-          terminalResult("apply_local_patch", "99"),
-        ],
-        expected: true,
-      },
-      {
-        name: "patch_callout = deliverable",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("patch_callout", "99"),
-          terminalResult("patch_callout", "99"),
-        ],
-        expected: true,
-      },
-      {
-        name: "failed write = no deliverable",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("apply_local_patch", "99"),
-          terminalResult("apply_local_patch", "99", { status: "error", output: "failed" }),
-        ],
-        expected: false,
-      },
-      {
-        name: "deliverable from previous step doesn't count",
-        history: [
-          ...submitPlanCall("Task", ["Step 1", "Step 2"]),
-          userBlock("answer"),
-          ...completeStepCall("Done"),
-        ],
-        expected: false,
-      },
-      {
-        name: "write before pending complete_step call = deliverable",
-        history: [
-          ...submitPlanCall("Task", ["Step 1"]),
-          toolCallBlock("apply_local_patch", "99"),
-          terminalResult("apply_local_patch", "99"),
-          toolCallBlock("complete_step", "100"),
-        ],
-        expected: true,
-      },
-    ]
-
-    it.each(cases)("$name", ({ history, expected }) => {
-      expect(hasDeliverable(history)).toBe(expected)
-    })
   })
 
   describe("guards", () => {
@@ -382,7 +304,7 @@ describe("derived", () => {
         plan: () => {
           const history = [
             ...submitPlanCall("Task", [{ title: "Step", expected: "Done" }]),
-            ...completeStepCall("Done"),
+            ...completeStepCall(),
           ]
           return mustGet(lastPlan(derive(history).plans))
         },
@@ -420,7 +342,7 @@ describe("derived", () => {
             { title: "A", expected: "Done" },
             { title: "B", expected: "Done" },
           ]),
-          ...completeStepCall("A done"),
+          ...completeStepCall(),
         ],
         expected: true,
       },
@@ -428,7 +350,7 @@ describe("derived", () => {
         name: "completed plan — no current step",
         history: () => [
           ...submitPlanCall("Task", [{ title: "A", expected: "Done" }]),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
         ],
         expected: false,
       },
@@ -439,7 +361,7 @@ describe("derived", () => {
             { nested: ["Inner 1", "Inner 2"] },
             { title: "Final", expected: "Done" },
           ]),
-          ...completeStepCall("Inner 1 done"),
+          ...completeStepCall(),
         ],
         expected: false,
       },
@@ -450,8 +372,8 @@ describe("derived", () => {
             { nested: ["Inner 1", "Inner 2"] },
             { title: "Final", expected: "Done" },
           ]),
-          ...completeStepCall("Inner 1 done"),
-          ...completeStepCall("Inner 2 done"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         expected: true,
       },

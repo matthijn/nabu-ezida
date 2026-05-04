@@ -76,16 +76,14 @@ describe("toRenderMessages", () => {
         name: "completed steps are marked done",
         history: [
           ...submitPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
-          ...completeStepCall("Done first"),
-          ...completeStepCall("Done second"),
+          ...completeStepCall(),
+          ...completeStepCall(),
         ],
         check: (messages: RenderMessage[]) => {
           expect(messages).toHaveLength(1)
           if (messages[0].type === "plan") {
             expect(messages[0].plan.steps[0].done).toBe(true)
-            expect(messages[0].plan.steps[0].summary).toBe("Done first")
             expect(messages[0].plan.steps[1].done).toBe(true)
-            expect(messages[0].plan.steps[1].summary).toBe("Done second")
             expect(messages[0].plan.steps[2].done).toBe(false)
             expect(messages[0].currentStep).toBe(2)
           }
@@ -110,7 +108,7 @@ describe("toRenderMessages", () => {
         name: "aborted plan shows aborted state",
         history: [
           ...submitPlanCall("Task", ["Step 1", "Step 2", "Step 3"]),
-          ...completeStepCall("Done"),
+          ...completeStepCall(),
           ...cancelCall(),
         ],
         check: (messages: RenderMessage[]) => {

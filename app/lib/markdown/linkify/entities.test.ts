@@ -16,7 +16,12 @@ const formatMissing = (id: string): string | null =>
   id.endsWith(".md") ? `**${id.replace(/\.md$/, "").replace(/_/g, " ")}**` : null
 
 type FormatMissing = (id: string) => string | null
-interface Case { name: string; input: string; expected: string; formatMissing?: FormatMissing }
+interface Case {
+  name: string
+  input: string
+  expected: string
+  formatMissing?: FormatMissing
+}
 
 describe("linkifyEntityIds", () => {
   const cases: Case[] = [
@@ -232,6 +237,21 @@ describe("linkifyEntityIds", () => {
       input: "href is file://unknown-file.md here",
       expected: "href is file://unknown-file.md here",
       formatMissing,
+    },
+    {
+      name: "links entity ID with capitalized prefix",
+      input: "See Annotation-1a2b3c4d for details",
+      expected: "See [user frustration](file://annotation-1a2b3c4d) for details",
+    },
+    {
+      name: "links entity ID with uppercase prefix",
+      input: "Applied CALLOUT-7xk2m9p1 here",
+      expected: "Applied [User Frustration](file://callout-7xk2m9p1) here",
+    },
+    {
+      name: "strips name from capitalized prefix ID",
+      input: "Callout-7xk2m9p1 — User Frustration",
+      expected: "[User Frustration](file://callout-7xk2m9p1)",
     },
   ]
 

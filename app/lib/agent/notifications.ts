@@ -40,10 +40,9 @@ const mapPlanCreated: NotificationMapper = (block, allBlocks) => {
   return { title: "Nabu — Plan", body: formatBody(task) }
 }
 
-const mapStepComplete: NotificationMapper = (block, allBlocks) => {
+const mapStepComplete: NotificationMapper = (block) => {
   if (block.type !== "tool_result" || !isSuccessfulResult(block, "complete_step")) return null
-  const summary = findToolCallArg(allBlocks, block.callId, "summary") ?? "Step completed"
-  return { title: "Nabu — Step Done", body: formatBody(summary) }
+  return { title: "Nabu — Step Done", body: "Step completed" }
 }
 
 const mapMessage: NotificationMapper = (block) => {

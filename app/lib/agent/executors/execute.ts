@@ -183,11 +183,11 @@ export const createExecutor =
     if (!handler) return { status: "error", output: `Unknown tool: ${call.name}` }
 
     const files = getViewableFiles()
-    const { status, output, message, hint, mutations } = await handler(files, call.args)
+    const { status, output, message, hint, directive, mutations } = await handler(files, call.args)
 
     const mutResult = await applyMutations(mutations)
     if (mutResult && isMutationError(mutResult))
-      return { status: "error", output: mutResult.error, hint }
+      return { status: "error", output: mutResult.error, hint, directive }
 
     const finalOutput = appendIds(output, mutResult?.ids ?? null)
     const finalStatus = mutResult?.warnings ? "partial" : status
@@ -199,5 +199,6 @@ export const createExecutor =
       output: finalOutput,
       message: finalMessage,
       hint,
+      directive,
     } as ToolResult<unknown>
   }

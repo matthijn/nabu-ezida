@@ -115,6 +115,7 @@ registerTool(
         ])
       }
 
+      let directive: string | undefined
       const matches = collectSections(targetEntries)
       if (matches.length > 0) {
         const sourceEntries: SourceEntry[] = source_files.map((f) => ({
@@ -124,19 +125,20 @@ registerTool(
         const steps = buildAutoSteps(matches, sourceEntries, post_action)
         const task = `Deep analysis: ${targetEntries.map((e) => e.path).join(", ")}`
         activatePlan(task, steps, [])
-        pushBlocks([toSystemBlock(buildExecRules(steps[0].expected))])
+        directive = buildExecRules(steps[0].expected)
       }
 
       const total = target_files.length + source_files.length
       const failed = [...sourceFailed, ...targetFailed]
 
-      if (failed.length === 0) return { status: "ok", output: "ok", mutations: [] }
+      if (failed.length === 0) return { status: "ok", output: "ok", directive, mutations: [] }
       if (failed.length === total)
         return { status: "error", output: `All files failed: ${failed.join(", ")}`, mutations: [] }
 
       return {
         status: "partial",
         output: "ok",
+        directive,
         message: `${total - failed.length}/${total} files processed. Failed: ${failed.join(", ")}`,
         mutations: [],
       } as HandlerResult<string>

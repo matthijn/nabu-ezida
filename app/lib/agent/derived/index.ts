@@ -83,10 +83,9 @@ const processToolCall = (derived: Derived, call: EnrichedToolCall): Derived => {
     const lastPlan = derived.plans.at(-1)
     if (!lastPlan || lastPlan.currentStep === null) return derived
     const internal = (call.args.internal as string) || null
-    const summary = (call.args.summary as string) || null
     return {
       ...derived,
-      plans: updateLastPlan(derived.plans, (p) => processCompleteStep(p, internal, summary)),
+      plans: updateLastPlan(derived.plans, (p) => processCompleteStep(p, internal)),
     }
   }
 
@@ -127,45 +126,6 @@ const countActionsSinceBoundary = (history: Block[], isBoundary: (b: Block) => b
     if (isAgentAction(block)) count++
   }
   return count
-}
-
-const WRITE_TOOLS = new Set([
-  "patch_attributes",
-  "patch_annotations",
-  "patch_callout",
-  "patch_settings",
-  "patch_chart",
-  "delete_attributes",
-  "delete_annotations",
-  "delete_callout",
-  "delete_settings",
-  "delete_chart",
-  "apply_local_patch",
-  "copy_file",
-  "rename_file",
-  "remove_file",
-])
-
-const isSuccessfulWrite = (block: Block): boolean =>
-  block.type === "tool_result" &&
-  block.toolName !== undefined &&
-  WRITE_TOOLS.has(block.toolName) &&
-  !isErrorResult(block.result)
-
-const isCompletedBoundary = (block: Block): boolean =>
-  isBlockPlanMarker(block) ||
-  (block.type === "tool_result" &&
-    block.toolName !== undefined &&
-    (block.toolName === "submit_plan" || block.toolName === "complete_step"))
-
-export const hasDeliverable = (history: Block[]): boolean => {
-  for (let i = history.length - 1; i >= 0; i--) {
-    const block = history[i]
-    if (isCompletedBoundary(block)) break
-    if (block.type === "user") return true
-    if (isSuccessfulWrite(block)) return true
-  }
-  return false
 }
 
 export const isPlanPaused = (history: Block[]): boolean => {
