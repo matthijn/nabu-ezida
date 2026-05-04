@@ -14,9 +14,6 @@ export const radixColor = z.enum(BLOCK_COLORS as [string, ...string[]])
 const hasColorOrCode = (a: { color?: unknown; code?: unknown }) =>
   (a.color !== undefined) !== (a.code !== undefined)
 
-const reviewRequiresCode = (a: { review?: unknown; code?: unknown }) =>
-  !a.review || a.code !== undefined
-
 const textExistsInProse = (text: string, prose: string): boolean =>
   prose.toLowerCase().includes(text.toLowerCase())
 
@@ -31,10 +28,6 @@ const BaseAnnotationSchema = z.object({
   reason: z.string().describe("Why this text was annotated"),
   color: emptyToUndefined(radixColor).describe("Color for the annotation (if no code)"),
   code: emptyToUndefined(z.string()).describe("Code ID from codebook (if no color)"),
-  review: z
-    .string()
-    .optional()
-    .describe("Flags the annotation for human review — explain what needs attention"),
   id: z.string().optional(),
   actor: z.enum(["ai", "user"]).optional(),
 })
@@ -43,9 +36,6 @@ export const annotationSchema = (ctx?: ValidationContext) => {
   const base = BaseAnnotationSchema.refine(
     hasColorOrCode,
     "Either color or code must be set, not both"
-  ).refine(
-    reviewRequiresCode,
-    "review requires code — only code annotations can be flagged for review"
   )
   if (!ctx) return base
   return base.superRefine((a, ctx2) => {

@@ -6,13 +6,6 @@ import type { Annotation } from "~/domain/data-blocks/attributes/annotations/sel
 import { HighlightTooltip, type HighlightEntry } from "~/ui/components/HighlightTooltip"
 import { elementBorder } from "~/ui/theme/radix"
 import { getCodeTitle, getFiles } from "~/lib/files"
-import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
-import { getReviewAnnotationsForCode } from "~/domain/data-blocks/attributes/annotations/selectors"
-import {
-  buildCodeReviewContext,
-  buildExplainCodingContext,
-} from "~/domain/data-blocks/attributes/annotations/context"
-import { dispatchTask } from "~/lib/agent/dispatch"
 import { patchBlock } from "~/lib/data-blocks/patch"
 
 interface HoverState {
@@ -45,54 +38,8 @@ const removeAnnotationOp = (id: string) => [
   { op: "remove" as const, path: `/annotations[id=${id}]` },
 ]
 
-const clearReviewOp = (id: string) => [
-  { op: "remove" as const, path: `/annotations[id=${id}]/review` },
-]
-
 const buildDeleteCallback = (filePath: string, id: string) => () => {
   patchBlock(filePath, ANNOTATIONS_LANGUAGE, removeAnnotationOp(id))
-}
-
-const buildResolveCallback = (filePath: string, id: string) => () => {
-  patchBlock(filePath, ANNOTATIONS_LANGUAGE, clearReviewOp(id))
-}
-
-const buildRefineCallback = (
-  files: Record<string, string>,
-  annotation: Annotation
-): (() => void) | undefined => {
-  if (!annotation.code || !annotation.review) return undefined
-  const code = findCodeById(files, annotation.code)
-  if (!code) return undefined
-  return () => {
-    const flagged = getReviewAnnotationsForCode(files, code.id)
-    dispatchTask({
-      approaches: ["qual-coding/codebook/review"],
-      context: buildCodeReviewContext(code.title, code.content, flagged),
-      userMessage: `${annotation.id} is flagged on ${code.id} — is this overlap a codebook definition issue, or are both codes capturing something distinct here?`,
-    })
-  }
-}
-
-const buildExplainCallback = (
-  files: Record<string, string>,
-  annotation: Annotation
-): (() => void) | undefined => {
-  if (!annotation.code) return undefined
-  const code = findCodeById(files, annotation.code)
-  if (!code) return undefined
-  return () => {
-    dispatchTask({
-      approaches: [],
-      context: buildExplainCodingContext(
-        code.title,
-        code.content,
-        annotation.text,
-        annotation.reason
-      ),
-      userMessage: `Why was ${annotation.id} coded as ${code.id}?`,
-    })
-  }
 }
 
 const annotationToEntry =
@@ -105,11 +52,7 @@ const annotationToEntry =
       color: elementBorder(annotation.color),
       title: annotation.code ? getCodeTitle(files, annotation.code) : undefined,
       description: annotation.reason,
-      review: annotation.review,
       onDelete: canMutate ? buildDeleteCallback(filePath, id) : undefined,
-      onResolve: canMutate && annotation.review ? buildResolveCallback(filePath, id) : undefined,
-      onRefineCodebook: buildRefineCallback(files, annotation),
-      onExplainCoding: buildExplainCallback(files, annotation),
     }
   }
 

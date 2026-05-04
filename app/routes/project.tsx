@@ -48,7 +48,6 @@ import {
   getAnnotationCount,
   getAnnotationCountsByCode,
   getAnnotationGlobalCountsByCode,
-  getReviewAnnotationCount,
 } from "~/domain/data-blocks/attributes/annotations/selectors"
 import { findDocumentForCallout } from "~/domain/data-blocks/callout/selectors"
 import { toDisplayName, isHiddenFile } from "~/lib/files/filename"
@@ -426,23 +425,11 @@ export default function ProjectLayout() {
     )
   }
 
-  const reviewCount = useMemo(() => getReviewAnnotationCount(files), [files])
   const annotationCounts = useMemo(
     () => (currentFile ? getAnnotationCountsByCode(getFileAnnotations(currentFile)) : {}),
     [currentFile, files]
   )
   const globalAnnotationCounts = useMemo(() => getAnnotationGlobalCountsByCode(files), [files])
-
-  const handleReviewClick = () => {
-    const id = saveNewSearch({
-      title: "Needs review",
-      description: "Annotations flagged for review",
-      sql: "SELECT file, id, text, review FROM annotations WHERE review IS NOT NULL",
-    })
-    if (!id) return
-    dismissSidebarRef.current?.()
-    navigate(`/project/${params.projectId}/search/${id}`)
-  }
 
   const handleSearchCode = (code: Code) => {
     const id = saveNewSearch({
@@ -504,12 +491,10 @@ export default function ProjectLayout() {
               codebook={codebook}
               annotationCounts={annotationCounts}
               globalAnnotationCounts={globalAnnotationCounts}
-              reviewCount={reviewCount}
               onEditCode={handleEditCode}
               onCodeFile={handleCodeFile}
               onFileSelect={handleDocumentSelect}
               onSearchCode={handleSearchCode}
-              onReviewClick={handleReviewClick}
             />
           ),
         }
@@ -538,7 +523,6 @@ export default function ProjectLayout() {
           activeNav={activeNav}
           showCodes={!!codebook}
           showExhibits={exhibits.length > 0}
-          reviewCount={reviewCount}
           onNavChange={setActiveNav}
           dismissSidebarRef={dismissSidebarRef}
           sidebarPanels={sidebarPanels}

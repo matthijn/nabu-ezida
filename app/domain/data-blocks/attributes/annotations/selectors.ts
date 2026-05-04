@@ -3,7 +3,7 @@ import { findCodeById } from "~/domain/data-blocks/callout/codes/selectors"
 import { getBlock } from "~/lib/data-blocks/query"
 import { AnnotationsBlockSchema } from "~/domain/data-blocks/annotations/schema"
 import type { FileStore } from "~/lib/files"
-import { collectAll, findIn, findFileFor } from "~/lib/files/collect"
+import { findIn, findFileFor } from "~/lib/files/collect"
 
 export type Annotation = Omit<StoredAnnotation, "color"> & { color: string }
 
@@ -27,16 +27,10 @@ const resolveAnnotation = (files: FileStore, stored: StoredAnnotation): Annotati
   color: resolveAnnotationColor(files, stored),
   reason: stored.reason,
   code: stored.code,
-  review: stored.review,
 })
 
 export const getAnnotations = (files: FileStore, raw: string): Annotation[] =>
   getStoredAnnotations(raw).map((a) => resolveAnnotation(files, a))
-
-const hasReview = (a: StoredAnnotation): boolean => !!a.review
-
-export const getReviewAnnotationCount = (files: FileStore): number =>
-  collectAll(files, getStoredAnnotations).filter(hasReview).length
 
 const hasId = (id: string) => (a: StoredAnnotation) => a.id === id
 
@@ -45,14 +39,6 @@ export const findAnnotationById = (files: FileStore, id: string): StoredAnnotati
 
 export const findDocumentForAnnotation = (files: FileStore, id: string): string | undefined =>
   findFileFor(files, getStoredAnnotations, hasId(id))
-
-const hasCodeAndReview =
-  (codeId: string) =>
-  (a: StoredAnnotation): boolean =>
-    a.code === codeId && hasReview(a)
-
-export const getReviewAnnotationsForCode = (files: FileStore, codeId: string): StoredAnnotation[] =>
-  collectAll(files, getStoredAnnotations).filter(hasCodeAndReview(codeId))
 
 export const getAnnotationCountsByCode = (annotations: Annotation[]): Record<string, number> =>
   annotations.reduce<Record<string, number>>((acc, a) => {

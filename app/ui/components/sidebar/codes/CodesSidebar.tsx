@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Flag, Play, Search } from "lucide-react"
+import { Play, Search } from "lucide-react"
 import { SidebarHeader } from "~/ui/components/sidebar/SidebarHeader"
 import { TooltipWrap } from "~/ui/components/TooltipWrap"
 import { matchesAny } from "~/lib/utils/filter"
@@ -16,13 +16,11 @@ interface CodesSidebarProps {
   codebook: Codebook
   annotationCounts?: Record<string, number>
   globalAnnotationCounts?: Record<string, GlobalAnnotationCount>
-  reviewCount?: number
   busy?: boolean
   onEditCode?: (code: Code) => void
   onCodeFile?: (code: Code) => void
   onFileSelect?: (fileId: string) => void
   onSearchCode?: (code: Code) => void
-  onReviewClick?: () => void
 }
 
 const formatGlobalTooltip = ({ count, fileCount }: GlobalAnnotationCount): string =>
@@ -98,35 +96,15 @@ const CodeFileButton = ({ code, disabled, onClick }: CodeFileButtonProps) => (
   </TooltipWrap>
 )
 
-const NeedsReviewRow = ({ count, onClick }: { count: number; onClick?: () => void }) => (
-  <>
-    <div
-      className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-warning-50"
-      onClick={onClick}
-    >
-      <Flag className="h-4 w-4 flex-none text-warning-600" />
-      <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
-        Needs review
-      </span>
-      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-500 px-1.5 text-[11px] font-bold leading-none text-white">
-        {count}
-      </span>
-    </div>
-    <div className="flex h-px w-full flex-none bg-neutral-border" />
-  </>
-)
-
 export const CodesSidebar = ({
   codebook,
   annotationCounts = {},
   globalAnnotationCounts = {},
-  reviewCount = 0,
   busy = false,
   onEditCode,
   onCodeFile,
   onFileSelect,
   onSearchCode,
-  onReviewClick,
 }: CodesSidebarProps) => {
   const [searchValue, setSearchValue] = useState("")
   const [hoveredCode, setHoveredCode] = useState<Code | null>(null)
@@ -146,7 +124,6 @@ export const CodesSidebar = ({
           onFilterChange={setSearchValue}
           onNew={() => undefined}
         />
-        {reviewCount > 0 && <NeedsReviewRow count={reviewCount} onClick={onReviewClick} />}
       </div>
 
       <div className="flex w-full grow shrink-0 basis-0 flex-col items-start gap-4 px-4 py-4 overflow-auto">
