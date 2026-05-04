@@ -425,6 +425,10 @@ export default function ProjectLayout() {
     )
   }
 
+  const fileAnnotationCount = useMemo(
+    () => (currentFile ? getAnnotationCount(files[currentFile] ?? "") : undefined),
+    [currentFile, files]
+  )
   const annotationCounts = useMemo(
     () => (currentFile ? getAnnotationCountsByCode(getFileAnnotations(currentFile)) : {}),
     [currentFile, files]
@@ -523,6 +527,7 @@ export default function ProjectLayout() {
           activeNav={activeNav}
           showCodes={!!codebook}
           showExhibits={exhibits.length > 0}
+          annotationCount={fileAnnotationCount}
           onNavChange={setActiveNav}
           dismissSidebarRef={dismissSidebarRef}
           sidebarPanels={sidebarPanels}

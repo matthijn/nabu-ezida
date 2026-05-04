@@ -10,6 +10,7 @@ interface NavItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: ReactNode
   selected?: boolean
   badge?: number
+  badgeColor?: string
   className?: string
 }
 
@@ -19,6 +20,7 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
     children,
     selected = false,
     badge,
+    badgeColor,
     className,
     ...otherProps
   }: NavItemProps,
@@ -46,8 +48,11 @@ const NavItem = React.forwardRef<HTMLDivElement, NavItemProps>(function NavItem(
           >
             {icon}
           </SubframeCore.IconWrapper>
-          {badge != null && badge > 0 ? (
-            <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-500 px-1 text-[10px] font-bold leading-none text-white">
+          {badge != null ? (
+            <span
+              className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+              style={{ backgroundColor: badgeColor ?? "var(--color-neutral-400)" }}
+            >
               {badge > 99 ? "99+" : badge}
             </span>
           ) : null}
